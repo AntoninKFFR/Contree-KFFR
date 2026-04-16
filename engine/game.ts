@@ -22,9 +22,22 @@ import type {
   TeamId,
 } from "./types";
 
-const DEFAULT_SETTINGS: GameSettings = {
-  scoringMode: "made-points",
-};
+function defaultTargetScore(scoringMode: GameSettings["scoringMode"]): number {
+  return scoringMode === "announced-points" ? 500 : 1000;
+}
+
+function resolveSettings(settings: Partial<GameSettings>): GameSettings {
+  const scoringMode = settings.scoringMode ?? "made-points";
+
+  return {
+    scoringMode,
+    targetScore: settings.targetScore ?? defaultTargetScore(scoringMode),
+  };
+}
+
+function emptyScore(): Record<TeamId, number> {
+  return { 0: 0, 1: 0 };
+}
 
 function dealHands(deck: Card[]): GameState["hands"] {
   return {
@@ -39,14 +52,40 @@ export function createInitialGame(
   random = Math.random,
   settings: Partial<GameSettings> = {},
 ): GameState {
+  return createRoundState({
+    random,
+    settings: resolveSettings(settings),
+    roundHistory: [],
+    roundNumber: 1,
+    totalScore: emptyScore(),
+    winnerTeam: null,
+  });
+}
+
+function createRoundState({
+  random,
+  roundHistory,
+  roundNumber,
+  settings,
+  totalScore,
+  winnerTeam,
+}: {
+  random: () => number;
+  roundHistory: GameState["roundHistory"];
+  roundNumber: number;
+  settings: GameSettings;
+  totalScore: Record<TeamId, number>;
+  winnerTeam: TeamId | null;
+}): GameState {
   const deck = shuffleDeck(createDeck(), random);
 
   return {
-    settings: {
-      ...DEFAULT_SETTINGS,
-      ...settings,
-    },
+    settings,
     phase: "bidding",
+    roundNumber,
+    totalScore,
+    roundHistory,
+    winnerTeam,
     trump: null,
     hands: dealHands(deck),
     currentPlayerId: 0,
@@ -58,16 +97,61 @@ export function createInitialGame(
     bids: [],
     contract: null,
     result: null,
-    trickPoints: {
-      0: 0,
-      1: 0,
-    },
-    roundScore: {
-      0: 0,
-      1: 0,
-    },
-    message: "Phase d'annonces: Anto commence.",
+    trickPoints: emptyScore(),
+    roundScore: emptyScore(),
+    message: `Manche ${roundNumber}: phase d'annonces, Anto commence.`,
   };
+}
+
+function addScores(
+  first: Record<TeamId, number>,
+  second: Record<TeamId, number>,
+): Record<TeamId, number> {
+  return {
+    0: first[0] + second[0],
+    1: first[1] + second[1],
+  };
+}
+
+function winningTeam(totalScore: Record<TeamId, number>, targetScore: number): TeamId | null {
+  if (totalScore[0] >= targetScore && totalScore[0] >= totalScore[1]) return 0;
+  if (totalScore[1] >= targetScore && totalScore[1] >= totalScore[0]) return 1;
+  return null;
+}
+
+function finishRound(state: GameState, result: GameState["result"], baseMessage: string): GameState {
+  if (!result) {
+    return state;
+  }
+
+  const totalScore = addScores(state.totalScore, result.roundScore);
+  const winnerTeam = winningTeam(totalScore, state.settings.targetScore);
+  const roundHistory = [
+    ...state.roundHistory,
+    {
+      roundNumber: state.roundNumber,
+      result,
+      totalScoreAfterRound: totalScore,
+    },
+  ];
+
+  return {
+    ...state,
+    phase: winnerTeam === null ? "finished" : "game-over",
+    result,
+    roundScore: result.roundScore,
+    totalScore,
+    roundHistory,
+    winnerTeam,
+    message:
+      winnerTeam === null
+        ? `${baseMessage} Lance la manche suivante.`
+        : `${baseMessage} Partie terminee: ${teamLabel(winnerTeam)} gagne.`,
+  };
+}
+
+function teamLabel(teamId: TeamId): string {
+  return teamId === 0 ? "Anto + Boulais" : "Max + Allan";
 }
 
 function sortHandsForTrump(hands: GameState["hands"], trump: Suit): GameState["hands"] {
@@ -136,17 +220,17 @@ function finishBidding(state: GameState, bids: Bid[]): GameState {
 
   if (!contract) {
     const roundScore = { 0: 0, 1: 0 } as Record<TeamId, number>;
-    return {
-      ...state,
-      phase: "finished",
-      bids,
-      result: {
+    return finishRound(
+      {
+        ...state,
+        bids,
+      },
+      {
         kind: "all-pass",
         roundScore,
       },
-      roundScore,
-      message: "Tout le monde passe. Relance une nouvelle partie.",
-    };
+      "Tout le monde passe.",
+    );
   }
 
   return {
@@ -250,7 +334,7 @@ export function playableCardsForCurrentPlayer(state: GameState): Card[] {
 }
 
 export function playCard(state: GameState, playerId: PlayerId, card: Card): GameState {
-  if (state.phase === "finished") {
+  if (state.phase === "finished" || state.phase === "game-over") {
     return state;
   }
 
@@ -308,9 +392,8 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
       points,
     },
   ];
-  const phase = isLastTrick ? "finished" : "playing";
   const result =
-    phase === "finished"
+    isLastTrick
       ? scoreRound({
           contract: state.contract,
           settings: state.settings,
@@ -318,9 +401,9 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
         })
       : null;
 
-  return {
+  const nextState: GameState = {
     ...state,
-    phase,
+    phase: isLastTrick ? "finished" : "playing",
     hands: nextHands,
     currentPlayerId: winnerId,
     currentTrick: {
@@ -329,17 +412,48 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     },
     completedTricks,
     trickPoints: trickPointsByTeam,
-    result,
+    result: result ?? state.result,
     roundScore: result?.kind === "played" ? result.roundScore : state.roundScore,
     message:
-      phase === "finished"
+      isLastTrick
         ? result?.kind === "played" && result.contractSucceeded
           ? `Contrat reussi. ${playerName(winnerId)} gagne le dernier pli.`
           : `Contrat chute. ${playerName(winnerId)} gagne le dernier pli.`
         : `${playerName(winnerId)} remporte le pli et rejoue.`,
   };
+
+  if (!isLastTrick || !result) {
+    return nextState;
+  }
+
+  return finishRound(
+    nextState,
+    result,
+    result.contractSucceeded
+      ? `Contrat reussi. ${playerName(winnerId)} gagne le dernier pli.`
+      : `Contrat chute. ${playerName(winnerId)} gagne le dernier pli.`,
+  );
 }
 
 export function resetGame(random = Math.random): GameState {
   return createInitialGame(random);
+}
+
+export function startNextRound(state: GameState, random = Math.random): GameState {
+  if (state.phase !== "finished") {
+    return state;
+  }
+
+  return createRoundState({
+    random,
+    settings: state.settings,
+    roundHistory: state.roundHistory,
+    roundNumber: state.roundNumber + 1,
+    totalScore: state.totalScore,
+    winnerTeam: null,
+  });
+}
+
+export function getDefaultTargetScore(scoringMode: GameSettings["scoringMode"]): number {
+  return defaultTargetScore(scoringMode);
 }

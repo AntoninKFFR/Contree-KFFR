@@ -8,8 +8,12 @@ function card(rank: Card["rank"], suit: Card["suit"]): Card {
 
 function stateForBot(hand: Card[], currentTrick: GameState["currentTrick"]): GameState {
   return {
-    settings: { scoringMode: "made-points" },
+    settings: { scoringMode: "made-points", targetScore: 1000 },
     phase: "playing",
+    roundNumber: 1,
+    totalScore: { 0: 0, 1: 0 },
+    roundHistory: [],
+    winnerTeam: null,
     trump: "hearts",
     hands: {
       0: [],

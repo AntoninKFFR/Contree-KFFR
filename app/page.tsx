@@ -9,10 +9,12 @@ import { ScoreBoard } from "@/components/ScoreBoard";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import {
   createInitialGame,
+  getDefaultTargetScore,
   getCurrentContract,
   makeBid,
   playableCardsForCurrentPlayer,
   playCard,
+  startNextRound,
 } from "@/engine/game";
 import type { BidValue, Card, GameState, ScoringMode, Suit } from "@/engine/types";
 
@@ -21,7 +23,10 @@ const initialRenderRandom = () => 0.42;
 export default function Home() {
   const [scoringMode, setScoringMode] = useState<ScoringMode>("made-points");
   const [gameState, setGameState] = useState<GameState>(() =>
-    createInitialGame(initialRenderRandom, { scoringMode: "made-points" }),
+    createInitialGame(initialRenderRandom, {
+      scoringMode: "made-points",
+      targetScore: getDefaultTargetScore("made-points"),
+    }),
   );
 
   const humanCanPlay = gameState.phase === "playing" && gameState.currentPlayerId === 0;
@@ -85,7 +90,16 @@ export default function Home() {
   }
 
   function handleNewGame() {
-    setGameState(createInitialGame(Math.random, { scoringMode }));
+    setGameState(
+      createInitialGame(Math.random, {
+        scoringMode,
+        targetScore: getDefaultTargetScore(scoringMode),
+      }),
+    );
+  }
+
+  function handleNextRound() {
+    setGameState((currentState) => startNextRound(currentState));
   }
 
   return (
@@ -109,7 +123,7 @@ export default function Home() {
           <div>
             <p className="text-sm uppercase tracking-wide text-stone-500">Mode de score</p>
             <p className="text-sm text-stone-700">
-              Choisis le mode, puis lance une nouvelle partie.
+              Choisis le mode, puis lance une nouvelle partie. La cible s&apos;adapte au mode.
             </p>
           </div>
           <select
@@ -124,7 +138,11 @@ export default function Home() {
 
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <GameTable state={gameState} />
-          <ScoreBoard state={gameState} onNewGame={handleNewGame} />
+          <ScoreBoard
+            state={gameState}
+            onNewGame={handleNewGame}
+            onNextRound={handleNextRound}
+          />
         </div>
 
         {gameState.phase === "bidding" ? (

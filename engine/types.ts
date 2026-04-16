@@ -6,7 +6,7 @@ export type TeamId = 0 | 1;
 
 export type PlayerId = 0 | 1 | 2 | 3;
 
-export type Phase = "bidding" | "playing" | "finished";
+export type Phase = "bidding" | "playing" | "finished" | "game-over";
 
 export type BidValue = 80 | 90 | 100 | 110 | 120 | 130 | 140 | 150 | 160;
 
@@ -16,6 +16,7 @@ export type ContractStatus = "normal" | "coinched" | "surcoinched";
 
 export type GameSettings = {
   scoringMode: ScoringMode;
+  targetScore: number;
 };
 
 export type Card = {
@@ -84,9 +85,19 @@ export type RoundResult =
       roundScore: Record<TeamId, number>;
     };
 
+export type RoundHistoryEntry = {
+  roundNumber: number;
+  result: RoundResult;
+  totalScoreAfterRound: Record<TeamId, number>;
+};
+
 export type GameState = {
   settings: GameSettings;
   phase: Phase;
+  roundNumber: number;
+  totalScore: Record<TeamId, number>;
+  roundHistory: RoundHistoryEntry[];
+  winnerTeam: TeamId | null;
   trump: Suit | null;
   hands: Record<PlayerId, Card[]>;
   currentPlayerId: PlayerId;

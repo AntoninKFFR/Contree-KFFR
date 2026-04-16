@@ -9,6 +9,9 @@ Application pédagogique en Next.js, TypeScript et Tailwind.
 - Tours de jeu
 - Gestion des plis
 - Score des cartes et bonus du dernier pli
+- Annonces, coinche et surcoinche
+- Partie complète en plusieurs manches
+- Score total et historique des manches
 - Moteur de jeu séparé de l'interface
 - Tests unitaires sur les règles importantes
 

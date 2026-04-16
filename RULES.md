@@ -6,6 +6,7 @@ Cette V1 est volontairement simple pour apprendre la structure d'une application
 
 - Il y a 4 joueurs: Anto, Max, Boulais, Allan.
 - Les équipes sont fixes: Anto + Boulais contre Max + Allan.
+- Une partie complète est composée de plusieurs manches.
 - On utilise un jeu de 32 cartes: 7, 8, 9, Valet, Dame, Roi, 10, As.
 - Chaque joueur reçoit 8 cartes.
 - Il y a une phase d'enchères avant de jouer les cartes.
@@ -20,7 +21,7 @@ Cette V1 est volontairement simple pour apprendre la structure d'une application
 - Le contrat final peut être normal, coinché ou surcoinché.
 - L'atout de la manche est la couleur du contrat final.
 - L'équipe du joueur qui a fait le contrat final devient l'équipe preneuse.
-- Si tout le monde passe, la manche s'arrête sans points et il faut relancer une nouvelle partie.
+- Si tout le monde passe, la manche s'arrête sans points et on peut lancer la manche suivante.
 - Le joueur qui remporte le contrat commence le premier pli après les annonces.
 - Le joueur qui gagne un pli commence le pli suivant.
 - Le joueur doit fournir la couleur demandée s'il en a une.
@@ -95,6 +96,22 @@ Quand toutes les cartes ont été jouées, on regarde les points de plis.
 - Si l'équipe preneuse n'atteint pas la valeur du contrat, le contrat est chuté.
 
 Le mode de score choisi décide ensuite combien chaque équipe marque.
+
+## Partie complète
+
+Après chaque manche:
+
+- le score de la manche est ajouté au score total de la partie;
+- un résumé de la manche est ajouté à l'historique;
+- si aucune équipe n'a atteint le score cible, on peut lancer la manche suivante;
+- si une équipe atteint le score cible, la partie se termine.
+
+Scores cibles V1:
+
+- Mode points faits: 1000 points.
+- Mode points annoncés: 500 points.
+
+Ces valeurs sont simples et cohérentes avec la vitesse de score de chaque mode. En points faits, les plis ajoutent beaucoup de points, donc la cible est plus haute. En points annoncés, seuls les contrats marquent, donc la cible est plus basse.
 
 ## Pourquoi cette simplification ?
 
