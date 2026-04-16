@@ -62,7 +62,12 @@ export function trickPoints(cards: PlayedCard[], trump: Suit, isLastTrick: boole
   return isLastTrick ? cardsPoints + 10 : cardsPoints;
 }
 
-export function getLegalCards(hand: Card[], trick: Trick): Card[] {
+export function getLegalCards(
+  hand: Card[],
+  trick: Trick,
+  playerId: PlayerId,
+  trump: Suit,
+): Card[] {
   if (trick.cards.length === 0) {
     return hand;
   }
@@ -70,13 +75,36 @@ export function getLegalCards(hand: Card[], trick: Trick): Card[] {
   const requestedSuit = trick.cards[0].card.suit;
   const matchingSuit = hand.filter((card) => card.suit === requestedSuit);
 
-  // V1 simplifie la coinche: on doit fournir la couleur demandée si possible.
-  // Si on ne peut pas fournir, on autorise n'importe quelle carte.
-  return matchingSuit.length > 0 ? matchingSuit : hand;
+  if (matchingSuit.length > 0) {
+    return matchingSuit;
+  }
+
+  const trumpCards = hand.filter((card) => card.suit === trump);
+
+  if (trumpCards.length === 0) {
+    return hand;
+  }
+
+  const currentWinnerId = getTrickWinner(trick, trump);
+  const partnerIsWinning = playerTeam(currentWinnerId) === playerTeam(playerId);
+
+  // Quand le partenaire est maitre du pli, on peut "pisser":
+  // le joueur n'est pas oblige de couper.
+  if (partnerIsWinning) {
+    return hand;
+  }
+
+  return trumpCards;
 }
 
-export function isLegalCard(hand: Card[], trick: Trick, card: Card): boolean {
-  return getLegalCards(hand, trick).some((legalCard) => sameCard(legalCard, card));
+export function isLegalCard(
+  hand: Card[],
+  trick: Trick,
+  card: Card,
+  playerId: PlayerId,
+  trump: Suit,
+): boolean {
+  return getLegalCards(hand, trick, playerId, trump).some((legalCard) => sameCard(legalCard, card));
 }
 
 export function compareCards(

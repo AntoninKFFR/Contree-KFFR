@@ -330,7 +330,16 @@ export function playableCardsForCurrentPlayer(state: GameState): Card[] {
     return [];
   }
 
-  return getLegalCards(state.hands[state.currentPlayerId], state.currentTrick);
+  if (!state.trump) {
+    return [];
+  }
+
+  return getLegalCards(
+    state.hands[state.currentPlayerId],
+    state.currentTrick,
+    state.currentPlayerId,
+    state.trump,
+  );
 }
 
 export function playCard(state: GameState, playerId: PlayerId, card: Card): GameState {
@@ -351,7 +360,7 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     throw new Error(`Player ${playerId} does not have ${formatCard(card)}.`);
   }
 
-  if (!isLegalCard(hand, state.currentTrick, card)) {
+  if (!isLegalCard(hand, state.currentTrick, card, playerId, state.trump)) {
     throw new Error(`The card ${formatCard(card)} is not legal for this trick.`);
   }
 

@@ -32,10 +32,10 @@ describe("rules", () => {
       cards: [{ playerId: 1, card: { rank: "K", suit: "clubs" } }],
     };
 
-    expect(getLegalCards(hand, trick)).toEqual([{ rank: "7", suit: "clubs" }]);
+    expect(getLegalCards(hand, trick, 0, "hearts")).toEqual([{ rank: "7", suit: "clubs" }]);
   });
 
-  it("allows any card when the player cannot follow suit", () => {
+  it("requires cutting when player cannot follow suit and opponent is winning", () => {
     const hand: Card[] = [
       { rank: "7", suit: "diamonds" },
       { rank: "A", suit: "hearts" },
@@ -45,7 +45,33 @@ describe("rules", () => {
       cards: [{ playerId: 1, card: { rank: "K", suit: "clubs" } }],
     };
 
-    expect(getLegalCards(hand, trick)).toEqual(hand);
+    expect(getLegalCards(hand, trick, 0, "hearts")).toEqual([{ rank: "A", suit: "hearts" }]);
+  });
+
+  it("allows pissing when player cannot follow suit and partner is winning", () => {
+    const hand: Card[] = [
+      { rank: "7", suit: "diamonds" },
+      { rank: "A", suit: "hearts" },
+    ];
+    const trick: Trick = {
+      leaderId: 2,
+      cards: [{ playerId: 2, card: { rank: "K", suit: "clubs" } }],
+    };
+
+    expect(getLegalCards(hand, trick, 0, "hearts")).toEqual(hand);
+  });
+
+  it("allows any card when player cannot follow suit and has no trump", () => {
+    const hand: Card[] = [
+      { rank: "7", suit: "diamonds" },
+      { rank: "A", suit: "spades" },
+    ];
+    const trick: Trick = {
+      leaderId: 1,
+      cards: [{ playerId: 1, card: { rank: "K", suit: "clubs" } }],
+    };
+
+    expect(getLegalCards(hand, trick, 0, "hearts")).toEqual(hand);
   });
 
   it("lets trump beat the requested suit", () => {
