@@ -1,7 +1,7 @@
 import { playableCardsForCurrentPlayer } from "@/engine/game";
 import { SUITS } from "@/engine/cards";
 import { cardPoints, compareCards, getTrickWinner, playerTeam } from "@/engine/rules";
-import type { Card, GameState, PlayerId, Suit, Trick } from "@/engine/types";
+import type { BidValue, Card, GameState, PlayerId, Suit, Trick } from "@/engine/types";
 
 export type HandEvaluation = {
   trump: Suit;
@@ -17,7 +17,7 @@ export type HandEvaluation = {
 export type BidDecision = {
   action: "pass" | "bid";
   trump?: Suit;
-  value?: 80 | 90 | 100;
+  value?: BidValue;
   confidence: number;
   reason: string;
 };
@@ -199,6 +199,10 @@ export function chooseSimpleBid(hand: Card[]): BidDecision {
 }
 
 export function chooseCardToPlay(state: GameState): Card {
+  if (state.phase !== "playing" || !state.trump) {
+    throw new Error("Bot can only choose a card after trump is known.");
+  }
+
   const playableCards = playableCardsForCurrentPlayer(state);
 
   if (playableCards.length === 0) {

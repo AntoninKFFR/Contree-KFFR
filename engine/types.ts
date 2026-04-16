@@ -6,7 +6,9 @@ export type TeamId = 0 | 1;
 
 export type PlayerId = 0 | 1 | 2 | 3;
 
-export type Phase = "playing" | "finished";
+export type Phase = "bidding" | "playing" | "finished";
+
+export type BidValue = 80 | 90 | 100;
 
 export type Card = {
   suit: Suit;
@@ -28,13 +30,49 @@ export type CompletedTrick = Trick & {
   points: number;
 };
 
+export type Bid =
+  | {
+      playerId: PlayerId;
+      action: "pass";
+    }
+  | {
+      playerId: PlayerId;
+      action: "bid";
+      value: BidValue;
+      trump: Suit;
+    };
+
+export type Contract = {
+  playerId: PlayerId;
+  teamId: TeamId;
+  value: BidValue;
+  trump: Suit;
+};
+
+export type RoundResult =
+  | {
+      kind: "played";
+      contract: Contract;
+      takerPoints: number;
+      defenderPoints: number;
+      contractSucceeded: boolean;
+      roundScore: Record<TeamId, number>;
+    }
+  | {
+      kind: "all-pass";
+      roundScore: Record<TeamId, number>;
+    };
+
 export type GameState = {
   phase: Phase;
-  trump: Suit;
+  trump: Suit | null;
   hands: Record<PlayerId, Card[]>;
   currentPlayerId: PlayerId;
   currentTrick: Trick;
   completedTricks: CompletedTrick[];
+  bids: Bid[];
+  contract: Contract | null;
+  result: RoundResult | null;
   trickPoints: Record<TeamId, number>;
   roundScore: Record<TeamId, number>;
   message: string;

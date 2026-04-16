@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { chooseBotCard, isBotPlayer } from "@/bots/simpleBot";
+import { chooseBotBid, chooseBotCard, isBotPlayer } from "@/bots/simpleBot";
+import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
 import { ScoreBoard } from "@/components/ScoreBoard";
-import { createInitialGame, playableCardsForCurrentPlayer, playCard } from "@/engine/game";
-import type { Card, GameState } from "@/engine/types";
+import {
+  createInitialGame,
+  getCurrentContract,
+  makeBid,
+  playableCardsForCurrentPlayer,
+  playCard,
+} from "@/engine/game";
+import type { BidValue, Card, GameState, Suit } from "@/engine/types";
 
 const initialRenderRandom = () => 0.42;
 
@@ -16,20 +23,33 @@ export default function Home() {
   );
 
   const humanCanPlay = gameState.phase === "playing" && gameState.currentPlayerId === 0;
+  const humanCanBid = gameState.phase === "bidding" && gameState.currentPlayerId === 0;
+  const currentContract = useMemo(() => getCurrentContract(gameState), [gameState]);
   const legalHumanCards = useMemo(() => {
     if (!humanCanPlay) return [];
     return playableCardsForCurrentPlayer(gameState);
   }, [gameState, humanCanPlay]);
 
   useEffect(() => {
-    if (gameState.phase !== "playing" || !isBotPlayer(gameState.currentPlayerId)) {
+    if (
+      (gameState.phase !== "playing" && gameState.phase !== "bidding") ||
+      !isBotPlayer(gameState.currentPlayerId)
+    ) {
       return;
     }
 
     const timeoutId = window.setTimeout(() => {
       setGameState((currentState) => {
-        if (currentState.phase !== "playing" || !isBotPlayer(currentState.currentPlayerId)) {
+        if (
+          (currentState.phase !== "playing" && currentState.phase !== "bidding") ||
+          !isBotPlayer(currentState.currentPlayerId)
+        ) {
           return currentState;
+        }
+
+        if (currentState.phase === "bidding") {
+          const botBid = chooseBotBid(currentState);
+          return makeBid(currentState, currentState.currentPlayerId, botBid);
         }
 
         const botCard = chooseBotCard(currentState);
@@ -42,6 +62,14 @@ export default function Home() {
 
   function handlePlayCard(card: Card) {
     setGameState((currentState) => playCard(currentState, 0, card));
+  }
+
+  function handleHumanBid(value: BidValue, trump: Suit) {
+    setGameState((currentState) => makeBid(currentState, 0, { action: "bid", value, trump }));
+  }
+
+  function handleHumanPass() {
+    setGameState((currentState) => makeBid(currentState, 0, { action: "pass" }));
   }
 
   function handleNewGame() {
@@ -69,6 +97,15 @@ export default function Home() {
           <GameTable state={gameState} />
           <ScoreBoard state={gameState} onNewGame={handleNewGame} />
         </div>
+
+        {gameState.phase === "bidding" ? (
+          <BiddingPanel
+            canBid={humanCanBid}
+            currentContract={currentContract}
+            onBid={handleHumanBid}
+            onPass={handleHumanPass}
+          />
+        ) : null}
 
         <HumanHand
           canPlay={humanCanPlay}

@@ -4,17 +4,24 @@ Cette V1 est volontairement simple pour apprendre la structure d'une application
 
 ## Hypothèses
 
-- Il y a 4 joueurs: toi en joueur 1, puis 3 bots.
-- Les équipes sont fixes: joueur 1 + joueur 3 contre joueur 2 + joueur 4.
+- Il y a 4 joueurs: Anto, Max, Boulais, Allan.
+- Les équipes sont fixes: Anto + Boulais contre Max + Allan.
 - On utilise un jeu de 32 cartes: 7, 8, 9, Valet, Dame, Roi, 10, As.
-- Il n'y a pas encore d'enchères.
-- L'atout est fixé à coeur pour toute la manche.
-- Le joueur humain commence.
 - Chaque joueur reçoit 8 cartes.
+- Il y a une phase d'enchères avant de jouer les cartes.
+- Pour cette V1, chaque joueur parle une seule fois.
+- Anto parle en premier, puis Max, Boulais, Allan.
+- Un joueur peut passer ou annoncer 80, 90 ou 100 avec une couleur d'atout.
+- Une nouvelle annonce doit être plus haute que l'annonce actuelle.
+- Le contrat final est la meilleure annonce.
+- L'atout de la manche est la couleur du contrat final.
+- L'équipe du joueur qui a fait le contrat final devient l'équipe preneuse.
+- Si tout le monde passe, la manche s'arrête sans points et il faut relancer une nouvelle partie.
+- Anto commence le premier pli après les annonces.
 - Le joueur qui gagne un pli commence le pli suivant.
 - Le joueur doit fournir la couleur demandée s'il en a une.
 - Si le joueur ne peut pas fournir, il peut jouer n'importe quelle carte.
-- Pour cette V1, il n'y a pas encore d'obligation de couper, de surcouper, ni de contrat annoncé.
+- Pour cette V1, il n'y a pas encore d'obligation de couper ou de surcouper.
 
 ## Valeur des cartes
 
@@ -39,6 +46,20 @@ A l'atout:
 
 Le dernier pli ajoute 10 points.
 
+## Contrat et score de manche
+
+Quand toutes les cartes ont été jouées, on regarde les points de plis.
+
+- Si l'équipe preneuse atteint au moins la valeur du contrat, le contrat est réussi.
+- Si l'équipe preneuse n'atteint pas la valeur du contrat, le contrat est chuté.
+
+Score V1:
+
+- Contrat réussi: chaque équipe marque ses points de plis, et l'équipe preneuse ajoute la valeur du contrat.
+- Contrat chuté: l'équipe preneuse marque 0, et l'équipe adverse marque 162 + la valeur du contrat.
+
+Exemple: Max annonce 90 à pique. Son équipe fait seulement 74 points. Le contrat est chuté, donc Anto + Boulais marquent 252 points.
+
 ## Pourquoi cette simplification ?
 
-La vraie coinche contient des enchères, des annonces, des contrats, la coinche, la surcoinche, et des obligations plus fines quand un joueur ne peut pas fournir. Pour une V1 pédagogique, on garde le coeur du jeu: distribuer, jouer à tour de rôle, respecter la couleur, déterminer le gagnant du pli et compter les points.
+La vraie coinche contient aussi la coinche, la surcoinche, parfois des annonces de combinaisons, et des obligations plus fines quand un joueur ne peut pas fournir. Pour une V1 pédagogique, on garde une base claire: annoncer un contrat simple, choisir l'atout, jouer les plis, puis vérifier si le contrat est réussi ou chuté.
