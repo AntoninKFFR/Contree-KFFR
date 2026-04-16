@@ -57,7 +57,7 @@ export default function Home() {
               Coinche / Contree V1
             </p>
             <h1 className="text-3xl font-bold text-stone-950 sm:text-4xl">
-              Moi et Bot 1 contre Bot 2 et Bot 3
+              Anto et Boulais contre Max et Allan
             </h1>
           </div>
           <p className="max-w-xl text-sm leading-6 text-stone-700">

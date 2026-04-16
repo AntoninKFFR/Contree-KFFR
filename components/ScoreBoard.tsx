@@ -27,11 +27,11 @@ export function ScoreBoard({ state, onNewGame }: ScoreBoardProps) {
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div className="rounded-lg bg-emerald-50 p-3">
-          <p className="text-sm text-stone-600">Equipe Moi + Bot 1</p>
+          <p className="text-sm text-stone-600">Equipe Anto + Boulais</p>
           <p className="text-3xl font-bold">{state.trickPoints[0]}</p>
         </div>
         <div className="rounded-lg bg-yellow-50 p-3">
-          <p className="text-sm text-stone-600">Equipe Bot 2 + Bot 3</p>
+          <p className="text-sm text-stone-600">Equipe Max + Allan</p>
           <p className="text-3xl font-bold">{state.trickPoints[1]}</p>
         </div>
       </div>
