@@ -8,8 +8,12 @@ import { ScoreBoard } from "@/components/ScoreBoard";
 import { createInitialGame, playableCardsForCurrentPlayer, playCard } from "@/engine/game";
 import type { Card, GameState } from "@/engine/types";
 
+const initialRenderRandom = () => 0.42;
+
 export default function Home() {
-  const [gameState, setGameState] = useState<GameState>(() => createInitialGame());
+  const [gameState, setGameState] = useState<GameState>(() =>
+    createInitialGame(initialRenderRandom),
+  );
 
   const humanCanPlay = gameState.phase === "playing" && gameState.currentPlayerId === 0;
   const legalHumanCards = useMemo(() => {
@@ -57,7 +61,7 @@ export default function Home() {
             </h1>
           </div>
           <p className="max-w-xl text-sm leading-6 text-stone-700">
-            Clique une carte quand c'est ton tour. Les bots jouent seuls, le pli gagnant rejoue.
+            Clique une carte quand c&apos;est ton tour. Les bots jouent seuls, le pli gagnant rejoue.
           </p>
         </header>
 
