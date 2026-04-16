@@ -28,10 +28,10 @@ const DEFAULT_SETTINGS: GameSettings = {
 
 function dealHands(deck: Card[]): GameState["hands"] {
   return {
-    0: deck.slice(0, 8),
-    1: deck.slice(8, 16),
-    2: deck.slice(16, 24),
-    3: deck.slice(24, 32),
+    0: sortHand(deck.slice(0, 8)),
+    1: sortHand(deck.slice(8, 16)),
+    2: sortHand(deck.slice(16, 24)),
+    3: sortHand(deck.slice(24, 32)),
   };
 }
 

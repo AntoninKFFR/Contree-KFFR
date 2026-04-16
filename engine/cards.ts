@@ -2,6 +2,9 @@ import type { Card, Rank, Suit } from "./types";
 
 export const SUITS: Suit[] = ["clubs", "diamonds", "hearts", "spades"];
 export const RANKS: Rank[] = ["7", "8", "9", "J", "Q", "K", "10", "A"];
+const DISPLAY_SUIT_ORDER: Suit[] = ["hearts", "spades", "diamonds", "clubs"];
+const NORMAL_STRENGTH: Rank[] = ["A", "10", "K", "Q", "J", "9", "8", "7"];
+const TRUMP_STRENGTH: Rank[] = ["J", "9", "A", "10", "K", "Q", "8", "7"];
 
 export const SUIT_LABELS: Record<Suit, string> = {
   clubs: "Trefle",
@@ -44,15 +47,13 @@ export function shuffleDeck(deck: Card[], random = Math.random): Card[] {
   return shuffled;
 }
 
-export function sortHand(hand: Card[], trump: Suit): Card[] {
+export function sortHand(hand: Card[], trump?: Suit): Card[] {
   return [...hand].sort((first, second) => {
     if (first.suit === second.suit) {
-      return RANKS.indexOf(first.rank) - RANKS.indexOf(second.rank);
+      const strengths = first.suit === trump ? TRUMP_STRENGTH : NORMAL_STRENGTH;
+      return strengths.indexOf(first.rank) - strengths.indexOf(second.rank);
     }
 
-    if (first.suit === trump) return 1;
-    if (second.suit === trump) return -1;
-
-    return SUITS.indexOf(first.suit) - SUITS.indexOf(second.suit);
+    return DISPLAY_SUIT_ORDER.indexOf(first.suit) - DISPLAY_SUIT_ORDER.indexOf(second.suit);
   });
 }
