@@ -74,6 +74,71 @@ describe("rules", () => {
     expect(getLegalCards(hand, trick, 0, "hearts")).toEqual(hand);
   });
 
+  it("requires playing higher trump when the lead suit is trump and player can overtrump", () => {
+    const hand: Card[] = [
+      { rank: "A", suit: "hearts" },
+      { rank: "J", suit: "hearts" },
+      { rank: "7", suit: "clubs" },
+    ];
+    const trick: Trick = {
+      leaderId: 1,
+      cards: [{ playerId: 1, card: { rank: "9", suit: "hearts" } }],
+    };
+
+    expect(getLegalCards(hand, trick, 0, "hearts")).toEqual([{ rank: "J", suit: "hearts" }]);
+  });
+
+  it("allows lower trump when the lead suit is trump and player cannot overtrump", () => {
+    const hand: Card[] = [
+      { rank: "A", suit: "hearts" },
+      { rank: "10", suit: "hearts" },
+      { rank: "7", suit: "clubs" },
+    ];
+    const trick: Trick = {
+      leaderId: 1,
+      cards: [{ playerId: 1, card: { rank: "9", suit: "hearts" } }],
+    };
+
+    expect(getLegalCards(hand, trick, 0, "hearts")).toEqual([
+      { rank: "A", suit: "hearts" },
+      { rank: "10", suit: "hearts" },
+    ]);
+  });
+
+  it("requires overtrumping when an opponent has cut and player can overtrump", () => {
+    const hand: Card[] = [
+      { rank: "A", suit: "hearts" },
+      { rank: "J", suit: "hearts" },
+      { rank: "7", suit: "diamonds" },
+    ];
+    const trick: Trick = {
+      leaderId: 1,
+      cards: [
+        { playerId: 1, card: { rank: "K", suit: "clubs" } },
+        { playerId: 3, card: { rank: "9", suit: "hearts" } },
+      ],
+    };
+
+    expect(getLegalCards(hand, trick, 0, "hearts")).toEqual([{ rank: "J", suit: "hearts" }]);
+  });
+
+  it("allows discarding when an opponent has cut and player cannot overtrump", () => {
+    const hand: Card[] = [
+      { rank: "A", suit: "hearts" },
+      { rank: "10", suit: "hearts" },
+      { rank: "7", suit: "diamonds" },
+    ];
+    const trick: Trick = {
+      leaderId: 1,
+      cards: [
+        { playerId: 1, card: { rank: "K", suit: "clubs" } },
+        { playerId: 3, card: { rank: "9", suit: "hearts" } },
+      ],
+    };
+
+    expect(getLegalCards(hand, trick, 0, "hearts")).toEqual(hand);
+  });
+
   it("lets trump beat the requested suit", () => {
     const trick: Trick = {
       leaderId: 0,

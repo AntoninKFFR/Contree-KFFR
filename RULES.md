@@ -25,9 +25,11 @@ Cette V1 est volontairement simple pour apprendre la structure d'une application
 - Le joueur qui remporte le contrat commence le premier pli après les annonces.
 - Le joueur qui gagne un pli commence le pli suivant.
 - Le joueur doit fournir la couleur demandée s'il en a une.
+- Si la couleur demandée est l'atout, le joueur doit monter à l'atout s'il peut.
 - Si le joueur ne peut pas fournir et que l'adversaire est maître du pli, il doit couper s'il a de l'atout.
+- Si un adversaire a déjà coupé, le joueur doit surcouper s'il peut.
+- Si un adversaire a déjà coupé et que le joueur ne peut pas surcouper, il peut se défausser.
 - Si le joueur ne peut pas fournir et que son partenaire est maître du pli, il peut pisser: il n'est pas obligé de couper.
-- Pour cette V1, il n'y a pas encore d'obligation de surcouper.
 
 ## Valeur des cartes
 

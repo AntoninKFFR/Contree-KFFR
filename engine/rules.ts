@@ -62,6 +62,27 @@ export function trickPoints(cards: PlayedCard[], trump: Suit, isLastTrick: boole
   return isLastTrick ? cardsPoints + 10 : cardsPoints;
 }
 
+function highestTrumpInTrick(trick: Trick, trump: Suit): Card | null {
+  const trumpCards = trick.cards
+    .map((played) => played.card)
+    .filter((card) => card.suit === trump)
+    .sort((first, second) => TRUMP_STRENGTH[second.rank] - TRUMP_STRENGTH[first.rank]);
+
+  return trumpCards[0] ?? null;
+}
+
+function strongerTrumps(hand: Card[], trump: Suit, currentBestTrump: Card | null): Card[] {
+  const trumpCards = hand.filter((card) => card.suit === trump);
+
+  if (!currentBestTrump) {
+    return trumpCards;
+  }
+
+  return trumpCards.filter(
+    (card) => TRUMP_STRENGTH[card.rank] > TRUMP_STRENGTH[currentBestTrump.rank],
+  );
+}
+
 export function getLegalCards(
   hand: Card[],
   trick: Trick,
@@ -76,6 +97,11 @@ export function getLegalCards(
   const matchingSuit = hand.filter((card) => card.suit === requestedSuit);
 
   if (matchingSuit.length > 0) {
+    if (requestedSuit === trump) {
+      const higherTrumps = strongerTrumps(hand, trump, highestTrumpInTrick(trick, trump));
+      return higherTrumps.length > 0 ? higherTrumps : matchingSuit;
+    }
+
     return matchingSuit;
   }
 
@@ -94,7 +120,8 @@ export function getLegalCards(
     return hand;
   }
 
-  return trumpCards;
+  const higherTrumps = strongerTrumps(hand, trump, highestTrumpInTrick(trick, trump));
+  return higherTrumps.length > 0 ? higherTrumps : hand;
 }
 
 export function isLegalCard(
