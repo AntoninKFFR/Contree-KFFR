@@ -39,6 +39,14 @@ function emptyScore(): Record<TeamId, number> {
   return { 0: 0, 1: 0 };
 }
 
+function randomPlayer(random: () => number): PlayerId {
+  return Math.floor(random() * 4) as PlayerId;
+}
+
+function nextAntiClockwisePlayer(playerId: PlayerId): PlayerId {
+  return ((playerId + 3) % 4) as PlayerId;
+}
+
 function dealHands(deck: Card[]): GameState["hands"] {
   return {
     0: sortHand(deck.slice(0, 8)),
@@ -52,11 +60,14 @@ export function createInitialGame(
   random = Math.random,
   settings: Partial<GameSettings> = {},
 ): GameState {
+  const startingPlayerId = randomPlayer(random);
+
   return createRoundState({
     random,
     settings: resolveSettings(settings),
     roundHistory: [],
     roundNumber: 1,
+    startingPlayerId,
     totalScore: emptyScore(),
     winnerTeam: null,
   });
@@ -67,6 +78,7 @@ function createRoundState({
   roundHistory,
   roundNumber,
   settings,
+  startingPlayerId,
   totalScore,
   winnerTeam,
 }: {
@@ -74,6 +86,7 @@ function createRoundState({
   roundHistory: GameState["roundHistory"];
   roundNumber: number;
   settings: GameSettings;
+  startingPlayerId: PlayerId;
   totalScore: Record<TeamId, number>;
   winnerTeam: TeamId | null;
 }): GameState {
@@ -83,14 +96,15 @@ function createRoundState({
     settings,
     phase: "bidding",
     roundNumber,
+    startingPlayerId,
     totalScore,
     roundHistory,
     winnerTeam,
     trump: null,
     hands: dealHands(deck),
-    currentPlayerId: 0,
+    currentPlayerId: startingPlayerId,
     currentTrick: {
-      leaderId: 0,
+      leaderId: startingPlayerId,
       cards: [],
     },
     completedTricks: [],
@@ -99,7 +113,7 @@ function createRoundState({
     result: null,
     trickPoints: emptyScore(),
     roundScore: emptyScore(),
-    message: `Manche ${roundNumber}: phase d'annonces, Anto commence.`,
+    message: `Manche ${roundNumber}: phase d'annonces, ${playerName(startingPlayerId)} commence.`,
   };
 }
 
@@ -458,6 +472,7 @@ export function startNextRound(state: GameState, random = Math.random): GameStat
     settings: state.settings,
     roundHistory: state.roundHistory,
     roundNumber: state.roundNumber + 1,
+    startingPlayerId: nextAntiClockwisePlayer(state.startingPlayerId),
     totalScore: state.totalScore,
     winnerTeam: null,
   });

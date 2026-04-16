@@ -11,6 +11,7 @@ function stateForBot(hand: Card[], currentTrick: GameState["currentTrick"]): Gam
     settings: { scoringMode: "made-points", targetScore: 1000 },
     phase: "playing",
     roundNumber: 1,
+    startingPlayerId: 1,
     totalScore: { 0: 0, 1: 0 },
     roundHistory: [],
     winnerTeam: null,

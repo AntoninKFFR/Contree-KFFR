@@ -95,6 +95,7 @@ export type GameState = {
   settings: GameSettings;
   phase: Phase;
   roundNumber: number;
+  startingPlayerId: PlayerId;
   totalScore: Record<TeamId, number>;
   roundHistory: RoundHistoryEntry[];
   winnerTeam: TeamId | null;

@@ -7,10 +7,12 @@ Cette V1 est volontairement simple pour apprendre la structure d'une application
 - Il y a 4 joueurs: Anto, Max, Boulais, Allan.
 - Les équipes sont fixes: Anto + Boulais contre Max + Allan.
 - Une partie complète est composée de plusieurs manches.
+- La partance de la première manche est choisie aléatoirement.
+- Ensuite, la partance tourne en sens antihoraire à chaque nouvelle manche.
 - On utilise un jeu de 32 cartes: 7, 8, 9, Valet, Dame, Roi, 10, As.
 - Chaque joueur reçoit 8 cartes.
 - Il y a une phase d'enchères avant de jouer les cartes.
-- Anto parle en premier, puis Max, Boulais, Allan.
+- Le joueur qui a la partance parle en premier, puis on tourne autour de la table.
 - Un joueur peut passer ou annoncer de 80 à 160, par paliers de 10, avec une couleur d'atout.
 - Une nouvelle annonce doit être plus haute que l'annonce actuelle.
 - Passer ne bloque pas définitivement le joueur: si quelqu'un annonce ensuite, la parole peut revenir.

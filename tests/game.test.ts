@@ -18,14 +18,23 @@ describe("game", () => {
     const state = createInitialGame(() => 0.5);
 
     expect(state.phase).toBe("bidding");
+    expect(state.startingPlayerId).toBe(2);
+    expect(state.currentPlayerId).toBe(2);
     expect(state.hands[0]).toHaveLength(8);
     expect(state.hands[1]).toHaveLength(8);
     expect(state.hands[2]).toHaveLength(8);
     expect(state.hands[3]).toHaveLength(8);
   });
 
+  it("chooses a random starting player for the first round", () => {
+    expect(createInitialGame(() => 0.1).startingPlayerId).toBe(0);
+    expect(createInitialGame(() => 0.4).startingPlayerId).toBe(1);
+    expect(createInitialGame(() => 0.7).startingPlayerId).toBe(2);
+    expect(createInitialGame(() => 0.9).startingPlayerId).toBe(3);
+  });
+
   it("moves from bidding to playing with the highest contract", () => {
-    const state = createInitialGame(() => 0.5);
+    const state = createInitialGame(() => 0.1);
     const afterAnto = makeBid(state, 0, { action: "bid", value: 80, trump: "spades" });
     const afterMax = makeBid(afterAnto, 1, { action: "pass" });
     const afterBoulais = makeBid(afterMax, 2, { action: "bid", value: 90, trump: "hearts" });
@@ -47,7 +56,7 @@ describe("game", () => {
   });
 
   it("lets Anto speak again when someone bids after Anto passed", () => {
-    const state = createInitialGame(() => 0.5);
+    const state = createInitialGame(() => 0.1);
     const afterAnto = makeBid(state, 0, { action: "pass" });
     const afterMax = makeBid(afterAnto, 1, { action: "bid", value: 80, trump: "clubs" });
     const afterBoulais = makeBid(afterMax, 2, { action: "pass" });
@@ -82,7 +91,7 @@ describe("game", () => {
   });
 
   it("finishes the round without points when everybody passes", () => {
-    const state = createInitialGame(() => 0.5);
+    const state = createInitialGame(() => 0.1);
     const afterAnto = makeBid(state, 0, { action: "pass" });
     const afterMax = makeBid(afterAnto, 1, { action: "pass" });
     const afterBoulais = makeBid(afterMax, 2, { action: "pass" });
@@ -96,7 +105,7 @@ describe("game", () => {
   });
 
   it("moves turn to the next player after a card is played", () => {
-    const state = createInitialGame(() => 0.5);
+    const state = createInitialGame(() => 0.1);
     const afterAnto = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
     const afterMax = makeBid(afterAnto, 1, { action: "pass" });
     const afterBoulais = makeBid(afterMax, 2, { action: "pass" });
@@ -114,6 +123,7 @@ describe("game", () => {
       settings: { scoringMode: "made-points", targetScore: 1000 },
       phase: "playing",
       roundNumber: 1,
+      startingPlayerId: 0,
       totalScore: { 0: 0, 1: 0 },
       roundHistory: [],
       winnerTeam: null,
@@ -155,7 +165,7 @@ describe("game", () => {
   });
 
   it("starts a next round while keeping total score and history", () => {
-    const firstRoundFinished = createInitialGame(() => 0.5, { targetScore: 1000 });
+    const firstRoundFinished = createInitialGame(() => 0.1, { targetScore: 1000 });
     const finishedState: GameState = {
       ...firstRoundFinished,
       phase: "finished",
@@ -178,6 +188,8 @@ describe("game", () => {
 
     expect(nextRound.phase).toBe("bidding");
     expect(nextRound.roundNumber).toBe(2);
+    expect(nextRound.startingPlayerId).toBe(3);
+    expect(nextRound.currentPlayerId).toBe(3);
     expect(nextRound.totalScore).toEqual({ 0: 120, 1: 40 });
     expect(nextRound.roundHistory).toHaveLength(1);
     expect(nextRound.roundScore).toEqual({ 0: 0, 1: 0 });
@@ -188,6 +200,7 @@ describe("game", () => {
       settings: { scoringMode: "made-points", targetScore: 200 },
       phase: "playing",
       roundNumber: 1,
+      startingPlayerId: 0,
       totalScore: { 0: 0, 1: 0 },
       roundHistory: [],
       winnerTeam: null,
@@ -220,7 +233,7 @@ describe("game", () => {
   });
 
   it("allows an opponent to coinche and contract team to surcoinche", () => {
-    const state = createInitialGame(() => 0.5);
+    const state = createInitialGame(() => 0.1);
     const afterAnto = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
     const afterMaxCoinche = makeBid(afterAnto, 1, { action: "coinche" });
     const afterBoulaisSurcoinche = makeBid(afterMaxCoinche, 2, { action: "surcoinche" });
@@ -238,7 +251,7 @@ describe("game", () => {
   });
 
   it("starts playing when the contract holder accepts a coinche by passing", () => {
-    const state = createInitialGame(() => 0.5);
+    const state = createInitialGame(() => 0.1);
     const afterAnto = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
     const afterMaxCoinche = makeBid(afterAnto, 1, { action: "coinche" });
     const afterBoulais = makeBid(afterMaxCoinche, 2, { action: "pass" });
