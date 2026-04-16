@@ -34,6 +34,7 @@ describe("game", () => {
       teamId: 0,
       value: 90,
       trump: "hearts",
+      status: "normal",
     });
     expect(afterMaxAgain.currentPlayerId).toBe(2);
     expect(afterMaxAgain.currentTrick.leaderId).toBe(2);
@@ -69,6 +70,7 @@ describe("game", () => {
       playerId: 0,
       value: 90,
       trump: "hearts",
+      status: "normal",
     });
     expect(afterAllanAgain.currentPlayerId).toBe(0);
   });
@@ -103,6 +105,7 @@ describe("game", () => {
 
   it("completes a trick, gives points to the winner team, and lets winner lead", () => {
     const state: GameState = {
+      settings: { scoringMode: "made-points" },
       phase: "playing",
       trump: "hearts",
       hands: {
@@ -115,7 +118,7 @@ describe("game", () => {
       currentTrick: { leaderId: 0, cards: [] },
       completedTricks: [],
       bids: [{ playerId: 1, action: "bid", value: 80, trump: "hearts" }],
-      contract: { playerId: 1, teamId: 1, value: 80, trump: "hearts" },
+      contract: { playerId: 1, teamId: 1, value: 80, trump: "hearts", status: "normal" },
       result: null,
       trickPoints: { 0: 0, 1: 0 },
       roundScore: { 0: 0, 1: 0 },
@@ -137,5 +140,38 @@ describe("game", () => {
       roundScore: { 0: 242, 1: 0 },
     });
     expect(afterPlayer3.currentPlayerId).toBe(1);
+  });
+
+  it("allows an opponent to coinche and contract team to surcoinche", () => {
+    const state = createInitialGame(() => 0.5);
+    const afterAnto = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
+    const afterMaxCoinche = makeBid(afterAnto, 1, { action: "coinche" });
+    const afterBoulaisSurcoinche = makeBid(afterMaxCoinche, 2, { action: "surcoinche" });
+
+    expect(getCurrentContract(afterMaxCoinche)).toMatchObject({
+      status: "coinched",
+      coinchedBy: 1,
+    });
+    expect(getCurrentContract(afterBoulaisSurcoinche)).toMatchObject({
+      status: "surcoinched",
+      coinchedBy: 1,
+      surcoinchedBy: 2,
+    });
+    expect(afterBoulaisSurcoinche.phase).toBe("playing");
+  });
+
+  it("starts playing when the contract holder accepts a coinche by passing", () => {
+    const state = createInitialGame(() => 0.5);
+    const afterAnto = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
+    const afterMaxCoinche = makeBid(afterAnto, 1, { action: "coinche" });
+    const afterBoulais = makeBid(afterMaxCoinche, 2, { action: "pass" });
+    const afterAllan = makeBid(afterBoulais, 3, { action: "pass" });
+    const afterAntoPass = makeBid(afterAllan, 0, { action: "pass" });
+
+    expect(afterAntoPass.phase).toBe("playing");
+    expect(afterAntoPass.contract).toMatchObject({
+      playerId: 0,
+      status: "coinched",
+    });
   });
 });

@@ -10,6 +10,14 @@ export type Phase = "bidding" | "playing" | "finished";
 
 export type BidValue = 80 | 90 | 100 | 110 | 120 | 130 | 140 | 150 | 160;
 
+export type ScoringMode = "announced-points" | "made-points";
+
+export type ContractStatus = "normal" | "coinched" | "surcoinched";
+
+export type GameSettings = {
+  scoringMode: ScoringMode;
+};
+
 export type Card = {
   suit: Suit;
   rank: Rank;
@@ -40,6 +48,14 @@ export type Bid =
       action: "bid";
       value: BidValue;
       trump: Suit;
+    }
+  | {
+      playerId: PlayerId;
+      action: "coinche";
+    }
+  | {
+      playerId: PlayerId;
+      action: "surcoinche";
     };
 
 export type Contract = {
@@ -47,6 +63,9 @@ export type Contract = {
   teamId: TeamId;
   value: BidValue;
   trump: Suit;
+  status: ContractStatus;
+  coinchedBy?: PlayerId;
+  surcoinchedBy?: PlayerId;
 };
 
 export type RoundResult =
@@ -56,6 +75,8 @@ export type RoundResult =
       takerPoints: number;
       defenderPoints: number;
       contractSucceeded: boolean;
+      scoringMode: ScoringMode;
+      multiplier: 1 | 2 | 4;
       roundScore: Record<TeamId, number>;
     }
   | {
@@ -64,6 +85,7 @@ export type RoundResult =
     };
 
 export type GameState = {
+  settings: GameSettings;
   phase: Phase;
   trump: Suit | null;
   hands: Record<PlayerId, Card[]>;

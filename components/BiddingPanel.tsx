@@ -7,12 +7,25 @@ import type { BidValue, Contract, Suit } from "@/engine/types";
 
 type BiddingPanelProps = {
   canBid: boolean;
+  canCoinche: boolean;
+  canSurcoinche: boolean;
   currentContract: Contract | null;
   onBid: (value: BidValue, trump: Suit) => void;
+  onCoinche: () => void;
   onPass: () => void;
+  onSurcoinche: () => void;
 };
 
-export function BiddingPanel({ canBid, currentContract, onBid, onPass }: BiddingPanelProps) {
+export function BiddingPanel({
+  canBid,
+  canCoinche,
+  canSurcoinche,
+  currentContract,
+  onBid,
+  onCoinche,
+  onPass,
+  onSurcoinche,
+}: BiddingPanelProps) {
   const availableValues = useMemo(
     () => getAvailableBidValues(currentContract),
     [currentContract],
@@ -45,7 +58,7 @@ export function BiddingPanel({ canBid, currentContract, onBid, onPass }: Bidding
       {currentContract ? (
         <p className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-stone-700">
           Contrat actuel: {currentContract.value} a {SUIT_LABELS[currentContract.trump]}{" "}
-          {SUIT_SYMBOLS[currentContract.trump]}
+          {SUIT_SYMBOLS[currentContract.trump]} - {contractStatusLabel(currentContract.status)}
         </p>
       ) : (
         <p className="mb-4 rounded-lg bg-stone-100 p-3 text-sm text-stone-700">
@@ -103,6 +116,22 @@ export function BiddingPanel({ canBid, currentContract, onBid, onPass }: Bidding
             Annoncer
           </button>
           <button
+            className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!canCoinche}
+            onClick={onCoinche}
+            type="button"
+          >
+            Coincher
+          </button>
+          <button
+            className="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!canSurcoinche}
+            onClick={onSurcoinche}
+            type="button"
+          >
+            Surcoincher
+          </button>
+          <button
             className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canBid}
             onClick={onPass}
@@ -114,4 +143,10 @@ export function BiddingPanel({ canBid, currentContract, onBid, onPass }: Bidding
       </div>
     </section>
   );
+}
+
+function contractStatusLabel(status: Contract["status"]): string {
+  if (status === "coinched") return "coinche";
+  if (status === "surcoinched") return "surcoinche";
+  return "normal";
 }

@@ -1,4 +1,5 @@
 import { createDeck, formatCard, sameCard, shuffleDeck, sortHand } from "./cards";
+import { canCoinche, canSurcoinche } from "./bidding";
 import { playerName } from "./players";
 import {
   getLegalCards,
@@ -8,7 +9,22 @@ import {
   playerTeam,
   trickPoints,
 } from "./rules";
-import type { Bid, BidValue, Card, Contract, GameState, PlayerId, Suit, TeamId } from "./types";
+import { scoreRound } from "./scoring";
+import type {
+  Bid,
+  BidValue,
+  Card,
+  Contract,
+  GameSettings,
+  GameState,
+  PlayerId,
+  Suit,
+  TeamId,
+} from "./types";
+
+const DEFAULT_SETTINGS: GameSettings = {
+  scoringMode: "made-points",
+};
 
 function dealHands(deck: Card[]): GameState["hands"] {
   return {
@@ -19,10 +35,17 @@ function dealHands(deck: Card[]): GameState["hands"] {
   };
 }
 
-export function createInitialGame(random = Math.random): GameState {
+export function createInitialGame(
+  random = Math.random,
+  settings: Partial<GameSettings> = {},
+): GameState {
   const deck = shuffleDeck(createDeck(), random);
 
   return {
+    settings: {
+      ...DEFAULT_SETTINGS,
+      ...settings,
+    },
     phase: "bidding",
     trump: null,
     hands: dealHands(deck),
@@ -57,20 +80,38 @@ function sortHandsForTrump(hands: GameState["hands"], trump: Suit): GameState["h
 }
 
 function currentHighestBid(bids: Bid[]): Contract | null {
-  const bid = bids
-    .filter((item): item is Extract<Bid, { action: "bid" }> => item.action === "bid")
-    .sort((first, second) => second.value - first.value)[0];
+  let contract: Contract | null = null;
 
-  if (!bid) {
-    return null;
+  for (const bid of bids) {
+    if (bid.action === "bid") {
+      contract = {
+        playerId: bid.playerId,
+        teamId: playerTeam(bid.playerId),
+        value: bid.value,
+        trump: bid.trump,
+        status: "normal",
+      };
+    }
+
+    if (bid.action === "coinche" && contract) {
+      contract = {
+        ...contract,
+        status: "coinched",
+        coinchedBy: bid.playerId,
+        surcoinchedBy: undefined,
+      };
+    }
+
+    if (bid.action === "surcoinche" && contract) {
+      contract = {
+        ...contract,
+        status: "surcoinched",
+        surcoinchedBy: bid.playerId,
+      };
+    }
   }
 
-  return {
-    playerId: bid.playerId,
-    teamId: playerTeam(bid.playerId),
-    value: bid.value,
-    trump: bid.trump,
-  };
+  return contract;
 }
 
 function isHigherBid(value: BidValue, currentContract: Contract | null): boolean {
@@ -81,34 +122,13 @@ function isAllPassWithoutContract(bids: Bid[]): boolean {
   return bids.length === 4 && bids.every((bid) => bid.action === "pass");
 }
 
-function scoreFinishedRound(
-  contract: Contract,
-  trickPointsByTeam: Record<TeamId, number>,
-): GameState["result"] {
-  const takerTeam = contract.teamId;
-  const defenderTeam = takerTeam === 0 ? 1 : 0;
-  const takerPoints = trickPointsByTeam[takerTeam];
-  const defenderPoints = trickPointsByTeam[defenderTeam];
-  const contractSucceeded = takerPoints >= contract.value;
-  const roundScore: Record<TeamId, number> = contractSucceeded
-    ? {
-        ...trickPointsByTeam,
-        [takerTeam]: takerPoints + contract.value,
-      }
-    : {
-        0: 0,
-        1: 0,
-        [defenderTeam]: 162 + contract.value,
-      };
+function contractHolderAnsweredCoinche(bids: Bid[], contract: Contract): boolean {
+  if (contract.status !== "coinched" || contract.coinchedBy === undefined) {
+    return true;
+  }
 
-  return {
-    kind: "played",
-    contract,
-    takerPoints,
-    defenderPoints,
-    contractSucceeded,
-    roundScore,
-  };
+  const lastCoincheIndex = bids.findLastIndex((bid) => bid.action === "coinche");
+  return bids.slice(lastCoincheIndex + 1).some((bid) => bid.playerId === contract.playerId);
 }
 
 function finishBidding(state: GameState, bids: Bid[]): GameState {
@@ -156,6 +176,12 @@ export function makeBid(
         action: "bid";
         value: BidValue;
         trump: Suit;
+      }
+    | {
+        action: "coinche";
+      }
+    | {
+        action: "surcoinche";
       },
 ): GameState {
   if (state.phase !== "bidding") {
@@ -172,12 +198,27 @@ export function makeBid(
     throw new Error("A new bid must be higher than the current contract.");
   }
 
+  if (bid.action === "coinche" && !canCoinche(playerId, currentContract)) {
+    throw new Error("This player cannot coinche the current contract.");
+  }
+
+  if (bid.action === "surcoinche" && !canSurcoinche(playerId, currentContract)) {
+    throw new Error("This player cannot surcoinche the current contract.");
+  }
+
   const nextBids: Bid[] = [...state.bids, { playerId, ...bid }];
 
   const next = nextPlayer(playerId);
   const nextContract = currentHighestBid(nextBids);
 
-  if (isAllPassWithoutContract(nextBids) || nextContract?.playerId === next) {
+  if (
+    isAllPassWithoutContract(nextBids) ||
+    bid.action === "surcoinche" ||
+    (bid.action === "pass" &&
+      nextContract?.status === "coinched" &&
+      nextContract.playerId === playerId) ||
+    (nextContract?.playerId === next && contractHolderAnsweredCoinche(nextBids, nextContract))
+  ) {
     return finishBidding(state, nextBids);
   }
 
@@ -188,7 +229,11 @@ export function makeBid(
     message:
       bid.action === "pass"
         ? `${playerName(playerId)} passe. A ${playerName(next)} de parler.`
-        : `${playerName(playerId)} annonce ${bid.value}. A ${playerName(next)} de parler.`,
+        : bid.action === "bid"
+          ? `${playerName(playerId)} annonce ${bid.value}. A ${playerName(next)} de parler.`
+          : bid.action === "coinche"
+            ? `${playerName(playerId)} coinche. A ${playerName(next)} de parler.`
+            : `${playerName(playerId)} surcoinche. A ${playerName(next)} de parler.`,
   };
 }
 
@@ -264,7 +309,14 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     },
   ];
   const phase = isLastTrick ? "finished" : "playing";
-  const result = phase === "finished" ? scoreFinishedRound(state.contract, trickPointsByTeam) : null;
+  const result =
+    phase === "finished"
+      ? scoreRound({
+          contract: state.contract,
+          settings: state.settings,
+          trickPointsByTeam,
+        })
+      : null;
 
   return {
     ...state,

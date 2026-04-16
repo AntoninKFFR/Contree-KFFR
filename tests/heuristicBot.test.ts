@@ -8,6 +8,7 @@ function card(rank: Card["rank"], suit: Card["suit"]): Card {
 
 function stateForBot(hand: Card[], currentTrick: GameState["currentTrick"]): GameState {
   return {
+    settings: { scoringMode: "made-points" },
     phase: "playing",
     trump: "hearts",
     hands: {
@@ -20,7 +21,7 @@ function stateForBot(hand: Card[], currentTrick: GameState["currentTrick"]): Gam
     currentTrick,
     completedTricks: [],
     bids: [{ playerId: 1, action: "bid", value: 80, trump: "hearts" }],
-    contract: { playerId: 1, teamId: 1, value: 80, trump: "hearts" },
+    contract: { playerId: 1, teamId: 1, value: 80, trump: "hearts", status: "normal" },
     result: null,
     trickPoints: { 0: 0, 1: 0 },
     roundScore: { 0: 0, 1: 0 },

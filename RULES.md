@@ -13,8 +13,11 @@ Cette V1 est volontairement simple pour apprendre la structure d'une application
 - Un joueur peut passer ou annoncer de 80 à 160, par paliers de 10, avec une couleur d'atout.
 - Une nouvelle annonce doit être plus haute que l'annonce actuelle.
 - Passer ne bloque pas définitivement le joueur: si quelqu'un annonce ensuite, la parole peut revenir.
+- Un adversaire du contrat actuel peut coincher.
+- L'équipe qui tient le contrat peut surcoincher après une coinche.
 - Les annonces se terminent quand la parole revient au joueur qui tient le meilleur contrat.
 - Le contrat final est la meilleure annonce.
+- Le contrat final peut être normal, coinché ou surcoinché.
 - L'atout de la manche est la couleur du contrat final.
 - L'équipe du joueur qui a fait le contrat final devient l'équipe preneuse.
 - Si tout le monde passe, la manche s'arrête sans points et il faut relancer une nouvelle partie.
@@ -47,19 +50,51 @@ A l'atout:
 
 Le dernier pli ajoute 10 points.
 
-## Contrat et score de manche
+## Coinche et surcoinche
+
+Pour cette V1:
+
+- Un joueur peut coincher seulement si le contrat actuel appartient à l'équipe adverse.
+- Un joueur peut surcoincher seulement si le contrat actuel appartient à son équipe et qu'il a déjà été coinché.
+- Une coinche multiplie la valeur du contrat par 2 pour le score.
+- Une surcoinche multiplie la valeur du contrat par 4 pour le score.
+
+Exemple: Max annonce 90. Anto coinche. Le contrat vaut 180 au score. Si Max ou Allan surcoinche, il vaut 360 au score.
+
+## Variantes de score
+
+La V1 propose deux modes.
+
+### Mode points faits
+
+Ce mode garde les points de plis dans le score final.
+
+- Contrat réussi: l'équipe preneuse marque ses points de plis + la valeur du contrat multipliée si besoin.
+- Contrat réussi: l'équipe adverse marque ses points de plis.
+- Contrat chuté: l'équipe preneuse marque 0.
+- Contrat chuté: l'équipe adverse marque 162 + la valeur du contrat multipliée si besoin.
+
+Exemple: Anto annonce 80 et réussit avec 92 points de plis. Anto + Boulais marquent 92 + 80 = 172. Max + Allan marquent leurs 70 points.
+
+### Mode points annoncés
+
+Ce mode ne marque que la valeur annoncée du contrat.
+
+- Contrat réussi: l'équipe preneuse marque la valeur du contrat multipliée si besoin.
+- Contrat réussi: l'équipe adverse marque 0.
+- Contrat chuté: l'équipe preneuse marque 0.
+- Contrat chuté: l'équipe adverse marque la valeur du contrat multipliée si besoin.
+
+Exemple: Anto annonce 80 et réussit. Anto + Boulais marquent 80. Max + Allan marquent 0.
+
+## Réussite du contrat
 
 Quand toutes les cartes ont été jouées, on regarde les points de plis.
 
 - Si l'équipe preneuse atteint au moins la valeur du contrat, le contrat est réussi.
 - Si l'équipe preneuse n'atteint pas la valeur du contrat, le contrat est chuté.
 
-Score V1:
-
-- Contrat réussi: chaque équipe marque ses points de plis, et l'équipe preneuse ajoute la valeur du contrat.
-- Contrat chuté: l'équipe preneuse marque 0, et l'équipe adverse marque 162 + la valeur du contrat.
-
-Exemple: Max annonce 90 à pique. Son équipe fait seulement 74 points. Le contrat est chuté, donc Anto + Boulais marquent 252 points.
+Le mode de score choisi décide ensuite combien chaque équipe marque.
 
 ## Pourquoi cette simplification ?
 

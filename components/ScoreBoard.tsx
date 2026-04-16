@@ -1,6 +1,6 @@
 import { SUIT_LABELS, SUIT_SYMBOLS } from "@/engine/cards";
 import { playerName } from "@/engine/players";
-import type { GameState } from "@/engine/types";
+import type { ContractStatus, GameState, ScoringMode } from "@/engine/types";
 
 type ScoreBoardProps = {
   state: GameState;
@@ -37,11 +37,17 @@ export function ScoreBoard({ state, onNewGame }: ScoreBoardProps) {
         {displayedContract ? (
           <p>
             {displayedContract.value} a {SUIT_LABELS[displayedContract.trump]}{" "}
-            {SUIT_SYMBOLS[displayedContract.trump]} par {playerName(displayedContract.playerId)}
+            {SUIT_SYMBOLS[displayedContract.trump]} par {playerName(displayedContract.playerId)} -{" "}
+            {contractStatusLabel(displayedContract.status)}
           </p>
         ) : (
           <p>Aucun contrat final pour l&apos;instant.</p>
         )}
+      </div>
+
+      <div className="mt-4 rounded-lg bg-stone-100 p-3 text-sm text-stone-700">
+        <p className="font-semibold">Mode de score</p>
+        <p>{scoringModeLabel(state.settings.scoringMode)}</p>
       </div>
 
       <div className="mt-4 rounded-lg bg-stone-100 p-3 text-sm text-stone-700">
@@ -55,7 +61,11 @@ export function ScoreBoard({ state, onNewGame }: ScoreBoardProps) {
                 {playerName(bid.playerId)}:{" "}
                 {bid.action === "pass"
                   ? "passe"
-                  : `${bid.value} a ${SUIT_LABELS[bid.trump]} ${SUIT_SYMBOLS[bid.trump]}`}
+                  : bid.action === "bid"
+                    ? `${bid.value} a ${SUIT_LABELS[bid.trump]} ${SUIT_SYMBOLS[bid.trump]}`
+                    : bid.action === "coinche"
+                      ? "coinche"
+                      : "surcoinche"}
               </li>
             ))}
           </ul>
@@ -69,7 +79,7 @@ export function ScoreBoard({ state, onNewGame }: ScoreBoardProps) {
           </p>
           <p>
             Preneurs: {state.result.takerPoints} points, defense: {state.result.defenderPoints}{" "}
-            points.
+            points. Multiplicateur: x{state.result.multiplier}.
           </p>
         </div>
       ) : null}
@@ -88,4 +98,14 @@ export function ScoreBoard({ state, onNewGame }: ScoreBoardProps) {
       <p className="mt-4 rounded-lg bg-stone-100 p-3 text-sm text-stone-700">{state.message}</p>
     </aside>
   );
+}
+
+function contractStatusLabel(status: ContractStatus): string {
+  if (status === "coinched") return "coinche";
+  if (status === "surcoinched") return "surcoinche";
+  return "normal";
+}
+
+function scoringModeLabel(mode: ScoringMode): string {
+  return mode === "announced-points" ? "Points annonces" : "Points faits";
 }
