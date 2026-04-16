@@ -43,8 +43,8 @@ function randomPlayer(random: () => number): PlayerId {
   return Math.floor(random() * 4) as PlayerId;
 }
 
-function nextAntiClockwisePlayer(playerId: PlayerId): PlayerId {
-  return ((playerId + 3) % 4) as PlayerId;
+function nextStartingPlayer(playerId: PlayerId): PlayerId {
+  return nextPlayer(playerId);
 }
 
 function dealHands(deck: Card[]): GameState["hands"] {
@@ -472,7 +472,7 @@ export function startNextRound(state: GameState, random = Math.random): GameStat
     settings: state.settings,
     roundHistory: state.roundHistory,
     roundNumber: state.roundNumber + 1,
-    startingPlayerId: nextAntiClockwisePlayer(state.startingPlayerId),
+    startingPlayerId: nextStartingPlayer(state.startingPlayerId),
     totalScore: state.totalScore,
     winnerTeam: null,
   });

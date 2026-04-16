@@ -188,8 +188,8 @@ describe("game", () => {
 
     expect(nextRound.phase).toBe("bidding");
     expect(nextRound.roundNumber).toBe(2);
-    expect(nextRound.startingPlayerId).toBe(3);
-    expect(nextRound.currentPlayerId).toBe(3);
+    expect(nextRound.startingPlayerId).toBe(1);
+    expect(nextRound.currentPlayerId).toBe(1);
     expect(nextRound.totalScore).toEqual({ 0: 120, 1: 40 });
     expect(nextRound.roundHistory).toHaveLength(1);
     expect(nextRound.roundScore).toEqual({ 0: 0, 1: 0 });

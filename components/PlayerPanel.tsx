@@ -5,9 +5,15 @@ type PlayerPanelProps = {
   playerId: PlayerId;
   cardCount: number;
   isCurrent: boolean;
+  hasStartingPlayer: boolean;
 };
 
-export function PlayerPanel({ playerId, cardCount, isCurrent }: PlayerPanelProps) {
+export function PlayerPanel({
+  playerId,
+  cardCount,
+  hasStartingPlayer,
+  isCurrent,
+}: PlayerPanelProps) {
   return (
     <div
       className={[
@@ -15,7 +21,14 @@ export function PlayerPanel({ playerId, cardCount, isCurrent }: PlayerPanelProps
         isCurrent ? "border-emerald-600" : "border-stone-200",
       ].join(" ")}
     >
-      <p className="text-sm font-semibold">{PLAYER_NAMES[playerId]}</p>
+      <div className="flex items-center gap-2">
+        <p className="text-sm font-semibold">{PLAYER_NAMES[playerId]}</p>
+        {hasStartingPlayer ? (
+          <span className="rounded border border-emerald-600 px-1.5 py-0.5 text-xs font-bold text-emerald-700">
+            P
+          </span>
+        ) : null}
+      </div>
       <p className="text-sm text-stone-600">{cardCount} carte{cardCount > 1 ? "s" : ""}</p>
     </div>
   );

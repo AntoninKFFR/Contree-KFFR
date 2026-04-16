@@ -8,7 +8,7 @@ Cette V1 est volontairement simple pour apprendre la structure d'une application
 - Les équipes sont fixes: Anto + Boulais contre Max + Allan.
 - Une partie complète est composée de plusieurs manches.
 - La partance de la première manche est choisie aléatoirement.
-- Ensuite, la partance tourne en sens antihoraire à chaque nouvelle manche.
+- Ensuite, la partance tourne dans l'ordre Anto, Max, Boulais, Allan.
 - On utilise un jeu de 32 cartes: 7, 8, 9, Valet, Dame, Roi, 10, As.
 - Chaque joueur reçoit 8 cartes.
 - Il y a une phase d'enchères avant de jouer les cartes.

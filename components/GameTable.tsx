@@ -61,6 +61,7 @@ export function GameTable({ state }: GameTableProps) {
         <div className="col-start-2">
           <PlayerPanel
             cardCount={state.hands[2].length}
+            hasStartingPlayer={state.startingPlayerId === 2}
             isCurrent={state.currentPlayerId === 2}
             playerId={2}
           />
@@ -68,6 +69,7 @@ export function GameTable({ state }: GameTableProps) {
         <div className="row-start-2 flex items-center">
           <PlayerPanel
             cardCount={state.hands[3].length}
+            hasStartingPlayer={state.startingPlayerId === 3}
             isCurrent={state.currentPlayerId === 3}
             playerId={3}
           />
@@ -84,6 +86,7 @@ export function GameTable({ state }: GameTableProps) {
         <div className="row-start-2 flex items-center justify-end">
           <PlayerPanel
             cardCount={state.hands[1].length}
+            hasStartingPlayer={state.startingPlayerId === 1}
             isCurrent={state.currentPlayerId === 1}
             playerId={1}
           />
@@ -91,6 +94,7 @@ export function GameTable({ state }: GameTableProps) {
         <div className="col-start-2 row-start-3">
           <PlayerPanel
             cardCount={state.hands[0].length}
+            hasStartingPlayer={state.startingPlayerId === 0}
             isCurrent={state.currentPlayerId === 0}
             playerId={0}
           />

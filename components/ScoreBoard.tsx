@@ -54,9 +54,6 @@ export function ScoreBoard({ state, onNewGame, onNextRound }: ScoreBoardProps) {
           </div>
         </div>
         <p className="mt-2 text-xs text-stone-500">Score cible: {state.settings.targetScore}</p>
-        <p className="mt-1 text-xs text-stone-500">
-          Partance manche {state.roundNumber}: {playerName(state.startingPlayerId)}
-        </p>
       </div>
 
       <div className="mt-4 rounded-lg bg-stone-100 p-3 text-sm text-stone-700">
