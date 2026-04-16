@@ -1,6 +1,7 @@
 import { CardView } from "@/components/CardView";
 import { PlayerPanel } from "@/components/PlayerPanel";
 import { formatCard } from "@/engine/cards";
+import { playerName } from "@/engine/players";
 import type { GameState, PlayedCard } from "@/engine/types";
 
 type GameTableProps = {
@@ -62,7 +63,7 @@ export function GameTable({ state }: GameTableProps) {
                 >
                   <CardView card={played.card} disabled />
                   <span className="rounded-lg bg-white px-2 py-1 text-xs font-semibold">
-                    J{played.playerId + 1}
+                    {playerName(played.playerId)}
                   </span>
                 </div>
               ))

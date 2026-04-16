@@ -1,4 +1,5 @@
 import { createDeck, formatCard, sameCard, shuffleDeck, sortHand } from "./cards";
+import { playerName } from "./players";
 import {
   getLegalCards,
   getTrickWinner,
@@ -83,7 +84,7 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
       hands: nextHands,
       currentTrick: nextTrick,
       currentPlayerId: next,
-      message: `Joueur ${playerId + 1} a joue ${formatCard(card)}.`,
+      message: `${playerName(playerId)} a joue ${formatCard(card)}.`,
     };
   }
 
@@ -119,8 +120,8 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     roundScore: phase === "finished" ? trickPointsByTeam : state.roundScore,
     message:
       phase === "finished"
-        ? `Partie terminee. Le joueur ${winnerId + 1} gagne le dernier pli.`
-        : `Le joueur ${winnerId + 1} remporte le pli et rejoue.`,
+        ? `Partie terminee. ${playerName(winnerId)} gagne le dernier pli.`
+        : `${playerName(winnerId)} remporte le pli et rejoue.`,
   };
 }
 

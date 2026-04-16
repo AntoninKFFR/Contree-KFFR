@@ -1,16 +1,10 @@
+import { PLAYER_NAMES } from "@/engine/players";
 import type { PlayerId } from "@/engine/types";
 
 type PlayerPanelProps = {
   playerId: PlayerId;
   cardCount: number;
   isCurrent: boolean;
-};
-
-const PLAYER_NAMES: Record<PlayerId, string> = {
-  0: "Toi",
-  1: "Bot droite",
-  2: "Partenaire bot",
-  3: "Bot gauche",
 };
 
 export function PlayerPanel({ playerId, cardCount, isCurrent }: PlayerPanelProps) {
