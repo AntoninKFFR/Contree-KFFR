@@ -23,12 +23,37 @@ describe("game", () => {
     const afterMax = makeBid(afterAnto, 1, { action: "pass" });
     const afterBoulais = makeBid(afterMax, 2, { action: "bid", value: 90, trump: "hearts" });
     const afterAllan = makeBid(afterBoulais, 3, { action: "pass" });
+    const afterAntoAgain = makeBid(afterAllan, 0, { action: "pass" });
+    const afterMaxAgain = makeBid(afterAntoAgain, 1, { action: "pass" });
 
-    expect(afterAllan.phase).toBe("playing");
-    expect(afterAllan.trump).toBe("hearts");
-    expect(afterAllan.contract).toMatchObject({
+    expect(afterMaxAgain.phase).toBe("playing");
+    expect(afterMaxAgain.trump).toBe("hearts");
+    expect(afterMaxAgain.contract).toMatchObject({
       playerId: 2,
       teamId: 0,
+      value: 90,
+      trump: "hearts",
+    });
+  });
+
+  it("lets Anto speak again when someone bids after Anto passed", () => {
+    const state = createInitialGame(() => 0.5);
+    const afterAnto = makeBid(state, 0, { action: "pass" });
+    const afterMax = makeBid(afterAnto, 1, { action: "bid", value: 80, trump: "clubs" });
+    const afterBoulais = makeBid(afterMax, 2, { action: "pass" });
+    const afterAllan = makeBid(afterBoulais, 3, { action: "pass" });
+
+    expect(afterAllan.phase).toBe("bidding");
+    expect(afterAllan.currentPlayerId).toBe(0);
+
+    const afterAntoAgain = makeBid(afterAllan, 0, { action: "bid", value: 90, trump: "hearts" });
+    const afterMaxAgain = makeBid(afterAntoAgain, 1, { action: "pass" });
+    const afterBoulaisAgain = makeBid(afterMaxAgain, 2, { action: "pass" });
+    const afterAllanAgain = makeBid(afterBoulaisAgain, 3, { action: "pass" });
+
+    expect(afterAllanAgain.phase).toBe("playing");
+    expect(afterAllanAgain.contract).toMatchObject({
+      playerId: 0,
       value: 90,
       trump: "hearts",
     });

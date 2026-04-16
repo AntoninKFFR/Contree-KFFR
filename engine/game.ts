@@ -77,6 +77,10 @@ function isHigherBid(value: BidValue, currentContract: Contract | null): boolean
   return !currentContract || value > currentContract.value;
 }
 
+function isAllPassWithoutContract(bids: Bid[]): boolean {
+  return bids.length === 4 && bids.every((bid) => bid.action === "pass");
+}
+
 function scoreFinishedRound(
   contract: Contract,
   trickPointsByTeam: Record<TeamId, number>,
@@ -170,11 +174,13 @@ export function makeBid(
 
   const nextBids: Bid[] = [...state.bids, { playerId, ...bid }];
 
-  if (nextBids.length === 4) {
+  const next = nextPlayer(playerId);
+  const nextContract = currentHighestBid(nextBids);
+
+  if (isAllPassWithoutContract(nextBids) || nextContract?.playerId === next) {
     return finishBidding(state, nextBids);
   }
 
-  const next = nextPlayer(playerId);
   return {
     ...state,
     bids: nextBids,

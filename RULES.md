@@ -9,10 +9,11 @@ Cette V1 est volontairement simple pour apprendre la structure d'une application
 - On utilise un jeu de 32 cartes: 7, 8, 9, Valet, Dame, Roi, 10, As.
 - Chaque joueur reçoit 8 cartes.
 - Il y a une phase d'enchères avant de jouer les cartes.
-- Pour cette V1, chaque joueur parle une seule fois.
 - Anto parle en premier, puis Max, Boulais, Allan.
 - Un joueur peut passer ou annoncer 80, 90 ou 100 avec une couleur d'atout.
 - Une nouvelle annonce doit être plus haute que l'annonce actuelle.
+- Passer ne bloque pas définitivement le joueur: si quelqu'un annonce ensuite, la parole peut revenir.
+- Les annonces se terminent quand la parole revient au joueur qui tient le meilleur contrat.
 - Le contrat final est la meilleure annonce.
 - L'atout de la manche est la couleur du contrat final.
 - L'équipe du joueur qui a fait le contrat final devient l'équipe preneuse.
