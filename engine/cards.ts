@@ -50,7 +50,7 @@ export function shuffleDeck(deck: Card[], random = Math.random): Card[] {
 export function sortHand(hand: Card[], trump?: Suit): Card[] {
   return [...hand].sort((first, second) => {
     if (first.suit === second.suit) {
-      const strengths = first.suit === trump ? TRUMP_STRENGTH : NORMAL_STRENGTH;
+      const strengths = !trump || first.suit === trump ? TRUMP_STRENGTH : NORMAL_STRENGTH;
       return strengths.indexOf(first.rank) - strengths.indexOf(second.rank);
     }
 

@@ -18,7 +18,7 @@ describe("cards", () => {
     expect(new Set(shuffled.map((card) => `${card.rank}-${card.suit}`)).size).toBe(32);
   });
 
-  it("sorts hands by alternating suit colors and strongest cards first", () => {
+  it("sorts hands by alternating suit colors and trump order before bidding", () => {
     const sorted = sortHand([
       { rank: "7", suit: "clubs" },
       { rank: "A", suit: "hearts" },
@@ -31,8 +31,8 @@ describe("cards", () => {
     expect(sorted).toEqual([
       { rank: "A", suit: "hearts" },
       { rank: "K", suit: "hearts" },
-      { rank: "10", suit: "spades" },
       { rank: "9", suit: "spades" },
+      { rank: "10", suit: "spades" },
       { rank: "J", suit: "diamonds" },
       { rank: "7", suit: "clubs" },
     ]);
@@ -54,6 +54,23 @@ describe("cards", () => {
       { rank: "9", suit: "hearts" },
       { rank: "A", suit: "hearts" },
       { rank: "10", suit: "hearts" },
+    ]);
+  });
+
+  it("uses normal strength for non-trump suits after bidding", () => {
+    const sorted = sortHand(
+      [
+        { rank: "9", suit: "spades" },
+        { rank: "10", suit: "spades" },
+        { rank: "A", suit: "spades" },
+      ],
+      "hearts",
+    );
+
+    expect(sorted).toEqual([
+      { rank: "A", suit: "spades" },
+      { rank: "10", suit: "spades" },
+      { rank: "9", suit: "spades" },
     ]);
   });
 });
