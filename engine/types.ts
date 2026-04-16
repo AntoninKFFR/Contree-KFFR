@@ -8,7 +8,7 @@ export type PlayerId = 0 | 1 | 2 | 3;
 
 export type Phase = "bidding" | "playing" | "finished";
 
-export type BidValue = 80 | 90 | 100;
+export type BidValue = 80 | 90 | 100 | 110 | 120 | 130 | 140 | 150 | 160;
 
 export type Card = {
   suit: Suit;

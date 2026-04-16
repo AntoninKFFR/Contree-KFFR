@@ -187,7 +187,18 @@ export function chooseSimpleBid(hand: Card[]): BidDecision {
     };
   }
 
-  const value = best.score >= 86 ? 100 : best.score >= 70 ? 90 : 80;
+  const value: BidValue =
+    best.score >= 120
+      ? 130
+      : best.score >= 105
+        ? 120
+        : best.score >= 92
+          ? 110
+          : best.score >= 86
+            ? 100
+            : best.score >= 70
+              ? 90
+              : 80;
 
   return {
     action: "bid",

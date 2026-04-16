@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SUIT_LABELS, SUIT_SYMBOLS, SUITS } from "@/engine/cards";
+import { getAvailableBidValues } from "@/engine/bidding";
 import type { BidValue, Contract, Suit } from "@/engine/types";
 
 type BiddingPanelProps = {
@@ -11,26 +12,24 @@ type BiddingPanelProps = {
   onPass: () => void;
 };
 
-const BID_VALUES: BidValue[] = [80, 90, 100];
-
 export function BiddingPanel({ canBid, currentContract, onBid, onPass }: BiddingPanelProps) {
   const availableValues = useMemo(
-    () => BID_VALUES.filter((value) => !currentContract || value > currentContract.value),
+    () => getAvailableBidValues(currentContract),
     [currentContract],
   );
-  const [value, setValue] = useState<BidValue>(availableValues[0] ?? 100);
+  const [value, setValue] = useState<BidValue | "">(availableValues[0] ?? "");
   const [trump, setTrump] = useState<Suit>("hearts");
 
   const canMakeBid = canBid && availableValues.length > 0;
 
   useEffect(() => {
-    if (!availableValues.includes(value)) {
-      setValue(availableValues[0] ?? 100);
+    if (value === "" || !availableValues.includes(value)) {
+      setValue(availableValues[0] ?? "");
     }
   }, [availableValues, value]);
 
   function handleBid() {
-    if (!canMakeBid) return;
+    if (!canMakeBid || value === "") return;
     onBid(value, trump);
   }
 
@@ -54,6 +53,12 @@ export function BiddingPanel({ canBid, currentContract, onBid, onPass }: Bidding
         </p>
       )}
 
+      {canBid && availableValues.length === 0 ? (
+        <p className="mb-4 rounded-lg bg-yellow-50 p-3 text-sm text-stone-700">
+          Le contrat est deja au maximum pour cette V1. Anto peut seulement passer.
+        </p>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm font-semibold text-stone-700">
           Valeur
@@ -63,6 +68,7 @@ export function BiddingPanel({ canBid, currentContract, onBid, onPass }: Bidding
             onChange={(event) => setValue(Number(event.target.value) as BidValue)}
             value={value}
           >
+            {availableValues.length === 0 ? <option value="">Aucune surenchere</option> : null}
             {availableValues.map((bidValue) => (
               <option key={bidValue} value={bidValue}>
                 {bidValue}

@@ -10,7 +10,7 @@ Cette V1 est volontairement simple pour apprendre la structure d'une application
 - Chaque joueur reçoit 8 cartes.
 - Il y a une phase d'enchères avant de jouer les cartes.
 - Anto parle en premier, puis Max, Boulais, Allan.
-- Un joueur peut passer ou annoncer 80, 90 ou 100 avec une couleur d'atout.
+- Un joueur peut passer ou annoncer de 80 à 160, par paliers de 10, avec une couleur d'atout.
 - Une nouvelle annonce doit être plus haute que l'annonce actuelle.
 - Passer ne bloque pas définitivement le joueur: si quelqu'un annonce ensuite, la parole peut revenir.
 - Les annonces se terminent quand la parole revient au joueur qui tient le meilleur contrat.

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createInitialGame, makeBid, playCard } from "@/engine/game";
+import { getAvailableBidValues } from "@/engine/bidding";
+import { createInitialGame, getCurrentContract, makeBid, playCard } from "@/engine/game";
 import type { Card, GameState } from "@/engine/types";
 
 function card(rank: Card["rank"], suit: Card["suit"]): Card {
@@ -45,6 +46,16 @@ describe("game", () => {
 
     expect(afterAllan.phase).toBe("bidding");
     expect(afterAllan.currentPlayerId).toBe(0);
+    expect(getAvailableBidValues(getCurrentContract(afterAllan))).toEqual([
+      90,
+      100,
+      110,
+      120,
+      130,
+      140,
+      150,
+      160,
+    ]);
 
     const afterAntoAgain = makeBid(afterAllan, 0, { action: "bid", value: 90, trump: "hearts" });
     const afterMaxAgain = makeBid(afterAntoAgain, 1, { action: "pass" });
