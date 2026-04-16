@@ -136,12 +136,12 @@ function finishBidding(state: GameState, bids: Bid[]): GameState {
     contract,
     trump: contract.trump,
     hands: sortHandsForTrump(state.hands, contract.trump),
-    currentPlayerId: 0,
+    currentPlayerId: contract.playerId,
     currentTrick: {
-      leaderId: 0,
+      leaderId: contract.playerId,
       cards: [],
     },
-    message: `${playerName(contract.playerId)} prend a ${contract.value}. Anto commence.`,
+    message: `${playerName(contract.playerId)} prend a ${contract.value} et commence.`,
   };
 }
 

@@ -35,6 +35,8 @@ describe("game", () => {
       value: 90,
       trump: "hearts",
     });
+    expect(afterMaxAgain.currentPlayerId).toBe(2);
+    expect(afterMaxAgain.currentTrick.leaderId).toBe(2);
   });
 
   it("lets Anto speak again when someone bids after Anto passed", () => {
@@ -68,6 +70,7 @@ describe("game", () => {
       value: 90,
       trump: "hearts",
     });
+    expect(afterAllanAgain.currentPlayerId).toBe(0);
   });
 
   it("finishes the round without points when everybody passes", () => {

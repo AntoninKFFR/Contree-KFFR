@@ -18,7 +18,7 @@ Cette V1 est volontairement simple pour apprendre la structure d'une application
 - L'atout de la manche est la couleur du contrat final.
 - L'équipe du joueur qui a fait le contrat final devient l'équipe preneuse.
 - Si tout le monde passe, la manche s'arrête sans points et il faut relancer une nouvelle partie.
-- Anto commence le premier pli après les annonces.
+- Le joueur qui remporte le contrat commence le premier pli après les annonces.
 - Le joueur qui gagne un pli commence le pli suivant.
 - Le joueur doit fournir la couleur demandée s'il en a une.
 - Si le joueur ne peut pas fournir, il peut jouer n'importe quelle carte.
