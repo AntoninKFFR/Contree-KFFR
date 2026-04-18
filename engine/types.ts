@@ -93,6 +93,7 @@ export type RoundHistoryEntry = {
 
 export type GameState = {
   settings: GameSettings;
+  playerNames?: Record<PlayerId, string>;
   phase: Phase;
   roundNumber: number;
   startingPlayerId: PlayerId;

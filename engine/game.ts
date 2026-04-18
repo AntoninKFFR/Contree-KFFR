@@ -1,6 +1,14 @@
-import { createDeck, formatCard, sameCard, shuffleDeck, sortHand } from "./cards";
+import {
+  SUIT_LABELS,
+  SUIT_SYMBOLS,
+  createDeck,
+  formatCard,
+  sameCard,
+  shuffleDeck,
+  sortHand,
+} from "./cards";
 import { canCoinche, canSurcoinche } from "./bidding";
-import { playerName } from "./players";
+import { createRandomPlayerNames, playerName, teamName } from "./players";
 import {
   getLegalCards,
   getTrickWinner,
@@ -21,6 +29,8 @@ import type {
   Suit,
   TeamId,
 } from "./types";
+
+type PlayerNames = Record<PlayerId, string>;
 
 function defaultTargetScore(scoringMode: GameSettings["scoringMode"]): number {
   return scoringMode === "announced-points" ? 500 : 1000;
@@ -65,6 +75,7 @@ export function createInitialGame(
   return createRoundState({
     random,
     settings: resolveSettings(settings),
+    playerNames: createRandomPlayerNames(random),
     roundHistory: [],
     roundNumber: 1,
     startingPlayerId,
@@ -78,6 +89,7 @@ function createRoundState({
   roundHistory,
   roundNumber,
   settings,
+  playerNames,
   startingPlayerId,
   totalScore,
   winnerTeam,
@@ -86,6 +98,7 @@ function createRoundState({
   roundHistory: GameState["roundHistory"];
   roundNumber: number;
   settings: GameSettings;
+  playerNames: PlayerNames;
   startingPlayerId: PlayerId;
   totalScore: Record<TeamId, number>;
   winnerTeam: TeamId | null;
@@ -94,6 +107,7 @@ function createRoundState({
 
   return {
     settings,
+    playerNames,
     phase: "bidding",
     roundNumber,
     startingPlayerId,
@@ -113,7 +127,7 @@ function createRoundState({
     result: null,
     trickPoints: emptyScore(),
     roundScore: emptyScore(),
-    message: `Manche ${roundNumber}: phase d'annonces, ${playerName(startingPlayerId)} commence.`,
+    message: `Manche ${roundNumber}: phase d'annonces, ${playerName(startingPlayerId, playerNames)} commence.`,
   };
 }
 
@@ -160,12 +174,12 @@ function finishRound(state: GameState, result: GameState["result"], baseMessage:
     message:
       winnerTeam === null
         ? `${baseMessage} Lance la manche suivante.`
-        : `${baseMessage} Partie terminee: ${teamLabel(winnerTeam)} gagne.`,
+        : `${baseMessage} Partie terminée: ${teamName(winnerTeam, state.playerNames)} gagnent la partie.`,
   };
 }
 
-function teamLabel(teamId: TeamId): string {
-  return teamId === 0 ? "Anto + Boulais" : "Max + Allan";
+function formatSuit(suit: Suit): string {
+  return `${SUIT_LABELS[suit]} ${SUIT_SYMBOLS[suit]}`;
 }
 
 function sortHandsForTrump(hands: GameState["hands"], trump: Suit): GameState["hands"] {
@@ -259,7 +273,7 @@ function finishBidding(state: GameState, bids: Bid[]): GameState {
       leaderId: contract.playerId,
       cards: [],
     },
-    message: `${playerName(contract.playerId)} prend a ${contract.value} et commence.`,
+    message: `${playerName(contract.playerId, state.playerNames)} prend a ${contract.value} et commence.`,
   };
 }
 
@@ -291,6 +305,10 @@ export function makeBid(
   }
 
   const currentContract = currentHighestBid(state.bids);
+
+  if (bid.action === "bid" && currentContract && currentContract.status !== "normal") {
+    throw new Error("A normal bid is not allowed after a contract has been countered.");
+  }
 
   if (bid.action === "bid" && !isHigherBid(bid.value, currentContract)) {
     throw new Error("A new bid must be higher than the current contract.");
@@ -326,12 +344,12 @@ export function makeBid(
     currentPlayerId: next,
     message:
       bid.action === "pass"
-        ? `${playerName(playerId)} passe. A ${playerName(next)} de parler.`
+        ? `${playerName(playerId, state.playerNames)} passe. A ${playerName(next, state.playerNames)} de parler.`
         : bid.action === "bid"
-          ? `${playerName(playerId)} annonce ${bid.value}. A ${playerName(next)} de parler.`
+          ? `${playerName(playerId, state.playerNames)} annonce ${bid.value} a ${formatSuit(bid.trump)}. A ${playerName(next, state.playerNames)} de parler.`
           : bid.action === "coinche"
-            ? `${playerName(playerId)} coinche. A ${playerName(next)} de parler.`
-            : `${playerName(playerId)} surcoinche. A ${playerName(next)} de parler.`,
+            ? `${playerName(playerId, state.playerNames)} contre. A ${playerName(next, state.playerNames)} de parler.`
+            : `${playerName(playerId, state.playerNames)} surcontre. A ${playerName(next, state.playerNames)} de parler.`,
   };
 }
 
@@ -395,7 +413,7 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
       hands: nextHands,
       currentTrick: nextTrick,
       currentPlayerId: next,
-      message: `${playerName(playerId)} a joue ${formatCard(card)}.`,
+      message: `${playerName(playerId, state.playerNames)} a joue ${formatCard(card)}.`,
     };
   }
 
@@ -440,9 +458,9 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     message:
       isLastTrick
         ? result?.kind === "played" && result.contractSucceeded
-          ? `Contrat reussi. ${playerName(winnerId)} gagne le dernier pli.`
-          : `Contrat chute. ${playerName(winnerId)} gagne le dernier pli.`
-        : `${playerName(winnerId)} remporte le pli et rejoue.`,
+          ? `Contrat reussi. ${playerName(winnerId, state.playerNames)} gagne le dernier pli.`
+          : `Contrat chute. ${playerName(winnerId, state.playerNames)} gagne le dernier pli.`
+        : `${playerName(winnerId, state.playerNames)} remporte le pli et rejoue.`,
   };
 
   if (!isLastTrick || !result) {
@@ -453,8 +471,8 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     nextState,
     result,
     result.contractSucceeded
-      ? `Contrat reussi. ${playerName(winnerId)} gagne le dernier pli.`
-      : `Contrat chute. ${playerName(winnerId)} gagne le dernier pli.`,
+      ? `Contrat reussi. ${playerName(winnerId, state.playerNames)} gagne le dernier pli.`
+      : `Contrat chute. ${playerName(winnerId, state.playerNames)} gagne le dernier pli.`,
   );
 }
 
@@ -470,6 +488,7 @@ export function startNextRound(state: GameState, random = Math.random): GameStat
   return createRoundState({
     random,
     settings: state.settings,
+    playerNames: state.playerNames ?? createRandomPlayerNames(random),
     roundHistory: state.roundHistory,
     roundNumber: state.roundNumber + 1,
     startingPlayerId: nextStartingPlayer(state.startingPlayerId),

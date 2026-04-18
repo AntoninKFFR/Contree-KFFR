@@ -14,15 +14,21 @@ Application pédagogique en Next.js, TypeScript et Tailwind.
 - Score total et historique des manches
 - Moteur de jeu séparé de l'interface
 - Tests unitaires sur les règles importantes
+- Bot principal officiel `main` utilise par l'application web
+- Profils secondaires disponibles pour les simulations
 
 ## Structure
 
 - `app/`: pages Next.js et styles globaux.
 - `components/`: composants React simples pour afficher la table, la main et le score.
 - `engine/`: logique pure du jeu, sans React.
-- `bots/`: choix automatique des cartes des bots.
+- `bots/`: profils, annonces et choix automatique des cartes des bots.
+- `simulation/`: lancement de parties automatiques entre bots et statistiques.
+- `scripts/`: commandes terminal, dont la simulation des bots.
 - `tests/`: tests unitaires du moteur.
 - `RULES.md`: hypothèses de règles retenues pour cette V1.
+- `BOT_STRATEGY.md`: explication simple de la strategie des bots.
+- `TRAINING.md`: explication simple pour lancer et lire les simulations.
 
 ## Lancer le projet
 
@@ -48,3 +54,20 @@ Pour relancer les tests automatiquement pendant que tu modifies le moteur:
 ```bash
 npm run test:watch
 ```
+
+## Simuler des bots
+
+Pour comparer les profils de bots sans ouvrir l'interface web:
+
+```bash
+npm run simulate:bots -- --games=1000 --team0=main --team1=aggressive
+```
+
+Profils disponibles:
+
+- `main`
+- `prudent`
+- `balanced`
+- `aggressive`
+
+L'application web utilise toujours `main`. Les autres profils servent au simulateur et au benchmarking. Lis `TRAINING.md` pour comprendre les statistiques affichees.

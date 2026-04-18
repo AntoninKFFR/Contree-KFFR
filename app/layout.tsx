@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Coinche V1",
-  description: "Une V1 pédagogique de coinche contre trois bots.",
+  title: "Contrée V1",
+  description: "Une V1 pédagogique de contrée contre trois bots.",
 };
 
 export default function RootLayout({

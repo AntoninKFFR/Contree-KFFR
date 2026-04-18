@@ -103,67 +103,54 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen px-4 py-6 sm:px-8">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
-              Coinche / Contree V1
-            </p>
-            <h1 className="text-3xl font-bold text-stone-950 sm:text-4xl">
-              Anto et Boulais contre Max et Allan
-            </h1>
-          </div>
-          <p className="max-w-xl text-sm leading-6 text-stone-700">
-            Clique une carte quand c&apos;est ton tour. Les bots jouent seuls, le pli gagnant rejoue.
+    <main className="h-dvh overflow-hidden bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4">
+      <div className="mx-auto flex h-full max-w-7xl flex-col gap-2">
+        <header className="flex shrink-0 items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
+            Contrée par KFFR
           </p>
-        </header>
-
-        <section className="flex flex-col gap-2 rounded-lg border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-wide text-stone-500">Mode de score</p>
-            <p className="text-sm text-stone-700">
-              Choisis le mode, puis lance une nouvelle partie. La cible s&apos;adapte au mode.
-            </p>
-          </div>
           <select
-            className="rounded-lg border border-stone-300 px-3 py-2 text-sm font-semibold"
+            aria-label="Mode de score"
+            className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-semibold shadow-sm"
             onChange={(event) => setScoringMode(event.target.value as ScoringMode)}
             value={scoringMode}
           >
             <option value="made-points">Points faits</option>
             <option value="announced-points">Points annonces</option>
           </select>
-        </section>
+        </header>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <GameTable state={gameState} />
+        <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1fr)_310px]">
+          <div className="flex min-h-0 flex-col gap-2">
+            <GameTable state={gameState} />
+
+            {gameState.phase === "bidding" ? (
+              <BiddingPanel
+                canBid={humanCanBid}
+                canCoinche={humanCanCoinche}
+                canSurcoinche={humanCanSurcoinche}
+                currentContract={currentContract}
+                onBid={handleHumanBid}
+                onCoinche={handleHumanCoinche}
+                onPass={handleHumanPass}
+                onSurcoinche={handleHumanSurcoinche}
+              />
+            ) : null}
+
+            <HumanHand
+              canPlay={humanCanPlay}
+              cards={gameState.hands[0]}
+              legalCards={legalHumanCards}
+              onPlayCard={handlePlayCard}
+            />
+          </div>
+
           <ScoreBoard
             state={gameState}
             onNewGame={handleNewGame}
             onNextRound={handleNextRound}
           />
         </div>
-
-        {gameState.phase === "bidding" ? (
-          <BiddingPanel
-            canBid={humanCanBid}
-            canCoinche={humanCanCoinche}
-            canSurcoinche={humanCanSurcoinche}
-            currentContract={currentContract}
-            onBid={handleHumanBid}
-            onCoinche={handleHumanCoinche}
-            onPass={handleHumanPass}
-            onSurcoinche={handleHumanSurcoinche}
-          />
-        ) : null}
-
-        <HumanHand
-          canPlay={humanCanPlay}
-          cards={gameState.hands[0]}
-          legalCards={legalHumanCards}
-          onPlayCard={handlePlayCard}
-        />
       </div>
     </main>
   );

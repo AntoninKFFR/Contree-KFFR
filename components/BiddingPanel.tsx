@@ -47,36 +47,29 @@ export function BiddingPanel({
   }
 
   return (
-    <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-      <div className="mb-4">
-        <p className="text-sm uppercase tracking-wide text-stone-500">Annonces</p>
-        <h2 className="text-xl font-bold">
-          {canBid ? "A Anto de parler" : "Les autres joueurs annoncent..."}
-        </h2>
+    <section className="shrink-0 rounded-lg border border-stone-200 bg-white/95 p-2 shadow-sm">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-stone-500">Annonces</p>
+          <h2 className="text-sm font-bold">
+            {canBid ? "A Anto de parler" : "Les autres joueurs annoncent..."}
+          </h2>
+        </div>
       </div>
 
-      {currentContract ? (
-        <p className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-stone-700">
-          Contrat actuel: {currentContract.value} a {SUIT_LABELS[currentContract.trump]}{" "}
-          {SUIT_SYMBOLS[currentContract.trump]} - {contractStatusLabel(currentContract.status)}
-        </p>
-      ) : (
-        <p className="mb-4 rounded-lg bg-stone-100 p-3 text-sm text-stone-700">
-          Aucun contrat pour l&apos;instant.
-        </p>
-      )}
-
       {canBid && availableValues.length === 0 ? (
-        <p className="mb-4 rounded-lg bg-yellow-50 p-3 text-sm text-stone-700">
-          Le contrat est deja au maximum pour cette V1. Anto peut seulement passer.
+        <p className="mb-2 rounded-md bg-yellow-50 px-2 py-1 text-xs text-stone-700">
+          {currentContract?.status === "coinched"
+            ? "Contrat contré: tu peux seulement passer ou surcontrer."
+            : "Le contrat est deja au maximum pour cette V1. Anto peut seulement passer."}
         </p>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label className="flex flex-col gap-1 text-sm font-semibold text-stone-700">
+      <div className="grid gap-2 sm:grid-cols-[120px_160px_1fr]">
+        <label className="flex flex-col gap-1 text-xs font-semibold text-stone-700">
           Valeur
           <select
-            className="rounded-lg border border-stone-300 px-3 py-2"
+            className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
             disabled={!canMakeBid}
             onChange={(event) => setValue(Number(event.target.value) as BidValue)}
             value={value}
@@ -90,10 +83,10 @@ export function BiddingPanel({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-sm font-semibold text-stone-700">
+        <label className="flex flex-col gap-1 text-xs font-semibold text-stone-700">
           Atout
           <select
-            className="rounded-lg border border-stone-300 px-3 py-2"
+            className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
             disabled={!canMakeBid}
             onChange={(event) => setTrump(event.target.value as Suit)}
             value={trump}
@@ -106,9 +99,9 @@ export function BiddingPanel({
           </select>
         </label>
 
-        <div className="flex items-end gap-2">
+        <div className="grid grid-cols-4 items-end gap-2">
           <button
-            className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md bg-stone-900 px-2 py-1.5 text-xs font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canMakeBid}
             onClick={handleBid}
             type="button"
@@ -116,23 +109,23 @@ export function BiddingPanel({
             Annoncer
           </button>
           <button
-            className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-red-300 px-2 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canCoinche}
             onClick={onCoinche}
             type="button"
           >
-            Coincher
+            Contrer
           </button>
           <button
-            className="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-emerald-300 px-2 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canSurcoinche}
             onClick={onSurcoinche}
             type="button"
           >
-            Surcoincher
+            Surcontrer
           </button>
           <button
-            className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-stone-300 px-2 py-1.5 text-xs font-semibold text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canBid}
             onClick={onPass}
             type="button"
@@ -143,10 +136,4 @@ export function BiddingPanel({
       </div>
     </section>
   );
-}
-
-function contractStatusLabel(status: Contract["status"]): string {
-  if (status === "coinched") return "coinche";
-  if (status === "surcoinched") return "surcoinche";
-  return "normal";
 }

@@ -11,14 +11,14 @@ type HumanHandProps = {
 
 export function HumanHand({ cards, legalCards, canPlay, onPlayCard }: HumanHandProps) {
   return (
-    <section className="w-full">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Ta main</h2>
-        <p className="text-sm text-stone-600">
+    <section className="shrink-0 rounded-lg border border-stone-200 bg-white/90 p-2 shadow-sm">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold">Ta main</h2>
+        <p className="text-xs text-stone-600">
           {canPlay ? "Choisis une carte autorisee." : "Les bots reflechissent..."}
         </p>
       </div>
-      <div className="flex min-h-32 flex-wrap gap-3">
+      <div className="flex min-h-24 flex-wrap justify-center gap-2 sm:justify-start">
         {cards.map((card) => {
           const isPlayable = legalCards.some((legalCard) => sameCard(legalCard, card));
 

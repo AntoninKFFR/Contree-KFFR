@@ -1,23 +1,24 @@
-import { chooseCardToPlay, chooseSimpleBid } from "@/bots/heuristicBot";
+import { getBotProfile } from "@/bots/profiles";
+import { chooseProfileBid } from "@/bots/strategy/biddingStrategy";
+import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import { getCurrentContract } from "@/engine/game";
 import type { Card, GameState } from "@/engine/types";
 
+const MAIN_BOT_PROFILE = getBotProfile("main");
+
 export function chooseBotCard(state: GameState): Card {
-  return chooseCardToPlay(state);
+  return chooseProfileCardToPlay(state, MAIN_BOT_PROFILE);
 }
 
 export function chooseBotBid(state: GameState) {
   const currentContract = getCurrentContract(state);
-  const hand = state.hands[state.currentPlayerId];
-  const decision = chooseSimpleBid(hand);
+  const decision = chooseProfileBid(state, MAIN_BOT_PROFILE);
 
   if (
     currentContract &&
     canSurcoinche(state.currentPlayerId, currentContract) &&
-    decision.action === "bid" &&
-    decision.value &&
-    decision.value >= currentContract.value + 20
+    decision.action === "surcoinche"
   ) {
     return { action: "surcoinche" } as const;
   }
@@ -25,15 +26,16 @@ export function chooseBotBid(state: GameState) {
   if (
     currentContract &&
     canCoinche(state.currentPlayerId, currentContract) &&
-    decision.action === "bid" &&
-    decision.trump === currentContract.trump &&
-    decision.value &&
-    decision.value >= currentContract.value + 20
+    decision.action === "coinche"
   ) {
     return { action: "coinche" } as const;
   }
 
   if (decision.action === "pass" || !decision.value || !decision.trump) {
+    return { action: "pass" } as const;
+  }
+
+  if (currentContract?.status === "coinched") {
     return { action: "pass" } as const;
   }
 

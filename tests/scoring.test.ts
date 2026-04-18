@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { scoreRound } from "@/engine/scoring";
-import type { Contract } from "@/engine/types";
+import type { Contract, GameSettings } from "@/engine/types";
 
 const baseContract: Contract = {
   playerId: 0,
@@ -10,11 +10,17 @@ const baseContract: Contract = {
   status: "normal",
 };
 
+const madePointsSettings: GameSettings = { scoringMode: "made-points", targetScore: 1000 };
+const announcedPointsSettings: GameSettings = {
+  scoringMode: "announced-points",
+  targetScore: 500,
+};
+
 describe("scoring", () => {
   it("scores made-points mode with actual trick points when contract succeeds", () => {
     const result = scoreRound({
       contract: baseContract,
-      settings: { scoringMode: "made-points" },
+      settings: madePointsSettings,
       trickPointsByTeam: { 0: 92, 1: 70 },
     });
 
@@ -24,7 +30,7 @@ describe("scoring", () => {
   it("scores announced-points mode with only the contract value", () => {
     const result = scoreRound({
       contract: baseContract,
-      settings: { scoringMode: "announced-points" },
+      settings: announcedPointsSettings,
       trickPointsByTeam: { 0: 92, 1: 70 },
     });
 
@@ -34,7 +40,7 @@ describe("scoring", () => {
   it("doubles the contract value when coinched", () => {
     const result = scoreRound({
       contract: { ...baseContract, status: "coinched", coinchedBy: 1 },
-      settings: { scoringMode: "announced-points" },
+      settings: announcedPointsSettings,
       trickPointsByTeam: { 0: 92, 1: 70 },
     });
 
@@ -50,7 +56,7 @@ describe("scoring", () => {
         coinchedBy: 1,
         surcoinchedBy: 0,
       },
-      settings: { scoringMode: "made-points" },
+      settings: madePointsSettings,
       trickPointsByTeam: { 0: 70, 1: 92 },
     });
 

@@ -33,6 +33,16 @@ describe("game", () => {
     expect(createInitialGame(() => 0.9).startingPlayerId).toBe(3);
   });
 
+  it("keeps Anto as human and gives bots unique random names", () => {
+    const state = createInitialGame(() => 0.1);
+
+    expect(state.playerNames?.[0]).toBe("Anto");
+
+    const botNames = [state.playerNames?.[1], state.playerNames?.[2], state.playerNames?.[3]];
+    expect(new Set(botNames).size).toBe(3);
+    expect(botNames).not.toContain("Anto");
+  });
+
   it("moves from bidding to playing with the highest contract", () => {
     const state = createInitialGame(() => 0.1);
     const afterAnto = makeBid(state, 0, { action: "bid", value: 80, trump: "spades" });
@@ -193,6 +203,7 @@ describe("game", () => {
     expect(nextRound.totalScore).toEqual({ 0: 120, 1: 40 });
     expect(nextRound.roundHistory).toHaveLength(1);
     expect(nextRound.roundScore).toEqual({ 0: 0, 1: 0 });
+    expect(nextRound.playerNames).toEqual(finishedState.playerNames);
   });
 
   it("ends the game when a team reaches the target score", () => {
@@ -248,6 +259,17 @@ describe("game", () => {
       surcoinchedBy: 2,
     });
     expect(afterBoulaisSurcoinche.phase).toBe("playing");
+  });
+
+  it("blocks normal bids after a coinche", () => {
+    const state = createInitialGame(() => 0.1);
+    const afterAnto = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
+    const afterMaxCoinche = makeBid(afterAnto, 1, { action: "coinche" });
+
+    expect(getAvailableBidValues(getCurrentContract(afterMaxCoinche))).toEqual([]);
+    expect(() =>
+      makeBid(afterMaxCoinche, 2, { action: "bid", value: 90, trump: "spades" }),
+    ).toThrow("A normal bid is not allowed after a contract has been countered.");
   });
 
   it("starts playing when the contract holder accepts a coinche by passing", () => {

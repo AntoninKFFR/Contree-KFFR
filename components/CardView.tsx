@@ -21,12 +21,12 @@ export function CardView({
   const isRed = card.suit === "hearts" || card.suit === "diamonds";
   const sizeClasses =
     size === "compact"
-      ? "h-24 w-16 p-2"
-      : "h-28 w-20 p-2";
+      ? "h-20 w-14 p-1.5"
+      : "h-24 w-16 p-2";
   const rankClasses = size === "compact" ? "text-base" : "text-lg";
-  const symbolClasses = size === "compact" ? "text-3xl" : "text-4xl";
+  const symbolClasses = size === "compact" ? "text-2xl" : "text-3xl";
   const classes = [
-    "flex flex-col justify-between rounded-lg border bg-white text-left shadow-sm transition",
+    "flex flex-col justify-between rounded-md border bg-white text-left shadow-sm transition",
     sizeClasses,
     isRed ? "border-red-200 text-red-700" : "border-stone-300 text-stone-900",
     onClick && !disabled && isPlayable ? "cursor-pointer hover:-translate-y-2 hover:shadow-md" : "",
