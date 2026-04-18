@@ -125,17 +125,23 @@ export default function ProfilePage() {
         </p>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Parties" value={stats.total} />
         <StatCard label="Victoires" value={stats.wins} />
         <StatCard label="Défaites" value={stats.losses} />
-        <StatCard label="Winrate global" value={`${stats.winrate}%`} />
-        <StatCard label="Winrate points faits" value={`${stats.madePointsWinrate}%`} />
-        <StatCard label="Winrate points annonces" value={`${stats.announcedPointsWinrate}%`} />
-        <StatCard label="Série actuelle" value={stats.currentStreak} />
-        <StatCard label="Meilleure série" value={stats.bestStreak} />
-        <StatCard label="Score moyen joueur" value={stats.averagePlayerScore} />
-        <StatCard label="Score moyen bot" value={stats.averageBotScore} />
+      </section>
+
+      <section className="grid gap-3 lg:grid-cols-2">
+        <StatsDetails title="Winrate" summary={`${stats.winrate}%`}>
+          <DetailRow label="Global" value={`${stats.winrate}%`} />
+          <DetailRow label="Points faits" value={`${stats.madePointsWinrate}%`} />
+          <DetailRow label="Points annoncés" value={`${stats.announcedPointsWinrate}%`} />
+        </StatsDetails>
+
+        <StatsDetails title="Série" summary={`${stats.currentStreak} en cours`}>
+          <DetailRow label="Série en cours" value={stats.currentStreak} />
+          <DetailRow label="Meilleure série" value={stats.bestStreak} />
+        </StatsDetails>
       </section>
 
       <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
@@ -246,6 +252,43 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
     <div className="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">{label}</p>
       <p className="mt-1 text-2xl font-bold">{value}</p>
+    </div>
+  );
+}
+
+function StatsDetails({
+  children,
+  summary,
+  title,
+}: {
+  children: React.ReactNode;
+  summary: string;
+  title: string;
+}) {
+  return (
+    <details className="group rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">{title}</p>
+          <p className="mt-1 text-2xl font-bold">{summary}</p>
+        </div>
+        <span className="rounded-md border border-stone-300 px-2 py-1 text-xs font-semibold text-stone-700 group-open:hidden">
+          Ouvrir
+        </span>
+        <span className="hidden rounded-md border border-stone-300 px-2 py-1 text-xs font-semibold text-stone-700 group-open:inline">
+          Fermer
+        </span>
+      </summary>
+      <div className="mt-4 space-y-2 border-t border-stone-200 pt-3">{children}</div>
+    </details>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <span className="text-stone-600">{label}</span>
+      <span className="font-bold text-stone-950">{value}</span>
     </div>
   );
 }
