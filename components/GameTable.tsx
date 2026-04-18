@@ -7,7 +7,7 @@ type GameTableProps = {
   state: GameState;
 };
 
-const TABLE_BACKGROUND_IMAGE = "/tapisKFFR.png";
+const TABLE_BACKGROUND_IMAGE = "/TapisKFFR.png";
 
 function playedCardsToShow(state: GameState): { title: string; cards: PlayedCard[] } {
   if (state.currentTrick.cards.length > 0) {
