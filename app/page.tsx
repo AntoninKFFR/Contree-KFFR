@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { chooseBotBid, chooseBotCard, isBotPlayer } from "@/bots/simpleBot";
 import { AuthStatus } from "@/components/AuthStatus";
 import { BiddingPanel } from "@/components/BiddingPanel";
@@ -18,10 +18,14 @@ import {
   startNextRound,
 } from "@/engine/game";
 import type { BidValue, Card, GameState, ScoringMode, Suit } from "@/engine/types";
+import { saveCompletedGame } from "@/lib/games";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
 const initialRenderRandom = () => 0.42;
 
 export default function Home() {
+  const gameIdRef = useRef(crypto.randomUUID());
+  const savedGameIdsRef = useRef(new Set<string>());
   const [scoringMode, setScoringMode] = useState<ScoringMode>("made-points");
   const [gameState, setGameState] = useState<GameState>(() =>
     createInitialGame(initialRenderRandom, {
@@ -70,6 +74,41 @@ export default function Home() {
     return () => window.clearTimeout(timeoutId);
   }, [gameState]);
 
+  useEffect(() => {
+    if (gameState.phase !== "game-over" || savedGameIdsRef.current.has(gameIdRef.current)) {
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+
+    if (!supabase) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    supabase.auth.getSession().then(async ({ data }) => {
+      const userId = data.session?.user.id;
+
+      if (!userId || isCancelled || savedGameIdsRef.current.has(gameIdRef.current)) {
+        return;
+      }
+
+      savedGameIdsRef.current.add(gameIdRef.current);
+
+      const { error } = await saveCompletedGame(supabase, gameState, userId);
+
+      if (error) {
+        savedGameIdsRef.current.delete(gameIdRef.current);
+        console.error("Impossible d'enregistrer la partie terminee.", error);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [gameState]);
+
   function handlePlayCard(card: Card) {
     setGameState((currentState) => playCard(currentState, 0, card));
   }
@@ -91,6 +130,7 @@ export default function Home() {
   }
 
   function handleNewGame() {
+    gameIdRef.current = crypto.randomUUID();
     setGameState(
       createInitialGame(Math.random, {
         scoringMode,
