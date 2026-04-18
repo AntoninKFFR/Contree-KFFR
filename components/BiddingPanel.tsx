@@ -52,7 +52,7 @@ export function BiddingPanel({
         <div>
           <p className="text-xs uppercase tracking-wide text-stone-500">Annonces</p>
           <h2 className="text-sm font-bold">
-            {canBid ? "A Anto de parler" : "Les autres joueurs annoncent..."}
+            {canBid ? "A toi de parler" : "Les autres joueurs annoncent..."}
           </h2>
         </div>
       </div>
@@ -61,7 +61,7 @@ export function BiddingPanel({
         <p className="mb-2 rounded-md bg-yellow-50 px-2 py-1 text-xs text-stone-700">
           {currentContract?.status === "coinched"
             ? "Contrat contré: tu peux seulement passer ou surcontrer."
-            : "Le contrat est deja au maximum pour cette V1. Anto peut seulement passer."}
+            : "Le contrat est deja au maximum pour cette V1. Tu peux seulement passer."}
         </p>
       ) : null}
 

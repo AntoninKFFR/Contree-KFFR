@@ -1,7 +1,7 @@
 import type { PlayerId, TeamId } from "./types";
 
 export const DEFAULT_PLAYER_NAMES: Record<PlayerId, string> = {
-  0: "Anto",
+  0: "Moi",
   1: "Max",
   2: "Boulais",
   3: "Allan",
@@ -28,7 +28,7 @@ export function createRandomPlayerNames(random = Math.random): Record<PlayerId, 
   });
 
   return {
-    0: "Anto",
+    0: "Moi",
     1: pickedNames[0],
     2: pickedNames[1],
     3: pickedNames[2],

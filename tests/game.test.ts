@@ -33,24 +33,24 @@ describe("game", () => {
     expect(createInitialGame(() => 0.9).startingPlayerId).toBe(3);
   });
 
-  it("keeps Anto as human and gives bots unique random names", () => {
+  it("keeps Moi as human and gives bots unique random names", () => {
     const state = createInitialGame(() => 0.1);
 
-    expect(state.playerNames?.[0]).toBe("Anto");
+    expect(state.playerNames?.[0]).toBe("Moi");
 
     const botNames = [state.playerNames?.[1], state.playerNames?.[2], state.playerNames?.[3]];
     expect(new Set(botNames).size).toBe(3);
-    expect(botNames).not.toContain("Anto");
+    expect(botNames).not.toContain("Moi");
   });
 
   it("moves from bidding to playing with the highest contract", () => {
     const state = createInitialGame(() => 0.1);
-    const afterAnto = makeBid(state, 0, { action: "bid", value: 80, trump: "spades" });
-    const afterMax = makeBid(afterAnto, 1, { action: "pass" });
+    const afterMoi = makeBid(state, 0, { action: "bid", value: 80, trump: "spades" });
+    const afterMax = makeBid(afterMoi, 1, { action: "pass" });
     const afterBoulais = makeBid(afterMax, 2, { action: "bid", value: 90, trump: "hearts" });
     const afterAllan = makeBid(afterBoulais, 3, { action: "pass" });
-    const afterAntoAgain = makeBid(afterAllan, 0, { action: "pass" });
-    const afterMaxAgain = makeBid(afterAntoAgain, 1, { action: "pass" });
+    const afterMoiAgain = makeBid(afterAllan, 0, { action: "pass" });
+    const afterMaxAgain = makeBid(afterMoiAgain, 1, { action: "pass" });
 
     expect(afterMaxAgain.phase).toBe("playing");
     expect(afterMaxAgain.trump).toBe("hearts");
@@ -65,10 +65,10 @@ describe("game", () => {
     expect(afterMaxAgain.currentTrick.leaderId).toBe(2);
   });
 
-  it("lets Anto speak again when someone bids after Anto passed", () => {
+  it("lets Moi speak again when someone bids after Moi passed", () => {
     const state = createInitialGame(() => 0.1);
-    const afterAnto = makeBid(state, 0, { action: "pass" });
-    const afterMax = makeBid(afterAnto, 1, { action: "bid", value: 80, trump: "clubs" });
+    const afterMoi = makeBid(state, 0, { action: "pass" });
+    const afterMax = makeBid(afterMoi, 1, { action: "bid", value: 80, trump: "clubs" });
     const afterBoulais = makeBid(afterMax, 2, { action: "pass" });
     const afterAllan = makeBid(afterBoulais, 3, { action: "pass" });
 
@@ -85,8 +85,8 @@ describe("game", () => {
       160,
     ]);
 
-    const afterAntoAgain = makeBid(afterAllan, 0, { action: "bid", value: 90, trump: "hearts" });
-    const afterMaxAgain = makeBid(afterAntoAgain, 1, { action: "pass" });
+    const afterMoiAgain = makeBid(afterAllan, 0, { action: "bid", value: 90, trump: "hearts" });
+    const afterMaxAgain = makeBid(afterMoiAgain, 1, { action: "pass" });
     const afterBoulaisAgain = makeBid(afterMaxAgain, 2, { action: "pass" });
     const afterAllanAgain = makeBid(afterBoulaisAgain, 3, { action: "pass" });
 
@@ -102,8 +102,8 @@ describe("game", () => {
 
   it("finishes the round without points when everybody passes", () => {
     const state = createInitialGame(() => 0.1);
-    const afterAnto = makeBid(state, 0, { action: "pass" });
-    const afterMax = makeBid(afterAnto, 1, { action: "pass" });
+    const afterMoi = makeBid(state, 0, { action: "pass" });
+    const afterMax = makeBid(afterMoi, 1, { action: "pass" });
     const afterBoulais = makeBid(afterMax, 2, { action: "pass" });
     const afterAllan = makeBid(afterBoulais, 3, { action: "pass" });
 
@@ -116,8 +116,8 @@ describe("game", () => {
 
   it("moves turn to the next player after a card is played", () => {
     const state = createInitialGame(() => 0.1);
-    const afterAnto = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
-    const afterMax = makeBid(afterAnto, 1, { action: "pass" });
+    const afterMoi = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
+    const afterMax = makeBid(afterMoi, 1, { action: "pass" });
     const afterBoulais = makeBid(afterMax, 2, { action: "pass" });
     const playingState = makeBid(afterBoulais, 3, { action: "pass" });
     const firstCard = playingState.hands[0][0];
@@ -245,8 +245,8 @@ describe("game", () => {
 
   it("allows an opponent to coinche and contract team to surcoinche", () => {
     const state = createInitialGame(() => 0.1);
-    const afterAnto = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
-    const afterMaxCoinche = makeBid(afterAnto, 1, { action: "coinche" });
+    const afterMoi = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
+    const afterMaxCoinche = makeBid(afterMoi, 1, { action: "coinche" });
     const afterBoulaisSurcoinche = makeBid(afterMaxCoinche, 2, { action: "surcoinche" });
 
     expect(getCurrentContract(afterMaxCoinche)).toMatchObject({
@@ -263,8 +263,8 @@ describe("game", () => {
 
   it("blocks normal bids after a coinche", () => {
     const state = createInitialGame(() => 0.1);
-    const afterAnto = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
-    const afterMaxCoinche = makeBid(afterAnto, 1, { action: "coinche" });
+    const afterMoi = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
+    const afterMaxCoinche = makeBid(afterMoi, 1, { action: "coinche" });
 
     expect(getAvailableBidValues(getCurrentContract(afterMaxCoinche))).toEqual([]);
     expect(() =>
@@ -274,14 +274,14 @@ describe("game", () => {
 
   it("starts playing when the contract holder accepts a coinche by passing", () => {
     const state = createInitialGame(() => 0.1);
-    const afterAnto = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
-    const afterMaxCoinche = makeBid(afterAnto, 1, { action: "coinche" });
+    const afterMoi = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
+    const afterMaxCoinche = makeBid(afterMoi, 1, { action: "coinche" });
     const afterBoulais = makeBid(afterMaxCoinche, 2, { action: "pass" });
     const afterAllan = makeBid(afterBoulais, 3, { action: "pass" });
-    const afterAntoPass = makeBid(afterAllan, 0, { action: "pass" });
+    const afterMoiPass = makeBid(afterAllan, 0, { action: "pass" });
 
-    expect(afterAntoPass.phase).toBe("playing");
-    expect(afterAntoPass.contract).toMatchObject({
+    expect(afterMoiPass.phase).toBe("playing");
+    expect(afterMoiPass.contract).toMatchObject({
       playerId: 0,
       status: "coinched",
     });
