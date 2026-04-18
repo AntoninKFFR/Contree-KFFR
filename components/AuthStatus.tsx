@@ -60,6 +60,14 @@ export function AuthStatus() {
       >
         {session ? "Compte" : "Se connecter"}
       </Link>
+      {session ? (
+        <Link
+          className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-stone-800 shadow-sm transition hover:bg-stone-50"
+          href="/profile"
+        >
+          Profil
+        </Link>
+      ) : null}
     </div>
   );
 }
