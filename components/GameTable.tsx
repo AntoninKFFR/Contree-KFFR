@@ -36,7 +36,7 @@ function PlayedCardSlot({
   const played = playedCardForPlayer(cards, playerId);
 
   return (
-    <div className="flex h-20 w-14 items-center justify-center">
+    <div className="flex h-full w-full items-center justify-center">
       {played ? (
         <CardView card={played.card} disabled muted={false} size="compact" />
       ) : (
@@ -48,24 +48,32 @@ function PlayedCardSlot({
   );
 }
 
+function TrickCell({
+  cards,
+  className,
+  playerId,
+}: {
+  cards: PlayedCard[];
+  className: string;
+  playerId: PlayerId;
+}) {
+  return (
+    <div className={`${className} flex h-full w-full items-center justify-center`}>
+      <PlayedCardSlot cards={cards} playerId={playerId} />
+    </div>
+  );
+}
+
 function TrickCenter({ cards, title }: { cards: PlayedCard[]; title: string }) {
   return (
-    <div className="absolute left-1/2 top-1/2 grid grid-cols-[56px_88px_56px] grid-rows-[80px_36px_80px] place-items-center gap-2 -translate-x-1/2 -translate-y-1/2">
-      <div className="col-start-2 row-start-1">
-        <PlayedCardSlot cards={cards} playerId={2} />
-      </div>
-      <div className="col-start-1 row-start-2">
-        <PlayedCardSlot cards={cards} playerId={3} />
-      </div>
-      <h2 className="col-start-2 row-start-2 rounded-md bg-white px-2 py-1 text-center text-xs font-semibold shadow-sm">
+    <div className="absolute left-1/2 top-1/2 grid grid-cols-[56px_88px_56px] grid-rows-[80px_80px_80px] place-items-center gap-2 -translate-x-1/2 -translate-y-1/2">
+      <TrickCell cards={cards} className="col-start-2 row-start-1" playerId={2} />
+      <TrickCell cards={cards} className="col-start-1 row-start-2" playerId={3} />
+      <h2 className="col-start-2 row-start-2 flex items-center justify-center rounded-md bg-white px-2 py-1 text-center text-xs font-semibold shadow-sm">
         {title}
       </h2>
-      <div className="col-start-3 row-start-2">
-        <PlayedCardSlot cards={cards} playerId={1} />
-      </div>
-      <div className="col-start-2 row-start-3">
-        <PlayedCardSlot cards={cards} playerId={0} />
-      </div>
+      <TrickCell cards={cards} className="col-start-3 row-start-2" playerId={1} />
+      <TrickCell cards={cards} className="col-start-2 row-start-3" playerId={0} />
     </div>
   );
 }
