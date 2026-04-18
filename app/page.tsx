@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { chooseBotBid, chooseBotCard, isBotPlayer } from "@/bots/simpleBot";
+import { AuthStatus } from "@/components/AuthStatus";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
@@ -109,15 +110,18 @@ export default function Home() {
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
             Contrée par KFFR
           </p>
-          <select
-            aria-label="Mode de score"
-            className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-semibold shadow-sm"
-            onChange={(event) => setScoringMode(event.target.value as ScoringMode)}
-            value={scoringMode}
-          >
-            <option value="made-points">Points faits</option>
-            <option value="announced-points">Points annonces</option>
-          </select>
+          <div className="flex items-center gap-2">
+            <AuthStatus />
+            <select
+              aria-label="Mode de score"
+              className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-semibold shadow-sm"
+              onChange={(event) => setScoringMode(event.target.value as ScoringMode)}
+              value={scoringMode}
+            >
+              <option value="made-points">Points faits</option>
+              <option value="announced-points">Points annonces</option>
+            </select>
+          </div>
         </header>
 
         <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1fr)_310px]">
