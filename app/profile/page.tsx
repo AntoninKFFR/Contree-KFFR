@@ -4,35 +4,16 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getProfileUsername } from "@/lib/profiles";
+import {
+  calculateStats,
+  formatDate,
+  getUserGames,
+  scoringModeLabel,
+  type GameRow,
+} from "@/lib/stats";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
-type GameRow = {
-  id: string;
-  bot_score: number | null;
-  bot_summary: string | null;
-  created_at: string | null;
-  player_score: number | null;
-  scoring_mode: string | null;
-  target_score: number | null;
-  won: boolean | null;
-};
-
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
-
-function formatDate(value: string | null) {
-  if (!value) return "Date inconnue";
-
-  return new Intl.DateTimeFormat("fr-FR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
-function scoringModeLabel(value: string | null) {
-  if (value === "made-points") return "Points faits";
-  if (value === "announced-points") return "Points annonces";
-  return value ?? "Mode inconnu";
-}
 
 export default function ProfilePage() {
   const [games, setGames] = useState<GameRow[]>([]);
@@ -70,13 +51,7 @@ export default function ProfilePage() {
 
       const [nextUsername, gamesResult] = await Promise.all([
         getProfileUsername(client, nextSession.user.id),
-        client
-          .from("games")
-          .select(
-            "id, created_at, won, scoring_mode, player_score, bot_score, target_score, bot_summary",
-          )
-          .eq("user_id", nextSession.user.id)
-          .order("created_at", { ascending: false }),
+        getUserGames(client, nextSession.user.id),
       ]);
 
       if (isCancelled) return;
@@ -107,15 +82,8 @@ export default function ProfilePage() {
     };
   }, []);
 
-  const stats = useMemo(() => {
-    const total = games.length;
-    const wins = games.filter((game) => game.won).length;
-    const losses = total - wins;
-    const winrate = total > 0 ? Math.round((wins / total) * 100) : 0;
-
-    return { losses, total, winrate, wins };
-  }, [games]);
-  const recentGames = useMemo(() => games.slice(0, 10), [games]);
+  const stats = useMemo(() => calculateStats(games), [games]);
+  const recentGames = useMemo(() => games.slice(0, 5), [games]);
 
   if (pageState === "unavailable") {
     return (
@@ -161,69 +129,97 @@ export default function ProfilePage() {
         <StatCard label="Parties" value={stats.total} />
         <StatCard label="Victoires" value={stats.wins} />
         <StatCard label="Défaites" value={stats.losses} />
-        <StatCard label="Winrate" value={`${stats.winrate}%`} />
+        <StatCard label="Winrate global" value={`${stats.winrate}%`} />
+        <StatCard label="Winrate points faits" value={`${stats.madePointsWinrate}%`} />
+        <StatCard label="Winrate points annonces" value={`${stats.announcedPointsWinrate}%`} />
+        <StatCard label="Série actuelle" value={stats.currentStreak} />
+        <StatCard label="Meilleure série" value={stats.bestStreak} />
+        <StatCard label="Score moyen joueur" value={stats.averagePlayerScore} />
+        <StatCard label="Score moyen bot" value={stats.averageBotScore} />
       </section>
 
       <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold">Dernières parties</h2>
-          <span className="text-xs font-semibold text-stone-500">
-            {recentGames.length} affichées
-          </span>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold">Dernières parties</h2>
+            <p className="text-xs font-semibold text-stone-500">
+              Aperçu des {recentGames.length} plus récentes
+            </p>
+          </div>
+          <Link
+            className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white"
+            href="/history"
+          >
+            Voir tout l&apos;historique
+          </Link>
         </div>
 
-        {errorMessage ? (
-          <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
-            Impossible de charger les parties: {errorMessage}
-          </p>
-        ) : null}
-
-        {!errorMessage && pageState === "loading" ? (
-          <p className="text-sm text-stone-600">Chargement des parties...</p>
-        ) : null}
-
-        {!errorMessage && pageState === "ready" && games.length === 0 ? (
-          <p className="text-sm text-stone-600">
-            Aucune partie enregistrée pour le moment.
-          </p>
-        ) : null}
-
-        {recentGames.length > 0 ? (
-          <ul className="space-y-2">
-            {recentGames.map((game) => (
-              <li
-                className="rounded-md border border-stone-200 bg-stone-50 p-3 text-sm"
-                key={game.id}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-semibold">{formatDate(game.created_at)}</p>
-                  <span
-                    className={`rounded-md px-2 py-1 text-xs font-bold ${
-                      game.won
-                        ? "bg-emerald-100 text-emerald-900"
-                        : "bg-red-100 text-red-900"
-                    }`}
-                  >
-                    {game.won ? "Gagné" : "Perdu"}
-                  </span>
-                </div>
-                <div className="mt-2 grid gap-1 text-stone-700 sm:grid-cols-2">
-                  <p>Mode: {scoringModeLabel(game.scoring_mode)}</p>
-                  <p>Cible: {game.target_score ?? "-"}</p>
-                  <p>Joueur: {game.player_score ?? "-"}</p>
-                  <p>Bots: {game.bot_score ?? "-"}</p>
-                </div>
-                {game.bot_summary ? (
-                  <p className="mt-2 text-xs font-semibold text-stone-500">
-                    Bots affrontés: {game.bot_summary}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        ) : null}
+        <GameList
+          errorMessage={errorMessage}
+          games={recentGames}
+          isLoading={pageState === "loading"}
+          noGamesText="Aucune partie enregistrée pour le moment."
+        />
       </section>
     </ProfileShell>
+  );
+}
+
+function GameList({
+  errorMessage,
+  games,
+  isLoading,
+  noGamesText,
+}: {
+  errorMessage: string | null;
+  games: GameRow[];
+  isLoading: boolean;
+  noGamesText: string;
+}) {
+  if (errorMessage) {
+    return (
+      <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
+        Impossible de charger les parties: {errorMessage}
+      </p>
+    );
+  }
+
+  if (isLoading) {
+    return <p className="text-sm text-stone-600">Chargement des parties...</p>;
+  }
+
+  if (games.length === 0) {
+    return <p className="text-sm text-stone-600">{noGamesText}</p>;
+  }
+
+  return (
+    <ul className="space-y-2">
+      {games.map((game) => (
+        <li className="rounded-md border border-stone-200 bg-stone-50 p-3 text-sm" key={game.id}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-semibold">{formatDate(game.created_at)}</p>
+            <span
+              className={`rounded-md px-2 py-1 text-xs font-bold ${
+                game.won ? "bg-emerald-100 text-emerald-900" : "bg-red-100 text-red-900"
+              }`}
+            >
+              {game.won ? "Gagné" : "Perdu"}
+            </span>
+          </div>
+          <div className="mt-2 grid gap-1 text-stone-700 sm:grid-cols-2">
+            <p>Mode: {scoringModeLabel(game.scoring_mode)}</p>
+            <p>Cible: {game.target_score ?? "-"}</p>
+            <p>Joueur: {game.player_score ?? "-"}</p>
+            <p>Bots: {game.bot_score ?? "-"}</p>
+          </div>
+          {game.bot_summary ? (
+            <p className="mt-2 text-xs font-semibold text-stone-500">
+              Bots affrontés: {game.bot_summary}
+            </p>
+          ) : null}
+        </li>
+      ))}
+    </ul>
   );
 }
 
