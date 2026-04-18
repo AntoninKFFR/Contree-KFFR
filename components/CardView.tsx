@@ -26,7 +26,7 @@ export function CardView({
   const rankClasses = size === "compact" ? "text-base" : "text-lg";
   const symbolClasses = size === "compact" ? "text-2xl" : "text-3xl";
   const classes = [
-    "flex flex-col justify-between rounded-md border bg-white text-left shadow-sm transition",
+    "flex items-center justify-center rounded-md border bg-white text-center shadow-sm transition",
     sizeClasses,
     isRed ? "border-red-200 text-red-700" : "border-stone-300 text-stone-900",
     onClick && !disabled && isPlayable ? "cursor-pointer hover:-translate-y-2 hover:shadow-md" : "",
@@ -41,9 +41,11 @@ export function CardView({
       onClick={onClick}
       type="button"
     >
-      <span className={`${rankClasses} font-bold`}>{card.rank}</span>
-      <span className={`self-center ${symbolClasses}`}>{SUIT_SYMBOLS[card.suit]}</span>
-      <span className={`self-end ${rankClasses} font-bold`}>{card.rank}</span>
+      <span className="flex h-full w-full flex-col items-center justify-center">
+        <span className={`${rankClasses} font-bold leading-none`}>{card.rank}</span>
+        <span className={`${symbolClasses} leading-none`}>{SUIT_SYMBOLS[card.suit]}</span>
+        <span className={`${rankClasses} font-bold leading-none`}>{card.rank}</span>
+      </span>
       <span className="sr-only">{cardId(card)}</span>
     </button>
   );
