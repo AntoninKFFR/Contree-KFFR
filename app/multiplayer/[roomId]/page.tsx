@@ -15,6 +15,10 @@ import { getSupabaseClient } from "@/lib/supabaseClient";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable" | "missing";
 
+type LoadRoomOptions = {
+  silent?: boolean;
+};
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Action impossible pour le moment.";
 }
@@ -38,7 +42,7 @@ export default function MultiplayerRoomPage() {
     return roomWithPlayers.players.find((player) => player.user_id === session.user.id) ?? null;
   }, [roomWithPlayers, session]);
 
-  const loadRoom = useCallback(async () => {
+  const loadRoom = useCallback(async (options: LoadRoomOptions = {}) => {
     const supabase = getSupabaseClient();
 
     if (!supabase) {
@@ -51,8 +55,10 @@ export default function MultiplayerRoomPage() {
       return;
     }
 
-    setPageState("loading");
-    setError(null);
+    if (!options.silent) {
+      setPageState("loading");
+      setError(null);
+    }
 
     const { data } = await supabase.auth.getSession();
     const nextSession = data.session;
@@ -66,6 +72,7 @@ export default function MultiplayerRoomPage() {
     try {
       const nextRoom = await getRoomWithPlayers(supabase, roomId);
       setRoomWithPlayers(nextRoom);
+      setError(null);
       setPageState("ready");
     } catch (loadError) {
       setRoomWithPlayers(null);
@@ -89,6 +96,44 @@ export default function MultiplayerRoomPage() {
 
     return () => subscription.unsubscribe();
   }, [loadRoom]);
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+
+    if (!supabase || !roomId) return;
+
+    const channel = supabase
+      .channel(`room-lobby:${roomId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          filter: `room_id=eq.${roomId}`,
+          schema: "public",
+          table: "room_players",
+        },
+        () => {
+          void loadRoom({ silent: true });
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          filter: `id=eq.${roomId}`,
+          schema: "public",
+          table: "rooms",
+        },
+        () => {
+          void loadRoom({ silent: true });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [loadRoom, roomId]);
 
   async function handleToggleReady() {
     const supabase = getSupabaseClient();
@@ -180,7 +225,7 @@ export default function MultiplayerRoomPage() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50"
-                    onClick={loadRoom}
+                    onClick={() => loadRoom()}
                     type="button"
                   >
                     Rafraîchir
