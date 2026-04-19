@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
 import { AuthStatus } from "@/components/AuthStatus";
@@ -181,6 +182,12 @@ export default function Home() {
             Contrée par KFFR
           </p>
           <div className="flex items-center gap-2">
+            <Link
+              className="rounded-md border border-emerald-800 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-900 shadow-sm transition hover:bg-emerald-50"
+              href="/multiplayer"
+            >
+              Multi
+            </Link>
             <AuthStatus />
             <select
               aria-label="Mode de score"
