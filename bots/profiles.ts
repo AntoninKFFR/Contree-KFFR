@@ -1,4 +1,4 @@
-export type BotProfileId = "main" | "prudent" | "balanced" | "aggressive";
+export type BotProfileId = "main" | "main_montecarlo" | "prudent" | "balanced" | "aggressive";
 
 export type BotProfile = {
   id: string;
@@ -16,6 +16,17 @@ export const BOT_PROFILES: Record<BotProfileId, BotProfile> = {
   main: {
     id: "main",
     label: "Bot principal",
+    bidRisk: 0.9,
+    cardRisk: 0.82,
+    bidOffset: 11,
+    raiseMargin: 8,
+    coincheMargin: 34,
+    surcoincheMargin: 42,
+    preserveStrongCards: 1.25,
+  },
+  main_montecarlo: {
+    id: "main_montecarlo",
+    label: "Bot principal Monte Carlo",
     bidRisk: 0.9,
     cardRisk: 0.82,
     bidOffset: 11,

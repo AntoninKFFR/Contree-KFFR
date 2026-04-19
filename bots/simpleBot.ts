@@ -1,19 +1,19 @@
 import { getBotProfile } from "@/bots/profiles";
+import { chooseMonteCarloCardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
 import { chooseProfileBid } from "@/bots/strategy/biddingStrategy";
-import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import { getCurrentContract } from "@/engine/game";
 import type { Card, GameState } from "@/engine/types";
 
-const MAIN_BOT_PROFILE = getBotProfile("main");
+const OFFICIAL_BOT_PROFILE = getBotProfile("main_montecarlo");
 
 export function chooseBotCard(state: GameState): Card {
-  return chooseProfileCardToPlay(state, MAIN_BOT_PROFILE);
+  return chooseMonteCarloCardToPlay(state);
 }
 
 export function chooseBotBid(state: GameState) {
   const currentContract = getCurrentContract(state);
-  const decision = chooseProfileBid(state, MAIN_BOT_PROFILE);
+  const decision = chooseProfileBid(state, OFFICIAL_BOT_PROFILE);
 
   if (
     currentContract &&

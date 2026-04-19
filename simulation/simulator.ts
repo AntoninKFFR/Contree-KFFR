@@ -1,4 +1,5 @@
 import { getBotProfile, type BotProfileId } from "@/bots/profiles";
+import { chooseMonteCarloCardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
 import { chooseProfileBid } from "@/bots/strategy/biddingStrategy";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { createInitialGame, makeBid, playCard, startNextRound } from "@/engine/game";
@@ -72,7 +73,11 @@ function playOneDecision(state: GameState, teamProfiles: TeamProfiles): GameStat
     return makeBid(state, state.currentPlayerId, { action: "pass" });
   }
 
-  const card = chooseProfileCardToPlay(state, profile);
+  const card =
+    profile.id === "main_montecarlo"
+      ? chooseMonteCarloCardToPlay(state)
+      : chooseProfileCardToPlay(state, profile);
+
   return playCard(state, state.currentPlayerId, card);
 }
 
