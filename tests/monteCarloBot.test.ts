@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { chooseBotCard } from "@/bots/simpleBot";
-import { chooseMonteCarloCardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
+import {
+  chooseMonteCarloCardToPlay,
+  chooseMonteCarloV2CardToPlay,
+} from "@/bots/strategy/monteCarloCardStrategy";
 import type { Card, GameState } from "@/engine/types";
 
 function card(rank: Card["rank"], suit: Card["suit"]): Card {
@@ -80,13 +83,42 @@ describe("monte carlo bot", () => {
     );
   });
 
-  it("uses Monte Carlo for the official web bot card choice", () => {
+  it("returns a legal card with the V2 strategy", () => {
     const state = stateForMonteCarlo([
       card("J", "hearts"),
       card("9", "hearts"),
       card("A", "diamonds"),
     ]);
 
-    expect(chooseBotCard(state)).toEqual(chooseMonteCarloCardToPlay(state));
+    const choice = chooseMonteCarloV2CardToPlay(state, { totalBudget: 12 });
+
+    expect(state.hands[0]).toContainEqual(choice);
+  });
+
+  it("keeps V2 independent from actual hidden opponent cards", () => {
+    const firstState = stateForMonteCarlo([
+      card("J", "hearts"),
+      card("9", "hearts"),
+      card("A", "diamonds"),
+    ]);
+    const secondState = stateForMonteCarlo([
+      card("J", "diamonds"),
+      card("9", "spades"),
+      card("A", "hearts"),
+    ]);
+
+    expect(chooseMonteCarloV2CardToPlay(firstState, { totalBudget: 12 })).toEqual(
+      chooseMonteCarloV2CardToPlay(secondState, { totalBudget: 12 }),
+    );
+  });
+
+  it("uses Monte Carlo V2 for the official web bot card choice", () => {
+    const state = stateForMonteCarlo([
+      card("J", "hearts"),
+      card("9", "hearts"),
+      card("A", "diamonds"),
+    ]);
+
+    expect(chooseBotCard(state)).toEqual(chooseMonteCarloV2CardToPlay(state));
   });
 });

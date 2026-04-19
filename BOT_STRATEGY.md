@@ -1,21 +1,40 @@
 # Strategie des bots
 
-Cette version garde des bots simples et lisibles. Ils ne font pas de Monte Carlo et n'utilisent pas de machine learning. Ils appliquent des heuristiques: de petites regles pratiques qui donnent souvent une bonne decision.
+Cette version garde des bots simples et lisibles. Ils n'utilisent pas de machine learning.
+
+Le bot principal utilise maintenant une approche hybride:
+
+- heuristique classique pour les annonces et les coups simples;
+- Monte Carlo pour certains coups de carte importants ou ambigus.
 
 ## Profils disponibles
 
-L'application web utilise un bot principal unique: `main`. Il est base sur le profil `prudent`, avec un peu plus d'initiative quand le risque reste raisonnable.
+L'application web utilise un bot principal unique: `main_montecarlo_v2`. Il garde les annonces du bot principal, puis utilise Monte Carlo seulement pour certains choix de carte.
 
-Dans l'application web, les bots utilisent toujours `main`. Les profils `prudent`, `balanced` et `aggressive` ne sont pas melanges dans une partie web: ils servent uniquement aux simulations, aux comparaisons et au tuning.
+Dans l'application web, les bots utilisent toujours ce profil officiel. Les autres profils ne sont pas melanges dans une partie web: ils servent uniquement aux simulations, aux comparaisons et au tuning.
 
 Les profils ci-dessous restent disponibles pour le simulateur et le tuning.
 
-- `main`: bot principal de l'application web. Base prudente, avec un peu plus d'initiative.
+- `main`: ancien bot principal heuristique. Il reste utile comme reference et fallback.
+- `main_montecarlo`: premiere version Monte Carlo, gardee pour comparer les benchmarks.
+- `main_montecarlo_v2`: bot principal actuel de l'application web. Plus prudent sur les mondes simules et plus sensible au contrat.
 - `prudent`: annonce seulement avec une main assez sure, evite les surencheres risquees, coinche rarement et economise davantage les grosses cartes.
 - `balanced`: profil de reference. Il ressemble au prudent, mais garde un peu plus d'initiative pour annoncer et prendre la main.
 - `aggressive`: annonce plus facilement que les autres, mais reste limite pour eviter les contrats trop suicidaires.
 
 Dans une simulation, une equipe utilise un profil. Exemple: equipe 0 en `balanced` contre equipe 1 en `aggressive`.
+
+## Monte Carlo V1 et V2
+
+`main_montecarlo` est la V1. Elle retire les cartes visibles, repartit les cartes inconnues entre les autres joueurs, simule des fins de manche, puis choisit la carte avec le meilleur score moyen.
+
+`main_montecarlo_v2` garde cette idee, mais ajoute trois ameliorations simples:
+
+- si un joueur n'a pas fourni une couleur, les simulations evitent de lui redonner cette couleur;
+- les cartes fortes sont reparties avec un leger biais coherent avec le contrat, sans connaitre les vraies mains;
+- le score d'une simulation valorise davantage la reussite du contrat ou la chute du contrat adverse.
+
+La V2 declenche aussi Monte Carlo surtout quand le pli contient des points, quand une carte peut gagner ou perdre le pli, ou quand le contrat devient critique. Sur les coups evidents, elle garde l'heuristique.
 
 ## Bot principal de l'application web
 

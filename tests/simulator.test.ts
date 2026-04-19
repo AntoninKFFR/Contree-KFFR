@@ -26,4 +26,17 @@ describe("bot simulator", () => {
     expect(summary.rounds).toBeGreaterThan(0);
     expect(summary.contractsAttempted).toBeGreaterThan(0);
   });
+
+  it("can benchmark Monte Carlo V2 against Monte Carlo V1", () => {
+    const summary = runSimulation({
+      games: 2,
+      seed: 30,
+      settings: { targetScore: 300 },
+      teamProfiles: { 0: "main_montecarlo_v2", 1: "main_montecarlo" },
+    });
+
+    expect(summary.games).toBe(2);
+    expect(summary.profileStats.main_montecarlo_v2.games).toBe(2);
+    expect(summary.profileStats.main_montecarlo.games).toBe(2);
+  });
 });
