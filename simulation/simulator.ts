@@ -3,6 +3,7 @@ import {
   chooseMonteCarloCardToPlay,
   chooseMonteCarloV2CardToPlay,
 } from "@/bots/strategy/monteCarloCardStrategy";
+import { chooseMonteCarloBid } from "@/bots/strategy/monteCarloBiddingStrategy";
 import { chooseProfileBid } from "@/bots/strategy/biddingStrategy";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { createInitialGame, makeBid, playCard, startNextRound } from "@/engine/game";
@@ -55,7 +56,10 @@ function playOneDecision(state: GameState, teamProfiles: TeamProfiles): GameStat
   const profile = getBotProfile(profileForCurrentPlayer(state, teamProfiles));
 
   if (state.phase === "bidding") {
-    const bid = chooseProfileBid(state, profile);
+    const bid =
+      profile.id === "main_montecarlo_bidding"
+        ? chooseMonteCarloBid(state, { profile })
+        : chooseProfileBid(state, profile);
 
     if (bid.action === "bid" && bid.value && bid.trump) {
       return makeBid(state, state.currentPlayerId, {
@@ -77,7 +81,7 @@ function playOneDecision(state: GameState, teamProfiles: TeamProfiles): GameStat
   }
 
   const card =
-    profile.id === "main_montecarlo_v2"
+    profile.id === "main_montecarlo_v2" || profile.id === "main_montecarlo_bidding"
       ? chooseMonteCarloV2CardToPlay(state)
       : profile.id === "main_montecarlo"
         ? chooseMonteCarloCardToPlay(state)

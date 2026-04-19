@@ -43,7 +43,7 @@ function adjustedScore(evaluation: HandEvaluation, profile: BotProfile): number 
 }
 
 function isMainProfile(profile: BotProfile): boolean {
-  return profile.id === "main";
+  return profile.id === "main" || profile.id === "main_montecarlo_bidding";
 }
 
 function nextHigherBid(wantedValue: BidValue, currentContract: Contract | null): BidValue | null {
@@ -267,4 +267,126 @@ export function chooseProfileBid(state: GameState, profile: BotProfile): BidDeci
   }
 
   return chooseProfileBidFromHand(hand, profile, currentContract);
+}
+
+function bidDecisionKey(decision: BidDecision): string {
+  return decision.action === "bid"
+    ? `${decision.action}:${decision.value}:${decision.trump}`
+    : decision.action;
+}
+
+function addUniqueDecision(decisions: BidDecision[], decision: BidDecision): void {
+  if (!decisions.some((existing) => bidDecisionKey(existing) === bidDecisionKey(decision))) {
+    decisions.push(decision);
+  }
+}
+
+function nearbyBidValues(wantedValue: BidValue, currentContract: Contract | null): BidValue[] {
+  const available = getAvailableBidValues(currentContract);
+  const startIndex = available.findIndex((value) => value >= wantedValue);
+
+  if (startIndex === -1) return [];
+
+  return available.slice(startIndex, startIndex + 2);
+}
+
+function addBidCandidatesForScore(
+  decisions: BidDecision[],
+  trump: Suit,
+  score: number,
+  currentContract: Contract | null,
+  reason: string,
+): void {
+  const wantedValue = bidValueForScore(score);
+  if (!wantedValue) return;
+
+  for (const value of nearbyBidValues(wantedValue, currentContract)) {
+    addUniqueDecision(decisions, {
+      action: "bid",
+      trump,
+      value,
+      confidence: confidenceFromScore(score),
+      reason,
+    });
+  }
+}
+
+export function getPlausibleBidCandidates(
+  state: GameState,
+  profile: BotProfile,
+  baseDecision: BidDecision = chooseProfileBid(state, profile),
+): BidDecision[] {
+  if (baseDecision.action === "coinche" || baseDecision.action === "surcoinche") {
+    return [baseDecision];
+  }
+
+  const currentContract = getCurrentContract(state);
+  if (currentContract && currentContract.status !== "normal") {
+    return [baseDecision];
+  }
+
+  const playerId = state.currentPlayerId;
+  const teamId = playerTeam(playerId);
+  const hand = state.hands[playerId];
+  const decisions: BidDecision[] = [];
+
+  addUniqueDecision(decisions, {
+    action: "pass",
+    confidence: 1 - baseDecision.confidence,
+    reason: "Candidat Monte Carlo: passer.",
+  });
+  if (baseDecision.action === "bid") {
+    addUniqueDecision(decisions, baseDecision);
+  }
+
+  const best = evaluateBestTrump(hand);
+  const bestScore = withMainOpeningBonus(adjustedScore(best, profile), state, profile);
+  addBidCandidatesForScore(
+    decisions,
+    best.trump,
+    bestScore,
+    currentContract,
+    "Candidat Monte Carlo: meilleure couleur de la main.",
+  );
+
+  if (currentContract && currentContract.teamId === teamId) {
+    const support = evaluateHandForTrump(hand, currentContract.trump);
+    const partnerBid = lastTeamBid(
+      state.bids.filter((bid) => bid.playerId !== playerId),
+      teamId,
+    );
+    const supportBonus = partnerBid ? 10 + support.trumpCount * 3 + support.strongTrumpCount * 5 : 0;
+
+    addBidCandidatesForScore(
+      decisions,
+      currentContract.trump,
+      adjustedScore(support, profile) + supportBonus,
+      currentContract,
+      "Candidat Monte Carlo: soutenir la couleur du partenaire.",
+    );
+  }
+
+  const alternativeTrumps = (["clubs", "diamonds", "hearts", "spades"] as Suit[])
+    .map((trump) => {
+      const evaluation = evaluateHandForTrump(hand, trump);
+      return {
+        trump,
+        score: withMainOpeningBonus(adjustedScore(evaluation, profile), state, profile),
+      };
+    })
+    .filter((candidate) => candidate.trump !== best.trump && candidate.score >= bestScore - 22)
+    .sort((first, second) => second.score - first.score)
+    .slice(0, 2);
+
+  for (const candidate of alternativeTrumps) {
+    addBidCandidatesForScore(
+      decisions,
+      candidate.trump,
+      candidate.score,
+      currentContract,
+      "Candidat Monte Carlo: autre couleur proche de la meilleure evaluation.",
+    );
+  }
+
+  return decisions.slice(0, 6);
 }

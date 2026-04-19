@@ -1,11 +1,11 @@
-import { getBotProfile } from "@/bots/profiles";
+import { getBotProfile, OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
 import { chooseMonteCarloV2CardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
 import { chooseProfileBid } from "@/bots/strategy/biddingStrategy";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import { getCurrentContract } from "@/engine/game";
 import type { Card, GameState } from "@/engine/types";
 
-const OFFICIAL_BOT_PROFILE = getBotProfile("main_montecarlo_v2");
+const OFFICIAL_BOT_PROFILE = getBotProfile(OFFICIAL_BOT_PROFILE_ID);
 
 export function chooseBotCard(state: GameState): Card {
   return chooseMonteCarloV2CardToPlay(state);

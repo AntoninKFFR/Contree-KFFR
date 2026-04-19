@@ -4,6 +4,7 @@ import {
   chooseMonteCarloCardToPlay,
   chooseMonteCarloV2CardToPlay,
 } from "@/bots/strategy/monteCarloCardStrategy";
+import { chooseMonteCarloBid } from "@/bots/strategy/monteCarloBiddingStrategy";
 import type { Card, GameState } from "@/engine/types";
 
 function card(rank: Card["rank"], suit: Card["suit"]): Card {
@@ -120,5 +121,64 @@ describe("monte carlo bot", () => {
     ]);
 
     expect(chooseBotCard(state)).toEqual(chooseMonteCarloV2CardToPlay(state));
+  });
+
+  it("returns a legal bidding decision for the Monte Carlo bidding strategy", () => {
+    const state: GameState = {
+      ...stateForMonteCarlo([
+        card("J", "hearts"),
+        card("9", "hearts"),
+        card("A", "diamonds"),
+      ]),
+      phase: "bidding",
+      trump: null,
+      contract: null,
+      currentPlayerId: 0,
+      currentTrick: { leaderId: 0, cards: [] },
+      completedTricks: [],
+      bids: [],
+      trickPoints: { 0: 0, 1: 0 },
+      result: null,
+    };
+
+    const decision = chooseMonteCarloBid(state, { totalBudget: 8 });
+
+    expect(["pass", "bid", "coinche", "surcoinche"]).toContain(decision.action);
+    if (decision.action === "bid") {
+      expect(decision.value).toBeDefined();
+      expect(decision.trump).toBeDefined();
+    }
+  });
+
+  it("keeps Monte Carlo bidding independent from actual hidden hands", () => {
+    const baseState: GameState = {
+      ...stateForMonteCarlo([
+        card("J", "hearts"),
+        card("9", "hearts"),
+        card("A", "diamonds"),
+      ]),
+      phase: "bidding",
+      trump: null,
+      contract: null,
+      currentPlayerId: 0,
+      currentTrick: { leaderId: 0, cards: [] },
+      completedTricks: [],
+      bids: [],
+      trickPoints: { 0: 0, 1: 0 },
+      result: null,
+    };
+    const otherHiddenHands: GameState = {
+      ...baseState,
+      hands: {
+        ...baseState.hands,
+        1: [card("7", "hearts"), card("8", "hearts"), card("Q", "diamonds")],
+        2: [card("J", "clubs"), card("9", "clubs"), card("A", "spades")],
+        3: [card("10", "diamonds"), card("K", "diamonds"), card("Q", "spades")],
+      },
+    };
+
+    expect(chooseMonteCarloBid(baseState, { totalBudget: 8 })).toEqual(
+      chooseMonteCarloBid(otherHiddenHands, { totalBudget: 8 }),
+    );
   });
 });

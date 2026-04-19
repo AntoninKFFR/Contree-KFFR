@@ -25,7 +25,7 @@ function readProfile(name: string, fallback: BotProfileId): BotProfileId {
   }
 
   throw new Error(
-    `Profil inconnu: ${value}. Profils possibles: main, main_montecarlo, main_montecarlo_v2, prudent, balanced, aggressive.`,
+    `Profil inconnu: ${value}. Profils possibles: ${Object.keys(BOT_PROFILES).join(", ")}.`,
   );
 }
 

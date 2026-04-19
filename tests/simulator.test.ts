@@ -39,4 +39,17 @@ describe("bot simulator", () => {
     expect(summary.profileStats.main_montecarlo_v2.games).toBe(2);
     expect(summary.profileStats.main_montecarlo.games).toBe(2);
   });
+
+  it("can benchmark Monte Carlo bidding against the current Monte Carlo V2 bot", () => {
+    const summary = runSimulation({
+      games: 2,
+      seed: 40,
+      settings: { targetScore: 300 },
+      teamProfiles: { 0: "main_montecarlo_bidding", 1: "main_montecarlo_v2" },
+    });
+
+    expect(summary.games).toBe(2);
+    expect(summary.profileStats.main_montecarlo_bidding.games).toBe(2);
+    expect(summary.profileStats.main_montecarlo_v2.games).toBe(2);
+  });
 });
