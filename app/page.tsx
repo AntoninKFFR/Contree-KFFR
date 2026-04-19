@@ -7,15 +7,13 @@ import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
 import { ScoreBoard } from "@/components/ScoreBoard";
+import { applyGameAction, type GameAction } from "@/engine/actions";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import {
   createInitialGame,
   getDefaultTargetScore,
   getCurrentContract,
-  makeBid,
   playableCardsForCurrentPlayer,
-  playCard,
-  startNextRound,
 } from "@/engine/game";
 import type { BidValue, Card, GameState, ScoringMode, Suit } from "@/engine/types";
 import { saveCompletedGame } from "@/lib/games";
@@ -44,6 +42,10 @@ export default function Home() {
     return playableCardsForCurrentPlayer(gameState);
   }, [gameState, humanCanPlay]);
 
+  function dispatchGameAction(action: GameAction) {
+    setGameState((currentState) => applyGameAction(currentState, action));
+  }
+
   useEffect(() => {
     if (
       (gameState.phase !== "playing" && gameState.phase !== "bidding") ||
@@ -63,11 +65,27 @@ export default function Home() {
 
         if (currentState.phase === "bidding") {
           const botBid = chooseBotBid(currentState);
-          return makeBid(currentState, currentState.currentPlayerId, botBid);
+          if (botBid.action === "bid") {
+            return applyGameAction(currentState, {
+              type: "bid",
+              playerId: currentState.currentPlayerId,
+              value: botBid.value,
+              trump: botBid.trump,
+            });
+          }
+
+          return applyGameAction(currentState, {
+            type: botBid.action,
+            playerId: currentState.currentPlayerId,
+          });
         }
 
         const botCard = chooseBotCard(currentState);
-        return playCard(currentState, currentState.currentPlayerId, botCard);
+        return applyGameAction(currentState, {
+          type: "play-card",
+          playerId: currentState.currentPlayerId,
+          card: botCard,
+        });
       });
     }, 650);
 
@@ -110,23 +128,23 @@ export default function Home() {
   }, [gameState]);
 
   function handlePlayCard(card: Card) {
-    setGameState((currentState) => playCard(currentState, 0, card));
+    dispatchGameAction({ type: "play-card", playerId: 0, card });
   }
 
   function handleHumanBid(value: BidValue, trump: Suit) {
-    setGameState((currentState) => makeBid(currentState, 0, { action: "bid", value, trump }));
+    dispatchGameAction({ type: "bid", playerId: 0, value, trump });
   }
 
   function handleHumanPass() {
-    setGameState((currentState) => makeBid(currentState, 0, { action: "pass" }));
+    dispatchGameAction({ type: "pass", playerId: 0 });
   }
 
   function handleHumanCoinche() {
-    setGameState((currentState) => makeBid(currentState, 0, { action: "coinche" }));
+    dispatchGameAction({ type: "coinche", playerId: 0 });
   }
 
   function handleHumanSurcoinche() {
-    setGameState((currentState) => makeBid(currentState, 0, { action: "surcoinche" }));
+    dispatchGameAction({ type: "surcoinche", playerId: 0 });
   }
 
   function handleNewGame() {
@@ -140,7 +158,7 @@ export default function Home() {
   }
 
   function handleNextRound() {
-    setGameState((currentState) => startNextRound(currentState));
+    dispatchGameAction({ type: "start-next-round" });
   }
 
   return (
