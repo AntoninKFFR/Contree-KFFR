@@ -5,9 +5,18 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { AuthStatus } from "@/components/AuthStatus";
+import { CardView } from "@/components/CardView";
+import { sameCard } from "@/engine/cards";
+import { playableCardsForCurrentPlayer } from "@/engine/game";
+import { teamName } from "@/engine/players";
+import type { Card, GameState } from "@/engine/types";
+import { toPlayerGameView } from "@/engine/views";
 import {
   getRoomWithPlayers,
+  playRoomAction,
+  resetRoom,
   setSeatReady,
+  startRoomGame,
   type RoomPlayerRow,
   type RoomWithPlayers,
 } from "@/lib/rooms";
@@ -32,6 +41,9 @@ export default function MultiplayerRoomPage() {
   const params = useParams();
   const roomId = roomIdFromParams(params.roomId);
   const [error, setError] = useState<string | null>(null);
+  const [isPlayingCard, setIsPlayingCard] = useState(false);
+  const [isResettingRoom, setIsResettingRoom] = useState(false);
+  const [isStartingGame, setIsStartingGame] = useState(false);
   const [isUpdatingReady, setIsUpdatingReady] = useState(false);
   const [pageState, setPageState] = useState<PageState>("loading");
   const [roomWithPlayers, setRoomWithPlayers] = useState<RoomWithPlayers | null>(null);
@@ -41,6 +53,40 @@ export default function MultiplayerRoomPage() {
     if (!session || !roomWithPlayers) return null;
     return roomWithPlayers.players.find((player) => player.user_id === session.user.id) ?? null;
   }, [roomWithPlayers, session]);
+
+  const isHost = Boolean(
+    session &&
+      roomWithPlayers?.room.host_user_id &&
+      roomWithPlayers.room.host_user_id === session.user.id,
+  );
+  const canStartGame = Boolean(
+    roomWithPlayers &&
+      roomWithPlayers.room.status === "lobby" &&
+      roomWithPlayers.players.every((player) => player.kind !== "human" || player.is_ready),
+  );
+  const gameState =
+    roomWithPlayers?.room.server_state &&
+    (roomWithPlayers.room.status === "playing" || roomWithPlayers.room.status === "finished")
+      ? (roomWithPlayers.room.server_state as GameState)
+      : null;
+  const playerView =
+    gameState && currentSeat && roomWithPlayers?.room.status === "playing"
+      ? toPlayerGameView(gameState, currentSeat.seat_index)
+      : null;
+  const finalWinner =
+    roomWithPlayers?.room.status === "finished" &&
+    gameState?.winnerTeam !== null &&
+    gameState?.winnerTeam !== undefined
+      ? teamName(gameState.winnerTeam, gameState.playerNames)
+      : null;
+  const canPlayCard = Boolean(
+    gameState &&
+      currentSeat &&
+      roomWithPlayers?.room.status === "playing" &&
+      gameState.phase === "playing" &&
+      gameState.currentPlayerId === currentSeat.seat_index,
+  );
+  const legalCards = canPlayCard && gameState ? playableCardsForCurrentPlayer(gameState) : [];
 
   const loadRoom = useCallback(async (options: LoadRoomOptions = {}) => {
     const supabase = getSupabaseClient();
@@ -158,6 +204,74 @@ export default function MultiplayerRoomPage() {
     }
   }
 
+  async function handleStartGame() {
+    const supabase = getSupabaseClient();
+
+    if (!supabase || !roomWithPlayers || !isHost || !canStartGame) return;
+
+    setIsStartingGame(true);
+    setError(null);
+
+    try {
+      const nextRoom = await startRoomGame(supabase, {
+        roomId: roomWithPlayers.room.id,
+      });
+      setRoomWithPlayers(nextRoom);
+      setPageState("ready");
+    } catch (startError) {
+      setError(errorMessage(startError));
+    } finally {
+      setIsStartingGame(false);
+    }
+  }
+
+  async function handlePlayCard(card: Card) {
+    const supabase = getSupabaseClient();
+
+    if (!supabase || !roomWithPlayers || !session || !canPlayCard) return;
+
+    setIsPlayingCard(true);
+    setError(null);
+
+    try {
+      const nextRoom = await playRoomAction(supabase, {
+        action: {
+          type: "play-card",
+          card,
+        },
+        roomId: roomWithPlayers.room.id,
+        userId: session.user.id,
+      });
+      setRoomWithPlayers(nextRoom);
+      setPageState("ready");
+    } catch (playError) {
+      setError(errorMessage(playError));
+    } finally {
+      setIsPlayingCard(false);
+    }
+  }
+
+  async function handleResetRoom() {
+    const supabase = getSupabaseClient();
+
+    if (!supabase || !roomWithPlayers || isResettingRoom) return;
+
+    setIsResettingRoom(true);
+    setError(null);
+
+    try {
+      const nextRoom = await resetRoom(supabase, {
+        roomId: roomWithPlayers.room.id,
+      });
+      setRoomWithPlayers(nextRoom);
+      setPageState("ready");
+    } catch (resetError) {
+      setError(errorMessage(resetError));
+    } finally {
+      setIsResettingRoom(false);
+    }
+  }
+
   return (
     <main className="min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950">
       <div className="mx-auto flex max-w-5xl flex-col gap-4">
@@ -206,6 +320,42 @@ export default function MultiplayerRoomPage() {
 
         {pageState === "ready" && roomWithPlayers ? (
           <>
+            {roomWithPlayers.room.status === "finished" && gameState ? (
+              <section className="rounded-lg border border-emerald-300 bg-emerald-50 p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-900">
+                  Partie terminée
+                </p>
+                <h2 className="mt-1 text-2xl font-bold">
+                  {finalWinner ? `${finalWinner} gagnent` : "Fin de partie"}
+                </h2>
+                <div className="mt-3 grid gap-2 text-sm text-stone-800 sm:grid-cols-2">
+                  <p className="rounded-md bg-white px-3 py-2 font-semibold">
+                    Score équipe 0: {gameState.totalScore[0]}
+                  </p>
+                  <p className="rounded-md bg-white px-3 py-2 font-semibold">
+                    Score équipe 1: {gameState.totalScore[1]}
+                  </p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={isResettingRoom}
+                    onClick={handleResetRoom}
+                    type="button"
+                  >
+                    Rejouer
+                  </button>
+                  <button
+                    className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50"
+                    onClick={() => loadRoom()}
+                    type="button"
+                  >
+                    Retour au lobby
+                  </button>
+                </div>
+              </section>
+            ) : null}
+
             <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -238,6 +388,16 @@ export default function MultiplayerRoomPage() {
                   >
                     {currentSeat?.is_ready ? "Not ready" : "Ready"}
                   </button>
+                  {isHost ? (
+                    <button
+                      className="rounded-md bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!canStartGame || isStartingGame}
+                      onClick={handleStartGame}
+                      type="button"
+                    >
+                      Start Game
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
@@ -260,6 +420,38 @@ export default function MultiplayerRoomPage() {
                 ))}
               </div>
             </section>
+
+            {playerView ? (
+              <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold">Ta main</h2>
+                    <p className="text-sm text-stone-600">
+                      {canPlayCard ? "A toi de jouer." : "En attente du joueur courant."}
+                    </p>
+                  </div>
+                  <p className="text-sm font-semibold text-stone-700">
+                    Joueur courant: seat {playerView.currentPlayerId}
+                  </p>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {playerView.hand.map((card) => {
+                    const isPlayable = legalCards.some((legalCard) => sameCard(legalCard, card));
+
+                    return (
+                      <CardView
+                        card={card}
+                        disabled={!canPlayCard || isPlayingCard}
+                        isPlayable={isPlayable}
+                        key={`${card.rank}-${card.suit}`}
+                        onClick={() => handlePlayCard(card)}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
           </>
         ) : null}
       </div>

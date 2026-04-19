@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ScoringMode } from "@/engine/types";
+import { chooseBotCard } from "@/bots/simpleBot";
+import { applyGameAction } from "@/engine/actions";
+import { createInitialGame } from "@/engine/game";
+import type { SeatAssignments } from "@/engine/seats";
+import type { Card, GameState, ScoringMode } from "@/engine/types";
 
 export type RoomStatus = "lobby" | "playing" | "finished" | "cancelled";
 export type SeatKind = "human" | "bot" | "empty";
@@ -62,9 +66,30 @@ export type SetSeatReadyParams = {
   ready: boolean;
 };
 
+export type StartRoomGameParams = {
+  roomId: string;
+};
+
+export type RoomPlayerAction = {
+  type: "play-card";
+  card: Card;
+};
+
+export type PlayRoomActionParams = {
+  roomId: string;
+  userId: string;
+  action: RoomPlayerAction;
+};
+
+export type ResetRoomParams = {
+  roomId: string;
+};
+
 const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_ATTEMPTS = 8;
+const DEFAULT_BOT_PROFILE_ID = "main_montecarlo_v2";
+const MAX_BOT_ACTIONS_PER_TURN = 32;
 const SEAT_INDEXES = [0, 1, 2, 3] as const;
 
 class RoomDataError extends Error {
@@ -125,6 +150,65 @@ export function generateRoomCode(): string {
 
 function isUniqueViolation(error: { code?: string } | null): boolean {
   return error?.code === "23505";
+}
+
+function seatAssignmentsFromPlayers(players: RoomPlayerRow[]): SeatAssignments {
+  return players.reduce(
+    (seatAssignments, player) => ({
+      ...seatAssignments,
+      [player.seat_index]: { kind: player.kind },
+    }),
+    {} as SeatAssignments,
+  );
+}
+
+function playerNamesFromPlayers(players: RoomPlayerRow[]): GameState["playerNames"] {
+  return players.reduce(
+    (playerNames, player) => ({
+      ...playerNames,
+      [player.seat_index]: player.display_name ?? `Joueur ${player.seat_index + 1}`,
+    }),
+    {} as NonNullable<GameState["playerNames"]>,
+  );
+}
+
+function requireServerState(room: RoomRow): GameState {
+  if (!room.server_state) {
+    throw new RoomDataError("Room has no game state.");
+  }
+
+  return room.server_state as GameState;
+}
+
+function playerForCurrentTurn(state: GameState, players: RoomPlayerRow[]): RoomPlayerRow | null {
+  return players.find((player) => player.seat_index === state.currentPlayerId) ?? null;
+}
+
+function applyBotTurns(state: GameState, players: RoomPlayerRow[]): GameState {
+  let nextState = state;
+  let actionCount = 0;
+
+  while (nextState.phase === "playing") {
+    const currentPlayer = playerForCurrentTurn(nextState, players);
+
+    if (!currentPlayer || currentPlayer.kind !== "bot") {
+      return nextState;
+    }
+
+    if (actionCount >= MAX_BOT_ACTIONS_PER_TURN) {
+      throw new RoomDataError("Bot turn limit reached.");
+    }
+
+    const card = chooseBotCard(nextState);
+    nextState = applyGameAction(nextState, {
+      type: "play-card",
+      playerId: nextState.currentPlayerId,
+      card,
+    });
+    actionCount += 1;
+  }
+
+  return nextState;
 }
 
 async function fetchRoomRow(supabase: SupabaseClient, roomId: string): Promise<RoomRow> {
@@ -246,6 +330,7 @@ export async function createRoom(
             seat_index: seatIndex,
             kind: "empty",
             is_ready: false,
+            is_connected: false,
           },
     ),
   );
@@ -346,6 +431,215 @@ export async function setSeatReady(
 
   if (error) {
     throw error;
+  }
+
+  return getRoomWithPlayers(supabase, room.id);
+}
+
+export async function startRoomGame(
+  supabase: SupabaseClient,
+  params: StartRoomGameParams,
+): Promise<RoomWithPlayers> {
+  const { room, players } = await getRoomWithPlayers(supabase, params.roomId);
+
+  if (room.status !== "lobby") {
+    throw new RoomDataError("Room game can only start from lobby.");
+  }
+
+  if (players.some((player) => player.kind === "human" && !player.is_ready)) {
+    throw new RoomDataError("All human players must be ready.");
+  }
+
+  const emptySeats = players.filter((player) => player.kind === "empty");
+  const now = new Date().toISOString();
+
+  if (emptySeats.length > 0) {
+    const { error: botsError } = await supabase
+      .from("room_players")
+      .upsert(
+        emptySeats.map((seat) => ({
+          id: seat.id,
+          room_id: seat.room_id,
+          seat_index: seat.seat_index,
+          kind: "bot",
+          user_id: null,
+          bot_profile_id: DEFAULT_BOT_PROFILE_ID,
+          display_name: "Bot",
+          is_ready: true,
+          is_connected: true,
+          last_seen_at: now,
+        })),
+      );
+
+    if (botsError) {
+      throw botsError;
+    }
+  }
+
+  const nextPlayers = await fetchRoomPlayers(supabase, room.id);
+  const seatAssignments = seatAssignmentsFromPlayers(nextPlayers);
+  if (
+    SEAT_INDEXES.some(
+      (seatIndex) => !seatAssignments[seatIndex] || seatAssignments[seatIndex].kind === "empty",
+    )
+  ) {
+    throw new RoomDataError("Room needs 4 occupied seats to start.");
+  }
+
+  const initialState: GameState = {
+    ...createInitialGame(Math.random, {
+      scoringMode: room.scoring_mode,
+      targetScore: room.target_score,
+    }),
+    playerNames: playerNamesFromPlayers(nextPlayers),
+  };
+
+  const { data, error } = await supabase
+    .from("rooms")
+    .update({
+      game_phase: initialState.phase,
+      server_state: initialState,
+      started_at: now,
+      state_version: room.state_version + 1,
+      status: "playing",
+    })
+    .eq("id", room.id)
+    .eq("status", "lobby")
+    .eq("state_version", room.state_version)
+    .select("id")
+    .maybeSingle<Pick<RoomRow, "id">>();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new RoomDataError("Room was updated before the game could start.");
+  }
+
+  return getRoomWithPlayers(supabase, room.id);
+}
+
+export async function playRoomAction(
+  supabase: SupabaseClient,
+  params: PlayRoomActionParams,
+): Promise<RoomWithPlayers> {
+  const { room, players } = await getRoomWithPlayers(supabase, params.roomId);
+
+  if (room.status !== "playing") {
+    throw new RoomDataError("Room is not playing.");
+  }
+
+  const seat = players.find(
+    (player) => player.kind === "human" && player.user_id === params.userId,
+  );
+
+  if (!seat) {
+    throw new RoomDataError("User is not seated in this room.");
+  }
+
+  const state = requireServerState(room);
+
+  if (state.currentPlayerId !== seat.seat_index) {
+    throw new RoomDataError("It is not this player's turn.");
+  }
+
+  const stateAfterHumanAction = applyGameAction(state, {
+    type: "play-card",
+    playerId: seat.seat_index,
+    card: params.action.card,
+  });
+  const nextState = applyBotTurns(stateAfterHumanAction, players);
+  const nextStatus: RoomStatus = nextState.phase === "game-over" ? "finished" : "playing";
+  const finishedAt = nextStatus === "finished" ? new Date().toISOString() : room.finished_at;
+
+  const { data, error } = await supabase
+    .from("rooms")
+    .update({
+      finished_at: finishedAt,
+      game_phase: nextState.phase,
+      server_state: nextState,
+      state_version: room.state_version + 1,
+      status: nextStatus,
+    })
+    .eq("id", room.id)
+    .eq("status", "playing")
+    .eq("state_version", room.state_version)
+    .select("id")
+    .maybeSingle<Pick<RoomRow, "id">>();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new RoomDataError("Room was updated before the action could be played.");
+  }
+
+  return getRoomWithPlayers(supabase, room.id);
+}
+
+export async function resetRoom(
+  supabase: SupabaseClient,
+  params: ResetRoomParams,
+): Promise<RoomWithPlayers> {
+  const { room, players } = await getRoomWithPlayers(supabase, params.roomId);
+
+  const { error: playersError } = await supabase.from("room_players").upsert(
+    players.map((player) =>
+      player.kind === "human"
+        ? {
+            id: player.id,
+            room_id: player.room_id,
+            seat_index: player.seat_index,
+            kind: "human",
+            user_id: player.user_id,
+            bot_profile_id: null,
+            display_name: player.display_name,
+            is_ready: false,
+            is_connected: player.is_connected,
+            last_seen_at: player.last_seen_at,
+          }
+        : {
+            id: player.id,
+            room_id: player.room_id,
+            seat_index: player.seat_index,
+            kind: "empty",
+            user_id: null,
+            bot_profile_id: null,
+            display_name: null,
+            is_ready: false,
+            is_connected: false,
+            last_seen_at: null,
+          },
+    ),
+  );
+
+  if (playersError) {
+    throw playersError;
+  }
+
+  const { data, error } = await supabase
+    .from("rooms")
+    .update({
+      finished_at: null,
+      game_phase: null,
+      server_state: null,
+      started_at: null,
+      state_version: room.state_version + 1,
+      status: "lobby",
+    })
+    .eq("id", room.id)
+    .eq("state_version", room.state_version)
+    .select("id")
+    .maybeSingle<Pick<RoomRow, "id">>();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new RoomDataError("Room was updated before it could be reset.");
   }
 
   return getRoomWithPlayers(supabase, room.id);
