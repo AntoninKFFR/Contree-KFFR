@@ -1,5 +1,6 @@
 import { chooseCardToPlay, chooseSimpleBid } from "@/bots/heuristicBot";
 import { getCurrentContract } from "@/engine/game";
+import { isBotSeat, SOLO_SEAT_ASSIGNMENTS, type SeatAssignments } from "@/engine/seats";
 import type { Card, GameState } from "@/engine/types";
 
 export function chooseBotCard(state: GameState): Card {
@@ -25,6 +26,9 @@ export function chooseBotBid(state: GameState) {
   } as const;
 }
 
-export function isBotPlayer(playerId: GameState["currentPlayerId"]): boolean {
-  return playerId !== 0;
+export function isBotPlayer(
+  playerId: GameState["currentPlayerId"],
+  seatAssignments: SeatAssignments = SOLO_SEAT_ASSIGNMENTS,
+): boolean {
+  return isBotSeat(seatAssignments, playerId);
 }

@@ -3,6 +3,7 @@ import { chooseMonteCarloV2CardToPlay } from "@/bots/strategy/monteCarloCardStra
 import { chooseProfileBid } from "@/bots/strategy/biddingStrategy";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import { getCurrentContract } from "@/engine/game";
+import { isBotSeat, SOLO_SEAT_ASSIGNMENTS, type SeatAssignments } from "@/engine/seats";
 import type { Card, GameState } from "@/engine/types";
 
 const OFFICIAL_BOT_PROFILE = getBotProfile(OFFICIAL_BOT_PROFILE_ID);
@@ -50,6 +51,9 @@ export function chooseBotBid(state: GameState) {
   } as const;
 }
 
-export function isBotPlayer(playerId: GameState["currentPlayerId"]): boolean {
-  return playerId !== 0;
+export function isBotPlayer(
+  playerId: GameState["currentPlayerId"],
+  seatAssignments: SeatAssignments = SOLO_SEAT_ASSIGNMENTS,
+): boolean {
+  return isBotSeat(seatAssignments, playerId);
 }

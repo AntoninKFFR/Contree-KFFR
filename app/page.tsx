@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { chooseBotBid, chooseBotCard, isBotPlayer } from "@/bots/simpleBot";
+import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
 import { AuthStatus } from "@/components/AuthStatus";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
@@ -15,11 +15,19 @@ import {
   getCurrentContract,
   playableCardsForCurrentPlayer,
 } from "@/engine/game";
+import {
+  firstHumanSeat,
+  isBotSeat,
+  isHumanSeat,
+  SOLO_SEAT_ASSIGNMENTS,
+} from "@/engine/seats";
 import type { BidValue, Card, GameState, ScoringMode, Suit } from "@/engine/types";
 import { saveCompletedGame } from "@/lib/games";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
 const initialRenderRandom = () => 0.42;
+const soloSeatAssignments = SOLO_SEAT_ASSIGNMENTS;
+const localHumanPlayerId = firstHumanSeat(soloSeatAssignments) ?? 0;
 
 export default function Home() {
   const gameIdRef = useRef(crypto.randomUUID());
@@ -32,11 +40,15 @@ export default function Home() {
     }),
   );
 
-  const humanCanPlay = gameState.phase === "playing" && gameState.currentPlayerId === 0;
-  const humanCanBid = gameState.phase === "bidding" && gameState.currentPlayerId === 0;
+  const humanCanPlay =
+    gameState.phase === "playing" &&
+    isHumanSeat(soloSeatAssignments, gameState.currentPlayerId);
+  const humanCanBid =
+    gameState.phase === "bidding" &&
+    isHumanSeat(soloSeatAssignments, gameState.currentPlayerId);
   const currentContract = useMemo(() => getCurrentContract(gameState), [gameState]);
-  const humanCanCoinche = humanCanBid && canCoinche(0, currentContract);
-  const humanCanSurcoinche = humanCanBid && canSurcoinche(0, currentContract);
+  const humanCanCoinche = humanCanBid && canCoinche(localHumanPlayerId, currentContract);
+  const humanCanSurcoinche = humanCanBid && canSurcoinche(localHumanPlayerId, currentContract);
   const legalHumanCards = useMemo(() => {
     if (!humanCanPlay) return [];
     return playableCardsForCurrentPlayer(gameState);
@@ -49,7 +61,7 @@ export default function Home() {
   useEffect(() => {
     if (
       (gameState.phase !== "playing" && gameState.phase !== "bidding") ||
-      !isBotPlayer(gameState.currentPlayerId)
+      !isBotSeat(soloSeatAssignments, gameState.currentPlayerId)
     ) {
       return;
     }
@@ -58,7 +70,7 @@ export default function Home() {
       setGameState((currentState) => {
         if (
           (currentState.phase !== "playing" && currentState.phase !== "bidding") ||
-          !isBotPlayer(currentState.currentPlayerId)
+          !isBotSeat(soloSeatAssignments, currentState.currentPlayerId)
         ) {
           return currentState;
         }
@@ -128,23 +140,23 @@ export default function Home() {
   }, [gameState]);
 
   function handlePlayCard(card: Card) {
-    dispatchGameAction({ type: "play-card", playerId: 0, card });
+    dispatchGameAction({ type: "play-card", playerId: localHumanPlayerId, card });
   }
 
   function handleHumanBid(value: BidValue, trump: Suit) {
-    dispatchGameAction({ type: "bid", playerId: 0, value, trump });
+    dispatchGameAction({ type: "bid", playerId: localHumanPlayerId, value, trump });
   }
 
   function handleHumanPass() {
-    dispatchGameAction({ type: "pass", playerId: 0 });
+    dispatchGameAction({ type: "pass", playerId: localHumanPlayerId });
   }
 
   function handleHumanCoinche() {
-    dispatchGameAction({ type: "coinche", playerId: 0 });
+    dispatchGameAction({ type: "coinche", playerId: localHumanPlayerId });
   }
 
   function handleHumanSurcoinche() {
-    dispatchGameAction({ type: "surcoinche", playerId: 0 });
+    dispatchGameAction({ type: "surcoinche", playerId: localHumanPlayerId });
   }
 
   function handleNewGame() {
@@ -201,7 +213,7 @@ export default function Home() {
 
             <HumanHand
               canPlay={humanCanPlay}
-              cards={gameState.hands[0]}
+              cards={gameState.hands[localHumanPlayerId]}
               legalCards={legalHumanCards}
               onPlayCard={handlePlayCard}
             />
