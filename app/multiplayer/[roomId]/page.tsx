@@ -19,6 +19,7 @@ import { getProfileUsername } from "@/lib/profiles";
 import {
   getRoomWithPlayers,
   joinRoom,
+  leaveSeat,
   playRoomAction,
   resetRoom,
   setSeatReady,
@@ -175,12 +176,14 @@ export default function MultiplayerRoomPage() {
   const roomId = roomIdFromParams(params.roomId);
   const [error, setError] = useState<string | null>(null);
   const [isJoiningSeat, setIsJoiningSeat] = useState(false);
+  const [isLeavingSeat, setIsLeavingSeat] = useState(false);
   const [isPlayingCard, setIsPlayingCard] = useState(false);
   const [isResettingRoom, setIsResettingRoom] = useState(false);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [isUpdatingReady, setIsUpdatingReady] = useState(false);
   const [pageState, setPageState] = useState<PageState>("loading");
   const [displayGameState, setDisplayGameState] = useState<GameState | null>(null);
+  const [localDisplayName, setLocalDisplayName] = useState("Joueur");
   const [roomWithPlayers, setRoomWithPlayers] = useState<RoomWithPlayers | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const animationRunIdRef = useRef(0);
@@ -283,6 +286,9 @@ export default function MultiplayerRoomPage() {
       setPageState("signed-out");
       return;
     }
+
+    const profileName = await getProfileUsername(supabase, nextSession.user.id);
+    setLocalDisplayName(profileName ?? nextSession.user.email?.split("@")[0] ?? "Joueur");
 
     try {
       const nextRoom = await getRoomWithPlayers(supabase, roomId);
@@ -446,17 +452,15 @@ export default function MultiplayerRoomPage() {
   async function handleJoinSeat(seatIndex: RoomPlayerRow["seat_index"]) {
     const supabase = getSupabaseClient();
 
-    if (!supabase || !roomWithPlayers || !session || currentSeat || isJoiningSeat) return;
+    if (!supabase || !roomWithPlayers || !session || isJoiningSeat) return;
 
     setIsJoiningSeat(true);
     setError(null);
 
     try {
-      const profileName = await getProfileUsername(supabase, session.user.id);
-      const displayName = profileName ?? session.user.email?.split("@")[0] ?? "Joueur";
       const nextRoom = await joinRoom(supabase, {
         code: roomWithPlayers.room.code,
-        displayName,
+        displayName: localDisplayName,
         seatIndex,
         userId: session.user.id,
       });
@@ -467,6 +471,29 @@ export default function MultiplayerRoomPage() {
       setError(errorMessage(joinError));
     } finally {
       setIsJoiningSeat(false);
+    }
+  }
+
+  async function handleLeaveSeat() {
+    const supabase = getSupabaseClient();
+
+    if (!supabase || !roomWithPlayers || !session || !currentSeat || isLeavingSeat) return;
+
+    setIsLeavingSeat(true);
+    setError(null);
+
+    try {
+      const nextRoom = await leaveSeat(supabase, {
+        roomId: roomWithPlayers.room.id,
+        userId: session.user.id,
+      });
+
+      setRoomWithPlayers(nextRoom);
+      setPageState("ready");
+    } catch (leaveError) {
+      setError(errorMessage(leaveError));
+    } finally {
+      setIsLeavingSeat(false);
     }
   }
 
@@ -708,11 +735,6 @@ export default function MultiplayerRoomPage() {
                     </div>
                   </div>
 
-                  {!currentSeat ? (
-                    <p className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                      Choisis une place libre autour de la table.
-                    </p>
-                  ) : null}
                 </section>
 
                 <LobbyTable
@@ -720,6 +742,20 @@ export default function MultiplayerRoomPage() {
                   currentUserId={session?.user.id ?? null}
                   onJoinSeat={handleJoinSeat}
                   players={roomWithPlayers.players}
+                />
+
+                <WaitingArea
+                  currentSeat={currentSeat}
+                  displayName={currentSeat?.display_name ?? localDisplayName}
+                  firstFreeSeat={
+                    roomWithPlayers.players.find((player) => player.kind === "empty")
+                      ?.seat_index ?? null
+                  }
+                  hasFreeSeat={roomWithPlayers.players.some((player) => player.kind === "empty")}
+                  isJoiningSeat={isJoiningSeat}
+                  isLeavingSeat={isLeavingSeat}
+                  onJoinSeat={handleJoinSeat}
+                  onLeaveSeat={handleLeaveSeat}
                 />
               </>
             ) : null}
@@ -818,6 +854,72 @@ function LobbyTable({
             </div>
           );
         })}
+      </div>
+    </section>
+  );
+}
+
+function WaitingArea({
+  currentSeat,
+  displayName,
+  firstFreeSeat,
+  hasFreeSeat,
+  isJoiningSeat,
+  isLeavingSeat,
+  onJoinSeat,
+  onLeaveSeat,
+}: {
+  currentSeat: RoomPlayerRow | null;
+  displayName: string;
+  firstFreeSeat: RoomPlayerRow["seat_index"] | null;
+  hasFreeSeat: boolean;
+  isJoiningSeat: boolean;
+  isLeavingSeat: boolean;
+  onJoinSeat: (seatIndex: RoomPlayerRow["seat_index"]) => void;
+  onLeaveSeat: () => void;
+}) {
+  return (
+    <section className="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
+            En attente
+          </p>
+          <p className="mt-1 text-sm font-semibold text-stone-900">
+            {displayName} <span className="text-stone-500">(Toi)</span>
+          </p>
+          <p className="mt-1 text-xs text-stone-600">
+            {currentSeat
+              ? "Tu es assis. Tu peux quitter ta place ou cliquer une autre place libre."
+              : hasFreeSeat
+                ? "Clique une place libre pour t'asseoir."
+                : "La table est pleine pour le moment."}
+          </p>
+        </div>
+
+        {currentSeat ? (
+          <button
+            className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isLeavingSeat}
+            onClick={onLeaveSeat}
+            type="button"
+          >
+            Quitter la place
+          </button>
+        ) : (
+          <button
+            className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!hasFreeSeat || firstFreeSeat === null || isJoiningSeat}
+            onClick={() => {
+              if (firstFreeSeat !== null) {
+                onJoinSeat(firstFreeSeat);
+              }
+            }}
+            type="button"
+          >
+            S&apos;asseoir
+          </button>
+        )}
       </div>
     </section>
   );

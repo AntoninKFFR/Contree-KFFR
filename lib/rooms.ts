@@ -68,6 +68,11 @@ export type SetSeatReadyParams = {
   ready: boolean;
 };
 
+export type LeaveSeatParams = {
+  roomId: string;
+  userId: string;
+};
+
 export type StartRoomGameParams = {
   roomId: string;
 };
@@ -448,17 +453,15 @@ export async function joinRoom(
   const players = await fetchRoomPlayers(supabase, room.id);
   const currentSeat = players.find((player) => player.user_id === params.userId);
 
+  if (params.seatIndex === undefined) {
+    return { room, players };
+  }
+
   const emptySeat =
-    params.seatIndex === undefined
-      ? players.find((player) => player.kind === "empty")
-      : players.find(
-          (player) => player.kind === "empty" && player.seat_index === params.seatIndex,
-        );
+    players.find((player) => player.kind === "empty" && player.seat_index === params.seatIndex);
 
   if (!emptySeat) {
-    throw new RoomDataError(
-      params.seatIndex === undefined ? "La table est complète." : "Cette place n'est plus libre.",
-    );
+    throw new RoomDataError("Cette place n'est plus libre.");
   }
 
   const now = new Date().toISOString();
@@ -506,6 +509,45 @@ export async function joinRoom(
 
   if (!data) {
     throw new RoomDataError("Cette place n'est plus libre.");
+  }
+
+  return getRoomWithPlayers(supabase, room.id);
+}
+
+export async function leaveSeat(
+  supabase: SupabaseClient,
+  params: LeaveSeatParams,
+): Promise<RoomWithPlayers> {
+  const room = await fetchRoomRow(supabase, params.roomId);
+
+  if (room.status !== "lobby") {
+    throw new RoomDataError("La place ne peut être quittée qu'en attente.");
+  }
+
+  const { data, error } = await supabase
+    .from("room_players")
+    .update({
+      bot_profile_id: null,
+      display_name: null,
+      is_connected: false,
+      is_ready: false,
+      kind: "empty",
+      last_seen_at: null,
+      left_at: new Date().toISOString(),
+      user_id: null,
+    })
+    .eq("room_id", room.id)
+    .eq("user_id", params.userId)
+    .eq("kind", "human")
+    .select("id")
+    .maybeSingle<Pick<RoomPlayerRow, "id">>();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new RoomDataError("Aucune place à quitter.");
   }
 
   return getRoomWithPlayers(supabase, room.id);
