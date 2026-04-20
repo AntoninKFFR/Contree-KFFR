@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { AuthStatus } from "@/components/AuthStatus";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
 import { ScoreBoard } from "@/components/ScoreBoard";
+import { applyGameAction } from "@/engine/actions";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import { getCurrentContract, playableCardsForCurrentPlayer } from "@/engine/game";
 import { teamName } from "@/engine/players";
@@ -32,7 +33,13 @@ type LoadRoomOptions = {
   silent?: boolean;
 };
 
-const BOT_ACTION_VISUAL_DELAY_MS = 500;
+type DisplayActionEvent = {
+  action: RoomPlayerAction;
+  playerId: PlayerId;
+};
+
+const BOT_ACTION_VISUAL_DELAY_MIN_MS = 400;
+const BOT_ACTION_VISUAL_DELAY_RANGE_MS = 200;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Action impossible pour le moment.";
@@ -56,35 +63,97 @@ function stateForViewerLegalCards(view: PlayerGameView): GameState {
   } as GameState;
 }
 
-function actionActorsFor(state: GameState): PlayerId[] {
+function actionEventsFor(state: GameState): DisplayActionEvent[] {
   return [
-    ...state.bids.map((bid) => bid.playerId),
-    ...state.completedTricks.flatMap((trick) => trick.cards.map((played) => played.playerId)),
-    ...state.currentTrick.cards.map((played) => played.playerId),
+    ...state.bids.map((bid) => ({
+      action:
+        bid.action === "bid"
+          ? {
+              type: "bid" as const,
+              value: bid.value,
+              trump: bid.trump,
+            }
+          : {
+              type: bid.action,
+            },
+      playerId: bid.playerId,
+    })),
+    ...state.completedTricks.flatMap((trick) =>
+      trick.cards.map((played) => ({
+        action: {
+          type: "play-card" as const,
+          card: played.card,
+        },
+        playerId: played.playerId,
+      })),
+    ),
+    ...state.currentTrick.cards.map((played) => ({
+      action: {
+        type: "play-card" as const,
+        card: played.card,
+      },
+      playerId: played.playerId,
+    })),
   ];
 }
 
-function hasNewBotAction(
+function newActionEventsFor(
   previousState: GameState,
   nextState: GameState,
-  players: RoomPlayerRow[],
-): boolean {
+): DisplayActionEvent[] {
   if (previousState.roundNumber !== nextState.roundNumber) {
-    return false;
+    return [];
   }
 
-  const previousActors = actionActorsFor(previousState);
-  const nextActors = actionActorsFor(nextState);
+  const previousEvents = actionEventsFor(previousState);
+  const nextEvents = actionEventsFor(nextState);
 
-  if (nextActors.length <= previousActors.length) {
-    return false;
+  if (nextEvents.length <= previousEvents.length) {
+    return [];
   }
 
-  const botSeatIndexes = new Set(
-    players.filter((player) => player.kind === "bot").map((player) => player.seat_index),
-  );
+  return nextEvents.slice(previousEvents.length);
+}
 
-  return nextActors.slice(previousActors.length).some((playerId) => botSeatIndexes.has(playerId));
+function waitForBotVisualDelay(): Promise<void> {
+  const delay = BOT_ACTION_VISUAL_DELAY_MIN_MS + Math.random() * BOT_ACTION_VISUAL_DELAY_RANGE_MS;
+
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, delay);
+  });
+}
+
+function applyDisplayActionEvent(state: GameState, event: DisplayActionEvent): GameState {
+  switch (event.action.type) {
+    case "bid":
+      return applyGameAction(state, {
+        type: "bid",
+        playerId: event.playerId,
+        value: event.action.value,
+        trump: event.action.trump,
+      });
+    case "pass":
+      return applyGameAction(state, {
+        type: "pass",
+        playerId: event.playerId,
+      });
+    case "coinche":
+      return applyGameAction(state, {
+        type: "coinche",
+        playerId: event.playerId,
+      });
+    case "surcoinche":
+      return applyGameAction(state, {
+        type: "surcoinche",
+        playerId: event.playerId,
+      });
+    case "play-card":
+      return applyGameAction(state, {
+        type: "play-card",
+        playerId: event.playerId,
+        card: event.action.card,
+      });
+  }
 }
 
 export default function MultiplayerRoomPage() {
@@ -99,6 +168,14 @@ export default function MultiplayerRoomPage() {
   const [displayGameState, setDisplayGameState] = useState<GameState | null>(null);
   const [roomWithPlayers, setRoomWithPlayers] = useState<RoomWithPlayers | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const animationRunIdRef = useRef(0);
+  const displayGameStateRef = useRef<GameState | null>(null);
+  const isAnimatingRef = useRef(false);
+
+  function updateDisplayGameState(nextState: GameState | null) {
+    displayGameStateRef.current = nextState;
+    setDisplayGameState(nextState);
+  }
 
   const currentSeat = useMemo(() => {
     if (!session || !roomWithPlayers) return null;
@@ -260,23 +337,73 @@ export default function MultiplayerRoomPage() {
 
   useEffect(() => {
     if (!serverGameState || !roomWithPlayers) {
-      setDisplayGameState(serverGameState);
+      animationRunIdRef.current += 1;
+      isAnimatingRef.current = false;
+      updateDisplayGameState(serverGameState);
       return;
     }
 
-    if (
-      displayGameState &&
-      hasNewBotAction(displayGameState, serverGameState, roomWithPlayers.players)
-    ) {
-      const timeoutId = window.setTimeout(() => {
-        setDisplayGameState(serverGameState);
-      }, BOT_ACTION_VISUAL_DELAY_MS);
+    const animationRunId = animationRunIdRef.current + 1;
+    animationRunIdRef.current = animationRunId;
+    const currentDisplayState = displayGameStateRef.current;
 
-      return () => window.clearTimeout(timeoutId);
+    if (!currentDisplayState) {
+      isAnimatingRef.current = false;
+      updateDisplayGameState(serverGameState);
+      return;
     }
 
-    setDisplayGameState(serverGameState);
-  }, [displayGameState, roomWithPlayers, serverGameState]);
+    const initialDisplayState: GameState = currentDisplayState;
+    const newEvents = newActionEventsFor(currentDisplayState, serverGameState);
+    const botSeatIndexes = new Set(
+      roomWithPlayers.players
+        .filter((player) => player.kind === "bot")
+        .map((player) => player.seat_index),
+    );
+    const hasBotAction = newEvents.some((event) => botSeatIndexes.has(event.playerId));
+
+    if (newEvents.length === 0 || !hasBotAction) {
+      isAnimatingRef.current = false;
+      updateDisplayGameState(serverGameState);
+      return;
+    }
+
+    isAnimatingRef.current = true;
+    let isCancelled = false;
+
+    async function animateActions() {
+      let nextDisplayState = initialDisplayState;
+
+      for (const event of newEvents) {
+        if (isCancelled || animationRunIdRef.current !== animationRunId) {
+          return;
+        }
+
+        if (botSeatIndexes.has(event.playerId)) {
+          await waitForBotVisualDelay();
+        }
+
+        if (isCancelled || animationRunIdRef.current !== animationRunId) {
+          return;
+        }
+
+        nextDisplayState = applyDisplayActionEvent(nextDisplayState, event);
+        updateDisplayGameState(nextDisplayState);
+      }
+
+      if (!isCancelled && animationRunIdRef.current === animationRunId) {
+        isAnimatingRef.current = false;
+        updateDisplayGameState(serverGameState);
+      }
+    }
+
+    void animateActions();
+
+    return () => {
+      isCancelled = true;
+      isAnimatingRef.current = false;
+    };
+  }, [roomWithPlayers, serverGameState]);
 
   async function handleToggleReady() {
     const supabase = getSupabaseClient();
