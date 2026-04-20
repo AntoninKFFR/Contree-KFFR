@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Contrée V1",
-  description: "Une V1 pédagogique de contrée contre trois bots.",
+  title: {
+    template: "%s | Contrée KFFR",
+    default: "Contrée KFFR",
+  },
+  description: "La contrée, en solo ou entre amis",
 };
 
 export default function RootLayout({
