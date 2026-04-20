@@ -608,17 +608,23 @@ export default function MultiplayerRoomPage() {
         }
       >
         <header className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-3">
+          <nav className="flex flex-wrap gap-3">
+            <Link
+              className="text-sm font-semibold text-emerald-900 hover:underline"
+              href="/"
+            >
+              Accueil
+            </Link>
+            <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/solo">
+              Solo
+            </Link>
             <Link
               className="text-sm font-semibold text-emerald-900 hover:underline"
               href="/multiplayer"
             >
-              Retour aux tables
+              Multijoueur
             </Link>
-            <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/">
-              Retour au jeu
-            </Link>
-          </div>
+          </nav>
           <AuthStatus />
         </header>
 

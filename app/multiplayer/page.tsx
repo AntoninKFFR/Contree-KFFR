@@ -134,9 +134,20 @@ export default function MultiplayerPage() {
     <main className="min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950">
       <div className="mx-auto flex max-w-4xl flex-col gap-4">
         <header className="flex flex-wrap items-center justify-between gap-3">
-          <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/">
-            Retour au jeu
-          </Link>
+          <nav className="flex flex-wrap gap-3">
+            <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/">
+              Accueil
+            </Link>
+            <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/solo">
+              Solo
+            </Link>
+            <Link
+              className="text-sm font-semibold text-emerald-900 hover:underline"
+              href="/multiplayer"
+            >
+              Multijoueur
+            </Link>
+          </nav>
           <AuthStatus />
         </header>
 
