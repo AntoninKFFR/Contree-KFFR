@@ -232,7 +232,7 @@ function roomActionToGameAction(action: RoomPlayerAction, playerId: PlayerId): G
   }
 }
 
-function applyBotTurns(state: GameState, players: RoomPlayerRow[]): GameState {
+async function applyBotTurns(state: GameState, players: RoomPlayerRow[]): Promise<GameState> {
   let nextState = state;
   let actionCount = 0;
 
@@ -561,7 +561,7 @@ export async function startRoomGame(
     }),
     playerNames: playerNamesFromPlayers(nextPlayers),
   };
-  const stateAfterInitialBotTurns = applyBotTurns(initialState, nextPlayers);
+  const stateAfterInitialBotTurns = await applyBotTurns(initialState, nextPlayers);
   const nextStatus: RoomStatus =
     stateAfterInitialBotTurns.phase === "game-over" ? "finished" : "playing";
 
@@ -620,7 +620,7 @@ export async function playRoomAction(
     state,
     roomActionToGameAction(params.action, seat.seat_index),
   );
-  const nextState = applyBotTurns(stateAfterHumanAction, players);
+  const nextState = await applyBotTurns(stateAfterHumanAction, players);
   const nextStatus: RoomStatus = nextState.phase === "game-over" ? "finished" : "playing";
   const finishedAt = nextStatus === "finished" ? new Date().toISOString() : room.finished_at;
 

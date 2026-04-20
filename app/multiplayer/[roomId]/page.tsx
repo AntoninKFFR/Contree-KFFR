@@ -12,7 +12,7 @@ import { ScoreBoard } from "@/components/ScoreBoard";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import { getCurrentContract, playableCardsForCurrentPlayer } from "@/engine/game";
 import { teamName } from "@/engine/players";
-import type { BidValue, Card, GameState, Suit } from "@/engine/types";
+import type { BidValue, Card, GameState, PlayerId, Suit } from "@/engine/types";
 import { toPlayerGameView, type PlayerGameView } from "@/engine/views";
 import {
   getRoomWithPlayers,
@@ -31,6 +31,8 @@ type PageState = "loading" | "ready" | "signed-out" | "unavailable" | "missing";
 type LoadRoomOptions = {
   silent?: boolean;
 };
+
+const BOT_ACTION_VISUAL_DELAY_MS = 500;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Action impossible pour le moment.";
@@ -54,6 +56,37 @@ function stateForViewerLegalCards(view: PlayerGameView): GameState {
   } as GameState;
 }
 
+function actionActorsFor(state: GameState): PlayerId[] {
+  return [
+    ...state.bids.map((bid) => bid.playerId),
+    ...state.completedTricks.flatMap((trick) => trick.cards.map((played) => played.playerId)),
+    ...state.currentTrick.cards.map((played) => played.playerId),
+  ];
+}
+
+function hasNewBotAction(
+  previousState: GameState,
+  nextState: GameState,
+  players: RoomPlayerRow[],
+): boolean {
+  if (previousState.roundNumber !== nextState.roundNumber) {
+    return false;
+  }
+
+  const previousActors = actionActorsFor(previousState);
+  const nextActors = actionActorsFor(nextState);
+
+  if (nextActors.length <= previousActors.length) {
+    return false;
+  }
+
+  const botSeatIndexes = new Set(
+    players.filter((player) => player.kind === "bot").map((player) => player.seat_index),
+  );
+
+  return nextActors.slice(previousActors.length).some((playerId) => botSeatIndexes.has(playerId));
+}
+
 export default function MultiplayerRoomPage() {
   const params = useParams();
   const roomId = roomIdFromParams(params.roomId);
@@ -63,6 +96,7 @@ export default function MultiplayerRoomPage() {
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [isUpdatingReady, setIsUpdatingReady] = useState(false);
   const [pageState, setPageState] = useState<PageState>("loading");
+  const [displayGameState, setDisplayGameState] = useState<GameState | null>(null);
   const [roomWithPlayers, setRoomWithPlayers] = useState<RoomWithPlayers | null>(null);
   const [session, setSession] = useState<Session | null>(null);
 
@@ -81,17 +115,22 @@ export default function MultiplayerRoomPage() {
       roomWithPlayers.room.status === "lobby" &&
       roomWithPlayers.players.every((player) => player.kind !== "human" || player.is_ready),
   );
-  const gameState =
+  const serverGameState =
     roomWithPlayers?.room.server_state &&
     (roomWithPlayers.room.status === "playing" || roomWithPlayers.room.status === "finished")
       ? (roomWithPlayers.room.server_state as GameState)
       : null;
+  const gameState = displayGameState ?? serverGameState;
+  const displayedRoomStatus =
+    roomWithPlayers?.room.status === "finished" && gameState?.phase !== "game-over"
+      ? "playing"
+      : roomWithPlayers?.room.status;
   const playerView =
-    gameState && currentSeat && roomWithPlayers?.room.status === "playing"
+    gameState && currentSeat && displayedRoomStatus === "playing"
       ? toPlayerGameView(gameState, currentSeat.seat_index)
       : null;
   const finalWinner =
-    roomWithPlayers?.room.status === "finished" &&
+    displayedRoomStatus === "finished" &&
     gameState?.winnerTeam !== null &&
     gameState?.winnerTeam !== undefined
       ? teamName(gameState.winnerTeam, gameState.playerNames)
@@ -100,6 +139,7 @@ export default function MultiplayerRoomPage() {
     gameState &&
       currentSeat &&
       roomWithPlayers?.room.status === "playing" &&
+      displayedRoomStatus === "playing" &&
       gameState.phase === "playing" &&
       gameState.currentPlayerId === currentSeat.seat_index,
   );
@@ -107,6 +147,7 @@ export default function MultiplayerRoomPage() {
     playerView &&
       currentSeat &&
       roomWithPlayers?.room.status === "playing" &&
+      displayedRoomStatus === "playing" &&
       playerView.phase === "bidding" &&
       playerView.currentPlayerId === currentSeat.seat_index,
   );
@@ -216,6 +257,26 @@ export default function MultiplayerRoomPage() {
       void supabase.removeChannel(channel);
     };
   }, [loadRoom, roomId]);
+
+  useEffect(() => {
+    if (!serverGameState || !roomWithPlayers) {
+      setDisplayGameState(serverGameState);
+      return;
+    }
+
+    if (
+      displayGameState &&
+      hasNewBotAction(displayGameState, serverGameState, roomWithPlayers.players)
+    ) {
+      const timeoutId = window.setTimeout(() => {
+        setDisplayGameState(serverGameState);
+      }, BOT_ACTION_VISUAL_DELAY_MS);
+
+      return () => window.clearTimeout(timeoutId);
+    }
+
+    setDisplayGameState(serverGameState);
+  }, [displayGameState, roomWithPlayers, serverGameState]);
 
   async function handleToggleReady() {
     const supabase = getSupabaseClient();
@@ -333,10 +394,24 @@ export default function MultiplayerRoomPage() {
     }
   }
 
+  const isPlayingLayout = displayedRoomStatus === "playing";
+
   return (
-    <main className="min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950">
-      <div className="mx-auto flex max-w-5xl flex-col gap-4">
-        <header className="flex flex-wrap items-center justify-between gap-3">
+    <main
+      className={
+        isPlayingLayout
+          ? "h-dvh overflow-hidden bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4"
+          : "min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950"
+      }
+    >
+      <div
+        className={
+          isPlayingLayout
+            ? "flex h-full w-full flex-col gap-2"
+            : "mx-auto flex max-w-5xl flex-col gap-4"
+        }
+      >
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-3">
             <Link
               className="text-sm font-semibold text-emerald-900 hover:underline"
@@ -381,7 +456,7 @@ export default function MultiplayerRoomPage() {
 
         {pageState === "ready" && roomWithPlayers ? (
           <>
-            {roomWithPlayers.room.status === "finished" && gameState ? (
+            {displayedRoomStatus === "finished" && gameState ? (
               <section className="rounded-lg border border-emerald-300 bg-emerald-50 p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-emerald-900">
                   Partie terminée
@@ -417,7 +492,7 @@ export default function MultiplayerRoomPage() {
               </section>
             ) : null}
 
-            {roomWithPlayers.room.status === "lobby" ? (
+            {displayedRoomStatus === "lobby" ? (
               <>
                 <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -486,8 +561,8 @@ export default function MultiplayerRoomPage() {
               </>
             ) : null}
 
-            {roomWithPlayers.room.status === "playing" && playerView ? (
-              <div className="grid min-h-[70dvh] gap-2 lg:grid-cols-[minmax(0,1fr)_310px]">
+            {displayedRoomStatus === "playing" && playerView ? (
+              <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1fr)_310px]">
                 <div className="flex min-h-0 flex-col gap-2">
                   <GameTable state={playerView} />
 
