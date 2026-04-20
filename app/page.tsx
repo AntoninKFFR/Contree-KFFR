@@ -23,7 +23,7 @@ export default function HomePage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
             Contrée par KFFR
           </p>
-          <h1 className="mt-2 text-4xl font-bold">Coinche</h1>
+          <h1 className="mt-2 text-4xl font-bold">La contrée, en solo ou entre amis</h1>
         </div>
 
         <nav className="flex w-full flex-col gap-3">
