@@ -2,14 +2,17 @@ import { CardView } from "@/components/CardView";
 import { PlayerPanel } from "@/components/PlayerPanel";
 import { playerName } from "@/engine/players";
 import type { GameState, PlayedCard, PlayerId } from "@/engine/types";
+import type { PlayerGameView } from "@/engine/views";
+
+type GameTableState = GameState | PlayerGameView;
 
 type GameTableProps = {
-  state: GameState;
+  state: GameTableState;
 };
 
 const TABLE_BACKGROUND_IMAGE = "/TapisKFFR.png";
 
-function playedCardsToShow(state: GameState): { title: string; cards: PlayedCard[] } {
+function playedCardsToShow(state: GameTableState): { title: string; cards: PlayedCard[] } {
   if (state.currentTrick.cards.length > 0) {
     return { title: "Pli en cours", cards: state.currentTrick.cards };
   }

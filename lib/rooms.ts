@@ -1,9 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { chooseBotCard } from "@/bots/simpleBot";
-import { applyGameAction } from "@/engine/actions";
+import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
+import { applyGameAction, type GameAction } from "@/engine/actions";
 import { createInitialGame } from "@/engine/game";
 import type { SeatAssignments } from "@/engine/seats";
-import type { Card, GameState, ScoringMode } from "@/engine/types";
+import type { BidValue, Card, GameState, PlayerId, ScoringMode, Suit } from "@/engine/types";
 
 export type RoomStatus = "lobby" | "playing" | "finished" | "cancelled";
 export type SeatKind = "human" | "bot" | "empty";
@@ -70,10 +70,25 @@ export type StartRoomGameParams = {
   roomId: string;
 };
 
-export type RoomPlayerAction = {
-  type: "play-card";
-  card: Card;
-};
+export type RoomPlayerAction =
+  | {
+      type: "bid";
+      value: BidValue;
+      trump: Suit;
+    }
+  | {
+      type: "pass";
+    }
+  | {
+      type: "coinche";
+    }
+  | {
+      type: "surcoinche";
+    }
+  | {
+      type: "play-card";
+      card: Card;
+    };
 
 export type PlayRoomActionParams = {
   roomId: string;
@@ -184,11 +199,44 @@ function playerForCurrentTurn(state: GameState, players: RoomPlayerRow[]): RoomP
   return players.find((player) => player.seat_index === state.currentPlayerId) ?? null;
 }
 
+function roomActionToGameAction(action: RoomPlayerAction, playerId: PlayerId): GameAction {
+  switch (action.type) {
+    case "bid":
+      return {
+        type: "bid",
+        playerId,
+        value: action.value,
+        trump: action.trump,
+      };
+    case "pass":
+      return {
+        type: "pass",
+        playerId,
+      };
+    case "coinche":
+      return {
+        type: "coinche",
+        playerId,
+      };
+    case "surcoinche":
+      return {
+        type: "surcoinche",
+        playerId,
+      };
+    case "play-card":
+      return {
+        type: "play-card",
+        playerId,
+        card: action.card,
+      };
+  }
+}
+
 function applyBotTurns(state: GameState, players: RoomPlayerRow[]): GameState {
   let nextState = state;
   let actionCount = 0;
 
-  while (nextState.phase === "playing") {
+  while (nextState.phase === "bidding" || nextState.phase === "playing") {
     const currentPlayer = playerForCurrentTurn(nextState, players);
 
     if (!currentPlayer || currentPlayer.kind !== "bot") {
@@ -199,12 +247,32 @@ function applyBotTurns(state: GameState, players: RoomPlayerRow[]): GameState {
       throw new RoomDataError("Bot turn limit reached.");
     }
 
-    const card = chooseBotCard(nextState);
-    nextState = applyGameAction(nextState, {
-      type: "play-card",
-      playerId: nextState.currentPlayerId,
-      card,
-    });
+    if (nextState.phase === "bidding") {
+      const botBid = chooseBotBid(nextState);
+      nextState = applyGameAction(
+        nextState,
+        roomActionToGameAction(
+          botBid.action === "bid"
+            ? {
+                type: "bid",
+                value: botBid.value,
+                trump: botBid.trump,
+              }
+            : {
+                type: botBid.action,
+              },
+          nextState.currentPlayerId,
+        ),
+      );
+    } else {
+      const card = chooseBotCard(nextState);
+      nextState = applyGameAction(nextState, {
+        type: "play-card",
+        playerId: nextState.currentPlayerId,
+        card,
+      });
+    }
+
     actionCount += 1;
   }
 
@@ -548,11 +616,10 @@ export async function playRoomAction(
     throw new RoomDataError("It is not this player's turn.");
   }
 
-  const stateAfterHumanAction = applyGameAction(state, {
-    type: "play-card",
-    playerId: seat.seat_index,
-    card: params.action.card,
-  });
+  const stateAfterHumanAction = applyGameAction(
+    state,
+    roomActionToGameAction(params.action, seat.seat_index),
+  );
   const nextState = applyBotTurns(stateAfterHumanAction, players);
   const nextStatus: RoomStatus = nextState.phase === "game-over" ? "finished" : "playing";
   const finishedAt = nextStatus === "finished" ? new Date().toISOString() : room.finished_at;

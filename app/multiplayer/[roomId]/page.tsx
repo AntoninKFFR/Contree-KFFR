@@ -5,18 +5,22 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { AuthStatus } from "@/components/AuthStatus";
-import { CardView } from "@/components/CardView";
-import { sameCard } from "@/engine/cards";
-import { playableCardsForCurrentPlayer } from "@/engine/game";
+import { BiddingPanel } from "@/components/BiddingPanel";
+import { GameTable } from "@/components/GameTable";
+import { HumanHand } from "@/components/HumanHand";
+import { ScoreBoard } from "@/components/ScoreBoard";
+import { canCoinche, canSurcoinche } from "@/engine/bidding";
+import { getCurrentContract, playableCardsForCurrentPlayer } from "@/engine/game";
 import { teamName } from "@/engine/players";
-import type { Card, GameState } from "@/engine/types";
-import { toPlayerGameView } from "@/engine/views";
+import type { BidValue, Card, GameState, Suit } from "@/engine/types";
+import { toPlayerGameView, type PlayerGameView } from "@/engine/views";
 import {
   getRoomWithPlayers,
   playRoomAction,
   resetRoom,
   setSeatReady,
   startRoomGame,
+  type RoomPlayerAction,
   type RoomPlayerRow,
   type RoomWithPlayers,
 } from "@/lib/rooms";
@@ -35,6 +39,19 @@ function errorMessage(error: unknown): string {
 function roomIdFromParams(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
+}
+
+function stateForViewerLegalCards(view: PlayerGameView): GameState {
+  return {
+    ...view,
+    hands: {
+      0: [],
+      1: [],
+      2: [],
+      3: [],
+      [view.viewerPlayerId]: view.hand,
+    },
+  } as GameState;
 }
 
 export default function MultiplayerRoomPage() {
@@ -86,7 +103,26 @@ export default function MultiplayerRoomPage() {
       gameState.phase === "playing" &&
       gameState.currentPlayerId === currentSeat.seat_index,
   );
-  const legalCards = canPlayCard && gameState ? playableCardsForCurrentPlayer(gameState) : [];
+  const canBid = Boolean(
+    playerView &&
+      currentSeat &&
+      roomWithPlayers?.room.status === "playing" &&
+      playerView.phase === "bidding" &&
+      playerView.currentPlayerId === currentSeat.seat_index,
+  );
+  const currentContract = playerView
+    ? getCurrentContract(stateForViewerLegalCards(playerView))
+    : null;
+  const canBidCoinche = Boolean(
+    currentSeat && canBid && canCoinche(currentSeat.seat_index, currentContract),
+  );
+  const canBidSurcoinche = Boolean(
+    currentSeat && canBid && canSurcoinche(currentSeat.seat_index, currentContract),
+  );
+  const legalCards =
+    canPlayCard && playerView
+      ? playableCardsForCurrentPlayer(stateForViewerLegalCards(playerView))
+      : [];
 
   const loadRoom = useCallback(async (options: LoadRoomOptions = {}) => {
     const supabase = getSupabaseClient();
@@ -225,20 +261,25 @@ export default function MultiplayerRoomPage() {
     }
   }
 
-  async function handlePlayCard(card: Card) {
+  async function handleRoomPlayerAction(action: RoomPlayerAction) {
     const supabase = getSupabaseClient();
+    const isCardAction = action.type === "play-card";
 
-    if (!supabase || !roomWithPlayers || !session || !canPlayCard) return;
+    if (
+      !supabase ||
+      !roomWithPlayers ||
+      !session ||
+      (isCardAction ? !canPlayCard : !canBid)
+    ) {
+      return;
+    }
 
     setIsPlayingCard(true);
     setError(null);
 
     try {
       const nextRoom = await playRoomAction(supabase, {
-        action: {
-          type: "play-card",
-          card,
-        },
+        action,
         roomId: roomWithPlayers.room.id,
         userId: session.user.id,
       });
@@ -249,6 +290,26 @@ export default function MultiplayerRoomPage() {
     } finally {
       setIsPlayingCard(false);
     }
+  }
+
+  function handlePlayCard(card: Card) {
+    void handleRoomPlayerAction({ type: "play-card", card });
+  }
+
+  function handleBid(value: BidValue, trump: Suit) {
+    void handleRoomPlayerAction({ type: "bid", value, trump });
+  }
+
+  function handlePass() {
+    void handleRoomPlayerAction({ type: "pass" });
+  }
+
+  function handleCoinche() {
+    void handleRoomPlayerAction({ type: "coinche" });
+  }
+
+  function handleSurcoinche() {
+    void handleRoomPlayerAction({ type: "surcoinche" });
   }
 
   async function handleResetRoom() {
@@ -426,35 +487,33 @@ export default function MultiplayerRoomPage() {
             ) : null}
 
             {roomWithPlayers.room.status === "playing" && playerView ? (
-              <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-bold">Ta main</h2>
-                    <p className="text-sm text-stone-600">
-                      {canPlayCard ? "A toi de jouer." : "En attente du joueur courant."}
-                    </p>
-                  </div>
-                  <p className="text-sm font-semibold text-stone-700">
-                    Joueur courant: seat {playerView.currentPlayerId}
-                  </p>
+              <div className="grid min-h-[70dvh] gap-2 lg:grid-cols-[minmax(0,1fr)_310px]">
+                <div className="flex min-h-0 flex-col gap-2">
+                  <GameTable state={playerView} />
+
+                  {playerView.phase === "bidding" ? (
+                    <BiddingPanel
+                      canBid={canBid && !isPlayingCard}
+                      canCoinche={canBidCoinche && !isPlayingCard}
+                      canSurcoinche={canBidSurcoinche && !isPlayingCard}
+                      currentContract={currentContract}
+                      onBid={handleBid}
+                      onCoinche={handleCoinche}
+                      onPass={handlePass}
+                      onSurcoinche={handleSurcoinche}
+                    />
+                  ) : null}
+
+                  <HumanHand
+                    canPlay={canPlayCard && !isPlayingCard}
+                    cards={playerView.hand}
+                    legalCards={legalCards}
+                    onPlayCard={handlePlayCard}
+                  />
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {playerView.hand.map((card) => {
-                    const isPlayable = legalCards.some((legalCard) => sameCard(legalCard, card));
-
-                    return (
-                      <CardView
-                        card={card}
-                        disabled={!canPlayCard || isPlayingCard}
-                        isPlayable={isPlayable}
-                        key={`${card.rank}-${card.suit}`}
-                        onClick={() => handlePlayCard(card)}
-                      />
-                    );
-                  })}
-                </div>
-              </section>
+                <ScoreBoard state={playerView} showActions={false} />
+              </div>
             ) : null}
           </>
         ) : null}

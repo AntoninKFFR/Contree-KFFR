@@ -1,14 +1,23 @@
 import { SUIT_LABELS, SUIT_SYMBOLS } from "@/engine/cards";
 import { playerName, teamName } from "@/engine/players";
 import type { ContractStatus, GameState } from "@/engine/types";
+import type { PlayerGameView } from "@/engine/views";
+
+type ScoreBoardState = GameState | PlayerGameView;
 
 type ScoreBoardProps = {
-  state: GameState;
-  onNewGame: () => void;
-  onNextRound: () => void;
+  state: ScoreBoardState;
+  onNewGame?: () => void;
+  onNextRound?: () => void;
+  showActions?: boolean;
 };
 
-export function ScoreBoard({ state, onNewGame, onNextRound }: ScoreBoardProps) {
+export function ScoreBoard({
+  state,
+  onNewGame,
+  onNextRound,
+  showActions = true,
+}: ScoreBoardProps) {
   const displayedContract = state.contract;
   const canStartNextRound = state.phase === "finished";
   const nameFor = (playerId: Parameters<typeof playerName>[0]) =>
@@ -28,13 +37,15 @@ export function ScoreBoard({ state, onNewGame, onNextRound }: ScoreBoardProps) {
             <p className="text-xl font-bold">A choisir</p>
           )}
         </div>
-        <button
-          className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-stone-700"
-          onClick={canStartNextRound ? onNextRound : onNewGame}
-          type="button"
-        >
-          {canStartNextRound ? "Manche suivante" : "Nouvelle partie"}
-        </button>
+        {showActions ? (
+          <button
+            className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-stone-700"
+            onClick={canStartNextRound ? onNextRound : onNewGame}
+            type="button"
+          >
+            {canStartNextRound ? "Manche suivante" : "Nouvelle partie"}
+          </button>
+        ) : null}
       </div>
 
       {state.phase === "game-over" ? (
