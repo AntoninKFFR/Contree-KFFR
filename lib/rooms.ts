@@ -446,10 +446,7 @@ export async function joinRoom(
   }
 
   const players = await fetchRoomPlayers(supabase, room.id);
-
-  if (players.some((player) => player.user_id === params.userId)) {
-    throw new RoomDataError("User is already in this room.");
-  }
+  const currentSeat = players.find((player) => player.user_id === params.userId);
 
   const emptySeat =
     params.seatIndex === undefined
@@ -465,6 +462,27 @@ export async function joinRoom(
   }
 
   const now = new Date().toISOString();
+  if (currentSeat) {
+    const { error: leaveError } = await supabase
+      .from("room_players")
+      .update({
+        bot_profile_id: null,
+        display_name: null,
+        is_connected: false,
+        is_ready: false,
+        kind: "empty",
+        last_seen_at: null,
+        left_at: now,
+        user_id: null,
+      })
+      .eq("id", currentSeat.id)
+      .eq("user_id", params.userId);
+
+    if (leaveError) {
+      throw leaveError;
+    }
+  }
+
   const { data, error } = await supabase
     .from("room_players")
     .update({

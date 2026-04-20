@@ -42,6 +42,7 @@ type DisplayActionEvent = {
 
 const BOT_ACTION_VISUAL_DELAY_MIN_MS = 400;
 const BOT_ACTION_VISUAL_DELAY_RANGE_MS = 200;
+const TABLE_BACKGROUND_IMAGE = "/TapisKFFR.png";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Action impossible pour le moment.";
@@ -715,7 +716,7 @@ export default function MultiplayerRoomPage() {
                 </section>
 
                 <LobbyTable
-                  canJoinSeat={!currentSeat && !isJoiningSeat}
+                  canJoinSeat={!isJoiningSeat}
                   currentUserId={session?.user.id ?? null}
                   onJoinSeat={handleJoinSeat}
                   players={roomWithPlayers.players}
@@ -798,11 +799,10 @@ function LobbyTable({
   return (
     <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
       <h2 className="text-lg font-bold">Places</h2>
-      <div className="relative mt-4 min-h-[360px] overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center p-4 shadow-sm">
-        <div className="absolute left-1/2 top-1/2 flex h-28 w-44 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-lg border border-white/30 bg-white/15 text-center text-sm font-bold text-white shadow-sm">
-          Table
-        </div>
-
+      <div
+        className="relative mt-4 min-h-[360px] overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center p-4 shadow-sm"
+        style={{ backgroundImage: `url(${TABLE_BACKGROUND_IMAGE})` }}
+      >
         {players.map((player) => {
           const position = LOBBY_SEAT_POSITIONS[player.seat_index];
 
@@ -842,8 +842,10 @@ function SeatCard({
   return (
     <button
       className={[
-        "min-h-24 w-36 rounded-lg border bg-white/95 p-3 text-center text-sm shadow-sm transition",
-        player.is_ready ? "border-emerald-500 ring-2 ring-emerald-300" : "border-stone-200",
+        "flex h-20 w-32 flex-col items-center justify-center rounded-md border bg-white px-3 text-center text-sm shadow-sm transition",
+        player.is_ready
+          ? "border-emerald-600 shadow-emerald-300/70 ring-2 ring-emerald-300"
+          : "border-stone-200",
         canJoin ? "cursor-pointer hover:border-emerald-600 hover:bg-emerald-50" : "cursor-default",
       ].join(" ")}
       disabled={!canJoin}
@@ -859,15 +861,6 @@ function SeatCard({
       </span>
       {!isEmpty ? (
         <span className="mt-1 block text-xs font-semibold text-stone-600">{kindLabel}</span>
-      ) : (
-        <span className="mt-1 block text-xs font-semibold text-emerald-800">
-          Cliquer pour s&apos;asseoir
-        </span>
-      )}
-      {player.is_ready ? (
-        <span className="mt-2 inline-flex rounded-md bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-900">
-          Prêt
-        </span>
       ) : null}
     </button>
   );
