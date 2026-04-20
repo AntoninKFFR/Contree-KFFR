@@ -356,72 +356,76 @@ export default function MultiplayerRoomPage() {
               </section>
             ) : null}
 
-            <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
-                    Room multijoueur
-                  </p>
-                  <h1 className="mt-1 font-mono text-3xl font-bold">
-                    {roomWithPlayers.room.code}
-                  </h1>
-                  <p className="mt-2 text-sm text-stone-600">
-                    Statut: {roomWithPlayers.room.status} | Mode:{" "}
-                    {roomWithPlayers.room.scoring_mode} | Cible:{" "}
-                    {roomWithPlayers.room.target_score}
-                  </p>
-                </div>
+            {roomWithPlayers.room.status === "lobby" ? (
+              <>
+                <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
+                        Room multijoueur
+                      </p>
+                      <h1 className="mt-1 font-mono text-3xl font-bold">
+                        {roomWithPlayers.room.code}
+                      </h1>
+                      <p className="mt-2 text-sm text-stone-600">
+                        Statut: {roomWithPlayers.room.status} | Mode:{" "}
+                        {roomWithPlayers.room.scoring_mode} | Cible:{" "}
+                        {roomWithPlayers.room.target_score}
+                      </p>
+                    </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50"
-                    onClick={() => loadRoom()}
-                    type="button"
-                  >
-                    Rafraîchir
-                  </button>
-                  <button
-                    className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={!currentSeat || isUpdatingReady || roomWithPlayers.room.status !== "lobby"}
-                    onClick={handleToggleReady}
-                    type="button"
-                  >
-                    {currentSeat?.is_ready ? "Not ready" : "Ready"}
-                  </button>
-                  {isHost ? (
-                    <button
-                      className="rounded-md bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={!canStartGame || isStartingGame}
-                      onClick={handleStartGame}
-                      type="button"
-                    >
-                      Start Game
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50"
+                        onClick={() => loadRoom()}
+                        type="button"
+                      >
+                        Rafraîchir
+                      </button>
+                      <button
+                        className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={!currentSeat || isUpdatingReady}
+                        onClick={handleToggleReady}
+                        type="button"
+                      >
+                        {currentSeat?.is_ready ? "Not ready" : "Ready"}
+                      </button>
+                      {isHost ? (
+                        <button
+                          className="rounded-md bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={!canStartGame || isStartingGame}
+                          onClick={handleStartGame}
+                          type="button"
+                        >
+                          Start Game
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {!currentSeat ? (
+                    <p className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                      Tu regardes cette room, mais ton utilisateur n&apos;occupe pas de siège.
+                    </p>
                   ) : null}
-                </div>
-              </div>
+                </section>
 
-              {!currentSeat ? (
-                <p className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                  Tu regardes cette room, mais ton utilisateur n&apos;occupe pas de siège.
-                </p>
-              ) : null}
-            </section>
+                <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
+                  <h2 className="text-lg font-bold">Sièges</h2>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {roomWithPlayers.players.map((player) => (
+                      <SeatCard
+                        isCurrentUser={player.user_id === session?.user.id}
+                        key={player.id}
+                        player={player}
+                      />
+                    ))}
+                  </div>
+                </section>
+              </>
+            ) : null}
 
-            <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-bold">Sièges</h2>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                {roomWithPlayers.players.map((player) => (
-                  <SeatCard
-                    isCurrentUser={player.user_id === session?.user.id}
-                    key={player.id}
-                    player={player}
-                  />
-                ))}
-              </div>
-            </section>
-
-            {playerView ? (
+            {roomWithPlayers.room.status === "playing" && playerView ? (
               <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>

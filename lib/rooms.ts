@@ -493,15 +493,19 @@ export async function startRoomGame(
     }),
     playerNames: playerNamesFromPlayers(nextPlayers),
   };
+  const stateAfterInitialBotTurns = applyBotTurns(initialState, nextPlayers);
+  const nextStatus: RoomStatus =
+    stateAfterInitialBotTurns.phase === "game-over" ? "finished" : "playing";
 
   const { data, error } = await supabase
     .from("rooms")
     .update({
-      game_phase: initialState.phase,
-      server_state: initialState,
+      finished_at: nextStatus === "finished" ? now : room.finished_at,
+      game_phase: stateAfterInitialBotTurns.phase,
+      server_state: stateAfterInitialBotTurns,
       started_at: now,
       state_version: room.state_version + 1,
-      status: "playing",
+      status: nextStatus,
     })
     .eq("id", room.id)
     .eq("status", "lobby")
