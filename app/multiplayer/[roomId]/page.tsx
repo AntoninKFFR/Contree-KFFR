@@ -15,8 +15,10 @@ import { getCurrentContract, playableCardsForCurrentPlayer } from "@/engine/game
 import { teamName } from "@/engine/players";
 import type { BidValue, Card, GameState, PlayerId, Suit } from "@/engine/types";
 import { toPlayerGameView, type PlayerGameView } from "@/engine/views";
+import { getProfileUsername } from "@/lib/profiles";
 import {
   getRoomWithPlayers,
+  joinRoom,
   playRoomAction,
   resetRoom,
   setSeatReady,
@@ -48,6 +50,17 @@ function errorMessage(error: unknown): string {
 function roomIdFromParams(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
+}
+
+function statusLabel(status: RoomWithPlayers["room"]["status"]): string {
+  if (status === "lobby") return "en attente";
+  if (status === "playing") return "en cours";
+  if (status === "finished") return "terminée";
+  return "annulée";
+}
+
+function scoringModeLabel(scoringMode: RoomWithPlayers["room"]["scoring_mode"]): string {
+  return scoringMode === "made-points" ? "points faits" : "points annoncés";
 }
 
 function stateForViewerLegalCards(view: PlayerGameView): GameState {
@@ -160,6 +173,7 @@ export default function MultiplayerRoomPage() {
   const params = useParams();
   const roomId = roomIdFromParams(params.roomId);
   const [error, setError] = useState<string | null>(null);
+  const [isJoiningSeat, setIsJoiningSeat] = useState(false);
   const [isPlayingCard, setIsPlayingCard] = useState(false);
   const [isResettingRoom, setIsResettingRoom] = useState(false);
   const [isStartingGame, setIsStartingGame] = useState(false);
@@ -428,6 +442,33 @@ export default function MultiplayerRoomPage() {
     }
   }
 
+  async function handleJoinSeat(seatIndex: RoomPlayerRow["seat_index"]) {
+    const supabase = getSupabaseClient();
+
+    if (!supabase || !roomWithPlayers || !session || currentSeat || isJoiningSeat) return;
+
+    setIsJoiningSeat(true);
+    setError(null);
+
+    try {
+      const profileName = await getProfileUsername(supabase, session.user.id);
+      const displayName = profileName ?? session.user.email?.split("@")[0] ?? "Joueur";
+      const nextRoom = await joinRoom(supabase, {
+        code: roomWithPlayers.room.code,
+        displayName,
+        seatIndex,
+        userId: session.user.id,
+      });
+
+      setRoomWithPlayers(nextRoom);
+      setPageState("ready");
+    } catch (joinError) {
+      setError(errorMessage(joinError));
+    } finally {
+      setIsJoiningSeat(false);
+    }
+  }
+
   async function handleStartGame() {
     const supabase = getSupabaseClient();
 
@@ -544,7 +585,7 @@ export default function MultiplayerRoomPage() {
               className="text-sm font-semibold text-emerald-900 hover:underline"
               href="/multiplayer"
             >
-              Retour au lobby
+              Retour aux tables
             </Link>
             <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/">
               Retour au jeu
@@ -559,7 +600,7 @@ export default function MultiplayerRoomPage() {
 
         {pageState === "signed-out" ? (
           <StatusMessage>
-            Connecte-toi pour voir cette room.
+            Connecte-toi pour voir cette table.
             <Link
               className="mt-4 inline-flex rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white"
               href="/login"
@@ -569,10 +610,10 @@ export default function MultiplayerRoomPage() {
           </StatusMessage>
         ) : null}
 
-        {pageState === "loading" ? <StatusMessage>Chargement de la room...</StatusMessage> : null}
+        {pageState === "loading" ? <StatusMessage>Chargement de la table...</StatusMessage> : null}
 
         {pageState === "missing" ? (
-          <StatusMessage>{error ?? "Room introuvable."}</StatusMessage>
+          <StatusMessage>{error ?? "Table introuvable."}</StatusMessage>
         ) : null}
 
         {error && pageState === "ready" ? (
@@ -613,7 +654,7 @@ export default function MultiplayerRoomPage() {
                     onClick={() => loadRoom()}
                     type="button"
                   >
-                    Retour au lobby
+                    Retour à la table
                   </button>
                 </div>
               </section>
@@ -625,14 +666,14 @@ export default function MultiplayerRoomPage() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
-                        Room multijoueur
+                        Table multijoueur
                       </p>
                       <h1 className="mt-1 font-mono text-3xl font-bold">
                         {roomWithPlayers.room.code}
                       </h1>
                       <p className="mt-2 text-sm text-stone-600">
-                        Statut: {roomWithPlayers.room.status} | Mode:{" "}
-                        {roomWithPlayers.room.scoring_mode} | Cible:{" "}
+                        Statut: {statusLabel(roomWithPlayers.room.status)} | Mode:{" "}
+                        {scoringModeLabel(roomWithPlayers.room.scoring_mode)} | Cible:{" "}
                         {roomWithPlayers.room.target_score}
                       </p>
                     </div>
@@ -651,7 +692,7 @@ export default function MultiplayerRoomPage() {
                         onClick={handleToggleReady}
                         type="button"
                       >
-                        {currentSeat?.is_ready ? "Not ready" : "Ready"}
+                        {currentSeat?.is_ready ? "Pas prêt" : "Prêt"}
                       </button>
                       {isHost ? (
                         <button
@@ -660,7 +701,7 @@ export default function MultiplayerRoomPage() {
                           onClick={handleStartGame}
                           type="button"
                         >
-                          Start Game
+                          Lancer la partie
                         </button>
                       ) : null}
                     </div>
@@ -668,23 +709,17 @@ export default function MultiplayerRoomPage() {
 
                   {!currentSeat ? (
                     <p className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                      Tu regardes cette room, mais ton utilisateur n&apos;occupe pas de siège.
+                      Choisis une place libre autour de la table.
                     </p>
                   ) : null}
                 </section>
 
-                <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-                  <h2 className="text-lg font-bold">Sièges</h2>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {roomWithPlayers.players.map((player) => (
-                      <SeatCard
-                        isCurrentUser={player.user_id === session?.user.id}
-                        key={player.id}
-                        player={player}
-                      />
-                    ))}
-                  </div>
-                </section>
+                <LobbyTable
+                  canJoinSeat={!currentSeat && !isJoiningSeat}
+                  currentUserId={session?.user.id ?? null}
+                  onJoinSeat={handleJoinSeat}
+                  players={roomWithPlayers.players}
+                />
               </>
             ) : null}
 
@@ -724,34 +759,117 @@ export default function MultiplayerRoomPage() {
   );
 }
 
-function SeatCard({
-  isCurrentUser,
-  player,
+const LOBBY_SEAT_POSITIONS: Record<
+  RoomPlayerRow["seat_index"],
+  {
+    label: string;
+    className: string;
+  }
+> = {
+  0: {
+    label: "Bas",
+    className: "bottom-4 left-1/2 -translate-x-1/2",
+  },
+  1: {
+    label: "Droite",
+    className: "right-4 top-1/2 -translate-y-1/2",
+  },
+  2: {
+    label: "Haut",
+    className: "left-1/2 top-4 -translate-x-1/2",
+  },
+  3: {
+    label: "Gauche",
+    className: "left-4 top-1/2 -translate-y-1/2",
+  },
+};
+
+function LobbyTable({
+  canJoinSeat,
+  currentUserId,
+  onJoinSeat,
+  players,
 }: {
-  isCurrentUser: boolean;
-  player: RoomPlayerRow;
+  canJoinSeat: boolean;
+  currentUserId: string | null;
+  onJoinSeat: (seatIndex: RoomPlayerRow["seat_index"]) => void;
+  players: RoomPlayerRow[];
 }) {
   return (
-    <div className="rounded-lg border border-stone-200 bg-stone-50 p-4 text-sm">
-      <div className="flex items-center justify-between gap-3">
-        <p className="font-bold">Seat {player.seat_index}</p>
-        {isCurrentUser ? (
-          <span className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-900">
-            Toi
-          </span>
-        ) : null}
+    <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-bold">Places</h2>
+      <div className="relative mt-4 min-h-[360px] overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center p-4 shadow-sm">
+        <div className="absolute left-1/2 top-1/2 flex h-28 w-44 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-lg border border-white/30 bg-white/15 text-center text-sm font-bold text-white shadow-sm">
+          Table
+        </div>
+
+        {players.map((player) => {
+          const position = LOBBY_SEAT_POSITIONS[player.seat_index];
+
+          return (
+            <div className={`absolute ${position.className}`} key={player.id}>
+              <SeatCard
+                canJoin={canJoinSeat && player.kind === "empty"}
+                isCurrentUser={player.user_id === currentUserId}
+                onJoin={() => onJoinSeat(player.seat_index)}
+                player={player}
+                positionLabel={position.label}
+              />
+            </div>
+          );
+        })}
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-2 text-stone-700">
-        <dt className="font-semibold">Kind</dt>
-        <dd>{player.kind}</dd>
-        <dt className="font-semibold">Nom</dt>
-        <dd>{player.display_name ?? "-"}</dd>
-        <dt className="font-semibold">Ready</dt>
-        <dd>{player.is_ready ? "oui" : "non"}</dd>
-        <dt className="font-semibold">Connected</dt>
-        <dd>{player.is_connected ? "oui" : "non"}</dd>
-      </dl>
-    </div>
+    </section>
+  );
+}
+
+function SeatCard({
+  canJoin,
+  isCurrentUser,
+  onJoin,
+  player,
+  positionLabel,
+}: {
+  canJoin: boolean;
+  isCurrentUser: boolean;
+  onJoin: () => void;
+  player: RoomPlayerRow;
+  positionLabel: string;
+}) {
+  const isEmpty = player.kind === "empty";
+  const kindLabel = player.kind === "bot" ? "Bot" : "Joueur";
+
+  return (
+    <button
+      className={[
+        "min-h-24 w-36 rounded-lg border bg-white/95 p-3 text-center text-sm shadow-sm transition",
+        player.is_ready ? "border-emerald-500 ring-2 ring-emerald-300" : "border-stone-200",
+        canJoin ? "cursor-pointer hover:border-emerald-600 hover:bg-emerald-50" : "cursor-default",
+      ].join(" ")}
+      disabled={!canJoin}
+      onClick={onJoin}
+      type="button"
+    >
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">
+        Place {positionLabel}
+      </span>
+      <span className="mt-2 block font-bold text-stone-950">
+        {isEmpty ? "Place libre" : player.display_name}
+        {isCurrentUser ? " (Toi)" : ""}
+      </span>
+      {!isEmpty ? (
+        <span className="mt-1 block text-xs font-semibold text-stone-600">{kindLabel}</span>
+      ) : (
+        <span className="mt-1 block text-xs font-semibold text-emerald-800">
+          Cliquer pour s&apos;asseoir
+        </span>
+      )}
+      {player.is_ready ? (
+        <span className="mt-2 inline-flex rounded-md bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-900">
+          Prêt
+        </span>
+      ) : null}
+    </button>
   );
 }
 

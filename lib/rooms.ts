@@ -59,6 +59,7 @@ export type JoinRoomParams = {
   code: string;
   userId: string;
   displayName: string;
+  seatIndex?: RoomPlayerRow["seat_index"];
 };
 
 export type SetSeatReadyParams = {
@@ -450,10 +451,17 @@ export async function joinRoom(
     throw new RoomDataError("User is already in this room.");
   }
 
-  const emptySeat = players.find((player) => player.kind === "empty");
+  const emptySeat =
+    params.seatIndex === undefined
+      ? players.find((player) => player.kind === "empty")
+      : players.find(
+          (player) => player.kind === "empty" && player.seat_index === params.seatIndex,
+        );
 
   if (!emptySeat) {
-    throw new RoomDataError("Room is full.");
+    throw new RoomDataError(
+      params.seatIndex === undefined ? "La table est complète." : "Cette place n'est plus libre.",
+    );
   }
 
   const now = new Date().toISOString();
@@ -479,7 +487,7 @@ export async function joinRoom(
   }
 
   if (!data) {
-    throw new RoomDataError("Seat is no longer available.");
+    throw new RoomDataError("Cette place n'est plus libre.");
   }
 
   return getRoomWithPlayers(supabase, room.id);

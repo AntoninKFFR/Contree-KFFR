@@ -144,9 +144,9 @@ export default function MultiplayerPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
             Multijoueur
           </p>
-          <h1 className="mt-1 text-2xl font-bold">Lobby</h1>
+          <h1 className="mt-1 text-2xl font-bold">Tables</h1>
           <p className="mt-1 text-sm text-stone-600">
-            Crée une table ou rejoins une room avec un code.
+            Crée une table ou rejoins une table avec un code.
           </p>
         </section>
 
@@ -156,7 +156,7 @@ export default function MultiplayerPage() {
 
         {pageState === "signed-out" ? (
           <StatusMessage>
-            Connecte-toi pour créer ou rejoindre une room.
+            Connecte-toi pour créer ou rejoindre une table.
             <Link
               className="mt-4 inline-flex rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white"
               href="/login"
@@ -183,7 +183,7 @@ export default function MultiplayerPage() {
         {pageState === "ready" ? (
           <div className="grid gap-4 lg:grid-cols-2">
             <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-bold">Créer une room</h2>
+              <h2 className="text-lg font-bold">Créer une table</h2>
               <form className="mt-4 flex flex-col gap-3" onSubmit={handleCreateRoom}>
                 <PlayerNameInput
                   disabled={!canSubmit}
@@ -222,13 +222,13 @@ export default function MultiplayerPage() {
                   disabled={!canSubmit}
                   type="submit"
                 >
-                  Créer
+                  Créer la table
                 </button>
               </form>
             </section>
 
             <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-bold">Rejoindre une room</h2>
+              <h2 className="text-lg font-bold">Rejoindre une table</h2>
               <form className="mt-4 flex flex-col gap-3" onSubmit={handleJoinRoom}>
                 <PlayerNameInput
                   disabled={!canSubmit}
@@ -237,7 +237,7 @@ export default function MultiplayerPage() {
                 />
 
                 <label className="flex flex-col gap-1 text-sm font-semibold">
-                  Code room
+                  Code de table
                   <input
                     className="rounded-md border border-stone-300 px-3 py-2 font-mono uppercase"
                     disabled={!canSubmit}
@@ -253,7 +253,7 @@ export default function MultiplayerPage() {
                   disabled={!canSubmit}
                   type="submit"
                 >
-                  Rejoindre
+                  Rejoindre la table
                 </button>
               </form>
             </section>
