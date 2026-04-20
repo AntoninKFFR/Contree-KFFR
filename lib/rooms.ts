@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
 import { applyGameAction, type GameAction } from "@/engine/actions";
 import { createInitialGame } from "@/engine/game";
+import { BOT_NAME_POOL } from "@/engine/players";
 import type { SeatAssignments } from "@/engine/seats";
 import type { BidValue, Card, GameState, PlayerId, ScoringMode, Suit } from "@/engine/types";
 
@@ -185,6 +186,27 @@ function playerNamesFromPlayers(players: RoomPlayerRow[]): GameState["playerName
     }),
     {} as NonNullable<GameState["playerNames"]>,
   );
+}
+
+function botNamesForSeats(players: RoomPlayerRow[], botSeats: RoomPlayerRow[]): Map<string, string> {
+  const usedNames = new Set(
+    players
+      .map((player) => player.display_name?.trim())
+      .filter((name): name is string => Boolean(name)),
+  );
+  const availableNames = BOT_NAME_POOL.filter((name) => !usedNames.has(name));
+  const botNames = new Map<string, string>();
+
+  botSeats.forEach((seat, index) => {
+    const randomIndex = Math.floor(Math.random() * availableNames.length);
+    const [name] = availableNames.splice(randomIndex, 1);
+    const fallbackName = `Bot ${index + 1}`;
+
+    botNames.set(seat.id, name ?? fallbackName);
+    usedNames.add(name ?? fallbackName);
+  });
+
+  return botNames;
 }
 
 function requireServerState(room: RoomRow): GameState {
@@ -522,6 +544,8 @@ export async function startRoomGame(
   const now = new Date().toISOString();
 
   if (emptySeats.length > 0) {
+    const botNames = botNamesForSeats(players, emptySeats);
+
     const { error: botsError } = await supabase
       .from("room_players")
       .upsert(
@@ -532,7 +556,7 @@ export async function startRoomGame(
           kind: "bot",
           user_id: null,
           bot_profile_id: DEFAULT_BOT_PROFILE_ID,
-          display_name: "Bot",
+          display_name: botNames.get(seat.id) ?? "Bot",
           is_ready: true,
           is_connected: true,
           last_seen_at: now,
