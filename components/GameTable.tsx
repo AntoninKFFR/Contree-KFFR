@@ -184,12 +184,12 @@ function AnnouncementBubble({
   return (
     <div
       className={[
-        "pointer-events-none absolute z-10 flex w-[96px] min-h-[36px] flex-col items-center justify-center rounded-[18px] border px-2.5 py-1 shadow-md backdrop-blur-sm",
+        "pointer-events-none absolute z-10 flex w-[96px] min-h-[36px] flex-col items-center justify-center rounded-[18px] border border-stone-300/70 px-2.5 py-1 shadow-md backdrop-blur-sm",
         content.tone === "accent"
-          ? "bg-stone-50/96 text-stone-900 border-stone-900/8 shadow-black/12"
-          : "bg-white/72 text-stone-500 border-stone-400/15 shadow-black/8",
+          ? "bg-white/90 text-stone-900"
+          : "bg-white/90 text-stone-500 opacity-60",
         isDominant && content.tone === "accent"
-          ? "ring-1 ring-emerald-700/28 border-emerald-800/18"
+          ? "ring-1 ring-emerald-600/50"
           : "",
         align === "right" ? "left-full ml-2" : "right-full mr-2",
         "top-1/2 -translate-y-1/2",
@@ -199,8 +199,8 @@ function AnnouncementBubble({
       <p
         className={[
           "text-center leading-none tracking-[0.01em]",
-          content.tone === "accent" ? "text-[10px] font-bold" : "text-[9px] font-semibold",
-          isDominant && content.tone === "accent" ? "text-emerald-900" : "",
+          content.tone === "accent" ? "text-[10px] font-bold text-stone-900" : "text-[9px] font-semibold text-stone-500",
+          isDominant && content.tone === "accent" ? "text-stone-900" : "",
         ].join(" ")}
       >
         {content.label}
