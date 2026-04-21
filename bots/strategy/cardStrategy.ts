@@ -15,6 +15,7 @@ type CardChoiceContext = {
   profile: BotProfile;
   contractTeam: ReturnType<typeof playerTeam> | null;
   completedTrickCount: number;
+  knowledge: TrickKnowledge;
 };
 
 const SUITS: Suit[] = ["clubs", "diamonds", "hearts", "spades"];
@@ -90,6 +91,79 @@ function chooseHighestLead(cards: Card[], trump: Suit, profile: BotProfile, isAt
 function isMasterCard(card: Card, knowledge: TrickKnowledge): boolean {
   const masterCard = knowledge.masterCardsBySuit[card.suit];
   return Boolean(masterCard && masterCard.rank === card.rank && masterCard.suit === card.suit);
+}
+
+function isProtectedPointCard(card: Card, trump: Suit, knowledge: TrickKnowledge): boolean {
+  if (card.suit === trump) {
+    return STRONG_TRUMP_RANKS.has(card.rank);
+  }
+
+  if (!STRONG_NORMAL_RANKS.has(card.rank)) return false;
+  if (isMasterCard(card, knowledge) && knowledge.cutRiskBySuit[card.suit].level !== "high") return true;
+
+  return knowledge.cutRiskBySuit[card.suit].level === "low";
+}
+
+function preferredDiscardScore(
+  card: Card,
+  trump: Suit,
+  profile: BotProfile,
+  knowledge: TrickKnowledge,
+): number {
+  let score = cardPlayCost(card, trump, profile);
+
+  if (card.suit !== trump && knowledge.deadSuits.includes(card.suit)) {
+    score -= 4;
+  }
+
+  if (card.suit !== trump && knowledge.weakenedSuits.includes(card.suit)) {
+    score -= 2;
+  }
+
+  if (card.suit !== trump && knowledge.cutRiskBySuit[card.suit].level === "high") {
+    score -= 2;
+  }
+
+  if (isMasterCard(card, knowledge)) {
+    score += 12;
+  }
+
+  if (isProtectedPointCard(card, trump, knowledge)) {
+    score += 8;
+  }
+
+  return score;
+}
+
+function chooseBestDiscard(
+  cards: Card[],
+  trump: Suit,
+  profile: BotProfile,
+  knowledge: TrickKnowledge,
+): Card {
+  return [...cards].sort(
+    (first, second) =>
+      preferredDiscardScore(first, trump, profile, knowledge) -
+      preferredDiscardScore(second, trump, profile, knowledge),
+  )[0];
+}
+
+function chooseSupportCard(
+  cards: Card[],
+  trump: Suit,
+  profile: BotProfile,
+  knowledge: TrickKnowledge,
+): Card | null {
+  const safePointCards = cards
+    .filter((card) => cardPoints(card, trump) >= 10)
+    .filter((card) => !isProtectedPointCard(card, trump, knowledge))
+    .filter((card) => !isMasterCard(card, knowledge) || knowledge.weakenedSuits.includes(card.suit));
+
+  if (safePointCards.length > 0) {
+    return chooseLowestCost(safePointCards, trump, profile);
+  }
+
+  return null;
 }
 
 function hasTrumpControl(cards: Card[], trump: Suit): boolean {
@@ -298,6 +372,7 @@ function chooseCardWhenFollowing({
   trick,
   trump,
   completedTrickCount,
+  knowledge,
 }: CardChoiceContext): Card {
   const currentWinner = currentWinnerOfTrick(trick, trump);
   const winningCards = playableCards.filter((card) => wouldWinTrick(card, trick, trump));
@@ -306,8 +381,10 @@ function chooseCardWhenFollowing({
     return chooseBestLead(
       playableCards,
       trump,
+      playerId,
       profile,
       contractTeam === playerTeam(playerId),
+      knowledge,
       completedTrickCount,
     );
   }
@@ -323,10 +400,11 @@ function chooseCardWhenFollowing({
     // Si le partenaire tient deja un pli interessant, le bot principal peut
     // donner des points au camp, mais il garde ses gros atouts.
     if (isMainProfile(profile) && pointsInTrick >= 10 && pointCards.length > 0) {
-      return chooseLowestCost(pointCards, trump, profile);
+      const supportCard = chooseSupportCard(playableCards, trump, profile, knowledge);
+      if (supportCard) return supportCard;
     }
 
-    return chooseLowestCost(playableCards, trump, profile);
+    return chooseBestDiscard(playableCards, trump, profile, knowledge);
   }
 
   const isDefending = contractTeam !== null && contractTeam !== playerTeam(playerId);
@@ -339,10 +417,23 @@ function chooseCardWhenFollowing({
     winningCards.length > 0 &&
     (isDefending || valuablePointsInTrick >= 10 || profile.cardRisk >= 0.9)
   ) {
+    const cheapWinningCards = winningCards.filter(
+      (card) => !isProtectedPointCard(card, trump, knowledge) || cardPoints(card, trump) <= 4,
+    );
+
+    if (cheapWinningCards.length > 0) {
+      return chooseLowestCost(cheapWinningCards, trump, profile);
+    }
+
     return chooseLowestCost(winningCards, trump, profile);
   }
 
-  return chooseLowestCost(playableCards, trump, profile);
+  const safeLosers = playableCards.filter((card) => !isProtectedPointCard(card, trump, knowledge));
+  if (safeLosers.length > 0) {
+    return chooseBestDiscard(safeLosers, trump, profile, knowledge);
+  }
+
+  return chooseBestDiscard(playableCards, trump, profile, knowledge);
 }
 
 export function chooseProfileCardToPlay(state: GameState, profile: BotProfile): Card {
@@ -379,5 +470,6 @@ export function chooseProfileCardToPlay(state: GameState, profile: BotProfile): 
     trick: state.currentTrick,
     trump: state.trump,
     completedTrickCount: state.completedTricks.length,
+    knowledge,
   });
 }
