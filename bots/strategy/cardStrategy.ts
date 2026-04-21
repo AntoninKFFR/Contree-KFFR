@@ -2,6 +2,7 @@ import { playableCardsForCurrentPlayer } from "@/engine/game";
 import { cardPoints, compareCards, getTrickWinner, playerTeam } from "@/engine/rules";
 import type { Card, GameState, PlayerId, Suit, Trick } from "@/engine/types";
 import type { BotProfile } from "@/bots/profiles";
+import { buildTrickKnowledge, type TrickKnowledge } from "@/bots/strategy/trickKnowledge";
 
 const STRONG_TRUMP_RANKS = new Set<Card["rank"]>(["J", "9", "A"]);
 const STRONG_NORMAL_RANKS = new Set<Card["rank"]>(["A", "10"]);
@@ -86,18 +87,105 @@ function chooseHighestLead(cards: Card[], trump: Suit, profile: BotProfile, isAt
   )[0];
 }
 
+function isMasterCard(card: Card, knowledge: TrickKnowledge): boolean {
+  const masterCard = knowledge.masterCardsBySuit[card.suit];
+  return Boolean(masterCard && masterCard.rank === card.rank && masterCard.suit === card.suit);
+}
+
 function hasTrumpControl(cards: Card[], trump: Suit): boolean {
   const trumps = cardsOfSuit(cards, trump);
   const hasTopTrump = trumps.some((card) => card.rank === "J" || card.rank === "9");
   return trumps.length >= 4 && hasTopTrump;
 }
 
-function chooseMainLead(
+function shouldDrawTrump(
+  cards: Card[],
+  trump: Suit,
+  playerId: PlayerId,
+  isAttacking: boolean,
+  knowledge: TrickKnowledge,
+): boolean {
+  if (!isAttacking) return false;
+  const strongTrumps = cardsOfSuit(cards, trump).filter((card) => STRONG_TRUMP_RANKS.has(card.rank));
+  const trumpCards = cardsOfSuit(cards, trump);
+  if (strongTrumps.length === 0) return false;
+
+  const remainingTrumpCount = knowledge.remainingTrumps.length;
+  const solidButNotFullControl =
+    trumpCards.length >= 3 && strongTrumps.length >= 2 && remainingTrumpCount >= 4;
+
+  if (!hasTrumpControl(cards, trump) && !solidButNotFullControl) return false;
+  if (remainingTrumpCount <= strongTrumps.length) return false;
+
+  const dangerousPointSuits = cards
+    .filter(
+      (card) =>
+        card.suit !== trump &&
+        STRONG_NORMAL_RANKS.has(card.rank) &&
+        knowledge.cutRiskBySuit[card.suit].level !== "low" &&
+        knowledge.cutRiskBySuit[card.suit].level !== "none",
+    )
+    .map((card) => card.suit);
+
+  const opponentsKnownVoid = SUITS.some(
+    (suit) => suit !== trump && knowledge.cutRiskBySuit[suit].knownVoidOpponents.length > 0,
+  );
+
+  return dangerousPointSuits.length > 0 || (remainingTrumpCount >= 3 && opponentsKnownVoid);
+}
+
+function bestKnowledgeLead(
   cards: Card[],
   trump: Suit,
   profile: BotProfile,
   isAttacking: boolean,
+  knowledge: TrickKnowledge,
+): Card | null {
+  const nonTrumpCards = cards.filter((card) => card.suit !== trump);
+  const safeMasterLeads = nonTrumpCards.filter(
+    (card) =>
+      isMasterCard(card, knowledge) &&
+      knowledge.cutRiskBySuit[card.suit].level !== "high" &&
+      knowledge.cutRiskBySuit[card.suit].level !== "medium",
+  );
+
+  if (safeMasterLeads.length > 0) {
+    return chooseHighestLead(safeMasterLeads, trump, profile, isAttacking);
+  }
+
+  const weakenedMasterLeads = nonTrumpCards.filter(
+    (card) =>
+      isMasterCard(card, knowledge) &&
+      knowledge.weakenedSuits.includes(card.suit) &&
+      knowledge.cutRiskBySuit[card.suit].level !== "high",
+  );
+
+  if (weakenedMasterLeads.length > 0) {
+    return chooseHighestLead(weakenedMasterLeads, trump, profile, isAttacking);
+  }
+
+  const safeLowSuitLeads = nonTrumpCards.filter(
+    (card) =>
+      !STRONG_NORMAL_RANKS.has(card.rank) &&
+      knowledge.cutRiskBySuit[card.suit].level !== "high" &&
+      !knowledge.deadSuits.includes(card.suit),
+  );
+
+  if (safeLowSuitLeads.length > 0) {
+    return chooseLowestCost(safeLowSuitLeads, trump, profile);
+  }
+
+  return null;
+}
+
+function chooseMainLead(
+  cards: Card[],
+  trump: Suit,
+  playerId: PlayerId,
+  profile: BotProfile,
+  isAttacking: boolean,
   completedTrickCount: number,
+  knowledge: TrickKnowledge,
 ): Card | null {
   const trumps = cardsOfSuit(cards, trump);
   const strongTrumps = trumps.filter((card) => STRONG_TRUMP_RANKS.has(card.rank));
@@ -106,14 +194,24 @@ function chooseMainLead(
 
   // En attaque, si on controle bien l'atout, tirer atout protege les As
   // contre des coupes futures. On ne le fait pas si le controle est trop faible.
-  if (isAttacking && hasTrumpControl(cards, trump) && strongTrumps.length > 0) {
+  if (shouldDrawTrump(cards, trump, playerId, isAttacking, knowledge)) {
     return chooseHighestLead(strongTrumps, trump, profile, true);
   }
 
+  const safeAces = aces.filter((card) => {
+    const cutRisk = knowledge.cutRiskBySuit[card.suit].level;
+    return cutRisk === "none" || cutRisk === "low";
+  });
+
   // En debut de manche, un As a plus de chances de passer car les couleurs
   // sont encore souvent reparties chez les autres joueurs.
-  if (aces.length > 0 && (earlyRound || !isAttacking)) {
-    return chooseHighestLead(aces, trump, profile, isAttacking);
+  if (safeAces.length > 0 && (earlyRound || !isAttacking)) {
+    return chooseHighestLead(safeAces, trump, profile, isAttacking);
+  }
+
+  const knowledgeLead = bestKnowledgeLead(cards, trump, profile, isAttacking, knowledge);
+  if (knowledgeLead) {
+    return knowledgeLead;
   }
 
   if (!isAttacking) {
@@ -134,17 +232,31 @@ function chooseMainLead(
 function chooseBestLead(
   cards: Card[],
   trump: Suit,
+  playerId: PlayerId,
   profile: BotProfile,
   isAttacking: boolean,
+  knowledge: TrickKnowledge,
   completedTrickCount = 0,
 ): Card {
   if (isMainProfile(profile)) {
-    const mainLead = chooseMainLead(cards, trump, profile, isAttacking, completedTrickCount);
+    const mainLead = chooseMainLead(
+      cards,
+      trump,
+      playerId,
+      profile,
+      isAttacking,
+      completedTrickCount,
+      knowledge,
+    );
     if (mainLead) return mainLead;
   }
 
+  const knowledgeLead = bestKnowledgeLead(cards, trump, profile, isAttacking, knowledge);
+  if (knowledgeLead) return knowledgeLead;
+
   const strongNonTrumps = cards
     .filter((card) => card.suit !== trump && STRONG_NORMAL_RANKS.has(card.rank))
+    .filter((card) => knowledge.cutRiskBySuit[card.suit].level !== "high")
     .sort(
       (first, second) =>
         leadValue(second, trump, profile, isAttacking) -
@@ -163,7 +275,10 @@ function chooseBestLead(
         leadValue(first, trump, profile, isAttacking),
     );
 
-  if (isAttacking && profile.cardRisk > 1 && trumpPressure.length > 0) {
+  if (
+    trumpPressure.length > 0 &&
+    (isAttacking && profile.cardRisk > 1 || shouldDrawTrump(cards, trump, playerId, isAttacking, knowledge))
+  ) {
     return trumpPressure[0];
   }
 
@@ -242,13 +357,16 @@ export function chooseProfileCardToPlay(state: GameState, profile: BotProfile): 
   }
 
   const contractTeam = state.contract?.teamId ?? null;
+  const knowledge = buildTrickKnowledge(state);
 
   if (state.currentTrick.cards.length === 0) {
     return chooseBestLead(
       playableCards,
       state.trump,
+      state.currentPlayerId,
       profile,
       contractTeam === playerTeam(state.currentPlayerId),
+      knowledge,
       state.completedTricks.length,
     );
   }
