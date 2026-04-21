@@ -40,7 +40,7 @@ select {
 @keyframes coinche-bid-bubble-enter {
   from {
     opacity: 0;
-    transform: translateY(-50%) scale(0.96);
+    transform: translateY(calc(-50% + 3px)) scale(0.97);
   }
 
   to {
@@ -50,7 +50,7 @@ select {
 }
 
 .coinche-bid-bubble-enter {
-  animation: coinche-bid-bubble-enter 180ms ease-out;
+  animation: coinche-bid-bubble-enter 160ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {

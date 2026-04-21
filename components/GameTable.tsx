@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { CardView } from "@/components/CardView";
 import { PlayerPanel } from "@/components/PlayerPanel";
 import { SUIT_SYMBOLS } from "@/engine/cards";
@@ -20,13 +19,7 @@ type AnnouncementBubbleContent = {
   tone: "neutral" | "accent";
 };
 
-type TemporaryAnnouncement = AnnouncementBubbleContent & {
-  key: string;
-  playerId: PlayerId;
-};
-
 const TABLE_BACKGROUND_IMAGE = "/TapisKFFR.png";
-const ANNOUNCEMENT_DISPLAY_MS = 1800;
 
 function formatBidLabel(bid: Bid): AnnouncementBubbleContent {
   if (bid.action === "pass") {
@@ -169,17 +162,21 @@ function AnnouncementBubble({
   return (
     <div
       className={[
-        "pointer-events-none absolute z-10 max-w-[110px] rounded-full border px-2.5 py-1 shadow-sm backdrop-blur-sm",
-        "bg-white/92 text-stone-800",
-        content.tone === "accent" ? "border-emerald-700/30" : "border-stone-300/80",
+        "pointer-events-none absolute z-10 flex w-[112px] min-h-[42px] flex-col items-center justify-center rounded-2xl border px-3 py-1.5 shadow-lg",
+        "bg-white text-stone-950",
+        content.tone === "accent"
+          ? "border-stone-900/10 shadow-black/25"
+          : "border-stone-500/30 shadow-black/20",
         align === "right" ? "left-full ml-2" : "right-full mr-2",
         "top-1/2 -translate-y-1/2",
         animate ? "coinche-bid-bubble-enter" : "",
       ].join(" ")}
     >
-      <p className="text-center text-[11px] font-semibold leading-none">{content.label}</p>
+      <p className="text-center text-[11px] font-bold leading-none tracking-[0.01em]">
+        {content.label}
+      </p>
       {content.detail ? (
-        <p className="mt-0.5 text-center text-[9px] font-medium uppercase tracking-[0.16em] text-stone-500">
+        <p className="mt-0.5 text-center text-[9px] font-semibold uppercase tracking-[0.14em] text-stone-600">
           {content.detail}
         </p>
       ) : null}
@@ -190,52 +187,19 @@ function AnnouncementBubble({
 export function GameTable({ state }: GameTableProps) {
   const center = playedCardsToShow(state);
   const nameFor = (playerId: PlayerId) => playerName(playerId, state.playerNames);
-  const [temporaryAnnouncement, setTemporaryAnnouncement] = useState<TemporaryAnnouncement | null>(
-    null,
-  );
   const latestBid = state.bids.at(-1) ?? null;
-  const latestBidIdentity = useMemo(
-    () => latestBidKey(state.roundNumber, state.bids),
-    [state.bids, state.roundNumber],
-  );
+  const latestBidIdentity = latestBidKey(state.roundNumber, state.bids);
   const finalAnnouncement =
     state.phase === "bidding" || !state.contract ? null : formatFinalContract(state.contract);
 
-  useEffect(() => {
-    if (!latestBid || state.phase !== "bidding" || !latestBidIdentity) {
-      return;
-    }
-
-    const nextAnnouncement: TemporaryAnnouncement = {
-      key: latestBidIdentity,
-      playerId: latestBid.playerId,
-      ...formatBidLabel(latestBid),
-    };
-
-    setTemporaryAnnouncement(nextAnnouncement);
-
-    const timeoutId = window.setTimeout(() => {
-      setTemporaryAnnouncement((current) =>
-        current?.key === nextAnnouncement.key ? null : current,
-      );
-    }, ANNOUNCEMENT_DISPLAY_MS);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [latestBid, latestBidIdentity, state.phase]);
-
-  useEffect(() => {
-    if (state.phase !== "bidding") {
-      setTemporaryAnnouncement(null);
-    }
-  }, [state.phase]);
-
   function announcementFor(
     playerId: PlayerId,
-  ): { content: AnnouncementBubbleContent; animate: boolean } | null {
-    if (temporaryAnnouncement?.playerId === playerId) {
+  ): { content: AnnouncementBubbleContent; animate: boolean; bubbleKey: string } | null {
+    if (state.phase === "bidding" && latestBid && latestBid.playerId === playerId && latestBidIdentity) {
       return {
-        content: temporaryAnnouncement,
+        content: formatBidLabel(latestBid),
         animate: true,
+        bubbleKey: latestBidIdentity,
       };
     }
 
@@ -243,6 +207,7 @@ export function GameTable({ state }: GameTableProps) {
       return {
         content: finalAnnouncement,
         animate: false,
+        bubbleKey: `contract-${state.roundNumber}-${state.contract.playerId}-${state.contract.value}-${state.contract.trump}-${state.contract.status}`,
       };
     }
 
@@ -264,6 +229,7 @@ export function GameTable({ state }: GameTableProps) {
       <div className="absolute left-1/2 top-3 -translate-x-1/2">
         {topAnnouncement ? (
           <AnnouncementBubble
+            key={topAnnouncement.bubbleKey}
             align="right"
             animate={topAnnouncement.animate}
             content={topAnnouncement.content}
@@ -279,6 +245,7 @@ export function GameTable({ state }: GameTableProps) {
       <div className="absolute left-3 top-1/2 -translate-y-1/2">
         {leftAnnouncement ? (
           <AnnouncementBubble
+            key={leftAnnouncement.bubbleKey}
             align="right"
             animate={leftAnnouncement.animate}
             content={leftAnnouncement.content}
@@ -294,6 +261,7 @@ export function GameTable({ state }: GameTableProps) {
       <div className="absolute right-3 top-1/2 -translate-y-1/2">
         {rightAnnouncement ? (
           <AnnouncementBubble
+            key={rightAnnouncement.bubbleKey}
             align="left"
             animate={rightAnnouncement.animate}
             content={rightAnnouncement.content}
@@ -309,6 +277,7 @@ export function GameTable({ state }: GameTableProps) {
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
         {bottomAnnouncement ? (
           <AnnouncementBubble
+            key={bottomAnnouncement.bubbleKey}
             align="right"
             animate={bottomAnnouncement.animate}
             content={bottomAnnouncement.content}
