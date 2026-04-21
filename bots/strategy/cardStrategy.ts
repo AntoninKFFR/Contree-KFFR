@@ -166,6 +166,54 @@ function chooseSupportCard(
   return null;
 }
 
+function isLateRound(cards: Card[], completedTrickCount: number): boolean {
+  return completedTrickCount >= 5 || cards.length <= 3;
+}
+
+function chooseLateRoundLead(
+  cards: Card[],
+  trump: Suit,
+  profile: BotProfile,
+  knowledge: TrickKnowledge,
+): Card | null {
+  const nonTrumpMasters = cards
+    .filter((card) => card.suit !== trump)
+    .filter((card) => isMasterCard(card, knowledge))
+    .filter(
+      (card) =>
+        knowledge.cutRiskBySuit[card.suit].level !== "high" ||
+        knowledge.weakenedSuits.includes(card.suit) ||
+        knowledge.deadSuits.includes(card.suit),
+    );
+
+  if (nonTrumpMasters.length > 0) {
+    return chooseHighestLead(nonTrumpMasters, trump, profile, true);
+  }
+
+  const cashPointCards = cards
+    .filter((card) => cardPoints(card, trump) >= 10)
+    .filter((card) => isMasterCard(card, knowledge) || card.suit === trump)
+    .filter((card) => card.suit === trump || knowledge.weakenedSuits.includes(card.suit));
+
+  if (cashPointCards.length > 0) {
+    return chooseHighestLead(cashPointCards, trump, profile, true);
+  }
+
+  const trumpWinners = cards
+    .filter((card) => card.suit === trump)
+    .filter(
+      (card) =>
+        knowledge.remainingTrumps.length <= cardsOfSuit(cards, trump).length ||
+        STRONG_TRUMP_RANKS.has(card.rank),
+    );
+
+  if (trumpWinners.length > 0) {
+    return chooseHighestLead(trumpWinners, trump, profile, true);
+  }
+
+  return null;
+}
+
 function shouldForceWinFromThirdSeat(
   winningCards: Card[],
   trick: Trick,
@@ -303,6 +351,11 @@ function chooseMainLead(
   const strongTrumps = trumps.filter((card) => STRONG_TRUMP_RANKS.has(card.rank));
   const aces = cards.filter((card) => card.suit !== trump && card.rank === "A");
   const earlyRound = completedTrickCount <= 2;
+
+  if (isLateRound(cards, completedTrickCount)) {
+    const lateRoundLead = chooseLateRoundLead(cards, trump, profile, knowledge);
+    if (lateRoundLead) return lateRoundLead;
+  }
 
   // En attaque, si on controle bien l'atout, tirer atout protege les As
   // contre des coupes futures. On ne le fait pas si le controle est trop faible.
@@ -453,8 +506,12 @@ function chooseCardWhenFollowing({
     (total, played) => total + cardPoints(played.card, trump),
     0,
   );
+  const lateRound = isLateRound(playableCards, completedTrickCount);
   const cheapWinningCards = winningCards.filter(
     (card) => !isProtectedPointCard(card, trump, knowledge) || cardPoints(card, trump) <= 4,
+  );
+  const masterWinningCards = winningCards.filter(
+    (card) => isMasterCard(card, knowledge) || (card.suit === trump && STRONG_TRUMP_RANKS.has(card.rank)),
   );
 
   if (isLastPlayer && winningCards.length > 0) {
@@ -482,6 +539,20 @@ function chooseCardWhenFollowing({
     }
   }
 
+  if (lateRound && winningCards.length > 0) {
+    if (valuablePointsInTrick >= 10 || isDefending) {
+      if (cheapWinningCards.length > 0) {
+        return chooseLowestCost(cheapWinningCards, trump, profile);
+      }
+
+      return chooseLowestCost(winningCards, trump, profile);
+    }
+
+    if (isLastPlayer && masterWinningCards.length > 0) {
+      return chooseLowestCost(masterWinningCards, trump, profile);
+    }
+  }
+
   if (
     winningCards.length > 0 &&
     (isDefending || valuablePointsInTrick >= 10 || profile.cardRisk >= 0.9)
@@ -494,6 +565,18 @@ function chooseCardWhenFollowing({
   }
 
   const safeLosers = playableCards.filter((card) => !isProtectedPointCard(card, trump, knowledge));
+  const lateRoundPointCards = playableCards.filter(
+    (card) =>
+      lateRound &&
+      cardPoints(card, trump) >= 10 &&
+      (isMasterCard(card, knowledge) || knowledge.weakenedSuits.includes(card.suit) || card.suit === trump),
+  );
+  const nonCashCards = playableCards.filter((card) => !lateRoundPointCards.includes(card));
+
+  if (lateRoundPointCards.length > 0 && winningCards.length === 0 && nonCashCards.length > 0) {
+    return chooseBestDiscard(nonCashCards, trump, profile, knowledge);
+  }
+
   if (safeLosers.length > 0) {
     return chooseBestDiscard(safeLosers, trump, profile, knowledge);
   }

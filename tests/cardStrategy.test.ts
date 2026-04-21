@@ -310,4 +310,142 @@ describe("card strategy", () => {
 
     expect(chooseProfileCardToPlay(state, getBotProfile("main"))).toEqual(card("7", "clubs"));
   });
+
+  it("cashes a master card earlier in the late round instead of keeping it too long", () => {
+    const state = createPlayingState(
+      [card("A", "spades"), card("7", "clubs"), card("8", "diamonds")],
+      [
+        {
+          leaderId: 0,
+          cards: [
+            { playerId: 0, card: card("7", "spades") },
+            { playerId: 1, card: card("8", "spades") },
+            { playerId: 2, card: card("9", "spades") },
+            { playerId: 3, card: card("K", "spades") },
+          ],
+          winnerId: 3,
+          points: 4,
+        },
+        {
+          leaderId: 1,
+          cards: [
+            { playerId: 1, card: card("7", "diamonds") },
+            { playerId: 2, card: card("8", "diamonds") },
+            { playerId: 3, card: card("9", "diamonds") },
+            { playerId: 0, card: card("K", "diamonds") },
+          ],
+          winnerId: 0,
+          points: 4,
+        },
+        {
+          leaderId: 2,
+          cards: [
+            { playerId: 2, card: card("7", "clubs") },
+            { playerId: 3, card: card("8", "clubs") },
+            { playerId: 0, card: card("9", "clubs") },
+            { playerId: 1, card: card("K", "clubs") },
+          ],
+          winnerId: 1,
+          points: 4,
+        },
+        {
+          leaderId: 3,
+          cards: [
+            { playerId: 3, card: card("J", "hearts") },
+            { playerId: 0, card: card("7", "hearts") },
+            { playerId: 1, card: card("8", "hearts") },
+            { playerId: 2, card: card("Q", "hearts") },
+          ],
+          winnerId: 3,
+          points: 23,
+        },
+        {
+          leaderId: 0,
+          cards: [
+            { playerId: 0, card: card("A", "clubs") },
+            { playerId: 1, card: card("Q", "clubs") },
+            { playerId: 2, card: card("J", "clubs") },
+            { playerId: 3, card: card("10", "clubs") },
+          ],
+          winnerId: 0,
+          points: 23,
+        },
+      ],
+    );
+
+    expect(chooseProfileCardToPlay(state, getBotProfile("main"))).toEqual(card("A", "spades"));
+  });
+
+  it("secures a valuable trick in the late round with the cheapest winning card", () => {
+    const state = createFollowingState(
+      [card("10", "spades"), card("A", "spades"), card("7", "clubs")],
+      {
+        leaderId: 1,
+        cards: [
+          { playerId: 1, card: card("K", "spades") },
+          { playerId: 2, card: card("A", "diamonds") },
+          { playerId: 3, card: card("Q", "spades") },
+        ],
+      },
+      [
+        {
+          leaderId: 0,
+          cards: [
+            { playerId: 0, card: card("7", "hearts") },
+            { playerId: 1, card: card("8", "hearts") },
+            { playerId: 2, card: card("9", "hearts") },
+            { playerId: 3, card: card("K", "hearts") },
+          ],
+          winnerId: 2,
+          points: 29,
+        },
+        {
+          leaderId: 1,
+          cards: [
+            { playerId: 1, card: card("7", "clubs") },
+            { playerId: 2, card: card("8", "clubs") },
+            { playerId: 3, card: card("9", "clubs") },
+            { playerId: 0, card: card("K", "clubs") },
+          ],
+          winnerId: 0,
+          points: 4,
+        },
+        {
+          leaderId: 1,
+          cards: [
+            { playerId: 1, card: card("7", "diamonds") },
+            { playerId: 2, card: card("8", "diamonds") },
+            { playerId: 3, card: card("9", "diamonds") },
+            { playerId: 0, card: card("K", "diamonds") },
+          ],
+          winnerId: 0,
+          points: 4,
+        },
+        {
+          leaderId: 1,
+          cards: [
+            { playerId: 1, card: card("J", "clubs") },
+            { playerId: 2, card: card("Q", "clubs") },
+            { playerId: 3, card: card("A", "clubs") },
+            { playerId: 0, card: card("10", "clubs") },
+          ],
+          winnerId: 3,
+          points: 26,
+        },
+        {
+          leaderId: 2,
+          cards: [
+            { playerId: 2, card: card("10", "hearts") },
+            { playerId: 3, card: card("A", "hearts") },
+            { playerId: 0, card: card("8", "hearts") },
+            { playerId: 1, card: card("7", "spades") },
+          ],
+          winnerId: 3,
+          points: 21,
+        },
+      ],
+    );
+
+    expect(chooseProfileCardToPlay(state, getBotProfile("main"))).toEqual(card("10", "spades"));
+  });
 });
