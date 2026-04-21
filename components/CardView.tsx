@@ -8,6 +8,7 @@ type CardViewProps = {
   muted?: boolean;
   onClick?: () => void;
   size?: "normal" | "compact";
+  className?: string;
 };
 
 export function CardView({
@@ -17,6 +18,7 @@ export function CardView({
   muted,
   onClick,
   size = "normal",
+  className = "",
 }: CardViewProps) {
   const isRed = card.suit === "hearts" || card.suit === "diamonds";
   const sizeClasses =
@@ -26,11 +28,14 @@ export function CardView({
   const rankClasses = size === "compact" ? "text-base" : "text-lg";
   const symbolClasses = size === "compact" ? "text-2xl" : "text-3xl";
   const classes = [
-    "relative flex items-center justify-center rounded-md border bg-white text-center shadow-sm transition",
+    "relative flex items-center justify-center rounded-md border bg-white text-center shadow-sm transition-all duration-200 ease-out",
     sizeClasses,
     isRed ? "border-red-200 text-red-700" : "border-stone-300 text-stone-900",
-    onClick && !disabled && isPlayable ? "cursor-pointer hover:-translate-y-2 hover:shadow-md" : "",
+    onClick && !disabled && isPlayable
+      ? "cursor-pointer hover:-translate-y-1 hover:scale-[1.03] hover:shadow-md"
+      : "",
     muted ?? (disabled || !isPlayable) ? "opacity-55" : "",
+    className,
   ].join(" ");
 
   return (

@@ -25,6 +25,7 @@ export function HumanHand({ cards, legalCards, canPlay, onPlayCard }: HumanHandP
           return (
             <CardView
               card={card}
+              className="coinche-card-enter"
               disabled={!canPlay}
               isPlayable={isPlayable}
               key={`${card.rank}-${card.suit}`}

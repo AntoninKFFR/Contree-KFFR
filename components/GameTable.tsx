@@ -41,7 +41,13 @@ function PlayedCardSlot({
   return (
     <div className="flex h-full w-full items-center justify-center">
       {played ? (
-        <CardView card={played.card} disabled muted={false} size="compact" />
+        <CardView
+          card={played.card}
+          className="coinche-card-enter"
+          disabled
+          muted={false}
+          size="compact"
+        />
       ) : (
         <div className="flex h-20 w-14 items-center justify-center rounded-md border border-dashed border-white/45 bg-white/20 text-xs font-semibold text-white/80">
           ...
