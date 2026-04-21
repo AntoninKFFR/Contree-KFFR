@@ -163,7 +163,7 @@ describe("bidding strategy", () => {
     expect(chooseProfileBid(state, getBotProfile("main"))).toMatchObject({
       action: "bid",
       trump: "hearts",
-      value: 150,
+      value: 140,
     });
   });
 

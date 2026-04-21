@@ -75,14 +75,21 @@ function conventionalBidValue(
       return 140;
     }
 
-    return 130;
+    if (evaluation.sideMasterTrickCount >= 3 && evaluation.trumpCount >= 5) {
+      return 130;
+    }
+
+    if (evaluation.sideMasterTrickCount >= 2 && evaluation.trumpCount >= 4) {
+      return 120;
+    }
   }
 
   if (
     evaluation.hasJackTrump &&
     evaluation.hasNineTrump &&
     evaluation.strongSecondarySuitCount >= 1 &&
-    evaluation.trumpCount >= 4
+    evaluation.trumpCount >= 4 &&
+    evaluation.sideMasterTrickCount >= 2
   ) {
     return scoreValue && scoreValue >= 130 ? scoreValue : 120;
   }
@@ -91,7 +98,8 @@ function conventionalBidValue(
     evaluation.hasJackTrump &&
     evaluation.hasNineTrump &&
     evaluation.trumpSupportCount >= 2 &&
-    evaluation.aceCount >= 2
+    evaluation.aceCount >= 2 &&
+    evaluation.sideMasterTrickCount >= 2
   ) {
     return 110;
   }
@@ -100,7 +108,8 @@ function conventionalBidValue(
     evaluation.hasJackTrump &&
     evaluation.hasNineTrump &&
     evaluation.trumpSupportCount >= 2 &&
-    evaluation.aceCount >= 1
+    evaluation.aceCount >= 1 &&
+    evaluation.sideMasterTrickCount >= 1
   ) {
     return 100;
   }
@@ -109,7 +118,7 @@ function conventionalBidValue(
     evaluation.hasJackTrump &&
     evaluation.hasNineTrump &&
     evaluation.trumpSupportCount >= 1 &&
-    evaluation.sideMasterTrickCount >= 1
+    evaluation.sideMasterTrickCount >= 2
   ) {
     return 90;
   }
@@ -223,23 +232,24 @@ function chooseMainBid(state: GameState, profile: BotProfile): BidDecision {
     const preferredScore = clearlyBetterOwnTrump ? bestScore : supportScore;
     let supportRaise =
       support.hasJackTrump && support.hasNineTrump && support.trumpSupportCount >= 2
-        ? 20 + (support.aceCount >= 2 || support.strongSecondarySuitCount >= 1 ? 10 : 0)
+        ? (support.aceCount >= 1 || support.strongSecondarySuitCount >= 1 ? 20 : 10) +
+          (support.aceCount >= 2 && support.strongSecondarySuitCount >= 1 ? 10 : 0)
         : (support.hasJackTrump || support.hasNineTrump) && support.trumpSupportCount >= 2
           ? 10
           : support.trumpCount >= 3 && support.aceCount >= 1
             ? 10
             : 0;
-    if (context.partnerStrength === "strong" && supportRaise >= 10) {
+    if (context.partnerStrength === "strong" && supportRaise >= 20) {
       supportRaise += 10;
     } else if (context.partnerStrength === "weak" && context.isLateBidding && supportRaise >= 20) {
       supportRaise -= 10;
     }
 
-    if (context.isLateBidding && supportRaise < 30) {
+    if (context.isLateBidding && supportRaise > 0) {
       supportRaise = Math.max(0, supportRaise - 10);
     }
 
-    if (context.opponentHasOvercalled && context.partnerStrength !== "weak" && supportRaise >= 10) {
+    if (context.opponentHasOvercalled && context.partnerStrength !== "weak" && supportRaise >= 20) {
       supportRaise += 10;
     }
 
