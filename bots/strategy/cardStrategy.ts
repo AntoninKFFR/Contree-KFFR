@@ -166,6 +166,44 @@ function chooseSupportCard(
   return null;
 }
 
+function shouldForceWinFromThirdSeat(
+  winningCards: Card[],
+  trick: Trick,
+  trump: Suit,
+  isDefending: boolean,
+  knowledge: TrickKnowledge,
+): boolean {
+  if (winningCards.length === 0) return false;
+
+  const trickPointsNow = trick.cards.reduce((total, played) => total + cardPoints(played.card, trump), 0);
+  if (isDefending || trickPointsNow >= 10) return true;
+
+  return winningCards.some(
+    (card) =>
+      !isProtectedPointCard(card, trump, knowledge) ||
+      (isMasterCard(card, knowledge) && knowledge.weakenedSuits.includes(card.suit)),
+  );
+}
+
+function shouldForceWinFromLastSeat(
+  winningCards: Card[],
+  trick: Trick,
+  trump: Suit,
+  isDefending: boolean,
+  knowledge: TrickKnowledge,
+): boolean {
+  if (winningCards.length === 0) return false;
+
+  const trickPointsNow = trick.cards.reduce((total, played) => total + cardPoints(played.card, trump), 0);
+  if (isDefending || trickPointsNow >= 10) return true;
+
+  const cheapWinningCards = winningCards.filter(
+    (card) => !isProtectedPointCard(card, trump, knowledge) || cardPoints(card, trump) <= 4,
+  );
+
+  return cheapWinningCards.length > 0;
+}
+
 function hasTrumpControl(cards: Card[], trump: Suit): boolean {
   const trumps = cardsOfSuit(cards, trump);
   const hasTopTrump = trumps.some((card) => card.rank === "J" || card.rank === "9");
@@ -376,6 +414,9 @@ function chooseCardWhenFollowing({
 }: CardChoiceContext): Card {
   const currentWinner = currentWinnerOfTrick(trick, trump);
   const winningCards = playableCards.filter((card) => wouldWinTrick(card, trick, trump));
+  const trickPosition = trick.cards.length + 1;
+  const isThirdPlayer = trickPosition === 3;
+  const isLastPlayer = trickPosition === 4;
 
   if (!currentWinner) {
     return chooseBestLead(
@@ -412,15 +453,39 @@ function chooseCardWhenFollowing({
     (total, played) => total + cardPoints(played.card, trump),
     0,
   );
+  const cheapWinningCards = winningCards.filter(
+    (card) => !isProtectedPointCard(card, trump, knowledge) || cardPoints(card, trump) <= 4,
+  );
+
+  if (isLastPlayer && winningCards.length > 0) {
+    if (shouldForceWinFromLastSeat(winningCards, trick, trump, isDefending, knowledge)) {
+      if (cheapWinningCards.length > 0) {
+        return chooseLowestCost(cheapWinningCards, trump, profile);
+      }
+
+      return chooseLowestCost(winningCards, trump, profile);
+    }
+
+    const safeLosers = playableCards.filter((card) => !isProtectedPointCard(card, trump, knowledge));
+    if (safeLosers.length > 0) {
+      return chooseBestDiscard(safeLosers, trump, profile, knowledge);
+    }
+  }
+
+  if (isThirdPlayer && winningCards.length > 0) {
+    if (shouldForceWinFromThirdSeat(winningCards, trick, trump, isDefending, knowledge)) {
+      if (cheapWinningCards.length > 0) {
+        return chooseLowestCost(cheapWinningCards, trump, profile);
+      }
+
+      return chooseLowestCost(winningCards, trump, profile);
+    }
+  }
 
   if (
     winningCards.length > 0 &&
     (isDefending || valuablePointsInTrick >= 10 || profile.cardRisk >= 0.9)
   ) {
-    const cheapWinningCards = winningCards.filter(
-      (card) => !isProtectedPointCard(card, trump, knowledge) || cardPoints(card, trump) <= 4,
-    );
-
     if (cheapWinningCards.length > 0) {
       return chooseLowestCost(cheapWinningCards, trump, profile);
     }
