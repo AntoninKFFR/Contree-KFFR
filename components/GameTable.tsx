@@ -185,7 +185,7 @@ function AnnouncementBubble({
     <div
       className={[
         "pointer-events-none absolute z-10 flex w-[96px] min-h-[36px] flex-col items-center justify-center rounded-[18px] border px-2.5 py-1 shadow-md backdrop-blur-sm",
-        "bg-stone-50/88 text-stone-950",
+        "bg-stone-50/95 text-stone-950",
         content.tone === "accent"
           ? "border-stone-900/10 shadow-black/20"
           : "border-stone-500/25 shadow-black/15",
