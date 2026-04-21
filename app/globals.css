@@ -37,8 +37,25 @@ select {
   animation: coinche-card-enter 220ms ease-out;
 }
 
+@keyframes coinche-bid-bubble-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+.coinche-bid-bubble-enter {
+  animation: coinche-bid-bubble-enter 180ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .coinche-card-enter {
+  .coinche-card-enter,
+  .coinche-bid-bubble-enter {
     animation: none;
   }
 }

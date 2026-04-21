@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { getBotProfile } from "@/bots/profiles";
 import { chooseProfileBidFromHand, chooseProfileBid } from "@/bots/strategy/biddingStrategy";
-import type { Card, GameState } from "@/engine/types";
+import type { Card, GameState, PlayerId } from "@/engine/types";
 
 function card(rank: Card["rank"], suit: Card["suit"]): Card {
   return { rank, suit };
 }
 
-function createBiddingState(hand: Card[], bids: GameState["bids"], currentPlayerId = 0): GameState {
+function createBiddingState(
+  hand: Card[],
+  bids: GameState["bids"],
+  currentPlayerId: PlayerId = 0,
+): GameState {
   return {
     settings: { scoringMode: "made-points", targetScore: 1000 },
     phase: "bidding",
