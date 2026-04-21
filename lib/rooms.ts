@@ -103,6 +103,11 @@ export type PlayRoomActionParams = {
   action: RoomPlayerAction;
 };
 
+export type StartNextRoomRoundParams = {
+  roomId: string;
+  userId: string;
+};
+
 export type ResetRoomParams = {
   roomId: string;
 };
@@ -737,6 +742,63 @@ export async function playRoomAction(
 
   if (!data) {
     throw new RoomDataError("Room was updated before the action could be played.");
+  }
+
+  return getRoomWithPlayers(supabase, room.id);
+}
+
+export async function startNextRoomRound(
+  supabase: SupabaseClient,
+  params: StartNextRoomRoundParams,
+): Promise<RoomWithPlayers> {
+  const { room, players } = await getRoomWithPlayers(supabase, params.roomId);
+
+  if (room.status !== "playing") {
+    throw new RoomDataError("Room is not playing.");
+  }
+
+  const seat = players.find(
+    (player) => player.kind === "human" && player.user_id === params.userId,
+  );
+
+  if (!seat) {
+    throw new RoomDataError("User is not seated in this room.");
+  }
+
+  const state = requireServerState(room);
+
+  if (state.phase !== "finished") {
+    throw new RoomDataError("Current round is not finished.");
+  }
+
+  const stateAfterNextRound = applyGameAction(state, {
+    type: "start-next-round",
+  });
+  const nextState = await applyBotTurns(stateAfterNextRound, players);
+  const nextStatus: RoomStatus = nextState.phase === "game-over" ? "finished" : "playing";
+  const finishedAt = nextStatus === "finished" ? new Date().toISOString() : room.finished_at;
+
+  const { data, error } = await supabase
+    .from("rooms")
+    .update({
+      finished_at: finishedAt,
+      game_phase: nextState.phase,
+      server_state: nextState,
+      state_version: room.state_version + 1,
+      status: nextStatus,
+    })
+    .eq("id", room.id)
+    .eq("status", "playing")
+    .eq("state_version", room.state_version)
+    .select("id")
+    .maybeSingle<Pick<RoomRow, "id">>();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new RoomDataError("Room was updated before the next round could start.");
   }
 
   return getRoomWithPlayers(supabase, room.id);

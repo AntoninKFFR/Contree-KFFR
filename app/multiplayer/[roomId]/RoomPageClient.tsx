@@ -23,6 +23,7 @@ import {
   playRoomAction,
   resetRoom,
   setSeatReady,
+  startNextRoomRound,
   startRoomGame,
   type RoomPlayerAction,
   type RoomPlayerRow,
@@ -178,6 +179,7 @@ export default function MultiplayerRoomPage() {
   const [isJoiningSeat, setIsJoiningSeat] = useState(false);
   const [isLeavingSeat, setIsLeavingSeat] = useState(false);
   const [isPlayingCard, setIsPlayingCard] = useState(false);
+  const [isStartingNextRound, setIsStartingNextRound] = useState(false);
   const [isResettingRoom, setIsResettingRoom] = useState(false);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [isUpdatingReady, setIsUpdatingReady] = useState(false);
@@ -259,6 +261,11 @@ export default function MultiplayerRoomPage() {
     canPlayCard && playerView
       ? playableCardsForCurrentPlayer(stateForViewerLegalCards(playerView))
       : [];
+  const canShowNextRoundButton = Boolean(
+    roomWithPlayers?.room.status === "playing" &&
+      gameState?.phase === "finished" &&
+      displayedRoomStatus !== "finished",
+  );
 
   const loadRoom = useCallback(async (options: LoadRoomOptions = {}) => {
     const supabase = getSupabaseClient();
@@ -590,6 +597,37 @@ export default function MultiplayerRoomPage() {
     }
   }
 
+  async function handleStartNextRound() {
+    const supabase = getSupabaseClient();
+
+    if (
+      !supabase ||
+      !roomWithPlayers ||
+      !session ||
+      !currentSeat ||
+      !canShowNextRoundButton ||
+      isStartingNextRound
+    ) {
+      return;
+    }
+
+    setIsStartingNextRound(true);
+    setError(null);
+
+    try {
+      const nextRoom = await startNextRoomRound(supabase, {
+        roomId: roomWithPlayers.room.id,
+        userId: session.user.id,
+      });
+      setRoomWithPlayers(nextRoom);
+      setPageState("ready");
+    } catch (nextRoundError) {
+      setError(errorMessage(nextRoundError));
+    } finally {
+      setIsStartingNextRound(false);
+    }
+  }
+
   const isPlayingLayout = displayedRoomStatus === "playing";
 
   return (
@@ -792,7 +830,20 @@ export default function MultiplayerRoomPage() {
                   />
                 </div>
 
-                <ScoreBoard state={playerView} showActions={false} />
+                <div className="flex min-h-0 flex-col gap-2">
+                  {canShowNextRoundButton ? (
+                    <button
+                      className="rounded-md bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={isStartingNextRound}
+                      onClick={handleStartNextRound}
+                      type="button"
+                    >
+                      Manche suivante
+                    </button>
+                  ) : null}
+
+                  <ScoreBoard state={playerView} showActions={false} />
+                </div>
               </div>
             ) : null}
           </>
