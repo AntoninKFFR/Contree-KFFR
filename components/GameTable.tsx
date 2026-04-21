@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { CardView } from "@/components/CardView";
 import { PlayerPanel } from "@/components/PlayerPanel";
 import { SUIT_SYMBOLS } from "@/engine/cards";
@@ -73,6 +74,25 @@ function latestBidKey(roundNumber: number, bids: Bid[]): string | null {
   }
 
   return `${roundNumber}-${bids.length}-${latestBid.playerId}-${latestBid.action}`;
+}
+
+function bidKey(roundNumber: number, bidsLength: number, bid: Bid): string {
+  if (bid.action === "bid") {
+    return `${roundNumber}-${bidsLength}-${bid.playerId}-${bid.action}-${bid.value}-${bid.trump}`;
+  }
+
+  return `${roundNumber}-${bidsLength}-${bid.playerId}-${bid.action}`;
+}
+
+function dominantBidPlayerId(bids: Bid[]): PlayerId | null {
+  for (let index = bids.length - 1; index >= 0; index -= 1) {
+    const bid = bids[index];
+    if (bid.action === "bid") {
+      return bid.playerId;
+    }
+  }
+
+  return null;
 }
 
 function playedCardsToShow(state: GameTableState): { title: string; cards: PlayedCard[] } {
@@ -154,29 +174,32 @@ function AnnouncementBubble({
   content,
   animate,
   align,
+  isDominant,
 }: {
   content: AnnouncementBubbleContent;
   animate: boolean;
   align: "left" | "right";
+  isDominant: boolean;
 }) {
   return (
     <div
       className={[
-        "pointer-events-none absolute z-10 flex w-[112px] min-h-[42px] flex-col items-center justify-center rounded-2xl border px-3 py-1.5 shadow-lg",
-        "bg-white text-stone-950",
+        "pointer-events-none absolute z-10 flex w-[96px] min-h-[36px] flex-col items-center justify-center rounded-[18px] border px-2.5 py-1 shadow-md backdrop-blur-sm",
+        "bg-stone-50/88 text-stone-950",
         content.tone === "accent"
-          ? "border-stone-900/10 shadow-black/25"
-          : "border-stone-500/30 shadow-black/20",
+          ? "border-stone-900/10 shadow-black/20"
+          : "border-stone-500/25 shadow-black/15",
+        isDominant ? "border-l-[3px] border-l-emerald-700/70" : "",
         align === "right" ? "left-full ml-2" : "right-full mr-2",
         "top-1/2 -translate-y-1/2",
         animate ? "coinche-bid-bubble-enter" : "",
       ].join(" ")}
     >
-      <p className="text-center text-[11px] font-bold leading-none tracking-[0.01em]">
+      <p className="text-center text-[10px] font-bold leading-none tracking-[0.01em]">
         {content.label}
       </p>
       {content.detail ? (
-        <p className="mt-0.5 text-center text-[9px] font-semibold uppercase tracking-[0.14em] text-stone-600">
+        <p className="mt-0.5 text-center text-[8px] font-semibold uppercase tracking-[0.12em] text-stone-600">
           {content.detail}
         </p>
       ) : null}
@@ -189,17 +212,39 @@ export function GameTable({ state }: GameTableProps) {
   const nameFor = (playerId: PlayerId) => playerName(playerId, state.playerNames);
   const latestBid = state.bids.at(-1) ?? null;
   const latestBidIdentity = latestBidKey(state.roundNumber, state.bids);
+  const dominantPlayerId = useMemo(() => dominantBidPlayerId(state.bids), [state.bids]);
   const finalAnnouncement =
     state.phase === "bidding" || !state.contract ? null : formatFinalContract(state.contract);
+  const biddingAnnouncements = useMemo(() => {
+    const announcements: Partial<
+      Record<PlayerId, { content: AnnouncementBubbleContent; bubbleKey: string }>
+    > = {};
+
+    state.bids.forEach((bid, index) => {
+      announcements[bid.playerId] = {
+        content: formatBidLabel(bid),
+        bubbleKey: bidKey(state.roundNumber, index + 1, bid),
+      };
+    });
+
+    return announcements;
+  }, [state.bids, state.roundNumber]);
 
   function announcementFor(
     playerId: PlayerId,
-  ): { content: AnnouncementBubbleContent; animate: boolean; bubbleKey: string } | null {
-    if (state.phase === "bidding" && latestBid && latestBid.playerId === playerId && latestBidIdentity) {
+  ): { content: AnnouncementBubbleContent; animate: boolean; bubbleKey: string; isDominant: boolean } | null {
+    if (state.phase === "bidding") {
+      const playerAnnouncement = biddingAnnouncements[playerId];
+
+      if (!playerAnnouncement) {
+        return null;
+      }
+
       return {
-        content: formatBidLabel(latestBid),
-        animate: true,
-        bubbleKey: latestBidIdentity,
+        content: playerAnnouncement.content,
+        animate: latestBid?.playerId === playerId && playerAnnouncement.bubbleKey === latestBidIdentity,
+        bubbleKey: playerAnnouncement.bubbleKey,
+        isDominant: dominantPlayerId === playerId,
       };
     }
 
@@ -208,6 +253,7 @@ export function GameTable({ state }: GameTableProps) {
         content: finalAnnouncement,
         animate: false,
         bubbleKey: `contract-${state.roundNumber}-${state.contract.playerId}-${state.contract.value}-${state.contract.trump}-${state.contract.status}`,
+        isDominant: true,
       };
     }
 
@@ -233,6 +279,7 @@ export function GameTable({ state }: GameTableProps) {
             align="right"
             animate={topAnnouncement.animate}
             content={topAnnouncement.content}
+            isDominant={topAnnouncement.isDominant}
           />
         ) : null}
         <PlayerPanel
@@ -249,6 +296,7 @@ export function GameTable({ state }: GameTableProps) {
             align="right"
             animate={leftAnnouncement.animate}
             content={leftAnnouncement.content}
+            isDominant={leftAnnouncement.isDominant}
           />
         ) : null}
         <PlayerPanel
@@ -265,6 +313,7 @@ export function GameTable({ state }: GameTableProps) {
             align="left"
             animate={rightAnnouncement.animate}
             content={rightAnnouncement.content}
+            isDominant={rightAnnouncement.isDominant}
           />
         ) : null}
         <PlayerPanel
@@ -281,6 +330,7 @@ export function GameTable({ state }: GameTableProps) {
             align="right"
             animate={bottomAnnouncement.animate}
             content={bottomAnnouncement.content}
+            isDominant={bottomAnnouncement.isDominant}
           />
         ) : null}
         <PlayerPanel
