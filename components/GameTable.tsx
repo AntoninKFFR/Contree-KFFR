@@ -185,17 +185,24 @@ function AnnouncementBubble({
     <div
       className={[
         "pointer-events-none absolute z-10 flex w-[96px] min-h-[36px] flex-col items-center justify-center rounded-[18px] border px-2.5 py-1 shadow-md backdrop-blur-sm",
-        "bg-stone-50/95 text-stone-950",
         content.tone === "accent"
-          ? "border-stone-900/10 shadow-black/20"
-          : "border-stone-500/25 shadow-black/15",
-        isDominant ? "border-l-[3px] border-l-emerald-700/70" : "",
+          ? "bg-stone-50/96 text-stone-900 border-stone-900/8 shadow-black/12"
+          : "bg-white/72 text-stone-500 border-stone-400/15 shadow-black/8",
+        isDominant && content.tone === "accent"
+          ? "ring-1 ring-emerald-700/28 border-emerald-800/18"
+          : "",
         align === "right" ? "left-full ml-2" : "right-full mr-2",
         "top-1/2 -translate-y-1/2",
         animate ? "coinche-bid-bubble-enter" : "",
       ].join(" ")}
     >
-      <p className="text-center text-[10px] font-bold leading-none tracking-[0.01em]">
+      <p
+        className={[
+          "text-center leading-none tracking-[0.01em]",
+          content.tone === "accent" ? "text-[10px] font-bold" : "text-[9px] font-semibold",
+          isDominant && content.tone === "accent" ? "text-emerald-900" : "",
+        ].join(" ")}
+      >
         {content.label}
       </p>
       {content.detail ? (
