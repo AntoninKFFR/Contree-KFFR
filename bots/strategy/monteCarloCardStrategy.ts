@@ -4,6 +4,7 @@ import { cardPoints, compareCards, getTrickWinner, playerTeam } from "@/engine/r
 import type { Card, GameState, PlayerId, Suit, TeamId } from "@/engine/types";
 import { getBotProfile } from "@/bots/profiles";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
+import { buildTrickKnowledge, type TrickKnowledge } from "@/bots/strategy/trickKnowledge";
 
 const PLAYERS: PlayerId[] = [0, 1, 2, 3];
 const MONTE_CARLO_TOTAL_BUDGET = 80;
@@ -305,6 +306,170 @@ function uniqueCards(cards: Card[]): Card[] {
   return unique;
 }
 
+function isMasterCard(card: Card, knowledge: TrickKnowledge): boolean {
+  const master = knowledge.masterCardsBySuit[card.suit];
+  return Boolean(master && sameCard(master, card));
+}
+
+function isProtectedPointCard(card: Card, trump: Suit, knowledge: TrickKnowledge): boolean {
+  if (card.suit === trump) {
+    return card.rank === "J" || card.rank === "9" || card.rank === "A";
+  }
+
+  if (card.rank !== "A" && card.rank !== "10") return false;
+  if (isMasterCard(card, knowledge) && knowledge.cutRiskBySuit[card.suit].level !== "high") return true;
+
+  return knowledge.cutRiskBySuit[card.suit].level === "low";
+}
+
+function chooseBestDiscardCandidate(cards: Card[], trump: Suit, knowledge: TrickKnowledge): Card | null {
+  if (cards.length === 0) return null;
+
+  return [...cards].sort((first, second) => {
+    const firstScore =
+      cardPoints(first, trump) +
+      (isMasterCard(first, knowledge) ? 10 : 0) +
+      (isProtectedPointCard(first, trump, knowledge) ? 8 : 0) -
+      (knowledge.deadSuits.includes(first.suit) ? 4 : 0) -
+      (knowledge.weakenedSuits.includes(first.suit) ? 2 : 0) -
+      (first.suit !== trump && knowledge.cutRiskBySuit[first.suit].level === "high" ? 2 : 0);
+    const secondScore =
+      cardPoints(second, trump) +
+      (isMasterCard(second, knowledge) ? 10 : 0) +
+      (isProtectedPointCard(second, trump, knowledge) ? 8 : 0) -
+      (knowledge.deadSuits.includes(second.suit) ? 4 : 0) -
+      (knowledge.weakenedSuits.includes(second.suit) ? 2 : 0) -
+      (second.suit !== trump && knowledge.cutRiskBySuit[second.suit].level === "high" ? 2 : 0);
+
+    return firstScore - secondScore;
+  })[0];
+}
+
+function chooseSupportCandidate(cards: Card[], trump: Suit, knowledge: TrickKnowledge): Card | null {
+  const supportCards = cards
+    .filter((card) => cardPoints(card, trump) >= 10)
+    .filter((card) => !isMasterCard(card, knowledge) || knowledge.weakenedSuits.includes(card.suit));
+
+  return supportCards.length > 0 ? lowestPointCard(supportCards, trump) : null;
+}
+
+function chooseSafeMasterLeadCandidate(cards: Card[], trump: Suit, knowledge: TrickKnowledge): Card | null {
+  const masters = cards
+    .filter((card) => card.suit !== trump)
+    .filter((card) => isMasterCard(card, knowledge))
+    .filter(
+      (card) =>
+        knowledge.cutRiskBySuit[card.suit].level !== "high" ||
+        knowledge.weakenedSuits.includes(card.suit) ||
+        knowledge.deadSuits.includes(card.suit),
+    );
+
+  return masters.length > 0 ? highestPointCard(masters, trump) : null;
+}
+
+function chooseTrumpPressureCandidate(cards: Card[], trump: Suit, knowledge: TrickKnowledge): Card | null {
+  const trumps = cards.filter((card) => card.suit === trump);
+  if (trumps.length === 0) return null;
+  if (knowledge.remainingTrumps.length <= trumps.length) return null;
+
+  const strongTrump = trumps.filter((card) => card.rank === "J" || card.rank === "9" || card.rank === "A");
+  return strongTrump.length > 0 ? highestPointCard(strongTrump, trump) : null;
+}
+
+function chooseLateRoundCashCandidate(cards: Card[], trump: Suit, knowledge: TrickKnowledge): Card | null {
+  const lateCash = cards
+    .filter((card) => cardPoints(card, trump) >= 10)
+    .filter((card) => isMasterCard(card, knowledge) || card.suit === trump)
+    .filter((card) => card.suit === trump || knowledge.weakenedSuits.includes(card.suit));
+
+  return lateCash.length > 0 ? highestPointCard(lateCash, trump) : null;
+}
+
+function isLateRound(state: GameState): boolean {
+  return state.completedTricks.length >= 5 || state.hands[state.currentPlayerId].length <= 3;
+}
+
+function filterDominatedCandidates(
+  state: GameState,
+  candidates: Card[],
+  knowledge: TrickKnowledge,
+): Card[] {
+  if (!state.trump) return candidates;
+
+  const playableCards = playableCardsForCurrentPlayer(state);
+  const partnerAlreadyWinning =
+    state.currentTrick.cards.length > 0 &&
+    playerTeam(getTrickWinner(state.currentTrick, state.trump)) === playerTeam(state.currentPlayerId);
+
+  const hasSafeNonWinningAlternative = (card: Card) =>
+    playableCards.some(
+      (other) =>
+        !sameCard(other, card) &&
+        !wouldWinCurrentTrick(other, state) &&
+        !isProtectedPointCard(other, state.trump as Suit, knowledge),
+    );
+  const hasSaferPartnerFeedOrDiscard = (card: Card) =>
+    playableCards.some(
+      (other) =>
+        !sameCard(other, card) &&
+        !wouldWinCurrentTrick(other, state) &&
+        (!isProtectedPointCard(other, state.trump as Suit, knowledge) ||
+          cardPoints(other, state.trump as Suit) >= 10),
+    );
+  const hasAlternativePointFeed = (card: Card) =>
+    playableCards.some(
+      (other) =>
+        !sameCard(other, card) &&
+        !wouldWinCurrentTrick(other, state) &&
+        cardPoints(other, state.trump as Suit) >= 10 &&
+        cardPoints(other, state.trump as Suit) <= cardPoints(card, state.trump as Suit),
+    );
+
+  const safeLeadAlternatives = playableCards.filter(
+    (other) =>
+      !isProtectedPointCard(other, state.trump as Suit, knowledge) ||
+      isMasterCard(other, knowledge) ||
+      other.suit === state.trump,
+  );
+
+  const filtered = candidates.filter((candidate) => {
+    if (
+      partnerAlreadyWinning &&
+      wouldWinCurrentTrick(candidate, state) &&
+      playableCards.length > 1 &&
+      hasSafeNonWinningAlternative(candidate)
+    ) {
+      return false;
+    }
+
+    if (
+      state.currentTrick.cards.length === 0 &&
+      candidate.suit !== state.trump &&
+      (candidate.rank === "A" || candidate.rank === "10") &&
+      (knowledge.cutRiskBySuit[candidate.suit].level === "high" ||
+        (isProtectedPointCard(candidate, state.trump as Suit, knowledge) &&
+          knowledge.cutRiskBySuit[candidate.suit].level === "medium")) &&
+      safeLeadAlternatives.some((other) => !sameCard(other, candidate))
+    ) {
+      return false;
+    }
+
+    if (
+      partnerAlreadyWinning &&
+      !wouldWinCurrentTrick(candidate, state) &&
+      isProtectedPointCard(candidate, state.trump as Suit, knowledge) &&
+      (cardPoints(candidate, state.trump as Suit) < 10 || hasAlternativePointFeed(candidate)) &&
+      hasSaferPartnerFeedOrDiscard(candidate)
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+  return filtered.length > 0 ? filtered : candidates;
+}
+
 function monteCarloCandidates(state: GameState, heuristicCard: Card): Card[] {
   if (!state.trump) return [heuristicCard];
 
@@ -323,13 +488,33 @@ function monteCarloCandidates(state: GameState, heuristicCard: Card): Card[] {
   return candidates.slice(0, MAX_CANDIDATES);
 }
 
-function monteCarloV2Candidates(state: GameState, heuristicCard: Card): Card[] {
+export function getMonteCarloV2Candidates(state: GameState, heuristicCard: Card): Card[] {
   if (!state.trump) return [heuristicCard];
 
   const playableCards = playableCardsForCurrentPlayer(state);
   const winningCards = playableCards.filter((card) => wouldWinCurrentTrick(card, state));
   const losingCards = playableCards.filter((card) => !wouldWinCurrentTrick(card, state));
   const pointCards = playableCards.filter((card) => cardPoints(card, state.trump as Suit) >= 10);
+  const knowledge = buildTrickKnowledge(state);
+  const partnerAlreadyWinning =
+    state.currentTrick.cards.length > 0 &&
+    playerTeam(getTrickWinner(state.currentTrick, state.trump)) === playerTeam(state.currentPlayerId);
+
+  const safeMasterLead =
+    state.currentTrick.cards.length === 0
+      ? chooseSafeMasterLeadCandidate(playableCards, state.trump, knowledge)
+      : null;
+  const supportCard =
+    partnerAlreadyWinning && currentTrickPoints(state) >= 10
+      ? chooseSupportCandidate(playableCards, state.trump, knowledge)
+      : null;
+  const prudentDiscard = chooseBestDiscardCandidate(losingCards, state.trump, knowledge);
+  const trumpPressure =
+    state.currentTrick.cards.length === 0 ? chooseTrumpPressureCandidate(playableCards, state.trump, knowledge) : null;
+  const lateRoundCash =
+    isLateRound(state) && state.currentTrick.cards.length === 0
+      ? chooseLateRoundCashCandidate(playableCards, state.trump, knowledge)
+      : null;
 
   const candidates = uniqueCards([
     heuristicCard,
@@ -339,9 +524,14 @@ function monteCarloV2Candidates(state: GameState, heuristicCard: Card): Card[] {
     ...(winningCards.length > 0 ? [highestPointCard(winningCards, state.trump)] : []),
     ...(losingCards.length > 0 ? [lowestPointCard(losingCards, state.trump)] : []),
     ...(pointCards.length > 0 ? [lowestPointCard(pointCards, state.trump)] : []),
+    ...(safeMasterLead ? [safeMasterLead] : []),
+    ...(supportCard ? [supportCard] : []),
+    ...(prudentDiscard ? [prudentDiscard] : []),
+    ...(trumpPressure ? [trumpPressure] : []),
+    ...(lateRoundCash ? [lateRoundCash] : []),
   ]);
 
-  return candidates.slice(0, MAX_V2_CANDIDATES);
+  return filterDominatedCandidates(state, candidates, knowledge).slice(0, MAX_V2_CANDIDATES);
 }
 
 function currentTrickPoints(state: GameState): number {
@@ -579,7 +769,7 @@ export function chooseMonteCarloV2CardToPlay(
     return heuristicCard;
   }
 
-  const candidates = monteCarloV2Candidates(state, heuristicCard);
+  const candidates = getMonteCarloV2Candidates(state, heuristicCard);
   const samplesPerCandidate = Math.max(
     1,
     Math.floor((options.totalBudget ?? MONTE_CARLO_V2_TOTAL_BUDGET) / candidates.length),

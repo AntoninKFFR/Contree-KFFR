@@ -13,11 +13,11 @@ describe("bot profiles", () => {
     const mediumHand = [
       card("J", "hearts"),
       card("8", "hearts"),
-      card("7", "hearts"),
       card("A", "clubs"),
       card("8", "clubs"),
       card("7", "diamonds"),
       card("8", "diamonds"),
+      card("9", "diamonds"),
       card("8", "spades"),
       card("7", "spades"),
     ];

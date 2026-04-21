@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { chooseBotCard } from "@/bots/simpleBot";
 import {
+  getMonteCarloV2Candidates,
   chooseMonteCarloCardToPlay,
   chooseMonteCarloV2CardToPlay,
 } from "@/bots/strategy/monteCarloCardStrategy";
@@ -121,6 +122,138 @@ describe("monte carlo bot", () => {
     ]);
 
     expect(chooseBotCard(state)).toEqual(chooseMonteCarloV2CardToPlay(state));
+  });
+
+  it("adds a safe master lead candidate in V2 when leading is ambiguous", () => {
+    const state: GameState = {
+      ...stateForMonteCarlo([
+        card("J", "hearts"),
+        card("9", "hearts"),
+        card("A", "diamonds"),
+      ]),
+      hands: {
+        0: [card("A", "clubs"), card("7", "clubs"), card("8", "diamonds"), card("7", "spades")],
+        1: [card("J", "hearts"), card("9", "hearts"), card("A", "diamonds"), card("8", "spades")],
+        2: [card("7", "diamonds"), card("8", "diamonds"), card("K", "spades"), card("Q", "spades")],
+        3: [card("8", "clubs"), card("9", "diamonds"), card("Q", "clubs"), card("K", "diamonds")],
+      },
+      currentTrick: { leaderId: 0, cards: [] },
+      completedTricks: [
+        {
+          leaderId: 1,
+          cards: [
+            { playerId: 1, card: card("7", "hearts") },
+            { playerId: 2, card: card("8", "hearts") },
+            { playerId: 3, card: card("Q", "hearts") },
+            { playerId: 0, card: card("K", "hearts") },
+          ],
+          winnerId: 0,
+          points: 7,
+        },
+        {
+          leaderId: 0,
+          cards: [
+            { playerId: 0, card: card("10", "diamonds") },
+            { playerId: 1, card: card("J", "diamonds") },
+            { playerId: 2, card: card("7", "diamonds") },
+            { playerId: 3, card: card("8", "diamonds") },
+          ],
+          winnerId: 1,
+          points: 12,
+        },
+      ],
+    };
+
+    const candidates = getMonteCarloV2Candidates(state, card("7", "spades"));
+
+    expect(candidates).toContainEqual(card("A", "clubs"));
+  });
+
+  it("keeps a support candidate when the partner already wins a valuable trick", () => {
+    const state: GameState = {
+      ...stateForMonteCarlo([
+        card("J", "hearts"),
+        card("9", "hearts"),
+        card("A", "diamonds"),
+      ]),
+      hands: {
+        0: [card("10", "clubs"), card("A", "spades"), card("7", "spades")],
+        1: [card("J", "hearts"), card("9", "hearts"), card("A", "diamonds")],
+        2: [card("7", "clubs"), card("8", "diamonds"), card("J", "spades")],
+        3: [card("8", "clubs"), card("9", "diamonds"), card("K", "spades")],
+      },
+      currentTrick: {
+        leaderId: 1,
+        cards: [
+          { playerId: 1, card: card("K", "diamonds") },
+          { playerId: 2, card: card("A", "diamonds") },
+          { playerId: 3, card: card("K", "diamonds") },
+        ],
+      },
+      completedTricks: [
+        {
+          leaderId: 0,
+          cards: [
+            { playerId: 0, card: card("7", "spades") },
+            { playerId: 1, card: card("8", "spades") },
+            { playerId: 2, card: card("9", "spades") },
+            { playerId: 3, card: card("K", "spades") },
+          ],
+          winnerId: 3,
+          points: 4,
+        },
+      ],
+    };
+
+    const candidates = getMonteCarloV2Candidates(state, card("7", "spades"));
+
+    expect(candidates).toContainEqual(card("10", "clubs"));
+    expect(candidates).not.toContainEqual(card("A", "spades"));
+  });
+
+  it("filters obviously dominated candidates when a safer alternative exists", () => {
+    const state: GameState = {
+      ...stateForMonteCarlo([
+        card("J", "hearts"),
+        card("9", "hearts"),
+        card("A", "diamonds"),
+      ]),
+      hands: {
+        0: [card("A", "clubs"), card("7", "clubs"), card("8", "diamonds"), card("7", "spades")],
+        1: [card("J", "hearts"), card("9", "hearts"), card("A", "diamonds"), card("8", "spades")],
+        2: [card("7", "diamonds"), card("8", "diamonds"), card("K", "spades"), card("Q", "spades")],
+        3: [card("8", "clubs"), card("9", "diamonds"), card("Q", "clubs"), card("K", "diamonds")],
+      },
+      currentTrick: { leaderId: 0, cards: [] },
+      completedTricks: [
+        {
+          leaderId: 1,
+          cards: [
+            { playerId: 1, card: card("7", "clubs") },
+            { playerId: 2, card: card("8", "clubs") },
+            { playerId: 3, card: card("9", "clubs") },
+            { playerId: 0, card: card("7", "spades") },
+          ],
+          winnerId: 3,
+          points: 0,
+        },
+        {
+          leaderId: 2,
+          cards: [
+            { playerId: 2, card: card("K", "clubs") },
+            { playerId: 3, card: card("8", "hearts") },
+            { playerId: 0, card: card("7", "clubs") },
+            { playerId: 1, card: card("9", "diamonds") },
+          ],
+          winnerId: 3,
+          points: 4,
+        },
+      ],
+    };
+
+    const candidates = getMonteCarloV2Candidates(state, card("7", "spades"));
+
+    expect(candidates).not.toContainEqual(card("A", "clubs"));
   });
 
   it("returns a legal bidding decision for the Monte Carlo bidding strategy", () => {

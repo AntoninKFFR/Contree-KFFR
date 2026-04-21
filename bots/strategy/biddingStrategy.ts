@@ -4,6 +4,7 @@ import { playerTeam } from "@/engine/rules";
 import type { Bid, BidValue, Card, Contract, GameState, Suit } from "@/engine/types";
 import type { BotProfile } from "@/bots/profiles";
 import { evaluateBestTrump, evaluateHandForTrump, type HandEvaluation } from "@/bots/evaluation/handEvaluation";
+import { buildBiddingContext } from "@/bots/strategy/biddingContext";
 
 export type BidDecision = {
   action: "pass" | "bid" | "coinche" | "surcoinche";
@@ -34,6 +35,18 @@ function bidValueForScore(score: number): BidValue | null {
   return possible.at(-1)?.value ?? null;
 }
 
+function clampBidValue(value: number): BidValue {
+  if (value <= 80) return 80;
+  if (value <= 90) return 90;
+  if (value <= 100) return 100;
+  if (value <= 110) return 110;
+  if (value <= 120) return 120;
+  if (value <= 130) return 130;
+  if (value <= 140) return 140;
+  if (value <= 150) return 150;
+  return 160;
+}
+
 function adjustedScore(evaluation: HandEvaluation, profile: BotProfile): number {
   const profileScore = evaluation.score * profile.bidRisk - profile.bidOffset;
 
@@ -42,8 +55,79 @@ function adjustedScore(evaluation: HandEvaluation, profile: BotProfile): number 
   return profileScore - fragilityPenalty;
 }
 
+function conventionalBidValue(
+  evaluation: HandEvaluation,
+  score: number,
+  allowStructuralOverride = true,
+): BidValue | null {
+  const scoreValue = bidValueForScore(score);
+  if (!allowStructuralOverride) {
+    return scoreValue;
+  }
+
+  const singlePieceSmallGame =
+    (evaluation.hasJackTrump || evaluation.hasNineTrump) &&
+    !(evaluation.hasJackTrump && evaluation.hasNineTrump) &&
+    evaluation.trumpSupportCount >= 2;
+
+  if (evaluation.capotPotential >= 20) {
+    if (evaluation.sideMasterTrickCount >= 4 && evaluation.trumpCount >= 5) {
+      return 140;
+    }
+
+    return 130;
+  }
+
+  if (
+    evaluation.hasJackTrump &&
+    evaluation.hasNineTrump &&
+    evaluation.strongSecondarySuitCount >= 1 &&
+    evaluation.trumpCount >= 4
+  ) {
+    return scoreValue && scoreValue >= 130 ? scoreValue : 120;
+  }
+
+  if (
+    evaluation.hasJackTrump &&
+    evaluation.hasNineTrump &&
+    evaluation.trumpSupportCount >= 2 &&
+    evaluation.aceCount >= 2
+  ) {
+    return 110;
+  }
+
+  if (
+    evaluation.hasJackTrump &&
+    evaluation.hasNineTrump &&
+    evaluation.trumpSupportCount >= 2 &&
+    evaluation.aceCount >= 1
+  ) {
+    return 100;
+  }
+
+  if (
+    evaluation.hasJackTrump &&
+    evaluation.hasNineTrump &&
+    evaluation.trumpSupportCount >= 1 &&
+    evaluation.sideMasterTrickCount >= 1
+  ) {
+    return 90;
+  }
+
+  if (singlePieceSmallGame) {
+    return 80;
+  }
+
+  return scoreValue;
+}
+
 function isMainProfile(profile: BotProfile): boolean {
-  return profile.id === "main" || profile.id === "main_montecarlo_bidding";
+  return (
+    profile.id === "main" ||
+    profile.id === "main_montecarlo" ||
+    profile.id === "main_montecarlo_v2" ||
+    profile.id === "main_montecarlo_bidding"
+  );
 }
 
 function nextHigherBid(wantedValue: BidValue, currentContract: Contract | null): BidValue | null {
@@ -58,7 +142,7 @@ export function chooseProfileBidFromHand(
 ): BidDecision {
   const best = evaluateBestTrump(hand);
   const score = adjustedScore(best, profile);
-  const wantedValue = bidValueForScore(score);
+  const wantedValue = conventionalBidValue(best, score, isMainProfile(profile));
 
   if (!wantedValue) {
     return {
@@ -120,12 +204,13 @@ function chooseMainBid(state: GameState, profile: BotProfile): BidDecision {
   const teamId = playerTeam(playerId);
   const hand = state.hands[playerId];
   const best = evaluateBestTrump(hand);
+  const context = buildBiddingContext(state);
   const partnerBid = lastTeamBid(
     state.bids.filter((bid) => bid.playerId !== playerId),
     teamId,
   );
 
-  if (currentContract && currentContract.teamId === teamId) {
+  if (currentContract && currentContract.teamId === teamId && context.isSupportingPartner) {
     const support = evaluateHandForTrump(hand, currentContract.trump);
     const bestScore = withMainOpeningBonus(adjustedScore(best, profile), state, profile);
 
@@ -136,7 +221,32 @@ function chooseMainBid(state: GameState, profile: BotProfile): BidDecision {
     const clearlyBetterOwnTrump = best.trump !== currentContract.trump && bestScore >= supportScore + 26;
     const preferredTrump = clearlyBetterOwnTrump ? best.trump : currentContract.trump;
     const preferredScore = clearlyBetterOwnTrump ? bestScore : supportScore;
-    const wantedValue = bidValueForScore(preferredScore);
+    let supportRaise =
+      support.hasJackTrump && support.hasNineTrump && support.trumpSupportCount >= 2
+        ? 20 + (support.aceCount >= 2 || support.strongSecondarySuitCount >= 1 ? 10 : 0)
+        : (support.hasJackTrump || support.hasNineTrump) && support.trumpSupportCount >= 2
+          ? 10
+          : support.trumpCount >= 3 && support.aceCount >= 1
+            ? 10
+            : 0;
+    if (context.partnerStrength === "strong" && supportRaise >= 10) {
+      supportRaise += 10;
+    } else if (context.partnerStrength === "weak" && context.isLateBidding && supportRaise >= 20) {
+      supportRaise -= 10;
+    }
+
+    if (context.isLateBidding && supportRaise < 30) {
+      supportRaise = Math.max(0, supportRaise - 10);
+    }
+
+    if (context.opponentHasOvercalled && context.partnerStrength !== "weak" && supportRaise >= 10) {
+      supportRaise += 10;
+    }
+
+    const supportValue = supportRaise > 0 ? clampBidValue(currentContract.value + supportRaise) : null;
+    const wantedValue = clearlyBetterOwnTrump
+      ? conventionalBidValue(best, preferredScore)
+      : supportValue;
     const value = wantedValue ? nextHigherBid(wantedValue, currentContract) : null;
 
     if (!value) {
@@ -168,7 +278,7 @@ function chooseMainBid(state: GameState, profile: BotProfile): BidDecision {
   }
 
   const score = withMainOpeningBonus(adjustedScore(best, profile), state, profile);
-  const wantedValue = bidValueForScore(score);
+  const wantedValue = conventionalBidValue(best, score);
   if (!wantedValue) {
     return {
       action: "pass",
@@ -190,6 +300,47 @@ function chooseMainBid(state: GameState, profile: BotProfile): BidDecision {
     const raiseRisk = currentContract.value - wantedValue;
     const opponentOwnsContract = currentContract.teamId !== teamId;
     const interventionMargin = opponentOwnsContract ? profile.raiseMargin + 8 : profile.raiseMargin;
+    const isSmallGame =
+      (best.hasJackTrump || best.hasNineTrump) &&
+      !(best.hasJackTrump && best.hasNineTrump) &&
+      best.trumpSupportCount >= 2;
+
+    if (opponentOwnsContract && isSmallGame && currentContract.value >= 90) {
+      return {
+        action: "pass",
+        confidence: confidenceFromScore(score),
+        reason: "Petit jeu: intervention trop ambitieuse sur un contrat deja installe.",
+      };
+    }
+
+    if (opponentOwnsContract && context.isContestingOpponent) {
+      const hasRealTrumpBase =
+        (best.hasJackTrump && best.hasNineTrump && best.trumpSupportCount >= 2) ||
+        ((best.hasJackTrump || best.hasNineTrump) && best.trumpSupportCount >= 3);
+      const contractIsHigh = currentContract.value >= 120 || context.isLateBidding;
+      const onlyMinimumRaise = wantedValue <= clampBidValue(currentContract.value + 10);
+
+      if (context.opponentStrength === "strong" && contractIsHigh && !hasRealTrumpBase) {
+        return {
+          action: "pass",
+          confidence: confidenceFromScore(score),
+          reason: "Annonce adverse forte en fin de sequence: main insuffisante pour se battre.",
+        };
+      }
+
+      if (
+        context.opponentStrength === "strong" &&
+        onlyMinimumRaise &&
+        best.aceCount === 0 &&
+        best.strongSecondarySuitCount === 0
+      ) {
+        return {
+          action: "pass",
+          confidence: confidenceFromScore(score),
+          reason: "Contrat adverse solide: montee trop courte sans appuis lateraux.",
+        };
+      }
+    }
 
     if (raiseRisk > interventionMargin) {
       return {
