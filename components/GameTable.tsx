@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CardView } from "@/components/CardView";
 import { PlayerPanel } from "@/components/PlayerPanel";
 import { SUIT_SYMBOLS, cardId } from "@/engine/cards";
-import { playerName } from "@/engine/players";
+import { playerName, teamName } from "@/engine/players";
 import type {
   Bid,
   CompletedTrick,
@@ -19,6 +19,7 @@ type GameTableState = GameState | PlayerGameView;
 
 type GameTableProps = {
   state: GameTableState;
+  showLiveScore?: boolean;
 };
 
 type AnnouncementBubbleContent = {
@@ -268,7 +269,41 @@ function AnnouncementBubble({
   );
 }
 
-export function GameTable({ state }: GameTableProps) {
+function LiveScoreOverlay({ state }: { state: GameTableState }) {
+  const teamFor = (teamId: 0 | 1) => teamName(teamId, state.playerNames);
+
+  return (
+    <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-lg border border-white/35 bg-black/25 px-3 py-2 text-right text-white shadow-sm backdrop-blur-sm">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
+        Scores
+      </p>
+      <div className="mt-1 space-y-1">
+        <div className="flex items-center justify-end gap-3">
+          <div>
+            <p className="text-[10px] text-white/70">{teamFor(0)}</p>
+            <p className="text-sm font-bold leading-none">{state.totalScore[0]}</p>
+          </div>
+          <div className="min-w-8 rounded-md bg-white/12 px-1.5 py-1 text-center">
+            <p className="text-[9px] font-semibold text-white/70">Manche</p>
+            <p className="text-xs font-bold leading-none">{state.trickPoints[0]}</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-3">
+          <div>
+            <p className="text-[10px] text-white/70">{teamFor(1)}</p>
+            <p className="text-sm font-bold leading-none">{state.totalScore[1]}</p>
+          </div>
+          <div className="min-w-8 rounded-md bg-white/12 px-1.5 py-1 text-center">
+            <p className="text-[9px] font-semibold text-white/70">Manche</p>
+            <p className="text-xs font-bold leading-none">{state.trickPoints[1]}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function GameTable({ state, showLiveScore = false }: GameTableProps) {
   const previousCompletedTrickKeyRef = useRef<string | null>(null);
   const [animatedCompletedTrick, setAnimatedCompletedTrick] = useState<AnimatedCompletedTrick | null>(
     null,
@@ -380,6 +415,7 @@ export function GameTable({ state }: GameTableProps) {
     >
       <TrickCenter cards={displayedCenter.cards} title={displayedCenter.title} />
       {animatedCompletedTrick ? <TrickCollectionAnimation trick={animatedCompletedTrick.trick} /> : null}
+      {showLiveScore ? <LiveScoreOverlay state={state} /> : null}
 
       <div className="absolute left-1/2 top-3 -translate-x-1/2">
         {topAnnouncement ? (

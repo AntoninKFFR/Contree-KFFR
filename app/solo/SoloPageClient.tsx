@@ -34,6 +34,7 @@ export default function SoloPage() {
   const gameIdRef = useRef(crypto.randomUUID());
   const savedGameIdsRef = useRef(new Set<string>());
   const [scoringMode, setScoringMode] = useState<ScoringMode>("made-points");
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [gameState, setGameState] = useState<GameState>(() =>
     createInitialGame(initialRenderRandom, {
       scoringMode: "made-points",
@@ -54,6 +55,17 @@ export default function SoloPage() {
     if (!humanCanPlay) return [];
     return playableCardsForCurrentPlayer(gameState);
   }, [gameState, humanCanPlay]);
+
+  useEffect(() => {
+    if (gameState.phase === "playing") {
+      setIsRightPanelOpen(false);
+      return;
+    }
+
+    if (gameState.phase === "finished" || gameState.phase === "game-over") {
+      setIsRightPanelOpen(true);
+    }
+  }, [gameState.phase]);
 
   function dispatchGameAction(action: GameAction) {
     setGameState((currentState) => applyGameAction(currentState, action));
@@ -213,9 +225,25 @@ export default function SoloPage() {
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1fr)_310px]">
+        <div
+          className={[
+            "grid min-h-0 flex-1 gap-2",
+            isRightPanelOpen ? "lg:grid-cols-[minmax(0,1fr)_310px]" : "lg:grid-cols-[minmax(0,1fr)]",
+          ].join(" ")}
+        >
           <div className="flex min-h-0 flex-col gap-2">
-            <GameTable state={gameState} />
+            <div className="flex items-center justify-end lg:hidden" />
+            <div className="flex items-center justify-end">
+              <button
+                className="hidden rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white lg:inline-flex"
+                onClick={() => setIsRightPanelOpen((current) => !current)}
+                type="button"
+              >
+                {isRightPanelOpen ? "Masquer infos" : "Afficher infos"}
+              </button>
+            </div>
+
+            <GameTable state={gameState} showLiveScore={!isRightPanelOpen && gameState.phase === "playing"} />
 
             {gameState.phase === "bidding" ? (
               <BiddingPanel
@@ -238,11 +266,13 @@ export default function SoloPage() {
             />
           </div>
 
-          <ScoreBoard
-            state={gameState}
-            onNewGame={handleNewGame}
-            onNextRound={handleNextRound}
-          />
+          {isRightPanelOpen ? (
+            <ScoreBoard
+              state={gameState}
+              onNewGame={handleNewGame}
+              onNextRound={handleNextRound}
+            />
+          ) : null}
         </div>
       </div>
     </main>

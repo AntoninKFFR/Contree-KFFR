@@ -184,6 +184,7 @@ export default function MultiplayerRoomPage() {
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [isUpdatingReady, setIsUpdatingReady] = useState(false);
   const [pageState, setPageState] = useState<PageState>("loading");
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [displayGameState, setDisplayGameState] = useState<GameState | null>(null);
   const [localDisplayName, setLocalDisplayName] = useState("Joueur");
   const [roomWithPlayers, setRoomWithPlayers] = useState<RoomWithPlayers | null>(null);
@@ -259,8 +260,23 @@ export default function MultiplayerRoomPage() {
   );
   const legalCards =
     canPlayCard && playerView
-      ? playableCardsForCurrentPlayer(stateForViewerLegalCards(playerView))
-      : [];
+    ? playableCardsForCurrentPlayer(stateForViewerLegalCards(playerView))
+    : [];
+
+  useEffect(() => {
+    if (!playerView) {
+      return;
+    }
+
+    if (playerView.phase === "playing") {
+      setIsRightPanelOpen(false);
+      return;
+    }
+
+    if (playerView.phase === "finished" || playerView.phase === "game-over") {
+      setIsRightPanelOpen(true);
+    }
+  }, [playerView]);
   const canShowNextRoundButton = Boolean(
     roomWithPlayers?.room.status === "playing" &&
       gameState?.phase === "finished" &&
@@ -805,9 +821,29 @@ export default function MultiplayerRoomPage() {
             ) : null}
 
             {displayedRoomStatus === "playing" && playerView ? (
-              <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1fr)_310px]">
+              <div
+                className={[
+                  "grid min-h-0 flex-1 gap-2",
+                  isRightPanelOpen
+                    ? "lg:grid-cols-[minmax(0,1fr)_310px]"
+                    : "lg:grid-cols-[minmax(0,1fr)]",
+                ].join(" ")}
+              >
                 <div className="flex min-h-0 flex-col gap-2">
-                  <GameTable state={playerView} />
+                  <div className="flex items-center justify-end">
+                    <button
+                      className="hidden rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white lg:inline-flex"
+                      onClick={() => setIsRightPanelOpen((current) => !current)}
+                      type="button"
+                    >
+                      {isRightPanelOpen ? "Masquer infos" : "Afficher infos"}
+                    </button>
+                  </div>
+
+                  <GameTable
+                    state={playerView}
+                    showLiveScore={!isRightPanelOpen && playerView.phase === "playing"}
+                  />
 
                   {playerView.phase === "bidding" ? (
                     <BiddingPanel
@@ -830,20 +866,22 @@ export default function MultiplayerRoomPage() {
                   />
                 </div>
 
-                <div className="flex min-h-0 flex-col gap-2">
-                  {canShowNextRoundButton ? (
-                    <button
-                      className="rounded-md bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={isStartingNextRound}
-                      onClick={handleStartNextRound}
-                      type="button"
-                    >
-                      Manche suivante
-                    </button>
-                  ) : null}
+                {isRightPanelOpen ? (
+                  <div className="flex min-h-0 flex-col gap-2">
+                    {canShowNextRoundButton ? (
+                      <button
+                        className="rounded-md bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={isStartingNextRound}
+                        onClick={handleStartNextRound}
+                        type="button"
+                      >
+                        Manche suivante
+                      </button>
+                    ) : null}
 
-                  <ScoreBoard state={playerView} showActions={false} />
-                </div>
+                    <ScoreBoard state={playerView} showActions={false} />
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </>
