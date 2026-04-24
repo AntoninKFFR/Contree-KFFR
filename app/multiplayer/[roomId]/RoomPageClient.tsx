@@ -192,6 +192,7 @@ export default function MultiplayerRoomPage() {
   const animationRunIdRef = useRef(0);
   const displayGameStateRef = useRef<GameState | null>(null);
   const isAnimatingRef = useRef(false);
+  const previousPhaseRef = useRef<PlayerGameView["phase"] | null>(null);
 
   function updateDisplayGameState(nextState: GameState | null) {
     displayGameStateRef.current = nextState;
@@ -264,19 +265,28 @@ export default function MultiplayerRoomPage() {
     : [];
 
   useEffect(() => {
-    if (!playerView) {
+    const phase = playerView?.phase ?? null;
+
+    if (!phase) {
+      previousPhaseRef.current = phase;
       return;
     }
 
-    if (playerView.phase === "playing") {
+    if (previousPhaseRef.current === phase) {
+      return;
+    }
+
+    previousPhaseRef.current = phase;
+
+    if (phase === "playing") {
       setIsRightPanelOpen(false);
       return;
     }
 
-    if (playerView.phase === "finished" || playerView.phase === "game-over") {
+    if (phase === "finished" || phase === "game-over") {
       setIsRightPanelOpen(true);
     }
-  }, [playerView]);
+  }, [playerView?.phase]);
   const canShowNextRoundButton = Boolean(
     roomWithPlayers?.room.status === "playing" &&
       gameState?.phase === "finished" &&
