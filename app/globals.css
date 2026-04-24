@@ -37,6 +37,27 @@ select {
   animation: coinche-card-enter 220ms ease-out;
 }
 
+@keyframes coinche-trick-collect {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(
+        var(--coinche-trick-collect-x),
+        var(--coinche-trick-collect-y),
+        0
+      )
+      scale(0.82);
+  }
+}
+
+.coinche-trick-collect {
+  animation: coinche-trick-collect 420ms ease-in forwards;
+}
+
 @keyframes coinche-bid-bubble-enter {
   from {
     opacity: 0;
@@ -55,6 +76,7 @@ select {
 
 @media (prefers-reduced-motion: reduce) {
   .coinche-card-enter,
+  .coinche-trick-collect,
   .coinche-bid-bubble-enter {
     animation: none;
   }

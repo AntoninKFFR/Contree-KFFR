@@ -1,11 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CardView } from "@/components/CardView";
 import { PlayerPanel } from "@/components/PlayerPanel";
-import { SUIT_SYMBOLS } from "@/engine/cards";
+import { SUIT_SYMBOLS, cardId } from "@/engine/cards";
 import { playerName } from "@/engine/players";
-import type { Bid, Contract, GameState, PlayedCard, PlayerId } from "@/engine/types";
+import type {
+  Bid,
+  CompletedTrick,
+  Contract,
+  GameState,
+  PlayedCard,
+  PlayerId,
+} from "@/engine/types";
 import type { PlayerGameView } from "@/engine/views";
 
 type GameTableState = GameState | PlayerGameView;
@@ -20,7 +27,13 @@ type AnnouncementBubbleContent = {
   tone: "neutral" | "accent";
 };
 
+type AnimatedCompletedTrick = {
+  key: string;
+  trick: CompletedTrick;
+};
+
 const TABLE_BACKGROUND_IMAGE = "/TapisKFFR.png";
+const TRICK_COLLECTION_ANIMATION_MS = 420;
 
 function formatBidLabel(bid: Bid): AnnouncementBubbleContent {
   if (bid.action === "pass") {
@@ -108,6 +121,29 @@ function playedCardsToShow(state: GameTableState): { title: string; cards: Playe
   return { title: "Pli en cours", cards: [] };
 }
 
+function completedTrickKey(
+  roundNumber: number,
+  trickIndex: number,
+  trick: CompletedTrick,
+): string {
+  return `${roundNumber}-${trickIndex}-${trick.winnerId}-${trick.cards
+    .map((played) => `${played.playerId}-${cardId(played.card)}`)
+    .join("_")}`;
+}
+
+function trickCollectionOffset(winnerId: PlayerId): { x: string; y: string } {
+  switch (winnerId) {
+    case 2:
+      return { x: "0px", y: "-120px" };
+    case 3:
+      return { x: "-150px", y: "0px" };
+    case 1:
+      return { x: "150px", y: "0px" };
+    case 0:
+      return { x: "0px", y: "120px" };
+  }
+}
+
 function playedCardForPlayer(cards: PlayedCard[], playerId: PlayerId): PlayedCard | undefined {
   return cards.find((played) => played.playerId === playerId);
 }
@@ -170,6 +206,24 @@ function TrickCenter({ cards, title }: { cards: PlayedCard[]; title: string }) {
   );
 }
 
+function TrickCollectionAnimation({ trick }: { trick: CompletedTrick }) {
+  const offset = trickCollectionOffset(trick.winnerId);
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-20 coinche-trick-collect"
+      style={
+        {
+          "--coinche-trick-collect-x": offset.x,
+          "--coinche-trick-collect-y": offset.y,
+        } as React.CSSProperties
+      }
+    >
+      <TrickCenter cards={trick.cards} title="Pli gagne" />
+    </div>
+  );
+}
+
 function AnnouncementBubble({
   content,
   animate,
@@ -215,6 +269,15 @@ function AnnouncementBubble({
 }
 
 export function GameTable({ state }: GameTableProps) {
+  const previousCompletedTrickKeyRef = useRef<string | null>(null);
+  const [animatedCompletedTrick, setAnimatedCompletedTrick] = useState<AnimatedCompletedTrick | null>(
+    null,
+  );
+  const [hiddenCompletedTrickKey, setHiddenCompletedTrickKey] = useState<string | null>(null);
+  const latestCompletedTrick = state.completedTricks.at(-1) ?? null;
+  const latestCompletedTrickKey = latestCompletedTrick
+    ? completedTrickKey(state.roundNumber, state.completedTricks.length, latestCompletedTrick)
+    : null;
   const center = playedCardsToShow(state);
   const nameFor = (playerId: PlayerId) => playerName(playerId, state.playerNames);
   const latestBid = state.bids.at(-1) ?? null;
@@ -271,13 +334,52 @@ export function GameTable({ state }: GameTableProps) {
   const leftAnnouncement = announcementFor(3);
   const rightAnnouncement = announcementFor(1);
   const bottomAnnouncement = announcementFor(0);
+  const displayedCenter =
+    hiddenCompletedTrickKey &&
+    latestCompletedTrick &&
+    latestCompletedTrickKey === hiddenCompletedTrickKey &&
+    center.cards === latestCompletedTrick.cards
+      ? { title: "Pli en cours", cards: [] as PlayedCard[] }
+      : center;
+
+  useEffect(() => {
+    if (!latestCompletedTrick || !latestCompletedTrickKey) {
+      previousCompletedTrickKeyRef.current = latestCompletedTrickKey;
+      return;
+    }
+
+    if (previousCompletedTrickKeyRef.current === null) {
+      previousCompletedTrickKeyRef.current = latestCompletedTrickKey;
+      return;
+    }
+
+    if (previousCompletedTrickKeyRef.current === latestCompletedTrickKey) {
+      return;
+    }
+
+    previousCompletedTrickKeyRef.current = latestCompletedTrickKey;
+    setHiddenCompletedTrickKey(latestCompletedTrickKey);
+    setAnimatedCompletedTrick({
+      key: latestCompletedTrickKey,
+      trick: latestCompletedTrick,
+    });
+
+    const timeoutId = window.setTimeout(() => {
+      setAnimatedCompletedTrick((current) =>
+        current?.key === latestCompletedTrickKey ? null : current,
+      );
+    }, TRICK_COLLECTION_ANIMATION_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [latestCompletedTrick, latestCompletedTrickKey]);
 
   return (
     <section
       className="relative min-h-[320px] flex-1 overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center text-stone-900 shadow-sm"
       style={{ backgroundImage: `url(${TABLE_BACKGROUND_IMAGE})` }}
     >
-      <TrickCenter cards={center.cards} title={center.title} />
+      <TrickCenter cards={displayedCenter.cards} title={displayedCenter.title} />
+      {animatedCompletedTrick ? <TrickCollectionAnimation trick={animatedCompletedTrick.trick} /> : null}
 
       <div className="absolute left-1/2 top-3 -translate-x-1/2">
         {topAnnouncement ? (
