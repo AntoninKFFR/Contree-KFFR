@@ -23,12 +23,12 @@ export function CardView({
   const isRed = card.suit === "hearts" || card.suit === "diamonds";
   const sizeClasses =
     size === "compact"
-      ? "h-20 w-14 p-1.5"
-      : "h-24 w-16 p-2";
-  const rankClasses = size === "compact" ? "text-base" : "text-lg";
-  const symbolClasses = size === "compact" ? "text-2xl" : "text-3xl";
+      ? "h-16 w-11 p-1 sm:h-20 sm:w-14 sm:p-1.5"
+      : "h-28 w-20 p-2.5 sm:h-24 sm:w-16 sm:p-2";
+  const rankClasses = size === "compact" ? "text-sm sm:text-base" : "text-xl sm:text-lg";
+  const symbolClasses = size === "compact" ? "text-xl sm:text-2xl" : "text-4xl sm:text-3xl";
   const classes = [
-    "relative flex items-center justify-center rounded-md border bg-white text-center shadow-sm transition-all duration-200 ease-out",
+    "relative flex touch-manipulation items-center justify-center rounded-md border bg-white text-center shadow-sm transition-all duration-200 ease-out",
     sizeClasses,
     isRed ? "border-red-200 text-red-700" : "border-stone-300 text-stone-900",
     onClick && !disabled && isPlayable

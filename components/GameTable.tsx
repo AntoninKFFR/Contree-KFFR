@@ -169,7 +169,7 @@ function PlayedCardSlot({
           size="compact"
         />
       ) : (
-        <div className="flex h-20 w-14 items-center justify-center rounded-md border border-dashed border-white/45 bg-white/20 text-xs font-semibold text-white/80">
+        <div className="flex h-16 w-11 items-center justify-center rounded-md border border-dashed border-white/45 bg-white/20 text-[10px] font-semibold text-white/80 sm:h-20 sm:w-14 sm:text-xs">
           ...
         </div>
       )}
@@ -195,10 +195,10 @@ function TrickCell({
 
 function TrickCenter({ cards, title }: { cards: PlayedCard[]; title: string }) {
   return (
-    <div className="absolute left-1/2 top-1/2 grid grid-cols-[56px_88px_56px] grid-rows-[80px_80px_80px] place-items-center gap-2 -translate-x-1/2 -translate-y-1/2">
+    <div className="absolute left-1/2 top-1/2 grid grid-cols-[44px_72px_44px] grid-rows-[62px_62px_62px] place-items-center gap-1.5 -translate-x-1/2 -translate-y-1/2 sm:grid-cols-[56px_88px_56px] sm:grid-rows-[80px_80px_80px] sm:gap-2">
       <TrickCell cards={cards} className="col-start-2 row-start-1" playerId={2} />
       <TrickCell cards={cards} className="col-start-1 row-start-2" playerId={3} />
-      <h2 className="col-start-2 row-start-2 flex items-center justify-center rounded-md bg-white px-2 py-1 text-center text-xs font-semibold shadow-sm">
+      <h2 className="col-start-2 row-start-2 flex min-h-8 items-center justify-center rounded-md bg-white px-1.5 py-1 text-center text-[10px] font-semibold shadow-sm sm:px-2 sm:text-xs">
         {title}
       </h2>
       <TrickCell cards={cards} className="col-start-3 row-start-2" playerId={1} />
@@ -273,27 +273,31 @@ function LiveScoreOverlay({ state }: { state: GameTableState }) {
   const teamFor = (teamId: 0 | 1) => teamName(teamId, state.playerNames);
 
   return (
-    <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-lg border border-white/35 bg-black/25 px-3 py-2 text-right text-white shadow-sm backdrop-blur-sm">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
+    <div className="pointer-events-none absolute right-2 top-2 z-10 rounded-lg border border-white/35 bg-black/25 px-2 py-1.5 text-right text-white shadow-sm backdrop-blur-sm sm:right-3 sm:top-3 sm:px-3 sm:py-2">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/70 sm:text-[10px]">
         Scores
       </p>
       <div className="mt-1 space-y-1">
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-2 sm:gap-3">
           <div>
-            <p className="text-[10px] text-white/70">{teamFor(0)}</p>
-            <p className="text-sm font-bold leading-none">{state.totalScore[0]}</p>
+            <p className="max-w-16 truncate text-[9px] text-white/70 sm:max-w-none sm:text-[10px]">
+              {teamFor(0)}
+            </p>
+            <p className="text-xs font-bold leading-none sm:text-sm">{state.totalScore[0]}</p>
           </div>
-          <div className="min-w-8 rounded-md bg-white/12 px-1.5 py-1 text-center">
+          <div className="min-w-7 rounded-md bg-white/12 px-1 py-1 text-center sm:min-w-8 sm:px-1.5">
             <p className="text-[9px] font-semibold text-white/70">Manche</p>
             <p className="text-xs font-bold leading-none">{state.trickPoints[0]}</p>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-2 sm:gap-3">
           <div>
-            <p className="text-[10px] text-white/70">{teamFor(1)}</p>
-            <p className="text-sm font-bold leading-none">{state.totalScore[1]}</p>
+            <p className="max-w-16 truncate text-[9px] text-white/70 sm:max-w-none sm:text-[10px]">
+              {teamFor(1)}
+            </p>
+            <p className="text-xs font-bold leading-none sm:text-sm">{state.totalScore[1]}</p>
           </div>
-          <div className="min-w-8 rounded-md bg-white/12 px-1.5 py-1 text-center">
+          <div className="min-w-7 rounded-md bg-white/12 px-1 py-1 text-center sm:min-w-8 sm:px-1.5">
             <p className="text-[9px] font-semibold text-white/70">Manche</p>
             <p className="text-xs font-bold leading-none">{state.trickPoints[1]}</p>
           </div>
@@ -410,14 +414,14 @@ export function GameTable({ state, showLiveScore = false }: GameTableProps) {
 
   return (
     <section
-      className="relative min-h-[320px] flex-1 overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center text-stone-900 shadow-sm"
+      className="relative min-h-[260px] flex-1 overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center text-stone-900 shadow-sm sm:min-h-[320px]"
       style={{ backgroundImage: `url(${TABLE_BACKGROUND_IMAGE})` }}
     >
       <TrickCenter cards={displayedCenter.cards} title={displayedCenter.title} />
       {animatedCompletedTrick ? <TrickCollectionAnimation trick={animatedCompletedTrick.trick} /> : null}
       {showLiveScore ? <LiveScoreOverlay state={state} /> : null}
 
-      <div className="absolute left-1/2 top-3 -translate-x-1/2">
+      <div className="absolute left-1/2 top-2 -translate-x-1/2 sm:top-3">
         {topAnnouncement ? (
           <AnnouncementBubble
             key={topAnnouncement.bubbleKey}
@@ -434,7 +438,7 @@ export function GameTable({ state, showLiveScore = false }: GameTableProps) {
           playerId={2}
         />
       </div>
-      <div className="absolute left-3 top-1/2 -translate-y-1/2">
+      <div className="absolute left-2 top-1/2 -translate-y-1/2 sm:left-3">
         {leftAnnouncement ? (
           <AnnouncementBubble
             key={leftAnnouncement.bubbleKey}
@@ -451,7 +455,7 @@ export function GameTable({ state, showLiveScore = false }: GameTableProps) {
           playerId={3}
         />
       </div>
-      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+      <div className="absolute right-2 top-1/2 -translate-y-1/2 sm:right-3">
         {rightAnnouncement ? (
           <AnnouncementBubble
             key={rightAnnouncement.bubbleKey}
@@ -468,7 +472,7 @@ export function GameTable({ state, showLiveScore = false }: GameTableProps) {
           playerId={1}
         />
       </div>
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 sm:bottom-3">
         {bottomAnnouncement ? (
           <AnnouncementBubble
             key={bottomAnnouncement.bubbleKey}

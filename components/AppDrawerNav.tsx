@@ -100,7 +100,7 @@ export function AppDrawerNav() {
       <aside
         aria-hidden={!isOpen}
         className={[
-          "fixed right-0 top-0 z-50 flex h-dvh w-[min(320px,88vw)] flex-col border-l border-stone-200 bg-[#f8f5ee] shadow-2xl transition-transform duration-200 ease-out",
+          "fixed right-0 top-0 z-50 flex h-dvh w-[min(360px,96vw)] flex-col border-l border-stone-200 bg-[#f8f5ee] shadow-2xl transition-transform duration-200 ease-out sm:w-[min(320px,88vw)]",
           isOpen ? "translate-x-0" : "translate-x-full",
         ].join(" ")}
         id="app-drawer-nav"
