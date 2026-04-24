@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
-import { AuthStatus } from "@/components/AuthStatus";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
@@ -187,43 +185,19 @@ export default function SoloPage() {
   }
 
   return (
-    <main className="h-dvh overflow-hidden bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4">
+    <main className="h-[calc(100dvh-56px)] overflow-hidden bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4">
       <div className="mx-auto flex h-full max-w-7xl flex-col gap-2">
-        <header className="flex shrink-0 items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
-            Contrée par KFFR
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              className="rounded-md border border-emerald-800 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-900 shadow-sm transition hover:bg-emerald-50"
-              href="/"
-            >
-              Accueil
-            </Link>
-            <Link
-              className="rounded-md border border-emerald-800 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-900 shadow-sm transition hover:bg-emerald-50"
-              href="/solo"
-            >
-              Solo
-            </Link>
-            <Link
-              className="rounded-md border border-emerald-800 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-900 shadow-sm transition hover:bg-emerald-50"
-              href="/multiplayer"
-            >
-              Multijoueur
-            </Link>
-            <AuthStatus />
-            <select
-              aria-label="Mode de score"
-              className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-semibold shadow-sm"
-              onChange={(event) => setScoringMode(event.target.value as ScoringMode)}
-              value={scoringMode}
-            >
-              <option value="made-points">Points faits</option>
-              <option value="announced-points">Points annonces</option>
-            </select>
-          </div>
-        </header>
+        <div className="flex shrink-0 justify-end">
+          <select
+            aria-label="Mode de score"
+            className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-semibold shadow-sm"
+            onChange={(event) => setScoringMode(event.target.value as ScoringMode)}
+            value={scoringMode}
+          >
+            <option value="made-points">Points faits</option>
+            <option value="announced-points">Points annonces</option>
+          </select>
+        </div>
 
         <div
           className={[

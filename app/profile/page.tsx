@@ -232,17 +232,7 @@ function GameList({
 function ProfileShell({ children }: { children: React.ReactNode }) {
   return (
     <main className="min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950">
-      <div className="mx-auto flex max-w-4xl flex-col gap-4">
-        <div className="flex items-center justify-between gap-3">
-          <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/">
-            Retour au jeu
-          </Link>
-          <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/login">
-            Compte
-          </Link>
-        </div>
-        {children}
-      </div>
+      <div className="mx-auto flex max-w-4xl flex-col gap-4">{children}</div>
     </main>
   );
 }

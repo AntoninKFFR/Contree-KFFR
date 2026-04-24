@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { AuthStatus } from "@/components/AuthStatus";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
@@ -660,7 +659,7 @@ export default function MultiplayerRoomPage() {
     <main
       className={
         isPlayingLayout
-          ? "h-dvh overflow-hidden bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4"
+          ? "h-[calc(100dvh-56px)] overflow-hidden bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4"
           : "min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950"
       }
     >
@@ -671,27 +670,6 @@ export default function MultiplayerRoomPage() {
             : "mx-auto flex max-w-5xl flex-col gap-4"
         }
       >
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-          <nav className="flex flex-wrap gap-3">
-            <Link
-              className="text-sm font-semibold text-emerald-900 hover:underline"
-              href="/"
-            >
-              Accueil
-            </Link>
-            <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/solo">
-              Solo
-            </Link>
-            <Link
-              className="text-sm font-semibold text-emerald-900 hover:underline"
-              href="/multiplayer"
-            >
-              Multijoueur
-            </Link>
-          </nav>
-          <AuthStatus />
-        </header>
-
         {pageState === "unavailable" ? (
           <StatusMessage>Supabase est indisponible. Vérifie .env.local.</StatusMessage>
         ) : null}

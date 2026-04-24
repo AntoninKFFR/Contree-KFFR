@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { AuthStatus } from "@/components/AuthStatus";
 import { getProfileUsername } from "@/lib/profiles";
 import { createRoom, joinRoom } from "@/lib/rooms";
 import { getSupabaseClient } from "@/lib/supabaseClient";
@@ -133,24 +132,6 @@ export default function MultiplayerPage() {
   return (
     <main className="min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950">
       <div className="mx-auto flex max-w-4xl flex-col gap-4">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <nav className="flex flex-wrap gap-3">
-            <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/">
-              Accueil
-            </Link>
-            <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/solo">
-              Solo
-            </Link>
-            <Link
-              className="text-sm font-semibold text-emerald-900 hover:underline"
-              href="/multiplayer"
-            >
-              Multijoueur
-            </Link>
-          </nav>
-          <AuthStatus />
-        </header>
-
         <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
             Multijoueur
