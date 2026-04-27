@@ -228,26 +228,25 @@ function TrickCollectionAnimation({ trick }: { trick: CompletedTrick }) {
 function AnnouncementBubble({
   content,
   animate,
-  align,
+  className,
   isDominant,
 }: {
   content: AnnouncementBubbleContent;
   animate: boolean;
-  align: "left" | "right";
+  className: string;
   isDominant: boolean;
 }) {
   return (
     <div
       className={[
-        "pointer-events-none absolute z-10 flex w-[74px] min-h-[30px] flex-col items-center justify-center rounded-2xl border border-stone-300/70 px-1.5 py-1 shadow-md backdrop-blur-sm sm:w-[96px] sm:min-h-[36px] sm:px-2.5",
+        "pointer-events-none absolute z-10 flex w-[64px] min-h-[28px] flex-col items-center justify-center rounded-2xl border border-stone-300/70 px-1 py-1 shadow-md backdrop-blur-sm sm:w-[96px] sm:min-h-[36px] sm:px-2.5",
         content.tone === "accent"
           ? "bg-white/90 text-stone-900"
           : "bg-white/90 text-stone-500 opacity-60",
         isDominant && content.tone === "accent"
           ? "ring-1 ring-emerald-600/50"
           : "",
-        align === "right" ? "left-full ml-2" : "right-full mr-2",
-        "top-1/2 -translate-y-1/2",
+        className,
         animate ? "coinche-bid-bubble-enter" : "",
       ].join(" ")}
     >
@@ -269,6 +268,19 @@ function AnnouncementBubble({
       ) : null}
     </div>
   );
+}
+
+function bubblePositionClasses(playerId: PlayerId): string {
+  switch (playerId) {
+    case 2:
+      return "left-1/2 top-full mt-1 -translate-x-1/2 sm:left-full sm:top-1/2 sm:ml-2 sm:mt-0 sm:-translate-y-1/2 sm:translate-x-0";
+    case 3:
+      return "left-full top-1/2 ml-1 -translate-y-1/2 sm:left-full sm:ml-2";
+    case 1:
+      return "right-full top-1/2 mr-1 -translate-y-1/2 sm:right-full sm:mr-2";
+    case 0:
+      return "left-1/2 bottom-full mb-1 -translate-x-1/2 sm:left-full sm:bottom-auto sm:top-1/2 sm:mb-0 sm:ml-2 sm:-translate-y-1/2 sm:translate-x-0";
+  }
 }
 
 function LiveScoreOverlay({ state }: { state: GameTableState }) {
@@ -416,7 +428,7 @@ export function GameTable({ state, showLiveScore = false }: GameTableProps) {
 
   return (
     <section
-      className="relative min-h-[205px] flex-none overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center text-stone-900 shadow-sm sm:min-h-[260px] lg:flex-1 lg:min-h-[320px]"
+      className="relative min-h-[190px] w-full max-w-full flex-none overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center text-stone-900 shadow-sm sm:min-h-[260px] lg:flex-1 lg:min-h-[320px]"
       style={{ backgroundImage: `url(${TABLE_BACKGROUND_IMAGE})` }}
     >
       <TrickCenter cards={displayedCenter.cards} title={displayedCenter.title} />
@@ -427,8 +439,8 @@ export function GameTable({ state, showLiveScore = false }: GameTableProps) {
         {topAnnouncement ? (
           <AnnouncementBubble
             key={topAnnouncement.bubbleKey}
-            align="right"
             animate={topAnnouncement.animate}
+            className={bubblePositionClasses(2)}
             content={topAnnouncement.content}
             isDominant={topAnnouncement.isDominant}
           />
@@ -440,12 +452,12 @@ export function GameTable({ state, showLiveScore = false }: GameTableProps) {
           playerId={2}
         />
       </div>
-      <div className="absolute left-2 top-1/2 -translate-y-1/2 sm:left-3">
+      <div className="absolute left-1 top-1/2 -translate-y-1/2 sm:left-3">
         {leftAnnouncement ? (
           <AnnouncementBubble
             key={leftAnnouncement.bubbleKey}
-            align="right"
             animate={leftAnnouncement.animate}
+            className={bubblePositionClasses(3)}
             content={leftAnnouncement.content}
             isDominant={leftAnnouncement.isDominant}
           />
@@ -457,12 +469,12 @@ export function GameTable({ state, showLiveScore = false }: GameTableProps) {
           playerId={3}
         />
       </div>
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 sm:right-3">
+      <div className="absolute right-1 top-1/2 -translate-y-1/2 sm:right-3">
         {rightAnnouncement ? (
           <AnnouncementBubble
             key={rightAnnouncement.bubbleKey}
-            align="left"
             animate={rightAnnouncement.animate}
+            className={bubblePositionClasses(1)}
             content={rightAnnouncement.content}
             isDominant={rightAnnouncement.isDominant}
           />
@@ -478,8 +490,8 @@ export function GameTable({ state, showLiveScore = false }: GameTableProps) {
         {bottomAnnouncement ? (
           <AnnouncementBubble
             key={bottomAnnouncement.bubbleKey}
-            align="right"
             animate={bottomAnnouncement.animate}
+            className={bubblePositionClasses(0)}
             content={bottomAnnouncement.content}
             isDominant={bottomAnnouncement.isDominant}
           />
