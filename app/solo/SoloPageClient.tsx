@@ -185,7 +185,7 @@ export default function SoloPage() {
   }
 
   return (
-    <main className="min-h-[calc(100dvh-56px)] overflow-y-auto bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4 lg:h-[calc(100dvh-56px)] lg:overflow-hidden">
+    <main className="min-h-[calc(100dvh-56px)] overflow-x-hidden overflow-y-auto bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4 lg:h-[calc(100dvh-56px)] lg:overflow-hidden">
       <div className="mx-auto flex h-full max-w-7xl flex-col gap-2">
         <div className="flex shrink-0 justify-end">
           <select

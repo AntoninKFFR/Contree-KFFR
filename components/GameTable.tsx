@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CardView } from "@/components/CardView";
+import { MobileGameTable } from "@/components/MobileGameTable";
 import { PlayerPanel } from "@/components/PlayerPanel";
 import { SUIT_SYMBOLS, cardId } from "@/engine/cards";
 import { playerName, teamName } from "@/engine/players";
@@ -322,6 +323,7 @@ function LiveScoreOverlay({ state }: { state: GameTableState }) {
 }
 
 export function GameTable({ state, showLiveScore = false }: GameTableProps) {
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const previousCompletedTrickKeyRef = useRef<string | null>(null);
   const [animatedCompletedTrick, setAnimatedCompletedTrick] = useState<AnimatedCompletedTrick | null>(
     null,
@@ -396,6 +398,24 @@ export function GameTable({ state, showLiveScore = false }: GameTableProps) {
       : center;
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
+    const update = () => setIsMobilePortrait(mediaQuery.matches);
+
+    update();
+    mediaQuery.addEventListener("change", update);
+    window.addEventListener("resize", update);
+
+    return () => {
+      mediaQuery.removeEventListener("change", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!latestCompletedTrick || !latestCompletedTrickKey) {
       previousCompletedTrickKeyRef.current = latestCompletedTrickKey;
       return;
@@ -425,6 +445,44 @@ export function GameTable({ state, showLiveScore = false }: GameTableProps) {
 
     return () => window.clearTimeout(timeoutId);
   }, [latestCompletedTrick, latestCompletedTrickKey]);
+
+  if (isMobilePortrait) {
+    return (
+      <MobileGameTable
+        announcements={{
+          0: bottomAnnouncement
+            ? {
+                label: bottomAnnouncement.content.label,
+                isDominant: bottomAnnouncement.isDominant,
+                tone: bottomAnnouncement.content.tone,
+              }
+            : undefined,
+          1: rightAnnouncement
+            ? {
+                label: rightAnnouncement.content.label,
+                isDominant: rightAnnouncement.isDominant,
+                tone: rightAnnouncement.content.tone,
+              }
+            : undefined,
+          2: topAnnouncement
+            ? {
+                label: topAnnouncement.content.label,
+                isDominant: topAnnouncement.isDominant,
+                tone: topAnnouncement.content.tone,
+              }
+            : undefined,
+          3: leftAnnouncement
+            ? {
+                label: leftAnnouncement.content.label,
+                isDominant: leftAnnouncement.isDominant,
+                tone: leftAnnouncement.content.tone,
+              }
+            : undefined,
+        }}
+        state={state}
+      />
+    );
+  }
 
   return (
     <section

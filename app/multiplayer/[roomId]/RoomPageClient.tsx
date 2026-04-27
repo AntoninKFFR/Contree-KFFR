@@ -659,7 +659,7 @@ export default function MultiplayerRoomPage() {
     <main
       className={
         isPlayingLayout
-          ? "min-h-[calc(100dvh-56px)] overflow-y-auto bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4 lg:h-[calc(100dvh-56px)] lg:overflow-hidden"
+          ? "min-h-[calc(100dvh-56px)] overflow-x-hidden overflow-y-auto bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4 lg:h-[calc(100dvh-56px)] lg:overflow-hidden"
           : "min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950"
       }
     >
