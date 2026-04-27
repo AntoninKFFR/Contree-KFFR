@@ -34,6 +34,7 @@ export default function SoloPage() {
   const savedGameIdsRef = useRef(new Set<string>());
   const [scoringMode, setScoringMode] = useState<ScoringMode>("made-points");
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [gameState, setGameState] = useState<GameState>(() =>
     createInitialGame(initialRenderRandom, {
@@ -61,15 +62,21 @@ export default function SoloPage() {
       return;
     }
 
-    const mediaQuery = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
-    const update = () => setIsMobilePortrait(mediaQuery.matches);
+    const portraitQuery = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
+    const landscapeQuery = window.matchMedia("(max-width: 767px) and (orientation: landscape)");
+    const update = () => {
+      setIsMobilePortrait(portraitQuery.matches);
+      setIsMobileLandscape(landscapeQuery.matches);
+    };
 
     update();
-    mediaQuery.addEventListener("change", update);
+    portraitQuery.addEventListener("change", update);
+    landscapeQuery.addEventListener("change", update);
     window.addEventListener("resize", update);
 
     return () => {
-      mediaQuery.removeEventListener("change", update);
+      portraitQuery.removeEventListener("change", update);
+      landscapeQuery.removeEventListener("change", update);
       window.removeEventListener("resize", update);
     };
   }, []);
@@ -209,9 +216,14 @@ export default function SoloPage() {
   }
 
   return (
-    <main className="min-h-[calc(100dvh-56px)] overflow-x-hidden overflow-y-auto bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4 lg:h-[calc(100dvh-56px)] lg:overflow-hidden">
+    <main
+      className={[
+        "min-h-[calc(100dvh-56px)] overflow-x-hidden overflow-y-auto bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4 lg:h-[calc(100dvh-56px)] lg:overflow-hidden",
+        isMobileLandscape ? "overflow-hidden px-0 py-0 sm:px-4" : "",
+      ].join(" ")}
+    >
       <div className="mx-auto flex h-full max-w-7xl flex-col gap-2">
-        <div className="flex shrink-0 justify-end">
+        <div className={`flex shrink-0 justify-end ${isMobileLandscape ? "hidden" : ""}`}>
           <select
             aria-label="Mode de score"
             className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-semibold shadow-sm"
@@ -226,12 +238,16 @@ export default function SoloPage() {
         <div
           className={[
             "grid min-h-0 flex-1 gap-2",
-            isRightPanelOpen ? "lg:grid-cols-[minmax(0,1fr)_310px]" : "lg:grid-cols-[minmax(0,1fr)]",
+            isMobileLandscape
+              ? "grid-cols-[minmax(0,1fr)]"
+              : isRightPanelOpen
+                ? "lg:grid-cols-[minmax(0,1fr)_310px]"
+                : "lg:grid-cols-[minmax(0,1fr)]",
           ].join(" ")}
         >
-          <div className="flex min-h-0 flex-col gap-2">
-            <div className="flex items-center justify-end lg:hidden" />
-            <div className="flex items-center justify-end">
+          <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
+            <div className={`flex items-center justify-end lg:hidden ${isMobileLandscape ? "hidden" : ""}`} />
+            <div className={`flex items-center justify-end ${isMobileLandscape ? "hidden" : ""}`}>
               <button
                 className="hidden rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white lg:inline-flex"
                 onClick={() => setIsRightPanelOpen((current) => !current)}
@@ -242,11 +258,41 @@ export default function SoloPage() {
             </div>
 
             <GameTable
+              bottomOverlay={
+                isMobileLandscape
+                  ? gameState.phase === "bidding"
+                    ? (
+                        <BiddingPanel
+                          canBid={humanCanBid}
+                          canCoinche={humanCanCoinche}
+                          canSurcoinche={humanCanSurcoinche}
+                          compact
+                          currentContract={currentContract}
+                          onBid={handleHumanBid}
+                          onCoinche={handleHumanCoinche}
+                          onPass={handleHumanPass}
+                          onSurcoinche={handleHumanSurcoinche}
+                        />
+                      )
+                    : gameState.phase === "playing"
+                      ? (
+                          <HumanHand
+                            canPlay={humanCanPlay}
+                            cards={gameState.hands[localHumanPlayerId]}
+                            embedded
+                            legalCards={legalHumanCards}
+                            onPlayCard={handlePlayCard}
+                          />
+                        )
+                      : null
+                  : undefined
+              }
+              immersiveMobileLandscape={isMobileLandscape}
               state={gameState}
-              showLiveScore={!isRightPanelOpen && gameState.phase === "playing"}
+              showLiveScore={isMobileLandscape || (!isRightPanelOpen && gameState.phase === "playing")}
             />
 
-            {gameState.phase === "bidding" ? (
+            {!isMobileLandscape && gameState.phase === "bidding" ? (
               <BiddingPanel
                 canBid={humanCanBid}
                 canCoinche={humanCanCoinche}
@@ -283,17 +329,19 @@ export default function SoloPage() {
               </div>
             ) : null}
 
-            <div className={gameState.phase === "bidding" ? "hidden sm:block" : ""}>
-              <HumanHand
-                canPlay={humanCanPlay}
-                cards={gameState.hands[localHumanPlayerId]}
-                legalCards={legalHumanCards}
-                onPlayCard={handlePlayCard}
-              />
-            </div>
+            {!isMobileLandscape ? (
+              <div className={gameState.phase === "bidding" ? "hidden sm:block" : ""}>
+                <HumanHand
+                  canPlay={humanCanPlay}
+                  cards={gameState.hands[localHumanPlayerId]}
+                  legalCards={legalHumanCards}
+                  onPlayCard={handlePlayCard}
+                />
+              </div>
+            ) : null}
           </div>
 
-          {isRightPanelOpen ? (
+          {isRightPanelOpen && !isMobileLandscape ? (
             <ScoreBoard
               state={gameState}
               onNewGame={handleNewGame}

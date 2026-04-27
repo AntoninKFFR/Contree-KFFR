@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { CardView } from "@/components/CardView";
 import { PlayerPanel } from "@/components/PlayerPanel";
 import { SUIT_SYMBOLS, cardId } from "@/engine/cards";
@@ -19,6 +19,8 @@ type GameTableState = GameState | PlayerGameView;
 
 type GameTableProps = {
   state: GameTableState;
+  bottomOverlay?: ReactNode;
+  immersiveMobileLandscape?: boolean;
   showLiveScore?: boolean;
 };
 
@@ -321,7 +323,28 @@ function LiveScoreOverlay({ state }: { state: GameTableState }) {
   );
 }
 
-export function GameTable({ state, showLiveScore = false }: GameTableProps) {
+function TableStatusOverlay({ state }: { state: GameTableState }) {
+  const currentPlayer = playerName(state.currentPlayerId, state.playerNames);
+  const contractText = state.contract
+    ? `${state.contract.value} ${SUIT_SYMBOLS[state.contract.trump]}`
+    : "Annonces";
+
+  return (
+    <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-lg border border-white/20 bg-black/25 px-2.5 py-1.5 text-white shadow-sm backdrop-blur-sm">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/65">
+        {contractText}
+      </p>
+      <p className="mt-0.5 text-[11px] font-semibold text-white/90">{currentPlayer}</p>
+    </div>
+  );
+}
+
+export function GameTable({
+  state,
+  bottomOverlay,
+  immersiveMobileLandscape = false,
+  showLiveScore = false,
+}: GameTableProps) {
   const previousCompletedTrickKeyRef = useRef<string | null>(null);
   const [animatedCompletedTrick, setAnimatedCompletedTrick] = useState<AnimatedCompletedTrick | null>(
     null,
@@ -428,12 +451,21 @@ export function GameTable({ state, showLiveScore = false }: GameTableProps) {
 
   return (
     <section
-      className="relative min-h-[190px] w-full max-w-full flex-none overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center text-stone-900 shadow-sm sm:min-h-[260px] lg:flex-1 lg:min-h-[320px]"
+      className={[
+        "relative w-full max-w-full overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center text-stone-900 shadow-sm",
+        immersiveMobileLandscape
+          ? "min-h-0 flex-1 rounded-none border-x-0 border-y-0 shadow-none"
+          : "min-h-[190px] flex-none sm:min-h-[260px] lg:flex-1 lg:min-h-[320px]",
+      ].join(" ")}
       style={{ backgroundImage: `url(${TABLE_BACKGROUND_IMAGE})` }}
     >
       <TrickCenter cards={displayedCenter.cards} title={displayedCenter.title} />
       {animatedCompletedTrick ? <TrickCollectionAnimation trick={animatedCompletedTrick.trick} /> : null}
       {showLiveScore ? <LiveScoreOverlay state={state} /> : null}
+      {immersiveMobileLandscape ? <TableStatusOverlay state={state} /> : null}
+      {immersiveMobileLandscape && bottomOverlay ? (
+        <div className="absolute inset-x-2 bottom-2 z-30">{bottomOverlay}</div>
+      ) : null}
 
       <div className="absolute left-1/2 top-2 -translate-x-1/2 sm:top-3">
         {topAnnouncement ? (

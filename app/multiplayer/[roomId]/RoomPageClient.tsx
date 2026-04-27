@@ -185,6 +185,7 @@ export default function MultiplayerRoomPage() {
   const [isUpdatingReady, setIsUpdatingReady] = useState(false);
   const [pageState, setPageState] = useState<PageState>("loading");
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [displayGameState, setDisplayGameState] = useState<GameState | null>(null);
   const [localDisplayName, setLocalDisplayName] = useState("Joueur");
@@ -299,15 +300,21 @@ export default function MultiplayerRoomPage() {
       return;
     }
 
-    const mediaQuery = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
-    const update = () => setIsMobilePortrait(mediaQuery.matches);
+    const portraitQuery = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
+    const landscapeQuery = window.matchMedia("(max-width: 767px) and (orientation: landscape)");
+    const update = () => {
+      setIsMobilePortrait(portraitQuery.matches);
+      setIsMobileLandscape(landscapeQuery.matches);
+    };
 
     update();
-    mediaQuery.addEventListener("change", update);
+    portraitQuery.addEventListener("change", update);
+    landscapeQuery.addEventListener("change", update);
     window.addEventListener("resize", update);
 
     return () => {
-      mediaQuery.removeEventListener("change", update);
+      portraitQuery.removeEventListener("change", update);
+      landscapeQuery.removeEventListener("change", update);
       window.removeEventListener("resize", update);
     };
   }, []);
@@ -684,7 +691,7 @@ export default function MultiplayerRoomPage() {
     <main
       className={
         isPlayingLayout
-          ? "min-h-[calc(100dvh-56px)] overflow-x-hidden overflow-y-auto bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4 lg:h-[calc(100dvh-56px)] lg:overflow-hidden"
+          ? `min-h-[calc(100dvh-56px)] overflow-x-hidden overflow-y-auto bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4 lg:h-[calc(100dvh-56px)] lg:overflow-hidden${isMobileLandscape ? " overflow-hidden px-0 py-0 sm:px-4" : ""}`
           : "min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950"
       }
     >
@@ -837,13 +844,15 @@ export default function MultiplayerRoomPage() {
               <div
                 className={[
                   "grid min-h-0 flex-1 gap-2",
-                  isRightPanelOpen
-                    ? "lg:grid-cols-[minmax(0,1fr)_310px]"
-                    : "lg:grid-cols-[minmax(0,1fr)]",
+                  isMobileLandscape
+                    ? "grid-cols-[minmax(0,1fr)]"
+                    : isRightPanelOpen
+                      ? "lg:grid-cols-[minmax(0,1fr)_310px]"
+                      : "lg:grid-cols-[minmax(0,1fr)]",
                 ].join(" ")}
               >
-                <div className="flex min-h-0 flex-col gap-2">
-                  <div className="flex items-center justify-end">
+                <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
+                  <div className={`flex items-center justify-end ${isMobileLandscape ? "hidden" : ""}`}>
                     <button
                       className="hidden rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white lg:inline-flex"
                       onClick={() => setIsRightPanelOpen((current) => !current)}
@@ -854,11 +863,41 @@ export default function MultiplayerRoomPage() {
                   </div>
 
                   <GameTable
+                    bottomOverlay={
+                      isMobileLandscape
+                        ? playerView.phase === "bidding"
+                          ? (
+                              <BiddingPanel
+                                canBid={canBid && !isPlayingCard}
+                                canCoinche={canBidCoinche && !isPlayingCard}
+                                canSurcoinche={canBidSurcoinche && !isPlayingCard}
+                                compact
+                                currentContract={currentContract}
+                                onBid={handleBid}
+                                onCoinche={handleCoinche}
+                                onPass={handlePass}
+                                onSurcoinche={handleSurcoinche}
+                              />
+                            )
+                          : playerView.phase === "playing"
+                            ? (
+                                <HumanHand
+                                  canPlay={canPlayCard && !isPlayingCard}
+                                  cards={playerView.hand}
+                                  embedded
+                                  legalCards={legalCards}
+                                  onPlayCard={handlePlayCard}
+                                />
+                              )
+                            : null
+                        : undefined
+                    }
+                    immersiveMobileLandscape={isMobileLandscape}
                     state={playerView}
-                    showLiveScore={!isRightPanelOpen && playerView.phase === "playing"}
+                    showLiveScore={isMobileLandscape || (!isRightPanelOpen && playerView.phase === "playing")}
                   />
 
-                  {playerView.phase === "bidding" ? (
+                  {!isMobileLandscape && playerView.phase === "bidding" ? (
                     <BiddingPanel
                       canBid={canBid && !isPlayingCard}
                       canCoinche={canBidCoinche && !isPlayingCard}
@@ -884,17 +923,19 @@ export default function MultiplayerRoomPage() {
                     </div>
                   ) : null}
 
-                  <div className={playerView.phase === "bidding" ? "hidden sm:block" : ""}>
-                    <HumanHand
-                      canPlay={canPlayCard && !isPlayingCard}
-                      cards={playerView.hand}
-                      legalCards={legalCards}
-                      onPlayCard={handlePlayCard}
-                    />
-                  </div>
+                  {!isMobileLandscape ? (
+                    <div className={playerView.phase === "bidding" ? "hidden sm:block" : ""}>
+                      <HumanHand
+                        canPlay={canPlayCard && !isPlayingCard}
+                        cards={playerView.hand}
+                        legalCards={legalCards}
+                        onPlayCard={handlePlayCard}
+                      />
+                    </div>
+                  ) : null}
                 </div>
 
-                {isRightPanelOpen ? (
+                {isRightPanelOpen && !isMobileLandscape ? (
                   <div className="flex min-h-0 flex-col gap-2">
                     {canShowNextRoundButton ? (
                       <button
