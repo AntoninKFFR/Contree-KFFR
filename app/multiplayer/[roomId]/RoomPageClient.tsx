@@ -7,6 +7,7 @@ import type { Session } from "@supabase/supabase-js";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
+import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { ScoreBoard } from "@/components/ScoreBoard";
 import { applyGameAction } from "@/engine/actions";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
@@ -184,6 +185,7 @@ export default function MultiplayerRoomPage() {
   const [isUpdatingReady, setIsUpdatingReady] = useState(false);
   const [pageState, setPageState] = useState<PageState>("loading");
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [displayGameState, setDisplayGameState] = useState<GameState | null>(null);
   const [localDisplayName, setLocalDisplayName] = useState("Joueur");
   const [roomWithPlayers, setRoomWithPlayers] = useState<RoomWithPlayers | null>(null);
@@ -291,6 +293,24 @@ export default function MultiplayerRoomPage() {
       gameState?.phase === "finished" &&
       displayedRoomStatus !== "finished",
   );
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
+    const update = () => setIsMobilePortrait(mediaQuery.matches);
+
+    update();
+    mediaQuery.addEventListener("change", update);
+    window.addEventListener("resize", update);
+
+    return () => {
+      mediaQuery.removeEventListener("change", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
 
   const loadRoom = useCallback(async (options: LoadRoomOptions = {}) => {
     const supabase = getSupabaseClient();
@@ -654,6 +674,11 @@ export default function MultiplayerRoomPage() {
   }
 
   const isPlayingLayout = displayedRoomStatus === "playing";
+  const shouldLockPortrait = isMobilePortrait && displayedRoomStatus === "playing";
+
+  if (shouldLockPortrait) {
+    return <MobileLandscapeNotice />;
+  }
 
   return (
     <main

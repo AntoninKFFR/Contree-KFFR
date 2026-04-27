@@ -5,6 +5,7 @@ import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
+import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { ScoreBoard } from "@/components/ScoreBoard";
 import { applyGameAction, type GameAction } from "@/engine/actions";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
@@ -33,6 +34,7 @@ export default function SoloPage() {
   const savedGameIdsRef = useRef(new Set<string>());
   const [scoringMode, setScoringMode] = useState<ScoringMode>("made-points");
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [gameState, setGameState] = useState<GameState>(() =>
     createInitialGame(initialRenderRandom, {
       scoringMode: "made-points",
@@ -53,6 +55,24 @@ export default function SoloPage() {
     if (!humanCanPlay) return [];
     return playableCardsForCurrentPlayer(gameState);
   }, [gameState, humanCanPlay]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
+    const update = () => setIsMobilePortrait(mediaQuery.matches);
+
+    update();
+    mediaQuery.addEventListener("change", update);
+    window.addEventListener("resize", update);
+
+    return () => {
+      mediaQuery.removeEventListener("change", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
 
   useEffect(() => {
     if (gameState.phase === "playing") {
@@ -182,6 +202,10 @@ export default function SoloPage() {
 
   function handleNextRound() {
     dispatchGameAction({ type: "start-next-round" });
+  }
+
+  if (isMobilePortrait) {
+    return <MobileLandscapeNotice />;
   }
 
   return (
