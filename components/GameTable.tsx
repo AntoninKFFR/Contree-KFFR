@@ -239,7 +239,7 @@ function AnnouncementBubble({
   return (
     <div
       className={[
-        "pointer-events-none absolute z-10 flex w-[96px] min-h-[36px] flex-col items-center justify-center rounded-[18px] border border-stone-300/70 px-2.5 py-1 shadow-md backdrop-blur-sm",
+        "pointer-events-none absolute z-10 flex w-[74px] min-h-[30px] flex-col items-center justify-center rounded-2xl border border-stone-300/70 px-1.5 py-1 shadow-md backdrop-blur-sm sm:w-[96px] sm:min-h-[36px] sm:px-2.5",
         content.tone === "accent"
           ? "bg-white/90 text-stone-900"
           : "bg-white/90 text-stone-500 opacity-60",
@@ -254,14 +254,16 @@ function AnnouncementBubble({
       <p
         className={[
           "text-center leading-none tracking-[0.01em]",
-          content.tone === "accent" ? "text-[10px] font-bold text-stone-900" : "text-[9px] font-semibold text-stone-500",
+          content.tone === "accent"
+            ? "text-[9px] font-bold text-stone-900 sm:text-[10px]"
+            : "text-[8px] font-semibold text-stone-500 sm:text-[9px]",
           isDominant && content.tone === "accent" ? "text-stone-900" : "",
         ].join(" ")}
       >
         {content.label}
       </p>
       {content.detail ? (
-        <p className="mt-0.5 text-center text-[8px] font-semibold uppercase tracking-[0.12em] text-stone-600">
+        <p className="mt-0.5 text-center text-[7px] font-semibold uppercase tracking-[0.08em] text-stone-600 sm:text-[8px] sm:tracking-[0.12em]">
           {content.detail}
         </p>
       ) : null}
@@ -273,7 +275,7 @@ function LiveScoreOverlay({ state }: { state: GameTableState }) {
   const teamFor = (teamId: 0 | 1) => teamName(teamId, state.playerNames);
 
   return (
-    <div className="pointer-events-none absolute right-2 top-2 z-10 rounded-lg border border-white/35 bg-black/25 px-2 py-1.5 text-right text-white shadow-sm backdrop-blur-sm sm:right-3 sm:top-3 sm:px-3 sm:py-2">
+    <div className="pointer-events-none absolute right-3 top-3 z-10 hidden rounded-lg border border-white/35 bg-black/25 px-3 py-2 text-right text-white shadow-sm backdrop-blur-sm sm:block">
       <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/70 sm:text-[10px]">
         Scores
       </p>
@@ -414,7 +416,7 @@ export function GameTable({ state, showLiveScore = false }: GameTableProps) {
 
   return (
     <section
-      className="relative min-h-[260px] flex-1 overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center text-stone-900 shadow-sm sm:min-h-[320px]"
+      className="relative min-h-[205px] flex-none overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center text-stone-900 shadow-sm sm:min-h-[260px] lg:flex-1 lg:min-h-[320px]"
       style={{ backgroundImage: `url(${TABLE_BACKGROUND_IMAGE})` }}
     >
       <TrickCenter cards={displayedCenter.cards} title={displayedCenter.title} />

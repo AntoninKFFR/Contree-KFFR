@@ -659,7 +659,7 @@ export default function MultiplayerRoomPage() {
     <main
       className={
         isPlayingLayout
-          ? "h-[calc(100dvh-56px)] overflow-hidden bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4"
+          ? "min-h-[calc(100dvh-56px)] overflow-y-auto bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4 lg:h-[calc(100dvh-56px)] lg:overflow-hidden"
           : "min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950"
       }
     >
@@ -846,12 +846,27 @@ export default function MultiplayerRoomPage() {
                     />
                   ) : null}
 
-                  <HumanHand
-                    canPlay={canPlayCard && !isPlayingCard}
-                    cards={playerView.hand}
-                    legalCards={legalCards}
-                    onPlayCard={handlePlayCard}
-                  />
+                  {playerView.phase === "finished" && canShowNextRoundButton ? (
+                    <div className="lg:hidden">
+                      <button
+                        className="w-full rounded-md bg-stone-900 px-3 py-3 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={isStartingNextRound}
+                        onClick={handleStartNextRound}
+                        type="button"
+                      >
+                        Manche suivante
+                      </button>
+                    </div>
+                  ) : null}
+
+                  <div className={playerView.phase === "bidding" ? "hidden sm:block" : ""}>
+                    <HumanHand
+                      canPlay={canPlayCard && !isPlayingCard}
+                      cards={playerView.hand}
+                      legalCards={legalCards}
+                      onPlayCard={handlePlayCard}
+                    />
+                  </div>
                 </div>
 
                 {isRightPanelOpen ? (

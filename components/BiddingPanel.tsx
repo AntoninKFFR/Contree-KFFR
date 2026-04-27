@@ -65,11 +65,11 @@ export function BiddingPanel({
         </p>
       ) : null}
 
-      <div className="grid gap-2 sm:grid-cols-[120px_160px_1fr]">
+      <div className="grid gap-2 md:grid-cols-[120px_160px_1fr]">
         <label className="flex flex-col gap-1 text-xs font-semibold text-stone-700">
           Valeur
           <select
-            className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
+            className="rounded-md border border-stone-300 px-2 py-2 text-sm"
             disabled={!canMakeBid}
             onChange={(event) => setValue(Number(event.target.value) as BidValue)}
             value={value}
@@ -86,7 +86,7 @@ export function BiddingPanel({
         <label className="flex flex-col gap-1 text-xs font-semibold text-stone-700">
           Atout
           <select
-            className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
+            className="rounded-md border border-stone-300 px-2 py-2 text-sm"
             disabled={!canMakeBid}
             onChange={(event) => setTrump(event.target.value as Suit)}
             value={trump}
@@ -99,9 +99,9 @@ export function BiddingPanel({
           </select>
         </label>
 
-        <div className="grid grid-cols-4 items-end gap-2">
+        <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-4">
           <button
-            className="rounded-md bg-stone-900 px-2 py-1.5 text-xs font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md bg-stone-900 px-2 py-2 text-xs font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canMakeBid}
             onClick={handleBid}
             type="button"
@@ -109,7 +109,7 @@ export function BiddingPanel({
             Annoncer
           </button>
           <button
-            className="rounded-md border border-red-300 px-2 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-red-300 px-2 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canCoinche}
             onClick={onCoinche}
             type="button"
@@ -117,7 +117,7 @@ export function BiddingPanel({
             Contrer
           </button>
           <button
-            className="rounded-md border border-emerald-300 px-2 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-emerald-300 px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canSurcoinche}
             onClick={onSurcoinche}
             type="button"
@@ -125,7 +125,7 @@ export function BiddingPanel({
             Surcontrer
           </button>
           <button
-            className="rounded-md border border-stone-300 px-2 py-1.5 text-xs font-semibold text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-stone-300 px-2 py-2 text-xs font-semibold text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canBid}
             onClick={onPass}
             type="button"

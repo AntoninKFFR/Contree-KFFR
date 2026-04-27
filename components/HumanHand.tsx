@@ -18,7 +18,7 @@ export function HumanHand({ cards, legalCards, canPlay, onPlayCard }: HumanHandP
           {canPlay ? "Choisis une carte autorisee." : "Les bots reflechissent..."}
         </p>
       </div>
-      <div className="flex min-h-28 flex-wrap justify-center gap-2.5 overflow-x-hidden sm:min-h-24 sm:justify-start sm:gap-2">
+      <div className="-mx-1 flex min-h-28 gap-2.5 overflow-x-auto px-1 pb-1 sm:mx-0 sm:min-h-24 sm:flex-wrap sm:justify-start sm:gap-2 sm:overflow-visible sm:px-0 sm:pb-0">
         {cards.map((card) => {
           const isPlayable = legalCards.some((legalCard) => sameCard(legalCard, card));
 

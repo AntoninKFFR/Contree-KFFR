@@ -185,7 +185,7 @@ export default function SoloPage() {
   }
 
   return (
-    <main className="h-[calc(100dvh-56px)] overflow-hidden bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4">
+    <main className="min-h-[calc(100dvh-56px)] overflow-y-auto bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4 lg:h-[calc(100dvh-56px)] lg:overflow-hidden">
       <div className="mx-auto flex h-full max-w-7xl flex-col gap-2">
         <div className="flex shrink-0 justify-end">
           <select
@@ -217,7 +217,10 @@ export default function SoloPage() {
               </button>
             </div>
 
-            <GameTable state={gameState} showLiveScore={!isRightPanelOpen && gameState.phase === "playing"} />
+            <GameTable
+              state={gameState}
+              showLiveScore={!isRightPanelOpen && gameState.phase === "playing"}
+            />
 
             {gameState.phase === "bidding" ? (
               <BiddingPanel
@@ -232,12 +235,38 @@ export default function SoloPage() {
               />
             ) : null}
 
-            <HumanHand
-              canPlay={humanCanPlay}
-              cards={gameState.hands[localHumanPlayerId]}
-              legalCards={legalHumanCards}
-              onPlayCard={handlePlayCard}
-            />
+            {gameState.phase === "finished" ? (
+              <div className="grid gap-2 lg:hidden">
+                <button
+                  className="rounded-md bg-stone-900 px-3 py-3 text-sm font-semibold text-white"
+                  onClick={handleNextRound}
+                  type="button"
+                >
+                  Manche suivante
+                </button>
+              </div>
+            ) : null}
+
+            {gameState.phase === "game-over" ? (
+              <div className="grid gap-2 lg:hidden">
+                <button
+                  className="rounded-md bg-stone-900 px-3 py-3 text-sm font-semibold text-white"
+                  onClick={handleNewGame}
+                  type="button"
+                >
+                  Nouvelle partie
+                </button>
+              </div>
+            ) : null}
+
+            <div className={gameState.phase === "bidding" ? "hidden sm:block" : ""}>
+              <HumanHand
+                canPlay={humanCanPlay}
+                cards={gameState.hands[localHumanPlayerId]}
+                legalCards={legalHumanCards}
+                onPlayCard={handlePlayCard}
+              />
+            </div>
           </div>
 
           {isRightPanelOpen ? (
