@@ -56,6 +56,9 @@ export default function MultiplayerRoomPage() {
   const [isJoiningSeat, setIsJoiningSeat] = useState(false);
   const [isLeavingSeat, setIsLeavingSeat] = useState(false);
   const [isPlayingCard, setIsPlayingCard] = useState(false);
+  const [isForfeiting, setIsForfeiting] = useState(false);
+  const [isForfeitConfirmationOpen, setIsForfeitConfirmationOpen] = useState(false);
+  const [isClaimingHost, setIsClaimingHost] = useState(false);
   const [takeoverSeatInFlight, setTakeoverSeatInFlight] = useState<RoomPlayerRow["seat_index"] | null>(null);
   const [isStartingNextRound, setIsStartingNextRound] = useState(false);
   const [isResettingRoom, setIsResettingRoom] = useState(false);
@@ -117,6 +120,11 @@ export default function MultiplayerRoomPage() {
     gameState?.winnerTeam !== undefined
       ? teamName(gameState.winnerTeam, gameState.playerNames)
       : null;
+  const finalOutcome = finalWinner
+    ? gameState?.endReason === "forfeit"
+      ? `${finalWinner} gagnent par abandon.`
+      : `${finalWinner} gagnent`
+    : "Fin de partie";
   const canPlayCard = Boolean(
     gameState &&
       currentSeat &&
@@ -497,6 +505,47 @@ export default function MultiplayerRoomPage() {
     }
   }
 
+  async function handleClaimHost() {
+    if (!roomWithPlayers || !session || !roomWithPlayers.canClaimHost || isClaimingHost) return;
+    setIsClaimingHost(true);
+    setError(null);
+    try {
+      const nextRoom = await sendRoomIntent(
+        roomWithPlayers.room.id,
+        roomWithPlayers.room.state_version,
+        { type: "claim-host" },
+        session,
+      );
+      setRoomWithPlayers(nextRoom);
+      setPageState("ready");
+    } catch (claimError) {
+      setError(errorMessage(claimError));
+    } finally {
+      setIsClaimingHost(false);
+    }
+  }
+
+  async function handleForfeitGame() {
+    if (!roomWithPlayers || !session || isForfeiting) return;
+    setIsForfeiting(true);
+    setError(null);
+    try {
+      const nextRoom = await sendRoomIntent(
+        roomWithPlayers.room.id,
+        roomWithPlayers.room.state_version,
+        { type: "forfeit-game" },
+        session,
+      );
+      setRoomWithPlayers(nextRoom);
+      setPageState("ready");
+    } catch (forfeitError) {
+      setError(errorMessage(forfeitError));
+    } finally {
+      setIsForfeiting(false);
+      setIsForfeitConfirmationOpen(false);
+    }
+  }
+
   async function handleRoomPlayerAction(action: RoomPlayerAction) {
     const supabase = getSupabaseClient();
     const isCardAction = action.type === "play-card";
@@ -656,6 +705,19 @@ export default function MultiplayerRoomPage() {
           </p>
         ) : null}
 
+        {pageState === "ready" && roomWithPlayers?.canClaimHost ? (
+          <div className="flex justify-end">
+            <button
+              className="rounded-md border border-emerald-700 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isClaimingHost}
+              onClick={() => void handleClaimHost()}
+              type="button"
+            >
+              {isClaimingHost ? "Attribution…" : "Devenir hôte"}
+            </button>
+          </div>
+        ) : null}
+
         {pageState === "ready" && roomWithPlayers ? (
           <>
             {displayedRoomStatus === "finished" && gameState ? (
@@ -664,7 +726,7 @@ export default function MultiplayerRoomPage() {
                   Partie terminée
                 </p>
                 <h2 className="mt-1 text-2xl font-bold">
-                  {finalWinner ? `${finalWinner} gagnent` : "Fin de partie"}
+                  {finalOutcome}
                 </h2>
                 <div className="mt-3 grid gap-2 text-sm text-stone-800 sm:grid-cols-2">
                   <p className="rounded-md bg-white px-3 py-2 font-semibold">
@@ -778,6 +840,15 @@ export default function MultiplayerRoomPage() {
                 ].join(" ")}
               >
                 <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
+                  <div className={`flex justify-end ${isMobileLandscape ? "h-6 items-center pr-2" : ""}`}>
+                    <button
+                      className="rounded-md border border-red-300 bg-white/90 px-2 py-1 text-[10px] font-semibold text-red-800 shadow-sm hover:bg-red-50 sm:text-xs"
+                      onClick={() => setIsForfeitConfirmationOpen(true)}
+                      type="button"
+                    >
+                      Abandonner la partie
+                    </button>
+                  </div>
                   <div className={`flex items-center justify-between ${isMobileLandscape ? "hidden" : ""}`}>
                     {turnSecondsRemaining !== null ? (
                       <p className="rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm">
@@ -905,6 +976,40 @@ export default function MultiplayerRoomPage() {
           </>
         ) : null}
       </div>
+
+      {isForfeitConfirmationOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <section
+            aria-labelledby="forfeit-title"
+            aria-modal="true"
+            className="w-full max-w-sm rounded-lg border border-stone-300 bg-white p-5 shadow-xl"
+            role="dialog"
+          >
+            <h2 className="text-lg font-bold text-stone-950" id="forfeit-title">
+              Abandonner la partie ?
+            </h2>
+            <p className="mt-2 text-sm text-stone-700">Ton équipe perdra immédiatement.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50 disabled:opacity-50"
+                disabled={isForfeiting}
+                onClick={() => setIsForfeitConfirmationOpen(false)}
+                type="button"
+              >
+                Annuler
+              </button>
+              <button
+                className="rounded-md bg-red-700 px-3 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isForfeiting}
+                onClick={() => void handleForfeitGame()}
+                type="button"
+              >
+                {isForfeiting ? "Abandon…" : "Abandonner"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }

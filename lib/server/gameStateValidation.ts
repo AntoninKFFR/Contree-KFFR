@@ -22,6 +22,29 @@ export function parseServerGameState(value: unknown): GameState {
     throw new Error("Stored game state is invalid.");
   }
   if (!object(value.hands)) throw new Error("Stored game hands are invalid.");
+  if (value.endReason !== undefined && value.endReason !== null && value.endReason !== "score" && value.endReason !== "forfeit") {
+    throw new Error("Stored game end reason is invalid.");
+  }
+  if (
+    value.forfeitingTeam !== undefined &&
+    value.forfeitingTeam !== null &&
+    value.forfeitingTeam !== 0 &&
+    value.forfeitingTeam !== 1
+  ) {
+    throw new Error("Stored forfeiting team is invalid.");
+  }
+  if (
+    value.endReason === "forfeit" &&
+    (
+      value.phase !== "game-over" ||
+      value.forfeitingTeam === null ||
+      value.forfeitingTeam === undefined ||
+      (value.forfeitingTeam === 0 && value.winnerTeam !== 1) ||
+      (value.forfeitingTeam === 1 && value.winnerTeam !== 0)
+    )
+  ) {
+    throw new Error("Stored forfeit state is inconsistent.");
+  }
   for (const seat of [0, 1, 2, 3] as const) {
     const hand = value.hands[seat];
     if (!Array.isArray(hand) || !hand.every(card)) {

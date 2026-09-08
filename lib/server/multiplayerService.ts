@@ -6,6 +6,7 @@ import { toPlayerGameView } from "@/engine/views";
 import type {
   MultiplayerRoomView, RoomIntent, RoomPlayerRow, RoomRow, RoomWithPlayers,
 } from "@/lib/roomTypes";
+import { canClaimRoomHost, nextHostUserId } from "@/lib/multiplayerHost";
 import { isTurnDeadlineExpired, turnDeadlineForState } from "@/lib/multiplayerTurnTimer";
 import {
   PRESENCE_OFFLINE_TIMEOUT_MS, PresenceMembershipError, projectRoomPlayers,
@@ -14,7 +15,7 @@ import {
 import { parseServerGameState } from "./gameStateValidation";
 import {
   applyAuthorizedAction, applyBotTurns, applyTimedOutTurnIfExpired, enableBotTakeover,
-  humanSeat, joinLobbySeat, leaveLobbySeat, MultiplayerError, requireHost,
+  forfeitRoom, humanSeat, joinLobbySeat, leaveLobbySeat, MultiplayerError, requireHost,
   requireVersion, resetRoomPlayers, setLobbyReady, viewerSeatIndex,
 } from "./multiplayerGame";
 import { getSupabaseAdmin } from "./supabaseAdmin";
@@ -74,6 +75,7 @@ export async function roomView(
     room: publicRoom,
     players: projectRoomPlayers(result.players, nowMs),
     isHost: result.room.host_user_id === userId,
+    canClaimHost: canClaimRoomHost(result.room, result.players, userId, nowMs),
     viewerSeatIndex: seatIndex,
     game,
   };
@@ -118,6 +120,7 @@ async function commit(
   players: RoomPlayerRow[] | null = null,
   timerPlayers: RoomPlayerRow[] = players ?? [],
   nowMs = Date.now(),
+  hostUserId: string | null | undefined = undefined,
 ): Promise<void> {
   const { data, error } = await getSupabaseAdmin().rpc("commit_room_state", {
     p_room_id: room.id,
@@ -127,9 +130,27 @@ async function commit(
     p_game_phase: state?.phase ?? null,
     p_players: players,
     p_turn_deadline_at: turnDeadlineForState(state, timerPlayers, nowMs),
+    p_host_user_id: hostUserId ?? null,
+    p_update_host: hostUserId !== undefined,
   });
   if (error) throw error;
   if (data !== true) throw new MultiplayerError("La partie a changé. Recharge la table puis réessaie.", 409, "version_conflict");
+}
+
+async function claimHost(roomId: string, userId: string, nowMs: number): Promise<void> {
+  const { data, error } = await getSupabaseAdmin().rpc("claim_room_host", {
+    p_room_id: roomId,
+    p_claimant_user_id: userId,
+    p_offline_before: new Date(nowMs - PRESENCE_OFFLINE_TIMEOUT_MS).toISOString(),
+  });
+  if (error) throw error;
+  if (data !== true) {
+    throw new MultiplayerError(
+      "Le rôle d'hôte n'est plus récupérable. Recharge la table.",
+      409,
+      "host_claim_conflict",
+    );
+  }
 }
 
 async function commitBotTakeover(input: {
@@ -244,11 +265,33 @@ export async function findRoomByCode(rawCode: unknown, userId: string): Promise<
 
 export async function executeIntent(roomId: string, userId: string, expectedVersion: number, intent: RoomIntent) {
   const current = await roomAndPlayers(roomId);
-  requireVersion(current.room, expectedVersion);
+  if (intent.type !== "claim-host") requireVersion(current.room, expectedVersion);
   const nowMs = Date.now();
   const now = new Date(nowMs).toISOString();
 
-  if (intent.type === "game-action") {
+  if (intent.type === "claim-host") {
+    if (!canClaimRoomHost(current.room, current.players, userId, nowMs)) {
+      throw new MultiplayerError(
+        "L'hôte actuel est encore en ligne ou tu ne peux pas récupérer ce rôle.",
+        409,
+        "host_not_claimable",
+      );
+    }
+    await claimHost(roomId, userId, nowMs);
+  } else if (intent.type === "forfeit-game") {
+    const result = forfeitRoom({
+      ...current, state: await serverState(roomId), userId, nowMs,
+    });
+    await commit(
+      current.room,
+      result.state,
+      result.status,
+      result.players,
+      result.players,
+      nowMs,
+      result.nextHostUserId,
+    );
+  } else if (intent.type === "game-action") {
     const state = applyAuthorizedAction({ ...current, state: await serverState(roomId), userId, expectedVersion, action: intent.action });
     await commit(current.room, state, state.phase === "game-over" ? "finished" : "playing", null, current.players);
   } else if (intent.type === "enable-bot-takeover") {
@@ -300,7 +343,10 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
   } else if (intent.type === "leave-seat") {
     if (current.room.status !== "lobby") throw new MultiplayerError("La place ne peut être quittée qu'au lobby.", 409);
     const players = leaveLobbySeat(current.players, userId, now);
-    await commit(current.room, null, "lobby", players);
+    const successor = current.room.host_user_id === userId
+      ? nextHostUserId(players, userId, nowMs)
+      : undefined;
+    await commit(current.room, null, "lobby", players, players, nowMs, successor);
   } else if (intent.type === "join-seat") {
     if (current.room.status !== "lobby") throw new MultiplayerError("La table n'accepte plus de joueurs.", 409);
     const players = joinLobbySeat({

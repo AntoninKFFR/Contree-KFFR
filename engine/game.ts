@@ -114,6 +114,8 @@ function createRoundState({
     totalScore,
     roundHistory,
     winnerTeam,
+    endReason: null,
+    forfeitingTeam: null,
     trump: null,
     hands: dealHands(deck),
     currentPlayerId: startingPlayerId,
@@ -171,10 +173,24 @@ function finishRound(state: GameState, result: GameState["result"], baseMessage:
     totalScore,
     roundHistory,
     winnerTeam,
+    endReason: winnerTeam === null ? null : "score",
+    forfeitingTeam: null,
     message:
       winnerTeam === null
         ? `${baseMessage} Lance la manche suivante.`
         : `${baseMessage} Partie terminée: ${teamName(winnerTeam, state.playerNames)} gagnent la partie.`,
+  };
+}
+
+export function endGameByForfeit(state: GameState, forfeitingTeam: TeamId): GameState {
+  const winnerTeam: TeamId = forfeitingTeam === 0 ? 1 : 0;
+  return {
+    ...state,
+    phase: "game-over",
+    winnerTeam,
+    endReason: "forfeit",
+    forfeitingTeam,
+    message: `${teamName(winnerTeam, state.playerNames)} gagnent par abandon.`,
   };
 }
 

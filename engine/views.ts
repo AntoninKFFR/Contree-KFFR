@@ -47,6 +47,8 @@ export function toPlayerGameView(
       totalScoreAfterRound: { ...entry.totalScoreAfterRound },
     })),
     winnerTeam: state.winnerTeam,
+    endReason: state.endReason ?? null,
+    forfeitingTeam: state.forfeitingTeam ?? null,
     trump: state.trump,
     currentPlayerId: state.currentPlayerId,
     currentTrick: {

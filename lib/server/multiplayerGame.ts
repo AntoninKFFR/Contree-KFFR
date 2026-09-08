@@ -1,6 +1,9 @@
 import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
 import { applyGameAction, type GameAction } from "@/engine/actions";
+import { endGameByForfeit } from "@/engine/game";
+import { playerTeam } from "@/engine/rules";
 import type { GameState, PlayerId } from "@/engine/types";
+import { nextHostUserId } from "@/lib/multiplayerHost";
 import type { RoomPlayerAction, RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import { isPlayerConnected } from "@/lib/multiplayerPresence";
 import { isTurnDeadlineExpired } from "@/lib/multiplayerTurnTimer";
@@ -115,6 +118,33 @@ export function resetRoomPlayers(players: RoomPlayerRow[]): RoomPlayerRow[] {
     ...player, kind: "empty" as const, user_id: null, bot_profile_id: null, display_name: null,
     is_ready: false, is_connected: false, bot_takeover: false, last_seen_at: null,
   });
+}
+
+export function forfeitRoom(input: {
+  room: RoomRow;
+  players: RoomPlayerRow[];
+  state: GameState;
+  userId: string;
+  nowMs: number;
+}): {
+  state: GameState;
+  players: RoomPlayerRow[];
+  status: "finished";
+  nextHostUserId: string | null | undefined;
+} {
+  if (input.room.status !== "playing" || input.state.phase === "game-over") {
+    throw new MultiplayerError("La partie est déjà terminée.", 409, "game_already_over");
+  }
+  const seat = humanSeat(input.players, input.userId);
+  const players = input.players.map((player) => ({ ...player, bot_takeover: false }));
+  return {
+    state: endGameByForfeit(input.state, playerTeam(seat.seat_index)),
+    players,
+    status: "finished",
+    nextHostUserId: input.room.host_user_id === input.userId
+      ? nextHostUserId(players, input.userId, input.nowMs)
+      : undefined,
+  };
 }
 
 export function applyBotTurns(state: GameState, players: RoomPlayerRow[]): GameState {

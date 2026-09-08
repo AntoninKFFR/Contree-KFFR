@@ -50,6 +50,7 @@ export type MultiplayerRoomView = {
   room: Omit<RoomRow, "host_user_id">;
   players: RoomPlayerView[];
   isHost: boolean;
+  canClaimHost: boolean;
   viewerSeatIndex: RoomPlayerRow["seat_index"] | null;
   game: PlayerGameView | null;
 };
@@ -66,6 +67,8 @@ export type RoomIntent =
   | { type: "leave-seat" }
   | { type: "set-ready"; ready: boolean }
   | { type: "start-game" }
+  | { type: "forfeit-game" }
+  | { type: "claim-host" }
   | { type: "enable-bot-takeover"; seatIndex: RoomPlayerRow["seat_index"] }
   | { type: "game-action"; action: RoomPlayerAction }
   | { type: "next-round" }

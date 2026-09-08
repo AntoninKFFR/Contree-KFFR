@@ -14,6 +14,7 @@ export function parseRoomIntent(value: unknown): RoomIntent {
   if (!record(value) || typeof value.type !== "string") throw new MultiplayerError("Intention invalide.");
   if (value.type === "join-seat" && Number.isInteger(value.seatIndex) && typeof value.displayName === "string") return value as RoomIntent;
   if (value.type === "enable-bot-takeover" && Number.isInteger(value.seatIndex) && Number(value.seatIndex) >= 0 && Number(value.seatIndex) <= 3) return value as RoomIntent;
+  if (value.type === "forfeit-game" || value.type === "claim-host") return { type: value.type };
   if (value.type === "leave-seat" || value.type === "start-game" || value.type === "next-round" || value.type === "reset-room") return value as RoomIntent;
   if (value.type === "set-ready" && typeof value.ready === "boolean") return value as RoomIntent;
   if (value.type === "game-action" && record(value.action)) {

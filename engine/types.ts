@@ -4,6 +4,8 @@ export type Rank = "7" | "8" | "9" | "J" | "Q" | "K" | "10" | "A";
 
 export type TeamId = 0 | 1;
 
+export type GameEndReason = "score" | "forfeit";
+
 export type PlayerId = 0 | 1 | 2 | 3;
 
 export type Phase = "bidding" | "playing" | "finished" | "game-over";
@@ -100,6 +102,8 @@ export type GameState = {
   totalScore: Record<TeamId, number>;
   roundHistory: RoundHistoryEntry[];
   winnerTeam: TeamId | null;
+  endReason?: GameEndReason | null;
+  forfeitingTeam?: TeamId | null;
   trump: Suit | null;
   hands: Record<PlayerId, Card[]>;
   currentPlayerId: PlayerId;
