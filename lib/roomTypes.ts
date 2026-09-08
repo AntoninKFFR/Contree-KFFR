@@ -14,6 +14,7 @@ export type RoomRow = {
   target_score: number;
   game_phase: GamePhase | null;
   state_version: number;
+  turn_deadline_at: string | null;
   created_at: string;
   updated_at: string;
   started_at: string | null;

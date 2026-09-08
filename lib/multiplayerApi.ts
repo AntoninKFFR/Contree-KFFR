@@ -30,6 +30,14 @@ export function sendPresenceHeartbeat(roomId: string, token: AccessTokenSource) 
   );
 }
 
+export function sendRoomTick(roomId: string, token: AccessTokenSource) {
+  return request<MultiplayerRoomView>(
+    `/api/multiplayer/rooms/${encodeURIComponent(roomId)}/tick`,
+    token,
+    { method: "POST" },
+  );
+}
+
 export function sendRoomIntent(
   roomId: string,
   expectedVersion: number,

@@ -14,6 +14,7 @@ function room(status: RoomRow["status"] = "playing"): RoomRow {
   return {
     id: "room", code: "ABC123", status, host_user_id: "host", scoring_mode: "made-points",
     target_score: 1000, game_phase: status === "playing" ? "playing" : null, state_version: 12,
+    turn_deadline_at: status === "playing" ? "2026-09-09T00:00:45.000Z" : null,
     created_at: "", updated_at: "", started_at: null, finished_at: null,
   };
 }

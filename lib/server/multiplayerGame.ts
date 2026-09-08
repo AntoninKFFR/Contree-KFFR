@@ -3,6 +3,7 @@ import { applyGameAction, type GameAction } from "@/engine/actions";
 import type { GameState, PlayerId } from "@/engine/types";
 import type { RoomPlayerAction, RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import { isPlayerConnected } from "@/lib/multiplayerPresence";
+import { isTurnDeadlineExpired } from "@/lib/multiplayerTurnTimer";
 
 export class MultiplayerError extends Error {
   constructor(message: string, readonly status = 400, readonly code = "invalid_action") {
@@ -144,6 +145,33 @@ export function applyBotTurns(state: GameState, players: RoomPlayerRow[]): GameS
     throw new MultiplayerError("La limite de tours automatiques des bots a été atteinte.", 500, "bot_limit");
   }
   return next;
+}
+
+export function applyTimedOutTurn(state: GameState, players: RoomPlayerRow[]): GameState {
+  if (state.phase !== "bidding" && state.phase !== "playing") {
+    throw new MultiplayerError("Aucune décision n'est attendue.", 409, "wrong_phase");
+  }
+  const seat = currentSeat(state, players);
+  if (!seat || seat.kind !== "human" || seat.bot_takeover) {
+    throw new MultiplayerError("Le siège courant n'attend pas une décision humaine.", 409, "no_human_turn");
+  }
+  const automaticAction: GameAction = state.phase === "bidding"
+    ? { type: "pass", playerId: state.currentPlayerId }
+    : {
+        type: "play-card",
+        playerId: state.currentPlayerId,
+        card: chooseBotCard(state),
+      };
+  return applyBotTurns(applyGameAction(state, automaticAction), players);
+}
+
+export function applyTimedOutTurnIfExpired(
+  room: RoomRow,
+  state: GameState,
+  players: RoomPlayerRow[],
+  nowMs: number,
+): GameState | null {
+  return isTurnDeadlineExpired(room, nowMs) ? applyTimedOutTurn(state, players) : null;
 }
 
 export function applyAuthorizedAction(input: {

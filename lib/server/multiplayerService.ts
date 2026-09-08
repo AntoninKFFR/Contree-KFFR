@@ -6,19 +6,20 @@ import { toPlayerGameView } from "@/engine/views";
 import type {
   MultiplayerRoomView, RoomIntent, RoomPlayerRow, RoomRow, RoomWithPlayers,
 } from "@/lib/roomTypes";
+import { isTurnDeadlineExpired, turnDeadlineForState } from "@/lib/multiplayerTurnTimer";
 import {
   PRESENCE_OFFLINE_TIMEOUT_MS, PresenceMembershipError, projectRoomPlayers,
   recordPresenceHeartbeat,
 } from "@/lib/multiplayerPresence";
 import { parseServerGameState } from "./gameStateValidation";
 import {
-  applyAuthorizedAction, applyBotTurns, enableBotTakeover, humanSeat, joinLobbySeat,
-  leaveLobbySeat, MultiplayerError, requireHost, requireVersion, resetRoomPlayers,
-  setLobbyReady, viewerSeatIndex,
+  applyAuthorizedAction, applyBotTurns, applyTimedOutTurnIfExpired, enableBotTakeover,
+  humanSeat, joinLobbySeat, leaveLobbySeat, MultiplayerError, requireHost,
+  requireVersion, resetRoomPlayers, setLobbyReady, viewerSeatIndex,
 } from "./multiplayerGame";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 
-const ROOM_COLUMNS = "id,code,status,host_user_id,scoring_mode,target_score,game_phase,state_version,created_at,updated_at,started_at,finished_at";
+const ROOM_COLUMNS = "id,code,status,host_user_id,scoring_mode,target_score,game_phase,state_version,turn_deadline_at,created_at,updated_at,started_at,finished_at";
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function cleanName(value: unknown): string {
@@ -115,6 +116,8 @@ async function commit(
   state: GameState | null,
   status: RoomRow["status"],
   players: RoomPlayerRow[] | null = null,
+  timerPlayers: RoomPlayerRow[] = players ?? [],
+  nowMs = Date.now(),
 ): Promise<void> {
   const { data, error } = await getSupabaseAdmin().rpc("commit_room_state", {
     p_room_id: room.id,
@@ -123,6 +126,7 @@ async function commit(
     p_status: status,
     p_game_phase: state?.phase ?? null,
     p_players: players,
+    p_turn_deadline_at: turnDeadlineForState(state, timerPlayers, nowMs),
   });
   if (error) throw error;
   if (data !== true) throw new MultiplayerError("La partie a changé. Recharge la table puis réessaie.", 409, "version_conflict");
@@ -133,6 +137,7 @@ async function commitBotTakeover(input: {
   userId: string;
   seatIndex: RoomPlayerRow["seat_index"];
   state: GameState;
+  players: RoomPlayerRow[];
   nowMs: number;
 }): Promise<void> {
   const { data, error } = await getSupabaseAdmin().rpc("enable_bot_takeover", {
@@ -144,6 +149,7 @@ async function commitBotTakeover(input: {
     p_state: input.state,
     p_status: input.state.phase === "game-over" ? "finished" : "playing",
     p_game_phase: input.state.phase,
+    p_turn_deadline_at: turnDeadlineForState(input.state, input.players, Date.now()),
   });
   if (error) throw error;
   if (data !== true) {
@@ -153,6 +159,44 @@ async function commitBotTakeover(input: {
       "takeover_conflict",
     );
   }
+}
+
+async function commitTimedOutTurn(input: {
+  room: RoomRow;
+  state: GameState;
+  players: RoomPlayerRow[];
+}): Promise<boolean> {
+  const { data, error } = await getSupabaseAdmin().rpc("commit_timed_out_turn", {
+    p_room_id: input.room.id,
+    p_expected_version: input.room.state_version,
+    p_state: input.state,
+    p_status: input.state.phase === "game-over" ? "finished" : "playing",
+    p_game_phase: input.state.phase,
+    p_turn_deadline_at: turnDeadlineForState(input.state, input.players, Date.now()),
+  });
+  if (error) throw error;
+  return data === true;
+}
+
+export async function tickRoom(
+  roomId: string,
+  userId: string,
+  nowMs = Date.now(),
+): Promise<MultiplayerRoomView> {
+  const current = await roomAndPlayers(roomId);
+  humanSeat(current.players, userId);
+  if (!isTurnDeadlineExpired(current.room, nowMs)) {
+    return roomView(roomId, userId, nowMs);
+  }
+  const state = applyTimedOutTurnIfExpired(
+    current.room,
+    await serverState(roomId),
+    current.players,
+    nowMs,
+  );
+  if (!state) return roomView(roomId, userId, nowMs);
+  await commitTimedOutTurn({ room: current.room, state, players: current.players });
+  return roomView(roomId, userId, nowMs);
 }
 
 export async function createRoom(input: {
@@ -201,26 +245,29 @@ export async function findRoomByCode(rawCode: unknown, userId: string): Promise<
 export async function executeIntent(roomId: string, userId: string, expectedVersion: number, intent: RoomIntent) {
   const current = await roomAndPlayers(roomId);
   requireVersion(current.room, expectedVersion);
-  const now = new Date().toISOString();
+  const nowMs = Date.now();
+  const now = new Date(nowMs).toISOString();
 
   if (intent.type === "game-action") {
     const state = applyAuthorizedAction({ ...current, state: await serverState(roomId), userId, expectedVersion, action: intent.action });
-    await commit(current.room, state, state.phase === "game-over" ? "finished" : "playing");
+    await commit(current.room, state, state.phase === "game-over" ? "finished" : "playing", null, current.players);
   } else if (intent.type === "enable-bot-takeover") {
     requireHost(current.room, userId);
     if (current.room.status !== "playing") {
       throw new MultiplayerError("Le remplacement temporaire n'est disponible que pendant une partie.", 409, "wrong_room_status");
     }
-    const nowMs = Date.parse(now);
     const players = enableBotTakeover(current.players, intent.seatIndex, nowMs);
     const state = applyBotTurns(await serverState(roomId), players);
-    await commitBotTakeover({ room: current.room, userId, seatIndex: intent.seatIndex, state, nowMs });
+    await commitBotTakeover({
+      room: current.room, userId, seatIndex: intent.seatIndex, state, players, nowMs,
+    });
   } else if (intent.type === "next-round") {
     humanSeat(current.players, userId);
     const state = await serverState(roomId);
     if (state.phase !== "finished") throw new MultiplayerError("La manche n'est pas terminée.", 409, "wrong_phase");
     const { startNextRound } = await import("@/engine/game");
-    await commit(current.room, applyBotTurns(startNextRound(state, Math.random), current.players), "playing");
+    const nextState = applyBotTurns(startNextRound(state, Math.random), current.players);
+    await commit(current.room, nextState, "playing", null, current.players);
   } else if (intent.type === "start-game") {
     requireHost(current.room, userId);
     if (current.room.status !== "lobby") throw new MultiplayerError("La table n'est pas dans le lobby.", 409);
@@ -239,6 +286,7 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
       current.room,
       state,
       state.phase === "game-over" ? "finished" : "playing",
+      players,
       players,
     );
   } else if (intent.type === "reset-room") {

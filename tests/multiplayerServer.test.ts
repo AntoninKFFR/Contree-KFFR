@@ -12,6 +12,7 @@ function card(rank: Card["rank"], suit: Card["suit"]): Card { return { rank, sui
 const room: RoomRow = {
   id: "room", code: "ABC123", status: "playing", host_user_id: "host",
   scoring_mode: "made-points", target_score: 1000, game_phase: "bidding", state_version: 8,
+  turn_deadline_at: null,
   created_at: "", updated_at: "", started_at: "", finished_at: null,
 };
 

@@ -16,9 +16,10 @@ import type { BidValue, Card, Suit } from "@/engine/types";
 import type { PlayerGameView } from "@/engine/views";
 import { PRESENCE_HEARTBEAT_INTERVAL_MS } from "@/lib/multiplayerPresence";
 import { getProfileUsername } from "@/lib/profiles";
-import { fetchRoomView, sendPresenceHeartbeat, sendRoomIntent } from "@/lib/multiplayerApi";
+import { fetchRoomView, sendPresenceHeartbeat, sendRoomIntent, sendRoomTick } from "@/lib/multiplayerApi";
 import type { RoomPlayerAction, RoomPlayerRow, RoomPlayerView, MultiplayerRoomView } from "@/lib/roomTypes";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { MULTIPLAYER_TICK_INTERVAL_MS } from "@/lib/multiplayerTurnTimer";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable" | "missing";
 
@@ -67,6 +68,7 @@ export default function MultiplayerRoomPage() {
   const [localDisplayName, setLocalDisplayName] = useState("Joueur");
   const [roomWithPlayers, setRoomWithPlayers] = useState<MultiplayerRoomView | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [countdownNowMs, setCountdownNowMs] = useState<number | null>(null);
   const previousPhaseRef = useRef<PlayerGameView["phase"] | null>(null);
   const accessToken = session?.access_token ?? null;
   const viewerSeatIndex = roomWithPlayers?.viewerSeatIndex ?? null;
@@ -91,6 +93,20 @@ export default function MultiplayerRoomPage() {
   );
   const playerView = roomWithPlayers?.game ?? null;
   const gameState = playerView;
+  const deadlineMs = roomWithPlayers?.room.turn_deadline_at
+    ? Date.parse(roomWithPlayers.room.turn_deadline_at)
+    : Number.NaN;
+  const timedPlayer = playerView
+    ? roomWithPlayers?.players.find((player) => player.seat_index === playerView.currentPlayerId)
+    : undefined;
+  const turnSecondsRemaining =
+    countdownNowMs !== null &&
+    Number.isFinite(deadlineMs) &&
+    timedPlayer?.kind === "human" &&
+    !timedPlayer.bot_takeover &&
+    (playerView?.phase === "bidding" || playerView?.phase === "playing")
+      ? Math.max(0, Math.ceil((deadlineMs - countdownNowMs) / 1000))
+      : null;
   const displayedRoomStatus =
     roomWithPlayers?.room.status === "finished" && gameState?.phase !== "game-over"
       ? "playing"
@@ -314,6 +330,52 @@ export default function MultiplayerRoomPage() {
       window.removeEventListener("online", handleReturn);
     };
   }, [accessToken, roomId, viewerSeatIndex]);
+
+  useEffect(() => {
+    if (
+      !roomId ||
+      !accessToken ||
+      viewerSeatIndex === null ||
+      roomWithPlayers?.room.status !== "playing"
+    ) return;
+
+    let active = true;
+    let inFlight = false;
+    const tick = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const nextRoom = await sendRoomTick(roomId, { access_token: accessToken });
+        if (active) {
+          setRoomWithPlayers((current) =>
+            current && current.room.state_version > nextRoom.room.state_version
+              ? current
+              : nextRoom);
+        }
+      } catch {
+        // Another member or the next interval can safely retry the idempotent tick.
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    void tick();
+    const intervalId = window.setInterval(tick, MULTIPLAYER_TICK_INTERVAL_MS);
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+    };
+  }, [accessToken, roomId, roomWithPlayers?.room.status, viewerSeatIndex]);
+
+  useEffect(() => {
+    if (!roomWithPlayers?.room.turn_deadline_at) {
+      setCountdownNowMs(null);
+      return;
+    }
+    setCountdownNowMs(Date.now());
+    const intervalId = window.setInterval(() => setCountdownNowMs(Date.now()), 1_000);
+    return () => window.clearInterval(intervalId);
+  }, [roomWithPlayers?.room.turn_deadline_at]);
 
   async function handleToggleReady() {
     const supabase = getSupabaseClient();
@@ -716,7 +778,12 @@ export default function MultiplayerRoomPage() {
                 ].join(" ")}
               >
                 <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
-                  <div className={`flex items-center justify-end ${isMobileLandscape ? "hidden" : ""}`}>
+                  <div className={`flex items-center justify-between ${isMobileLandscape ? "hidden" : ""}`}>
+                    {turnSecondsRemaining !== null ? (
+                      <p className="rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm">
+                        Temps : {turnSecondsRemaining} s
+                      </p>
+                    ) : <span />}
                     <button
                       className="hidden rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white lg:inline-flex"
                       onClick={() => setIsRightPanelOpen((current) => !current)}
@@ -776,6 +843,7 @@ export default function MultiplayerRoomPage() {
                     players={roomWithPlayers.players}
                     state={playerView}
                     showLiveScore={isMobileLandscape || (!isRightPanelOpen && playerView.phase === "playing")}
+                    turnSecondsRemaining={turnSecondsRemaining}
                   />
 
                   {!isMobileLandscape && playerView.phase === "bidding" ? (

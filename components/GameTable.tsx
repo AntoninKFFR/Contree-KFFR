@@ -24,6 +24,7 @@ type GameTableProps = {
   immersiveMobileLandscape?: boolean;
   players?: RoomPlayerView[];
   showLiveScore?: boolean;
+  turnSecondsRemaining?: number | null;
 };
 
 type AnnouncementBubbleContent = {
@@ -325,7 +326,13 @@ function LiveScoreOverlay({ state }: { state: GameTableState }) {
   );
 }
 
-function TableStatusOverlay({ state }: { state: GameTableState }) {
+function TableStatusOverlay({
+  state,
+  turnSecondsRemaining,
+}: {
+  state: GameTableState;
+  turnSecondsRemaining?: number | null;
+}) {
   const currentPlayer = playerName(state.currentPlayerId, state.playerNames);
   const contractText = state.contract
     ? `${state.contract.value} ${SUIT_SYMBOLS[state.contract.trump]}`
@@ -336,7 +343,11 @@ function TableStatusOverlay({ state }: { state: GameTableState }) {
       <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/65">
         {contractText}
       </p>
-      <p className="mt-0.5 text-[11px] font-semibold text-white/90">{currentPlayer}</p>
+      <p className="mt-0.5 text-[11px] font-semibold text-white/90">
+        {currentPlayer}{turnSecondsRemaining !== null && turnSecondsRemaining !== undefined
+          ? ` · ${turnSecondsRemaining} s`
+          : ""}
+      </p>
     </div>
   );
 }
@@ -347,6 +358,7 @@ export function GameTable({
   immersiveMobileLandscape = false,
   players,
   showLiveScore = false,
+  turnSecondsRemaining,
 }: GameTableProps) {
   const previousCompletedTrickKeyRef = useRef<string | null>(null);
   const [animatedCompletedTrick, setAnimatedCompletedTrick] = useState<AnimatedCompletedTrick | null>(
@@ -471,7 +483,9 @@ export function GameTable({
       <TrickCenter cards={displayedCenter.cards} title={displayedCenter.title} />
       {animatedCompletedTrick ? <TrickCollectionAnimation trick={animatedCompletedTrick.trick} /> : null}
       {showLiveScore ? <LiveScoreOverlay state={state} /> : null}
-      {immersiveMobileLandscape ? <TableStatusOverlay state={state} /> : null}
+      {immersiveMobileLandscape ? (
+        <TableStatusOverlay state={state} turnSecondsRemaining={turnSecondsRemaining} />
+      ) : null}
       {immersiveMobileLandscape && bottomOverlay ? (
         <div className="absolute inset-x-2 bottom-2 z-30">{bottomOverlay}</div>
       ) : null}
