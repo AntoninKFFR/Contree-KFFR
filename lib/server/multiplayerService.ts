@@ -8,7 +8,8 @@ import type {
 } from "@/lib/roomTypes";
 import { parseServerGameState } from "./gameStateValidation";
 import {
-  applyAuthorizedAction, applyBotTurns, humanSeat, MultiplayerError, requireHost, requireVersion,
+  applyAuthorizedAction, applyBotTurns, humanSeat, joinLobbySeat, MultiplayerError, requireHost,
+  requireVersion, setLobbyReady, viewerSeatIndex,
 } from "./multiplayerGame";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 
@@ -49,8 +50,9 @@ async function serverState(roomId: string): Promise<GameState> {
 
 export async function roomView(roomId: string, userId: string): Promise<MultiplayerRoomView> {
   const result = await roomAndPlayers(roomId);
-  const seat = result.players.find((player) => player.kind === "human" && player.user_id === userId);
-  if (result.room.status !== "lobby" && !seat) {
+  const seatIndex = viewerSeatIndex(result.players, userId);
+  const seat = seatIndex === null ? undefined : result.players.find((player) => player.seat_index === seatIndex);
+  if (result.room.status !== "lobby" && seatIndex === null) {
     throw new MultiplayerError("Tu ne fais pas partie de cette table.", 403, "not_a_member");
   }
   const game = seat && (result.room.status === "playing" || result.room.status === "finished")
@@ -64,7 +66,7 @@ export async function roomView(roomId: string, userId: string): Promise<Multipla
       seat_index, kind, display_name, is_ready, is_connected,
     })),
     isHost: result.room.host_user_id === userId,
-    viewerSeatIndex: seat?.seat_index ?? null,
+    viewerSeatIndex: seatIndex,
     game,
   };
 }
@@ -172,11 +174,8 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
     });
     await commit(current.room, null, "lobby", players);
   } else if (intent.type === "set-ready") {
-    const seat = humanSeat(current.players, userId);
     if (current.room.status !== "lobby") throw new MultiplayerError("La table n'est pas dans le lobby.", 409);
-    const players = current.players.map((player) => player.id === seat.id
-      ? { ...player, is_ready: intent.ready, last_seen_at: now }
-      : player);
+    const players = setLobbyReady(current.players, userId, intent.ready, now);
     await commit(current.room, null, "lobby", players);
   } else if (intent.type === "leave-seat") {
     const seat = humanSeat(current.players, userId);
@@ -189,21 +188,9 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
     await commit(current.room, null, "lobby", players);
   } else if (intent.type === "join-seat") {
     if (current.room.status !== "lobby") throw new MultiplayerError("La table n'accepte plus de joueurs.", 409);
-    cleanName(intent.displayName);
-    const occupied = current.players.find((p) => p.seat_index === intent.seatIndex);
-    if (!occupied || occupied.kind !== "empty") throw new MultiplayerError("Cette place n'est plus libre.", 409);
-    const players = current.players.map((player) => {
-      if (player.id === occupied.id) return {
-        ...player, kind: "human" as const, user_id: userId, bot_profile_id: null,
-        display_name: cleanName(intent.displayName), is_ready: false, is_connected: true,
-        joined_at: now, left_at: null, last_seen_at: now,
-      };
-      if (player.user_id === userId) return {
-        ...player, kind: "empty" as const, user_id: null, bot_profile_id: null,
-        display_name: null, is_ready: false, is_connected: false, last_seen_at: null,
-        joined_at: null, left_at: now,
-      };
-      return player;
+    const players = joinLobbySeat({
+      players: current.players, userId, seatIndex: intent.seatIndex,
+      displayName: cleanName(intent.displayName), now,
     });
     await commit(current.room, null, "lobby", players);
   }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiFailure } from "@/lib/server/apiError";
 import { MultiplayerError } from "@/lib/server/multiplayerGame";
 import { executeIntent, roomView } from "@/lib/server/multiplayerService";
 import { parseRoomIntent } from "@/lib/server/roomIntentValidation";
@@ -6,22 +7,18 @@ import { authenticatedUserId } from "@/lib/server/supabaseAdmin";
 
 type Context = { params: Promise<{ roomId: string }> };
 
-function failure(error: unknown) {
-  const status = error instanceof MultiplayerError ? error.status : error instanceof Error && error.message === "Authentication required." ? 401 : 500;
-  return NextResponse.json({ error: error instanceof Error ? error.message : "Erreur serveur." }, { status });
-}
-
 export async function GET(request: Request, context: Context) {
   try {
     const userId = await authenticatedUserId(request);
     const { roomId } = await context.params;
     return NextResponse.json({ data: await roomView(roomId, userId) });
   } catch (error) {
-    return failure(error);
+    return apiFailure(error, { route: "/api/multiplayer/rooms/[roomId]", action: "load-room" });
   }
 }
 
 export async function POST(request: Request, context: Context) {
+  let action = "unknown";
   try {
     const userId = await authenticatedUserId(request);
     const { roomId } = await context.params;
@@ -29,10 +26,10 @@ export async function POST(request: Request, context: Context) {
     if (!Number.isInteger(body.expectedVersion) || !body.intent || typeof body.intent !== "object") {
       throw new MultiplayerError("Intention ou version invalide.");
     }
-    return NextResponse.json({
-      data: await executeIntent(roomId, userId, body.expectedVersion as number, parseRoomIntent(body.intent)),
-    });
+    const intent = parseRoomIntent(body.intent);
+    action = intent.type;
+    return NextResponse.json({ data: await executeIntent(roomId, userId, body.expectedVersion as number, intent) });
   } catch (error) {
-    return failure(error);
+    return apiFailure(error, { route: "/api/multiplayer/rooms/[roomId]", action });
   }
 }

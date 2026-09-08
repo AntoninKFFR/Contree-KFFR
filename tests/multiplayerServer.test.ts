@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { createInitialGame } from "@/engine/game";
 import type { Card, GameState } from "@/engine/types";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
-import { applyAuthorizedAction, requireHost, requireVersion } from "@/lib/server/multiplayerGame";
+import {
+  applyAuthorizedAction, joinLobbySeat, requireHost, requireVersion, setLobbyReady, viewerSeatIndex,
+} from "@/lib/server/multiplayerGame";
 
 function card(rank: Card["rank"], suit: Card["suit"]): Card { return { rank, suit }; }
 
@@ -19,6 +21,16 @@ function players(kinds: Array<"human" | "bot"> = ["human", "human", "human", "hu
     bot_profile_id: kind === "bot" ? "simple" : null, display_name: `P${seat}`,
     is_ready: true, is_connected: true, last_seen_at: null, joined_at: null, left_at: null,
     created_at: "", updated_at: "",
+  }));
+}
+
+function lobbyPlayers(): RoomPlayerRow[] {
+  return [0, 1, 2, 3].map((seat) => ({
+    id: `seat-${seat}`, room_id: room.id, seat_index: seat as 0 | 1 | 2 | 3,
+    kind: seat === 0 ? "human" : "empty", user_id: seat === 0 ? "host" : null,
+    bot_profile_id: null, display_name: seat === 0 ? "Host" : null,
+    is_ready: false, is_connected: seat === 0, last_seen_at: null, joined_at: null,
+    left_at: null, created_at: "", updated_at: "",
   }));
 }
 
@@ -70,5 +82,41 @@ describe("server-authoritative multiplayer", () => {
     const next = applyAuthorizedAction({ room, players: players(["human", "bot", "bot", "bot"]), state: createInitialGame(() => 0.1), userId: "host", expectedVersion: 8, action: { type: "pass" } });
     expect(next.bids.length).toBeGreaterThan(1);
     expect(next.phase === "finished" || next.currentPlayerId === 0).toBe(true);
+  });
+
+  it("lets a non-seated user join a free seat and exposes their viewer seat", () => {
+    const joined = joinLobbySeat({
+      players: lobbyPlayers(), userId: "guest", seatIndex: 2, displayName: "Guest", now: "now",
+    });
+    expect(joined[2]).toMatchObject({ kind: "human", user_id: "guest", display_name: "Guest" });
+    expect(viewerSeatIndex(joined, "guest")).toBe(2);
+  });
+
+  it("frees the previous seat when a user moves", () => {
+    const seated = joinLobbySeat({
+      players: lobbyPlayers(), userId: "guest", seatIndex: 1, displayName: "Guest", now: "first",
+    });
+    const moved = joinLobbySeat({
+      players: seated, userId: "guest", seatIndex: 3, displayName: "Guest", now: "second",
+    });
+    expect(moved[1]).toMatchObject({ kind: "empty", user_id: null, display_name: null });
+    expect(moved[3]).toMatchObject({ kind: "human", user_id: "guest" });
+  });
+
+  it("prevents two users from taking the same seat", () => {
+    const first = joinLobbySeat({
+      players: lobbyPlayers(), userId: "guest-a", seatIndex: 1, displayName: "A", now: "now",
+    });
+    expect(() => joinLobbySeat({
+      players: first, userId: "guest-b", seatIndex: 1, displayName: "B", now: "now",
+    })).toThrow("Cette place n'est plus libre");
+  });
+
+  it("allows a newly seated player to become ready", () => {
+    const joined = joinLobbySeat({
+      players: lobbyPlayers(), userId: "guest", seatIndex: 2, displayName: "Guest", now: "joined",
+    });
+    const ready = setLobbyReady(joined, "guest", true, "ready");
+    expect(ready[2]).toMatchObject({ is_ready: true, last_seen_at: "ready" });
   });
 });

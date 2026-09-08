@@ -22,6 +22,43 @@ export function humanSeat(players: RoomPlayerRow[], userId: string): RoomPlayerR
   return seat;
 }
 
+export function viewerSeatIndex(players: RoomPlayerRow[], userId: string): RoomPlayerRow["seat_index"] | null {
+  return players.find((player) => player.kind === "human" && player.user_id === userId)?.seat_index ?? null;
+}
+
+export function joinLobbySeat(input: {
+  players: RoomPlayerRow[];
+  userId: string;
+  seatIndex: RoomPlayerRow["seat_index"];
+  displayName: string;
+  now: string;
+}): RoomPlayerRow[] {
+  const occupied = input.players.find((player) => player.seat_index === input.seatIndex);
+  if (!occupied || occupied.kind !== "empty") {
+    throw new MultiplayerError("Cette place n'est plus libre.", 409);
+  }
+  return input.players.map((player) => {
+    if (player.id === occupied.id) return {
+      ...player, kind: "human" as const, user_id: input.userId, bot_profile_id: null,
+      display_name: input.displayName, is_ready: false, is_connected: true,
+      joined_at: input.now, left_at: null, last_seen_at: input.now,
+    };
+    if (player.user_id === input.userId) return {
+      ...player, kind: "empty" as const, user_id: null, bot_profile_id: null,
+      display_name: null, is_ready: false, is_connected: false, last_seen_at: null,
+      joined_at: null, left_at: input.now,
+    };
+    return player;
+  });
+}
+
+export function setLobbyReady(players: RoomPlayerRow[], userId: string, ready: boolean, now: string): RoomPlayerRow[] {
+  const seat = humanSeat(players, userId);
+  return players.map((player) => player.id === seat.id
+    ? { ...player, is_ready: ready, last_seen_at: now }
+    : player);
+}
+
 export function requireHost(room: RoomRow, userId: string): void {
   if (room.host_user_id !== userId) {
     throw new MultiplayerError("Seul l'hôte peut effectuer cette opération.", 403, "host_required");
