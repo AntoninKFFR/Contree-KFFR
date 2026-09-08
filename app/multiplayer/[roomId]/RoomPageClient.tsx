@@ -14,8 +14,9 @@ import { teamName } from "@/engine/players";
 import { getLegalCards } from "@/engine/rules";
 import type { BidValue, Card, Suit } from "@/engine/types";
 import type { PlayerGameView } from "@/engine/views";
+import { PRESENCE_HEARTBEAT_INTERVAL_MS } from "@/lib/multiplayerPresence";
 import { getProfileUsername } from "@/lib/profiles";
-import { fetchRoomView, sendRoomIntent } from "@/lib/multiplayerApi";
+import { fetchRoomView, sendPresenceHeartbeat, sendRoomIntent } from "@/lib/multiplayerApi";
 import type { RoomPlayerAction, RoomPlayerRow, RoomPlayerView, MultiplayerRoomView } from "@/lib/roomTypes";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
@@ -66,6 +67,8 @@ export default function MultiplayerRoomPage() {
   const [roomWithPlayers, setRoomWithPlayers] = useState<MultiplayerRoomView | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const previousPhaseRef = useRef<PlayerGameView["phase"] | null>(null);
+  const accessToken = session?.access_token ?? null;
+  const viewerSeatIndex = roomWithPlayers?.viewerSeatIndex ?? null;
 
   const currentSeat = useMemo(() => {
     if (!roomWithPlayers || roomWithPlayers.viewerSeatIndex === null) return null;
@@ -260,6 +263,49 @@ export default function MultiplayerRoomPage() {
       void supabase.removeChannel(channel);
     };
   }, [loadRoom, roomId]);
+
+  useEffect(() => {
+    if (!roomId || !accessToken || viewerSeatIndex === null) return;
+
+    let active = true;
+    let inFlight = false;
+    const heartbeat = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const nextRoom = await sendPresenceHeartbeat(roomId, { access_token: accessToken });
+        if (active) {
+          setRoomWithPlayers((current) =>
+            current && current.room.state_version > nextRoom.room.state_version
+              ? current
+              : nextRoom);
+          setPageState("ready");
+        }
+      } catch {
+        // A later heartbeat or visibility event will retry after transient connectivity failures.
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    void heartbeat();
+    const intervalId = window.setInterval(heartbeat, PRESENCE_HEARTBEAT_INTERVAL_MS);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") void heartbeat();
+    };
+    const handleReturn = () => void heartbeat();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleReturn);
+    window.addEventListener("online", handleReturn);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleReturn);
+      window.removeEventListener("online", handleReturn);
+    };
+  }, [accessToken, roomId, viewerSeatIndex]);
 
   async function handleToggleReady() {
     const supabase = getSupabaseClient();
@@ -682,6 +728,7 @@ export default function MultiplayerRoomPage() {
                         : undefined
                     }
                     immersiveMobileLandscape={isMobileLandscape}
+                    players={roomWithPlayers.players}
                     state={playerView}
                     showLiveScore={isMobileLandscape || (!isRightPanelOpen && playerView.phase === "playing")}
                   />
@@ -915,7 +962,17 @@ function SeatCard({
         {isCurrentUser ? " (Toi)" : ""}
       </span>
       {!isEmpty ? (
-        <span className="mt-1 block text-xs font-semibold text-stone-600">{kindLabel}</span>
+        player.kind === "human" ? (
+          <span className="mt-1 flex items-center gap-1 text-xs font-semibold text-stone-600">
+            <span
+              aria-hidden="true"
+              className={`h-1.5 w-1.5 rounded-full ${player.is_connected ? "bg-emerald-600" : "bg-stone-400"}`}
+            />
+            {player.is_connected ? "En ligne" : "Hors ligne"}
+          </span>
+        ) : (
+          <span className="mt-1 block text-xs font-semibold text-stone-600">{kindLabel}</span>
+        )
       ) : null}
     </button>
   );

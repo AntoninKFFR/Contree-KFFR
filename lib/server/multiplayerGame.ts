@@ -59,6 +59,15 @@ export function setLobbyReady(players: RoomPlayerRow[], userId: string, ready: b
     : player);
 }
 
+export function leaveLobbySeat(players: RoomPlayerRow[], userId: string, now: string): RoomPlayerRow[] {
+  const seat = humanSeat(players, userId);
+  return players.map((player) => player.id === seat.id ? {
+    ...player, kind: "empty" as const, user_id: null, bot_profile_id: null,
+    display_name: null, is_ready: false, is_connected: false, joined_at: null,
+    last_seen_at: null, left_at: now,
+  } : player);
+}
+
 export function requireHost(room: RoomRow, userId: string): void {
   if (room.host_user_id !== userId) {
     throw new MultiplayerError("Seul l'hôte peut effectuer cette opération.", 403, "host_required");

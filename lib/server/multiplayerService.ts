@@ -6,10 +6,13 @@ import { toPlayerGameView } from "@/engine/views";
 import type {
   MultiplayerRoomView, RoomIntent, RoomPlayerRow, RoomRow, RoomWithPlayers,
 } from "@/lib/roomTypes";
+import {
+  PresenceMembershipError, projectRoomPlayers, recordPresenceHeartbeat,
+} from "@/lib/multiplayerPresence";
 import { parseServerGameState } from "./gameStateValidation";
 import {
-  applyAuthorizedAction, applyBotTurns, humanSeat, joinLobbySeat, MultiplayerError, requireHost,
-  requireVersion, setLobbyReady, viewerSeatIndex,
+  applyAuthorizedAction, applyBotTurns, humanSeat, joinLobbySeat, leaveLobbySeat,
+  MultiplayerError, requireHost, requireVersion, setLobbyReady, viewerSeatIndex,
 } from "./multiplayerGame";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 
@@ -48,7 +51,11 @@ async function serverState(roomId: string): Promise<GameState> {
   return parseServerGameState(data.state);
 }
 
-export async function roomView(roomId: string, userId: string): Promise<MultiplayerRoomView> {
+export async function roomView(
+  roomId: string,
+  userId: string,
+  nowMs = Date.now(),
+): Promise<MultiplayerRoomView> {
   const result = await roomAndPlayers(roomId);
   const seatIndex = viewerSeatIndex(result.players, userId);
   const seat = seatIndex === null ? undefined : result.players.find((player) => player.seat_index === seatIndex);
@@ -62,13 +69,39 @@ export async function roomView(roomId: string, userId: string): Promise<Multipla
   void _hostUserId;
   return {
     room: publicRoom,
-    players: result.players.map(({ seat_index, kind, display_name, is_ready, is_connected }) => ({
-      seat_index, kind, display_name, is_ready, is_connected,
-    })),
+    players: projectRoomPlayers(result.players, nowMs),
     isHost: result.room.host_user_id === userId,
     viewerSeatIndex: seatIndex,
     game,
   };
+}
+
+export async function heartbeatRoomPresence(
+  roomId: string,
+  userId: string,
+  now = new Date(),
+): Promise<MultiplayerRoomView> {
+  const db = getSupabaseAdmin();
+  try {
+    await recordPresenceHeartbeat(async (write) => {
+      const { data, error } = await db
+        .from("room_players")
+        .update({ is_connected: write.isConnected, last_seen_at: write.lastSeenAt })
+        .eq("room_id", write.roomId)
+        .eq("user_id", write.userId)
+        .eq("kind", "human")
+        .select("id")
+        .maybeSingle();
+      if (error) throw error;
+      return data !== null;
+    }, { roomId, userId, now });
+  } catch (error) {
+    if (error instanceof PresenceMembershipError) {
+      throw new MultiplayerError("Tu ne fais pas partie de cette table.", 403, "not_a_member");
+    }
+    throw error;
+  }
+  return roomView(roomId, userId, now.getTime());
 }
 
 async function commit(
@@ -178,13 +211,8 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
     const players = setLobbyReady(current.players, userId, intent.ready, now);
     await commit(current.room, null, "lobby", players);
   } else if (intent.type === "leave-seat") {
-    const seat = humanSeat(current.players, userId);
     if (current.room.status !== "lobby") throw new MultiplayerError("La place ne peut être quittée qu'au lobby.", 409);
-    const players = current.players.map((player) => player.id === seat.id ? {
-      ...player, kind: "empty" as const, user_id: null, bot_profile_id: null,
-      display_name: null, is_ready: false, is_connected: false, joined_at: null,
-      last_seen_at: null, left_at: now,
-    } : player);
+    const players = leaveLobbySeat(current.players, userId, now);
     await commit(current.room, null, "lobby", players);
   } else if (intent.type === "join-seat") {
     if (current.room.status !== "lobby") throw new MultiplayerError("La table n'accepte plus de joueurs.", 409);

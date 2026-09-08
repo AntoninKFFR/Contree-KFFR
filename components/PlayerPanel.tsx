@@ -3,6 +3,7 @@ import type { PlayerId } from "@/engine/types";
 type PlayerPanelProps = {
   playerId: PlayerId;
   name: string;
+  isConnected?: boolean;
   isCurrent: boolean;
   hasStartingPlayer: boolean;
 };
@@ -10,6 +11,7 @@ type PlayerPanelProps = {
 export function PlayerPanel({
   name,
   hasStartingPlayer,
+  isConnected,
   isCurrent,
 }: PlayerPanelProps) {
   return (
@@ -20,9 +22,20 @@ export function PlayerPanel({
       ].join(" ")}
     >
       <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-        <p className="max-w-[48px] truncate text-[11px] font-semibold sm:max-w-none sm:text-sm">
-          {name}
-        </p>
+        <div className="min-w-0">
+          <p className="max-w-[48px] truncate text-[11px] font-semibold sm:max-w-none sm:text-sm">
+            {name}
+          </p>
+          {isConnected !== undefined ? (
+            <p className="flex items-center justify-center gap-1 text-[8px] font-semibold text-stone-500 sm:text-[9px]">
+              <span
+                aria-hidden="true"
+                className={`h-1.5 w-1.5 rounded-full ${isConnected ? "bg-emerald-600" : "bg-stone-400"}`}
+              />
+              {isConnected ? "En ligne" : "Hors ligne"}
+            </p>
+          ) : null}
+        </div>
         {hasStartingPlayer ? (
           <span className="rounded border border-emerald-600 px-1 py-0 text-[10px] font-bold text-emerald-700">
             P

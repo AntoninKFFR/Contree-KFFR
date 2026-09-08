@@ -22,6 +22,14 @@ export function fetchRoomView(roomId: string, token: AccessTokenSource) {
   return request<MultiplayerRoomView>(`/api/multiplayer/rooms/${encodeURIComponent(roomId)}`, token);
 }
 
+export function sendPresenceHeartbeat(roomId: string, token: AccessTokenSource) {
+  return request<MultiplayerRoomView>(
+    `/api/multiplayer/rooms/${encodeURIComponent(roomId)}/presence`,
+    token,
+    { method: "POST" },
+  );
+}
+
 export function sendRoomIntent(
   roomId: string,
   expectedVersion: number,

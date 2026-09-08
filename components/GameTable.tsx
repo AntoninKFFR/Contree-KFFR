@@ -14,6 +14,7 @@ import type {
   PlayerId,
 } from "@/engine/types";
 import type { PlayerGameView } from "@/engine/views";
+import type { RoomPlayerView } from "@/lib/roomTypes";
 
 type GameTableState = GameState | PlayerGameView;
 
@@ -21,6 +22,7 @@ type GameTableProps = {
   state: GameTableState;
   bottomOverlay?: ReactNode;
   immersiveMobileLandscape?: boolean;
+  players?: RoomPlayerView[];
   showLiveScore?: boolean;
 };
 
@@ -343,6 +345,7 @@ export function GameTable({
   state,
   bottomOverlay,
   immersiveMobileLandscape = false,
+  players,
   showLiveScore = false,
 }: GameTableProps) {
   const previousCompletedTrickKeyRef = useRef<string | null>(null);
@@ -356,6 +359,10 @@ export function GameTable({
     : null;
   const center = playedCardsToShow(state);
   const nameFor = (playerId: PlayerId) => playerName(playerId, state.playerNames);
+  const connectionFor = (playerId: PlayerId) => {
+    const player = players?.find((candidate) => candidate.seat_index === playerId);
+    return player?.kind === "human" ? player.is_connected : undefined;
+  };
   const latestBid = state.bids.at(-1) ?? null;
   const latestBidIdentity = latestBidKey(state.roundNumber, state.bids);
   const dominantPlayerId = useMemo(() => dominantBidPlayerId(state.bids), [state.bids]);
@@ -479,6 +486,7 @@ export function GameTable({
         ) : null}
         <PlayerPanel
           hasStartingPlayer={state.startingPlayerId === 2}
+          isConnected={connectionFor(2)}
           isCurrent={state.currentPlayerId === 2}
           name={nameFor(2)}
           playerId={2}
@@ -496,6 +504,7 @@ export function GameTable({
         ) : null}
         <PlayerPanel
           hasStartingPlayer={state.startingPlayerId === 3}
+          isConnected={connectionFor(3)}
           isCurrent={state.currentPlayerId === 3}
           name={nameFor(3)}
           playerId={3}
@@ -513,6 +522,7 @@ export function GameTable({
         ) : null}
         <PlayerPanel
           hasStartingPlayer={state.startingPlayerId === 1}
+          isConnected={connectionFor(1)}
           isCurrent={state.currentPlayerId === 1}
           name={nameFor(1)}
           playerId={1}
@@ -530,6 +540,7 @@ export function GameTable({
         ) : null}
         <PlayerPanel
           hasStartingPlayer={state.startingPlayerId === 0}
+          isConnected={connectionFor(0)}
           isCurrent={state.currentPlayerId === 0}
           name={nameFor(0)}
           playerId={0}
