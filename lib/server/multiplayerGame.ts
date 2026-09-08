@@ -2,6 +2,7 @@ import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
 import { applyGameAction, type GameAction } from "@/engine/actions";
 import type { GameState, PlayerId } from "@/engine/types";
 import type { RoomPlayerAction, RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
+import { isPlayerConnected } from "@/lib/multiplayerPresence";
 
 export class MultiplayerError extends Error {
   constructor(message: string, readonly status = 400, readonly code = "invalid_action") {
@@ -41,12 +42,12 @@ export function joinLobbySeat(input: {
     if (player.id === occupied.id) return {
       ...player, kind: "human" as const, user_id: input.userId, bot_profile_id: null,
       display_name: input.displayName, is_ready: false, is_connected: true,
-      joined_at: input.now, left_at: null, last_seen_at: input.now,
+      bot_takeover: false, joined_at: input.now, left_at: null, last_seen_at: input.now,
     };
     if (player.user_id === input.userId) return {
       ...player, kind: "empty" as const, user_id: null, bot_profile_id: null,
       display_name: null, is_ready: false, is_connected: false, last_seen_at: null,
-      joined_at: null, left_at: input.now,
+      bot_takeover: false, joined_at: null, left_at: input.now,
     };
     return player;
   });
@@ -64,7 +65,7 @@ export function leaveLobbySeat(players: RoomPlayerRow[], userId: string, now: st
   return players.map((player) => player.id === seat.id ? {
     ...player, kind: "empty" as const, user_id: null, bot_profile_id: null,
     display_name: null, is_ready: false, is_connected: false, joined_at: null,
-    last_seen_at: null, left_at: now,
+    bot_takeover: false, last_seen_at: null, left_at: now,
   } : player);
 }
 
@@ -88,11 +89,38 @@ function currentSeat(state: GameState, players: RoomPlayerRow[]) {
   return players.find((player) => player.seat_index === state.currentPlayerId);
 }
 
+export function enableBotTakeover(
+  players: RoomPlayerRow[],
+  seatIndex: RoomPlayerRow["seat_index"],
+  nowMs: number,
+): RoomPlayerRow[] {
+  const seat = players.find((player) => player.seat_index === seatIndex);
+  if (!seat || seat.kind !== "human") {
+    throw new MultiplayerError("Seul un siège humain peut être confié temporairement à un bot.", 409, "invalid_takeover_seat");
+  }
+  if (isPlayerConnected(seat, nowMs)) {
+    throw new MultiplayerError("Ce joueur est encore en ligne.", 409, "player_still_online");
+  }
+  if (seat.bot_takeover) {
+    throw new MultiplayerError("Ce siège est déjà contrôlé temporairement par un bot.", 409, "takeover_already_enabled");
+  }
+  return players.map((player) => player.id === seat.id ? { ...player, bot_takeover: true } : player);
+}
+
+export function resetRoomPlayers(players: RoomPlayerRow[]): RoomPlayerRow[] {
+  return players.map((player) => player.kind === "human" ? {
+    ...player, is_ready: false, bot_takeover: false,
+  } : {
+    ...player, kind: "empty" as const, user_id: null, bot_profile_id: null, display_name: null,
+    is_ready: false, is_connected: false, bot_takeover: false, last_seen_at: null,
+  });
+}
+
 export function applyBotTurns(state: GameState, players: RoomPlayerRow[]): GameState {
   let next = state;
   for (let count = 0; count < 32 && (next.phase === "bidding" || next.phase === "playing"); count += 1) {
     const seat = currentSeat(next, players);
-    if (!seat || seat.kind !== "bot") return next;
+    if (!seat || (seat.kind !== "bot" && !seat.bot_takeover)) return next;
     if (next.phase === "bidding") {
       const bid = chooseBotBid(next);
       const action: RoomPlayerAction = bid.action === "bid"
@@ -107,7 +135,12 @@ export function applyBotTurns(state: GameState, players: RoomPlayerRow[]): GameS
       });
     }
   }
-  if ((next.phase === "bidding" || next.phase === "playing") && currentSeat(next, players)?.kind === "bot") {
+  const remainingSeat = currentSeat(next, players);
+  if (
+    (next.phase === "bidding" || next.phase === "playing") &&
+    remainingSeat &&
+    (remainingSeat.kind === "bot" || remainingSeat.bot_takeover)
+  ) {
     throw new MultiplayerError("La limite de tours automatiques des bots a été atteinte.", 500, "bot_limit");
   }
   return next;
@@ -126,6 +159,9 @@ export function applyAuthorizedAction(input: {
     throw new MultiplayerError("La partie n'est pas en cours.", 409, "wrong_room_status");
   }
   const seat = humanSeat(input.players, input.userId);
+  if (seat.bot_takeover) {
+    throw new MultiplayerError("Ce siège est temporairement contrôlé par un bot.", 409, "bot_takeover_active");
+  }
   if (input.state.phase !== "bidding" && input.state.phase !== "playing") {
     throw new MultiplayerError("Cette action ne correspond pas à la phase courante.", 409, "wrong_phase");
   }

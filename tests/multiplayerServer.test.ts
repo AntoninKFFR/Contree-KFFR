@@ -3,7 +3,8 @@ import { createInitialGame } from "@/engine/game";
 import type { Card, GameState } from "@/engine/types";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import {
-  applyAuthorizedAction, joinLobbySeat, requireHost, requireVersion, setLobbyReady, viewerSeatIndex,
+  applyAuthorizedAction, applyBotTurns, enableBotTakeover, joinLobbySeat, requireHost,
+  requireVersion, resetRoomPlayers, setLobbyReady, viewerSeatIndex,
 } from "@/lib/server/multiplayerGame";
 
 function card(rank: Card["rank"], suit: Card["suit"]): Card { return { rank, suit }; }
@@ -19,7 +20,8 @@ function players(kinds: Array<"human" | "bot"> = ["human", "human", "human", "hu
     id: `seat-${seat}`, room_id: room.id, seat_index: seat as 0 | 1 | 2 | 3, kind,
     user_id: kind === "human" ? (seat === 0 ? "host" : `user-${seat}`) : null,
     bot_profile_id: kind === "bot" ? "simple" : null, display_name: `P${seat}`,
-    is_ready: true, is_connected: true, last_seen_at: null, joined_at: null, left_at: null,
+    is_ready: true, is_connected: true, bot_takeover: false, last_seen_at: null,
+    joined_at: null, left_at: null,
     created_at: "", updated_at: "",
   }));
 }
@@ -29,7 +31,7 @@ function lobbyPlayers(): RoomPlayerRow[] {
     id: `seat-${seat}`, room_id: room.id, seat_index: seat as 0 | 1 | 2 | 3,
     kind: seat === 0 ? "human" : "empty", user_id: seat === 0 ? "host" : null,
     bot_profile_id: null, display_name: seat === 0 ? "Host" : null,
-    is_ready: false, is_connected: seat === 0, last_seen_at: null, joined_at: null,
+    is_ready: false, is_connected: seat === 0, bot_takeover: false, last_seen_at: null, joined_at: null,
     left_at: null, created_at: "", updated_at: "",
   }));
 }
@@ -82,6 +84,73 @@ describe("server-authoritative multiplayer", () => {
     const next = applyAuthorizedAction({ room, players: players(["human", "bot", "bot", "bot"]), state: createInitialGame(() => 0.1), userId: "host", expectedVersion: 8, action: { type: "pass" } });
     expect(next.bids.length).toBeGreaterThan(1);
     expect(next.phase === "finished" || next.currentPlayerId === 0).toBe(true);
+  });
+
+  it("lets the host enable takeover while preserving the human seat identity", () => {
+    requireHost(room, "host");
+    const current = players();
+    current[2] = {
+      ...current[2], is_connected: false, last_seen_at: "2026-09-08T23:58:00.000Z",
+    };
+    const next = enableBotTakeover(current, 2, Date.parse("2026-09-09T00:00:00.000Z"));
+    expect(next[2]).toMatchObject({
+      bot_takeover: true, kind: "human", user_id: "user-2", display_name: "P2", seat_index: 2,
+    });
+  });
+
+  it("does not let a non-host authorize takeover", () => {
+    expect(() => requireHost(room, "user-2")).toThrow("Seul l'hôte");
+  });
+
+  it("rejects takeover for a connected human", () => {
+    const current = players();
+    current[2] = { ...current[2], last_seen_at: "2026-09-08T23:59:30.000Z" };
+    expect(() => enableBotTakeover(current, 2, Date.parse("2026-09-09T00:00:00.000Z")))
+      .toThrow("encore en ligne");
+  });
+
+  it("automates a takeover seat immediately when it is already their turn", () => {
+    const current = players();
+    current[2] = { ...current[2], bot_takeover: true, is_connected: false };
+    const initial = { ...createInitialGame(() => 0.1), currentPlayerId: 2 as const };
+    const next = applyBotTurns(initial, current);
+    expect(next.bids.length).toBeGreaterThan(0);
+    expect(next.currentPlayerId).not.toBe(2);
+  });
+
+  it("uses the existing bot strategy when play reaches a takeover seat", () => {
+    const current = players();
+    current[1] = { ...current[1], bot_takeover: true, is_connected: false };
+    const next = applyAuthorizedAction({
+      room, players: current, state: createInitialGame(() => 0.1), userId: "host",
+      expectedVersion: 8, action: { type: "pass" },
+    });
+    expect(next.bids).toHaveLength(2);
+    expect(next.bids[1]?.playerId).toBe(1);
+    expect(next.currentPlayerId).toBe(2);
+  });
+
+  it("rejects direct human actions while takeover is active", () => {
+    const current = players();
+    current[0] = { ...current[0], bot_takeover: true };
+    expect(() => applyAuthorizedAction({
+      room, players: current, state: createInitialGame(() => 0.1), userId: "host",
+      expectedVersion: 8, action: { type: "pass" },
+    })).toThrow("temporairement contrôlé");
+  });
+
+  it("clears every takeover when the room is reset", () => {
+    const current = players(["human", "bot", "human", "bot"]);
+    current[0] = { ...current[0], bot_takeover: true };
+    current[2] = { ...current[2], bot_takeover: true };
+    const reset = resetRoomPlayers(current);
+    expect(reset.every((player) => !player.bot_takeover)).toBe(true);
+    expect(reset[0]).toMatchObject({ kind: "human", user_id: "host" });
+    expect(reset[1]).toMatchObject({ kind: "empty", user_id: null });
+  });
+
+  it("uses state_version to reject a concurrent stale takeover", () => {
+    expect(() => requireVersion({ ...room, state_version: 9 }, 8)).toThrow("La partie a changé");
   });
 
   it("lets a non-seated user join a free seat and exposes their viewer seat", () => {

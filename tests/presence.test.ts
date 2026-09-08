@@ -23,7 +23,8 @@ function players(lastSeenAt = "2026-09-08T23:58:00.000Z"): RoomPlayerRow[] {
     id: `seat-${seat}`, room_id: "room", seat_index: seat as 0 | 1 | 2 | 3,
     kind: seat === 2 ? "human" : "empty", user_id: seat === 2 ? "user-2" : null,
     bot_profile_id: null, display_name: seat === 2 ? "Anto 2" : null,
-    is_ready: seat === 2, is_connected: seat === 2, last_seen_at: seat === 2 ? lastSeenAt : null,
+    is_ready: seat === 2, is_connected: seat === 2, bot_takeover: false,
+    last_seen_at: seat === 2 ? lastSeenAt : null,
     joined_at: seat === 2 ? "2026-09-08T22:00:00.000Z" : null, left_at: null,
     created_at: "", updated_at: "",
   }));
@@ -35,7 +36,8 @@ function memoryWriter(state: { players: RoomPlayerRow[] }): PresenceHeartbeatWri
       player.room_id === write.roomId && player.user_id === write.userId && player.kind === "human");
     if (index < 0) return false;
     state.players[index] = {
-      ...state.players[index], is_connected: write.isConnected, last_seen_at: write.lastSeenAt,
+      ...state.players[index], is_connected: write.isConnected,
+      bot_takeover: write.botTakeover, last_seen_at: write.lastSeenAt,
     };
     return true;
   };
@@ -94,6 +96,20 @@ describe("multiplayer presence and reconnection", () => {
     expect(state.players).toHaveLength(initialCount);
     expect(viewerSeatIndex(state.players, "user-2")).toBe(2);
     expect(projectRoomPlayers(state.players, NOW.getTime())[2].is_connected).toBe(true);
+  });
+
+  it("disables takeover on heartbeat without changing identity or game state", async () => {
+    const currentRoom = room();
+    const gameState = createInitialGame(() => 0.1);
+    const originalGameState = structuredClone(gameState);
+    const state = { players: players() };
+    state.players[2] = { ...state.players[2], bot_takeover: true };
+    await recordPresenceHeartbeat(memoryWriter(state), { roomId: "room", userId: "user-2", now: NOW });
+    expect(state.players[2]).toMatchObject({
+      bot_takeover: false, kind: "human", user_id: "user-2", display_name: "Anto 2", seat_index: 2,
+    });
+    expect(gameState).toEqual(originalGameState);
+    expect(currentRoom.state_version).toBe(12);
   });
 
   it("restores only the reconnecting player's hand in PlayerGameView", () => {

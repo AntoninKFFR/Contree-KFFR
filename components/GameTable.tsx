@@ -363,6 +363,8 @@ export function GameTable({
     const player = players?.find((candidate) => candidate.seat_index === playerId);
     return player?.kind === "human" ? player.is_connected : undefined;
   };
+  const takeoverFor = (playerId: PlayerId) =>
+    players?.find((candidate) => candidate.seat_index === playerId)?.bot_takeover ?? false;
   const latestBid = state.bids.at(-1) ?? null;
   const latestBidIdentity = latestBidKey(state.roundNumber, state.bids);
   const dominantPlayerId = useMemo(() => dominantBidPlayerId(state.bids), [state.bids]);
@@ -486,6 +488,7 @@ export function GameTable({
         ) : null}
         <PlayerPanel
           hasStartingPlayer={state.startingPlayerId === 2}
+          isBotTakeover={takeoverFor(2)}
           isConnected={connectionFor(2)}
           isCurrent={state.currentPlayerId === 2}
           name={nameFor(2)}
@@ -504,6 +507,7 @@ export function GameTable({
         ) : null}
         <PlayerPanel
           hasStartingPlayer={state.startingPlayerId === 3}
+          isBotTakeover={takeoverFor(3)}
           isConnected={connectionFor(3)}
           isCurrent={state.currentPlayerId === 3}
           name={nameFor(3)}
@@ -522,6 +526,7 @@ export function GameTable({
         ) : null}
         <PlayerPanel
           hasStartingPlayer={state.startingPlayerId === 1}
+          isBotTakeover={takeoverFor(1)}
           isConnected={connectionFor(1)}
           isCurrent={state.currentPlayerId === 1}
           name={nameFor(1)}
@@ -540,6 +545,7 @@ export function GameTable({
         ) : null}
         <PlayerPanel
           hasStartingPlayer={state.startingPlayerId === 0}
+          isBotTakeover={takeoverFor(0)}
           isConnected={connectionFor(0)}
           isCurrent={state.currentPlayerId === 0}
           name={nameFor(0)}

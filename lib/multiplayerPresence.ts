@@ -7,6 +7,7 @@ export type PresenceHeartbeatWrite = {
   roomId: string;
   userId: string;
   isConnected: true;
+  botTakeover: false;
   lastSeenAt: string;
 };
 
@@ -27,6 +28,7 @@ export async function recordPresenceHeartbeat(
     roomId: input.roomId,
     userId: input.userId,
     isConnected: true,
+    botTakeover: false,
     lastSeenAt: input.now.toISOString(),
   });
   if (!updated) throw new PresenceMembershipError();
@@ -51,5 +53,6 @@ export function projectRoomPlayers(players: RoomPlayerRow[], nowMs: number): Roo
     display_name: player.display_name,
     is_ready: player.is_ready,
     is_connected: isPlayerConnected(player, nowMs),
+    bot_takeover: player.bot_takeover,
   }));
 }

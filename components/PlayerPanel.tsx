@@ -4,6 +4,7 @@ type PlayerPanelProps = {
   playerId: PlayerId;
   name: string;
   isConnected?: boolean;
+  isBotTakeover?: boolean;
   isCurrent: boolean;
   hasStartingPlayer: boolean;
 };
@@ -11,6 +12,7 @@ type PlayerPanelProps = {
 export function PlayerPanel({
   name,
   hasStartingPlayer,
+  isBotTakeover = false,
   isConnected,
   isCurrent,
 }: PlayerPanelProps) {
@@ -32,7 +34,7 @@ export function PlayerPanel({
                 aria-hidden="true"
                 className={`h-1.5 w-1.5 rounded-full ${isConnected ? "bg-emerald-600" : "bg-stone-400"}`}
               />
-              {isConnected ? "En ligne" : "Hors ligne"}
+              {isBotTakeover ? "Bot temporaire" : isConnected ? "En ligne" : "Hors ligne"}
             </p>
           ) : null}
         </div>

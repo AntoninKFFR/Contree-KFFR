@@ -55,6 +55,7 @@ export default function MultiplayerRoomPage() {
   const [isJoiningSeat, setIsJoiningSeat] = useState(false);
   const [isLeavingSeat, setIsLeavingSeat] = useState(false);
   const [isPlayingCard, setIsPlayingCard] = useState(false);
+  const [takeoverSeatInFlight, setTakeoverSeatInFlight] = useState<RoomPlayerRow["seat_index"] | null>(null);
   const [isStartingNextRound, setIsStartingNextRound] = useState(false);
   const [isResettingRoom, setIsResettingRoom] = useState(false);
   const [isStartingGame, setIsStartingGame] = useState(false);
@@ -78,6 +79,11 @@ export default function MultiplayerRoomPage() {
   }, [roomWithPlayers]);
 
   const isHost = roomWithPlayers?.isHost ?? false;
+  const takeoverCandidates = roomWithPlayers?.room.status === "playing" && isHost
+    ? roomWithPlayers.players.filter(
+        (player) => player.kind === "human" && !player.is_connected && !player.bot_takeover,
+      )
+    : [];
   const canStartGame = Boolean(
     roomWithPlayers &&
       roomWithPlayers.room.status === "lobby" &&
@@ -98,6 +104,7 @@ export default function MultiplayerRoomPage() {
   const canPlayCard = Boolean(
     gameState &&
       currentSeat &&
+      !currentSeat.bot_takeover &&
       roomWithPlayers?.room.status === "playing" &&
       displayedRoomStatus === "playing" &&
       gameState.phase === "playing" &&
@@ -106,6 +113,7 @@ export default function MultiplayerRoomPage() {
   const canBid = Boolean(
     playerView &&
       currentSeat &&
+      !currentSeat.bot_takeover &&
       roomWithPlayers?.room.status === "playing" &&
       displayedRoomStatus === "playing" &&
       playerView.phase === "bidding" &&
@@ -406,6 +414,27 @@ export default function MultiplayerRoomPage() {
     }
   }
 
+  async function handleEnableBotTakeover(seatIndex: RoomPlayerRow["seat_index"]) {
+    if (!roomWithPlayers || !session || !isHost || takeoverSeatInFlight !== null) return;
+
+    setTakeoverSeatInFlight(seatIndex);
+    setError(null);
+    try {
+      const nextRoom = await sendRoomIntent(
+        roomWithPlayers.room.id,
+        roomWithPlayers.room.state_version,
+        { type: "enable-bot-takeover", seatIndex },
+        session,
+      );
+      setRoomWithPlayers(nextRoom);
+      setPageState("ready");
+    } catch (takeoverError) {
+      setError(errorMessage(takeoverError));
+    } finally {
+      setTakeoverSeatInFlight(null);
+    }
+  }
+
   async function handleRoomPlayerAction(action: RoomPlayerAction) {
     const supabase = getSupabaseClient();
     const isCardAction = action.type === "play-card";
@@ -697,6 +726,22 @@ export default function MultiplayerRoomPage() {
                     </button>
                   </div>
 
+                  {takeoverCandidates.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-stone-700">
+                      {takeoverCandidates.map((player) => (
+                        <button
+                          className="rounded-md border border-amber-300 bg-white px-2 py-1 font-semibold hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={takeoverSeatInFlight !== null}
+                          key={player.seat_index}
+                          onClick={() => void handleEnableBotTakeover(player.seat_index)}
+                          type="button"
+                        >
+                          Faire jouer un bot pour {player.display_name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+
                   <GameTable
                     bottomOverlay={
                       isMobileLandscape
@@ -968,7 +1013,7 @@ function SeatCard({
               aria-hidden="true"
               className={`h-1.5 w-1.5 rounded-full ${player.is_connected ? "bg-emerald-600" : "bg-stone-400"}`}
             />
-            {player.is_connected ? "En ligne" : "Hors ligne"}
+            {player.bot_takeover ? "Bot temporaire" : player.is_connected ? "En ligne" : "Hors ligne"}
           </span>
         ) : (
           <span className="mt-1 block text-xs font-semibold text-stone-600">{kindLabel}</span>

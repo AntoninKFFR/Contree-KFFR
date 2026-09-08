@@ -30,6 +30,7 @@ export type RoomPlayerRow = {
   display_name: string | null;
   is_ready: boolean;
   is_connected: boolean;
+  bot_takeover: boolean;
   last_seen_at: string | null;
   joined_at: string | null;
   left_at: string | null;
@@ -41,7 +42,7 @@ export type RoomWithPlayers = { room: RoomRow; players: RoomPlayerRow[] };
 
 export type RoomPlayerView = Pick<
   RoomPlayerRow,
-  "seat_index" | "kind" | "display_name" | "is_ready" | "is_connected"
+  "seat_index" | "kind" | "display_name" | "is_ready" | "is_connected" | "bot_takeover"
 >;
 
 export type MultiplayerRoomView = {
@@ -64,6 +65,7 @@ export type RoomIntent =
   | { type: "leave-seat" }
   | { type: "set-ready"; ready: boolean }
   | { type: "start-game" }
+  | { type: "enable-bot-takeover"; seatIndex: RoomPlayerRow["seat_index"] }
   | { type: "game-action"; action: RoomPlayerAction }
   | { type: "next-round" }
   | { type: "reset-room" };
