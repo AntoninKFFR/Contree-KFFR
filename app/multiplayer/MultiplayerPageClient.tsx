@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getProfileUsername } from "@/lib/profiles";
-import { createRoom, joinRoom } from "@/lib/rooms";
+import { createMultiplayerRoom, findMultiplayerRoom } from "@/lib/multiplayerApi";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import type { ScoringMode } from "@/engine/types";
 
@@ -88,12 +88,11 @@ export default function MultiplayerPage() {
     setNotice(null);
 
     try {
-      const result = await createRoom(supabase, {
-        hostDisplayName: displayName,
-        hostUserId: session.user.id,
+      const result = await createMultiplayerRoom({
+        displayName,
         scoringMode,
         targetScore,
-      });
+      }, session);
 
       router.push(`/multiplayer/${result.room.id}`);
     } catch (error) {
@@ -113,11 +112,7 @@ export default function MultiplayerPage() {
     setNotice(null);
 
     try {
-      const result = await joinRoom(supabase, {
-        code: roomCode,
-        displayName,
-        userId: session.user.id,
-      });
+      const result = await findMultiplayerRoom(roomCode, session);
 
       router.push(`/multiplayer/${result.room.id}`);
     } catch (error) {

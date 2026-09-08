@@ -9,26 +9,14 @@ import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { ScoreBoard } from "@/components/ScoreBoard";
-import { applyGameAction } from "@/engine/actions";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
-import { getCurrentContract, playableCardsForCurrentPlayer } from "@/engine/game";
 import { teamName } from "@/engine/players";
-import type { BidValue, Card, GameState, PlayerId, Suit } from "@/engine/types";
-import { toPlayerGameView, type PlayerGameView } from "@/engine/views";
+import { getLegalCards } from "@/engine/rules";
+import type { BidValue, Card, Suit } from "@/engine/types";
+import type { PlayerGameView } from "@/engine/views";
 import { getProfileUsername } from "@/lib/profiles";
-import {
-  getRoomWithPlayers,
-  joinRoom,
-  leaveSeat,
-  playRoomAction,
-  resetRoom,
-  setSeatReady,
-  startNextRoomRound,
-  startRoomGame,
-  type RoomPlayerAction,
-  type RoomPlayerRow,
-  type RoomWithPlayers,
-} from "@/lib/rooms";
+import { fetchRoomView, sendRoomIntent } from "@/lib/multiplayerApi";
+import type { RoomPlayerAction, RoomPlayerRow, RoomPlayerView, MultiplayerRoomView } from "@/lib/roomTypes";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable" | "missing";
@@ -37,13 +25,6 @@ type LoadRoomOptions = {
   silent?: boolean;
 };
 
-type DisplayActionEvent = {
-  action: RoomPlayerAction;
-  playerId: PlayerId;
-};
-
-const BOT_ACTION_VISUAL_DELAY_MIN_MS = 400;
-const BOT_ACTION_VISUAL_DELAY_RANGE_MS = 200;
 const TABLE_BACKGROUND_IMAGE = "/TapisKFFR.png";
 
 function errorMessage(error: unknown): string {
@@ -55,121 +36,15 @@ function roomIdFromParams(value: string | string[] | undefined): string | null {
   return value ?? null;
 }
 
-function statusLabel(status: RoomWithPlayers["room"]["status"]): string {
+function statusLabel(status: MultiplayerRoomView["room"]["status"]): string {
   if (status === "lobby") return "en attente";
   if (status === "playing") return "en cours";
   if (status === "finished") return "terminée";
   return "annulée";
 }
 
-function scoringModeLabel(scoringMode: RoomWithPlayers["room"]["scoring_mode"]): string {
+function scoringModeLabel(scoringMode: MultiplayerRoomView["room"]["scoring_mode"]): string {
   return scoringMode === "made-points" ? "points faits" : "points annoncés";
-}
-
-function stateForViewerLegalCards(view: PlayerGameView): GameState {
-  return {
-    ...view,
-    hands: {
-      0: [],
-      1: [],
-      2: [],
-      3: [],
-      [view.viewerPlayerId]: view.hand,
-    },
-  } as GameState;
-}
-
-function actionEventsFor(state: GameState): DisplayActionEvent[] {
-  return [
-    ...state.bids.map((bid) => ({
-      action:
-        bid.action === "bid"
-          ? {
-              type: "bid" as const,
-              value: bid.value,
-              trump: bid.trump,
-            }
-          : {
-              type: bid.action,
-            },
-      playerId: bid.playerId,
-    })),
-    ...state.completedTricks.flatMap((trick) =>
-      trick.cards.map((played) => ({
-        action: {
-          type: "play-card" as const,
-          card: played.card,
-        },
-        playerId: played.playerId,
-      })),
-    ),
-    ...state.currentTrick.cards.map((played) => ({
-      action: {
-        type: "play-card" as const,
-        card: played.card,
-      },
-      playerId: played.playerId,
-    })),
-  ];
-}
-
-function newActionEventsFor(
-  previousState: GameState,
-  nextState: GameState,
-): DisplayActionEvent[] {
-  if (previousState.roundNumber !== nextState.roundNumber) {
-    return [];
-  }
-
-  const previousEvents = actionEventsFor(previousState);
-  const nextEvents = actionEventsFor(nextState);
-
-  if (nextEvents.length <= previousEvents.length) {
-    return [];
-  }
-
-  return nextEvents.slice(previousEvents.length);
-}
-
-function waitForBotVisualDelay(): Promise<void> {
-  const delay = BOT_ACTION_VISUAL_DELAY_MIN_MS + Math.random() * BOT_ACTION_VISUAL_DELAY_RANGE_MS;
-
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, delay);
-  });
-}
-
-function applyDisplayActionEvent(state: GameState, event: DisplayActionEvent): GameState {
-  switch (event.action.type) {
-    case "bid":
-      return applyGameAction(state, {
-        type: "bid",
-        playerId: event.playerId,
-        value: event.action.value,
-        trump: event.action.trump,
-      });
-    case "pass":
-      return applyGameAction(state, {
-        type: "pass",
-        playerId: event.playerId,
-      });
-    case "coinche":
-      return applyGameAction(state, {
-        type: "coinche",
-        playerId: event.playerId,
-      });
-    case "surcoinche":
-      return applyGameAction(state, {
-        type: "surcoinche",
-        playerId: event.playerId,
-      });
-    case "play-card":
-      return applyGameAction(state, {
-        type: "play-card",
-        playerId: event.playerId,
-        card: event.action.card,
-      });
-  }
 }
 
 export default function MultiplayerRoomPage() {
@@ -187,49 +62,30 @@ export default function MultiplayerRoomPage() {
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
-  const [displayGameState, setDisplayGameState] = useState<GameState | null>(null);
   const [localDisplayName, setLocalDisplayName] = useState("Joueur");
-  const [roomWithPlayers, setRoomWithPlayers] = useState<RoomWithPlayers | null>(null);
+  const [roomWithPlayers, setRoomWithPlayers] = useState<MultiplayerRoomView | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const animationRunIdRef = useRef(0);
-  const displayGameStateRef = useRef<GameState | null>(null);
-  const isAnimatingRef = useRef(false);
   const previousPhaseRef = useRef<PlayerGameView["phase"] | null>(null);
 
-  function updateDisplayGameState(nextState: GameState | null) {
-    displayGameStateRef.current = nextState;
-    setDisplayGameState(nextState);
-  }
-
   const currentSeat = useMemo(() => {
-    if (!session || !roomWithPlayers) return null;
-    return roomWithPlayers.players.find((player) => player.user_id === session.user.id) ?? null;
-  }, [roomWithPlayers, session]);
+    if (!roomWithPlayers || roomWithPlayers.viewerSeatIndex === null) return null;
+    return roomWithPlayers.players.find(
+      (player) => player.seat_index === roomWithPlayers.viewerSeatIndex,
+    ) ?? null;
+  }, [roomWithPlayers]);
 
-  const isHost = Boolean(
-    session &&
-      roomWithPlayers?.room.host_user_id &&
-      roomWithPlayers.room.host_user_id === session.user.id,
-  );
+  const isHost = roomWithPlayers?.isHost ?? false;
   const canStartGame = Boolean(
     roomWithPlayers &&
       roomWithPlayers.room.status === "lobby" &&
       roomWithPlayers.players.every((player) => player.kind !== "human" || player.is_ready),
   );
-  const serverGameState =
-    roomWithPlayers?.room.server_state &&
-    (roomWithPlayers.room.status === "playing" || roomWithPlayers.room.status === "finished")
-      ? (roomWithPlayers.room.server_state as GameState)
-      : null;
-  const gameState = displayGameState ?? serverGameState;
+  const playerView = roomWithPlayers?.game ?? null;
+  const gameState = playerView;
   const displayedRoomStatus =
     roomWithPlayers?.room.status === "finished" && gameState?.phase !== "game-over"
       ? "playing"
       : roomWithPlayers?.room.status;
-  const playerView =
-    gameState && currentSeat && displayedRoomStatus === "playing"
-      ? toPlayerGameView(gameState, currentSeat.seat_index)
-      : null;
   const finalWinner =
     displayedRoomStatus === "finished" &&
     gameState?.winnerTeam !== null &&
@@ -252,18 +108,20 @@ export default function MultiplayerRoomPage() {
       playerView.phase === "bidding" &&
       playerView.currentPlayerId === currentSeat.seat_index,
   );
-  const currentContract = playerView
-    ? getCurrentContract(stateForViewerLegalCards(playerView))
-    : null;
+  const currentContract = playerView?.contract ?? null;
   const canBidCoinche = Boolean(
     currentSeat && canBid && canCoinche(currentSeat.seat_index, currentContract),
   );
   const canBidSurcoinche = Boolean(
     currentSeat && canBid && canSurcoinche(currentSeat.seat_index, currentContract),
   );
-  const legalCards =
-    canPlayCard && playerView
-    ? playableCardsForCurrentPlayer(stateForViewerLegalCards(playerView))
+  const legalCards = canPlayCard && playerView?.trump
+    ? getLegalCards(
+        playerView.hand,
+        playerView.currentTrick,
+        playerView.viewerPlayerId,
+        playerView.trump,
+      )
     : [];
 
   useEffect(() => {
@@ -350,7 +208,7 @@ export default function MultiplayerRoomPage() {
     setLocalDisplayName(profileName ?? nextSession.user.email?.split("@")[0] ?? "Joueur");
 
     try {
-      const nextRoom = await getRoomWithPlayers(supabase, roomId);
+      const nextRoom = await fetchRoomView(roomId, nextSession);
       setRoomWithPlayers(nextRoom);
       setError(null);
       setPageState("ready");
@@ -388,18 +246,6 @@ export default function MultiplayerRoomPage() {
         "postgres_changes",
         {
           event: "*",
-          filter: `room_id=eq.${roomId}`,
-          schema: "public",
-          table: "room_players",
-        },
-        () => {
-          void loadRoom({ silent: true });
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
           filter: `id=eq.${roomId}`,
           schema: "public",
           table: "rooms",
@@ -415,76 +261,6 @@ export default function MultiplayerRoomPage() {
     };
   }, [loadRoom, roomId]);
 
-  useEffect(() => {
-    if (!serverGameState || !roomWithPlayers) {
-      animationRunIdRef.current += 1;
-      isAnimatingRef.current = false;
-      updateDisplayGameState(serverGameState);
-      return;
-    }
-
-    const animationRunId = animationRunIdRef.current + 1;
-    animationRunIdRef.current = animationRunId;
-    const currentDisplayState = displayGameStateRef.current;
-
-    if (!currentDisplayState) {
-      isAnimatingRef.current = false;
-      updateDisplayGameState(serverGameState);
-      return;
-    }
-
-    const initialDisplayState: GameState = currentDisplayState;
-    const newEvents = newActionEventsFor(currentDisplayState, serverGameState);
-    const botSeatIndexes = new Set(
-      roomWithPlayers.players
-        .filter((player) => player.kind === "bot")
-        .map((player) => player.seat_index),
-    );
-    const hasBotAction = newEvents.some((event) => botSeatIndexes.has(event.playerId));
-
-    if (newEvents.length === 0 || !hasBotAction) {
-      isAnimatingRef.current = false;
-      updateDisplayGameState(serverGameState);
-      return;
-    }
-
-    isAnimatingRef.current = true;
-    let isCancelled = false;
-
-    async function animateActions() {
-      let nextDisplayState = initialDisplayState;
-
-      for (const event of newEvents) {
-        if (isCancelled || animationRunIdRef.current !== animationRunId) {
-          return;
-        }
-
-        if (botSeatIndexes.has(event.playerId)) {
-          await waitForBotVisualDelay();
-        }
-
-        if (isCancelled || animationRunIdRef.current !== animationRunId) {
-          return;
-        }
-
-        nextDisplayState = applyDisplayActionEvent(nextDisplayState, event);
-        updateDisplayGameState(nextDisplayState);
-      }
-
-      if (!isCancelled && animationRunIdRef.current === animationRunId) {
-        isAnimatingRef.current = false;
-        updateDisplayGameState(serverGameState);
-      }
-    }
-
-    void animateActions();
-
-    return () => {
-      isCancelled = true;
-      isAnimatingRef.current = false;
-    };
-  }, [roomWithPlayers, serverGameState]);
-
   async function handleToggleReady() {
     const supabase = getSupabaseClient();
 
@@ -494,11 +270,12 @@ export default function MultiplayerRoomPage() {
     setError(null);
 
     try {
-      const nextRoom = await setSeatReady(supabase, {
-        ready: !currentSeat.is_ready,
-        roomId: roomWithPlayers.room.id,
-        userId: session.user.id,
-      });
+      const nextRoom = await sendRoomIntent(
+        roomWithPlayers.room.id,
+        roomWithPlayers.room.state_version,
+        { type: "set-ready", ready: !currentSeat.is_ready },
+        session,
+      );
       setRoomWithPlayers(nextRoom);
       setPageState("ready");
     } catch (readyError) {
@@ -517,12 +294,12 @@ export default function MultiplayerRoomPage() {
     setError(null);
 
     try {
-      const nextRoom = await joinRoom(supabase, {
-        code: roomWithPlayers.room.code,
-        displayName: localDisplayName,
-        seatIndex,
-        userId: session.user.id,
-      });
+      const nextRoom = await sendRoomIntent(
+        roomWithPlayers.room.id,
+        roomWithPlayers.room.state_version,
+        { type: "join-seat", displayName: localDisplayName, seatIndex },
+        session,
+      );
 
       setRoomWithPlayers(nextRoom);
       setPageState("ready");
@@ -542,10 +319,12 @@ export default function MultiplayerRoomPage() {
     setError(null);
 
     try {
-      const nextRoom = await leaveSeat(supabase, {
-        roomId: roomWithPlayers.room.id,
-        userId: session.user.id,
-      });
+      const nextRoom = await sendRoomIntent(
+        roomWithPlayers.room.id,
+        roomWithPlayers.room.state_version,
+        { type: "leave-seat" },
+        session,
+      );
 
       setRoomWithPlayers(nextRoom);
       setPageState("ready");
@@ -565,9 +344,13 @@ export default function MultiplayerRoomPage() {
     setError(null);
 
     try {
-      const nextRoom = await startRoomGame(supabase, {
-        roomId: roomWithPlayers.room.id,
-      });
+      if (!session) return;
+      const nextRoom = await sendRoomIntent(
+        roomWithPlayers.room.id,
+        roomWithPlayers.room.state_version,
+        { type: "start-game" },
+        session,
+      );
       setRoomWithPlayers(nextRoom);
       setPageState("ready");
     } catch (startError) {
@@ -594,11 +377,12 @@ export default function MultiplayerRoomPage() {
     setError(null);
 
     try {
-      const nextRoom = await playRoomAction(supabase, {
-        action,
-        roomId: roomWithPlayers.room.id,
-        userId: session.user.id,
-      });
+      const nextRoom = await sendRoomIntent(
+        roomWithPlayers.room.id,
+        roomWithPlayers.room.state_version,
+        { type: "game-action", action },
+        session,
+      );
       setRoomWithPlayers(nextRoom);
       setPageState("ready");
     } catch (playError) {
@@ -631,15 +415,18 @@ export default function MultiplayerRoomPage() {
   async function handleResetRoom() {
     const supabase = getSupabaseClient();
 
-    if (!supabase || !roomWithPlayers || isResettingRoom) return;
+    if (!supabase || !roomWithPlayers || !session || isResettingRoom) return;
 
     setIsResettingRoom(true);
     setError(null);
 
     try {
-      const nextRoom = await resetRoom(supabase, {
-        roomId: roomWithPlayers.room.id,
-      });
+      const nextRoom = await sendRoomIntent(
+        roomWithPlayers.room.id,
+        roomWithPlayers.room.state_version,
+        { type: "reset-room" },
+        session,
+      );
       setRoomWithPlayers(nextRoom);
       setPageState("ready");
     } catch (resetError) {
@@ -667,10 +454,12 @@ export default function MultiplayerRoomPage() {
     setError(null);
 
     try {
-      const nextRoom = await startNextRoomRound(supabase, {
-        roomId: roomWithPlayers.room.id,
-        userId: session.user.id,
-      });
+      const nextRoom = await sendRoomIntent(
+        roomWithPlayers.room.id,
+        roomWithPlayers.room.state_version,
+        { type: "next-round" },
+        session,
+      );
       setRoomWithPlayers(nextRoom);
       setPageState("ready");
     } catch (nextRoundError) {
@@ -819,7 +608,7 @@ export default function MultiplayerRoomPage() {
 
                 <LobbyTable
                   canJoinSeat={!isJoiningSeat}
-                  currentUserId={session?.user.id ?? null}
+                  currentSeatIndex={roomWithPlayers.viewerSeatIndex}
                   onJoinSeat={handleJoinSeat}
                   players={roomWithPlayers.players}
                 />
@@ -987,14 +776,14 @@ const LOBBY_SEAT_POSITIONS: Record<
 
 function LobbyTable({
   canJoinSeat,
-  currentUserId,
+  currentSeatIndex,
   onJoinSeat,
   players,
 }: {
   canJoinSeat: boolean;
-  currentUserId: string | null;
+  currentSeatIndex: RoomPlayerRow["seat_index"] | null;
   onJoinSeat: (seatIndex: RoomPlayerRow["seat_index"]) => void;
-  players: RoomPlayerRow[];
+  players: RoomPlayerView[];
 }) {
   return (
     <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
@@ -1007,10 +796,10 @@ function LobbyTable({
           const position = LOBBY_SEAT_POSITIONS[player.seat_index];
 
           return (
-            <div className={`absolute ${position.className}`} key={player.id}>
+            <div className={`absolute ${position.className}`} key={player.seat_index}>
               <SeatCard
                 canJoin={canJoinSeat && player.kind === "empty"}
-                isCurrentUser={player.user_id === currentUserId}
+                isCurrentUser={player.seat_index === currentSeatIndex}
                 onJoin={() => onJoinSeat(player.seat_index)}
                 player={player}
                 positionLabel={position.label}
@@ -1033,7 +822,7 @@ function WaitingArea({
   onJoinSeat,
   onLeaveSeat,
 }: {
-  currentSeat: RoomPlayerRow | null;
+  currentSeat: RoomPlayerView | null;
   displayName: string;
   firstFreeSeat: RoomPlayerRow["seat_index"] | null;
   hasFreeSeat: boolean;
@@ -1099,7 +888,7 @@ function SeatCard({
   canJoin: boolean;
   isCurrentUser: boolean;
   onJoin: () => void;
-  player: RoomPlayerRow;
+  player: RoomPlayerView;
   positionLabel: string;
 }) {
   const isEmpty = player.kind === "empty";

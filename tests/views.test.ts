@@ -20,11 +20,13 @@ describe("player game views", () => {
 
   it("does not expose other players' cards", () => {
     const state = createInitialGame(() => 0.1);
-    const view = toPlayerGameView(state, 1);
+    const view = toPlayerGameView(state, 0);
 
-    expect(view.hand).toEqual(state.hands[1]);
-    expect(view.hand).not.toEqual(state.hands[0]);
-    expect(JSON.stringify(view)).not.toContain(JSON.stringify(state.hands[0]));
+    expect(view.hand).toEqual(state.hands[0]);
+    for (const opponent of [1, 2, 3] as const) {
+      expect(view.hand).not.toEqual(state.hands[opponent]);
+      expect(JSON.stringify(view)).not.toContain(JSON.stringify(state.hands[opponent]));
+    }
   });
 
   it("returns copies instead of sharing mutable hand references", () => {

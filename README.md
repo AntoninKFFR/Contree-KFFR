@@ -43,6 +43,17 @@ npm run dev
 
 Ouvre ensuite l'adresse indiquée par Next.js, généralement `http://localhost:3000`.
 
+## Backend multijoueur
+
+Le multijoueur est server-authoritative. Copie `.env.example` vers `.env.local`, renseigne les
+identifiants Supabase, puis applique les migrations versionnées du dossier `supabase/migrations`.
+La clé `SUPABASE_SERVICE_ROLE_KEY` est utilisée uniquement par les Route Handlers Next.js et ne
+doit jamais être préfixée par `NEXT_PUBLIC_`.
+
+Le `GameState` complet est stocké dans `room_game_states`, une table sans permission ni policy
+pour `anon` ou `authenticated`. Le navigateur reçoit uniquement sa `PlayerGameView`; Realtime ne
+sert qu'à déclencher une nouvelle lecture authentifiée auprès de l'API Next.js.
+
 ## Lancer les tests
 
 ```bash
