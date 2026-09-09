@@ -12,7 +12,7 @@ export type Phase = "bidding" | "playing" | "finished" | "game-over";
 
 export type BidValue = 80 | 90 | 100 | 110 | 120 | 130 | 140 | 150 | 160;
 
-export type ScoringMode = "announced-points" | "made-points";
+export type ScoringMode = "ffb" | "announced-points" | "made-points";
 
 export type ContractStatus = "normal" | "coinched" | "surcoinched";
 
@@ -29,6 +29,35 @@ export type Card = {
 export type PlayedCard = {
   playerId: PlayerId;
   card: Card;
+};
+
+export type AnnouncementType = "tierce" | "fifty" | "hundred" | "square";
+
+export type CardAnnouncement = {
+  playerId: PlayerId;
+  teamId: TeamId;
+  type: AnnouncementType;
+  value: 20 | 50 | 100 | 150 | 200;
+  suit?: Suit;
+  highestRank?: Rank;
+  squareRank?: Rank;
+};
+
+export type AnnouncementState = {
+  declarations: CardAnnouncement[];
+  declaredPlayerIds: PlayerId[];
+  winningTeam: TeamId | null;
+  pointsByTeam: Record<TeamId, number>;
+};
+
+export type BeloteState = {
+  declaration: {
+    playerId: PlayerId;
+    teamId: TeamId;
+    firstRank: "K" | "Q";
+    completed: boolean;
+  } | null;
+  pointsByTeam: Record<TeamId, number>;
 };
 
 export type Trick = {
@@ -54,6 +83,11 @@ export type Bid =
     }
   | {
       playerId: PlayerId;
+      action: "capot";
+      trump: Suit;
+    }
+  | {
+      playerId: PlayerId;
       action: "coinche";
     }
   | {
@@ -61,15 +95,19 @@ export type Bid =
       action: "surcoinche";
     };
 
-export type Contract = {
+type ContractBase = {
   playerId: PlayerId;
   teamId: TeamId;
-  value: BidValue;
   trump: Suit;
   status: ContractStatus;
   coinchedBy?: PlayerId;
   surcoinchedBy?: PlayerId;
 };
+
+export type Contract = ContractBase & (
+  | { kind?: "points"; value: BidValue }
+  | { kind: "capot"; value: 250 }
+);
 
 export type RoundResult =
   | {
@@ -77,6 +115,11 @@ export type RoundResult =
       contract: Contract;
       takerPoints: number;
       defenderPoints: number;
+      trickPointsByTeam: Record<TeamId, number>;
+      announcementPointsByTeam: Record<TeamId, number>;
+      belotePointsByTeam: Record<TeamId, number>;
+      totalPointsByTeam: Record<TeamId, number>;
+      capotTeam: TeamId | null;
       contractSucceeded: boolean;
       scoringMode: ScoringMode;
       multiplier: 1 | 2 | 4;
@@ -113,6 +156,8 @@ export type GameState = {
   contract: Contract | null;
   result: RoundResult | null;
   trickPoints: Record<TeamId, number>;
+  announcements?: AnnouncementState;
+  belote?: BeloteState;
   roundScore: Record<TeamId, number>;
   message: string;
 };

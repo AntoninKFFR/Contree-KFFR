@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SUIT_LABELS, SUIT_SYMBOLS, SUITS } from "@/engine/cards";
-import { getAvailableBidValues } from "@/engine/bidding";
+import { canBidCapot, getAvailableBidValues } from "@/engine/bidding";
 import type { BidValue, Contract, Suit } from "@/engine/types";
 
 type BiddingPanelProps = {
@@ -12,6 +12,7 @@ type BiddingPanelProps = {
   currentContract: Contract | null;
   compact?: boolean;
   onBid: (value: BidValue, trump: Suit) => void;
+  onCapot: (trump: Suit) => void;
   onCoinche: () => void;
   onPass: () => void;
   onSurcoinche: () => void;
@@ -24,6 +25,7 @@ export function BiddingPanel({
   compact = false,
   currentContract,
   onBid,
+  onCapot,
   onCoinche,
   onPass,
   onSurcoinche,
@@ -36,6 +38,7 @@ export function BiddingPanel({
   const [trump, setTrump] = useState<Suit>("hearts");
 
   const canMakeBid = canBid && availableValues.length > 0;
+  const canMakeCapot = canBid && canBidCapot(currentContract);
 
   useEffect(() => {
     if (value === "" || !availableValues.includes(value)) {
@@ -75,7 +78,9 @@ export function BiddingPanel({
         >
           {currentContract?.status === "coinched"
             ? "Contrat contré: tu peux seulement passer ou surcontrer."
-            : "Le contrat est deja au maximum pour cette V1. Tu peux seulement passer."}
+            : currentContract?.kind === "capot"
+              ? "Un capot est déjà annoncé. Tu peux seulement passer ou contrer."
+              : "Aucune enchère numérique supérieure. Le capot reste disponible."}
         </p>
       ) : null}
 
@@ -121,7 +126,7 @@ export function BiddingPanel({
           </select>
         </label>
 
-        <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-5">
           <button
             className="rounded-md bg-stone-900 px-2 py-2 text-xs font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canMakeBid}
@@ -129,6 +134,14 @@ export function BiddingPanel({
             type="button"
           >
             Annoncer
+          </button>
+          <button
+            className="rounded-md border border-amber-300 px-2 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!canMakeCapot}
+            onClick={() => onCapot(trump)}
+            type="button"
+          >
+            Capot
           </button>
           <button
             className="rounded-md border border-red-300 px-2 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"

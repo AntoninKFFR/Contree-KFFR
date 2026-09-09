@@ -31,14 +31,14 @@ function readProfile(name: string, fallback: BotProfileId): BotProfileId {
 
 function readOptions(): CliOptions {
   const games = Number(readArg("games") ?? 100);
-  const scoring = readArg("scoring") ?? "made-points";
+  const scoring = readArg("scoring") ?? "ffb";
 
   if (!Number.isInteger(games) || games <= 0) {
     throw new Error("Utilise un nombre positif pour --games, par exemple --games=1000.");
   }
 
-  if (scoring !== "made-points" && scoring !== "announced-points") {
-    throw new Error("Utilise --scoring=made-points ou --scoring=announced-points.");
+  if (scoring !== "ffb" && scoring !== "made-points" && scoring !== "announced-points") {
+    throw new Error("Utilise --scoring=ffb, --scoring=made-points ou --scoring=announced-points.");
   }
 
   return {

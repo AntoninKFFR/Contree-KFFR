@@ -46,6 +46,7 @@ function statusLabel(status: MultiplayerRoomView["room"]["status"]): string {
 }
 
 function scoringModeLabel(scoringMode: MultiplayerRoomView["room"]["scoring_mode"]): string {
+  if (scoringMode === "ffb") return "coinche FFB";
   return scoringMode === "made-points" ? "points faits" : "points annoncés";
 }
 
@@ -586,6 +587,10 @@ export default function MultiplayerRoomPage() {
     void handleRoomPlayerAction({ type: "bid", value, trump });
   }
 
+  function handleCapot(trump: Suit) {
+    void handleRoomPlayerAction({ type: "capot", trump });
+  }
+
   function handlePass() {
     void handleRoomPlayerAction({ type: "pass" });
   }
@@ -894,6 +899,7 @@ export default function MultiplayerRoomPage() {
                                 compact
                                 currentContract={currentContract}
                                 onBid={handleBid}
+                                onCapot={handleCapot}
                                 onCoinche={handleCoinche}
                                 onPass={handlePass}
                                 onSurcoinche={handleSurcoinche}
@@ -926,6 +932,7 @@ export default function MultiplayerRoomPage() {
                       canSurcoinche={canBidSurcoinche && !isPlayingCard}
                       currentContract={currentContract}
                       onBid={handleBid}
+                      onCapot={handleCapot}
                       onCoinche={handleCoinche}
                       onPass={handlePass}
                       onSurcoinche={handleSurcoinche}

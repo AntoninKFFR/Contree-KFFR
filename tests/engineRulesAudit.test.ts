@@ -16,6 +16,7 @@ import {
   getTrickWinner,
   isLegalCard,
   nextPlayer,
+  playerTeam,
 } from "@/engine/rules";
 import { scoreRound } from "@/engine/scoring";
 import type { BidValue, Card, GameState, PlayerId, Rank, Suit, Trick } from "@/engine/types";
@@ -244,11 +245,34 @@ describe("engine rules audit: bidding characterization", () => {
     })).toEqual([140, 150, 160]);
   });
 
-  it("characterizes that makeBid relies on TypeScript for the allowed-value boundary", () => {
+  it.each([170, 75, 200])("rejects a forged runtime bid value of %s", (forgedValue) => {
     const state = createInitialGame(() => 0.1);
-    const forgedValue = 170 as BidValue;
-    const accepted = makeBid(state, 0, { action: "bid", value: forgedValue, trump: "clubs" });
-    expect(getCurrentContract(accepted)?.value).toBe(170);
+    expect(() => makeBid(state, 0, {
+      action: "bid", value: forgedValue as BidValue, trump: "clubs",
+    })).toThrow("not allowed");
+  });
+
+  it("represents capot above 160 as a distinct terminal bid", () => {
+    let state = createInitialGame(() => 0.1);
+    state = makeBid(state, 0, { action: "bid", value: 160, trump: "clubs" });
+    state = makeBid(state, 1, { action: "capot", trump: "spades" });
+    expect(getCurrentContract(state)).toMatchObject({
+      kind: "capot", value: 250, playerId: 1, teamId: 1, trump: "spades",
+    });
+    expect(getAvailableBidValues(getCurrentContract(state))).toEqual([]);
+    expect(() => makeBid(state, 2, { action: "bid", value: 160, trump: "hearts" }))
+      .toThrow("higher");
+  });
+
+  it("allows the opponents to coinche a capot and completes it after three passes", () => {
+    let state = createInitialGame(() => 0.1);
+    state = makeBid(state, 0, { action: "capot", trump: "hearts" });
+    state = makeBid(state, 1, { action: "coinche" });
+    state = makeBid(state, 2, { action: "pass" });
+    state = makeBid(state, 3, { action: "pass" });
+    state = makeBid(state, 0, { action: "pass" });
+    expect(state.phase).toBe("playing");
+    expect(state.contract).toMatchObject({ kind: "capot", value: 250, status: "coinched" });
   });
 
   it("allows a player who passed to speak again after a later bid and rejects an equal bid", () => {
@@ -291,7 +315,7 @@ describe("engine rules audit: bidding characterization", () => {
     expect(state.contract?.status).toBe("surcoinched");
   });
 
-  it("characterizes the late-coinche gap: bidder pass ends before partner can surcoinche", () => {
+  it("keeps three real turns after a late coinche and lets the bidder's partner surcoinche", () => {
     let state = createInitialGame(() => 0.1);
     state = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
     state = makeBid(state, 1, { action: "pass" });
@@ -299,12 +323,41 @@ describe("engine rules audit: bidding characterization", () => {
     state = makeBid(state, 3, { action: "coinche" });
     state = makeBid(state, 0, { action: "pass" });
 
-    expect(state.phase).toBe("playing");
+    expect(state.phase).toBe("bidding");
+    expect(state.currentPlayerId).toBe(1);
     expect(state.bids.at(-1)).toEqual({ playerId: 0, action: "pass" });
-    expect(state.bids.some((bid) => bid.playerId === 2 && bid.action === "surcoinche")).toBe(false);
+    state = makeBid(state, 1, { action: "pass" });
+    expect(state.currentPlayerId).toBe(2);
+    state = makeBid(state, 2, { action: "surcoinche" });
+    expect(state.phase).toBe("playing");
+    expect(state.contract?.status).toBe("surcoinched");
   });
 
-  it("characterizes entame as the contract bidder rather than the original starting player", () => {
+  it("lets the contract holder surcoinche on the third turn after an early coinche", () => {
+    let state = createInitialGame(() => 0.1);
+    state = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
+    state = makeBid(state, 1, { action: "coinche" });
+    state = makeBid(state, 2, { action: "pass" });
+    state = makeBid(state, 3, { action: "pass" });
+    expect(state.currentPlayerId).toBe(0);
+    state = makeBid(state, 0, { action: "surcoinche" });
+    expect(state.phase).toBe("playing");
+    expect(state.contract?.status).toBe("surcoinched");
+  });
+
+  it("ends a coinched auction only after all three following players pass", () => {
+    let state = createInitialGame(() => 0.1);
+    state = makeBid(state, 0, { action: "bid", value: 80, trump: "hearts" });
+    state = makeBid(state, 1, { action: "coinche" });
+    state = makeBid(state, 2, { action: "pass" });
+    state = makeBid(state, 3, { action: "pass" });
+    expect(state.phase).toBe("bidding");
+    state = makeBid(state, 0, { action: "pass" });
+    expect(state.phase).toBe("playing");
+    expect(state.contract?.status).toBe("coinched");
+  });
+
+  it("uses the original starting player for the entame", () => {
     let state = createInitialGame(() => 0.1);
     state = makeBid(state, 0, { action: "pass" });
     state = makeBid(state, 1, { action: "bid", value: 80, trump: "hearts" });
@@ -314,22 +367,26 @@ describe("engine rules audit: bidding characterization", () => {
 
     expect(state.startingPlayerId).toBe(0);
     expect(state.contract?.playerId).toBe(1);
-    expect(state.currentTrick.leaderId).toBe(1);
+    expect(state.currentTrick.leaderId).toBe(0);
   });
 });
 
 describe("engine rules audit: scoring characterization", () => {
   const contract = { playerId: 0, teamId: 0, value: 80, trump: "hearts" } as const;
 
-  it("characterizes the missing defense comparison at equality and when defense is higher", () => {
-    for (const scoringMode of ["announced-points", "made-points"] as const) {
-      for (const trickPointsByTeam of [{ 0: 81, 1: 81 }, { 0: 80, 1: 82 }]) {
+  it("requires the takers to beat the defense as well as reach the contract", () => {
+    for (const scoringMode of ["ffb", "announced-points", "made-points"] as const) {
+      for (const [trickPointsByTeam, succeeded] of [
+        [{ 0: 81, 1: 81 }, false],
+        [{ 0: 80, 1: 82 }, false],
+        [{ 0: 82, 1: 80 }, true],
+      ] as const) {
         const result = scoreRound({
           contract: { ...contract, status: "normal" },
           settings: { scoringMode, targetScore: 1000 },
           trickPointsByTeam,
         });
-        expect(result.contractSucceeded).toBe(true);
+        expect(result.contractSucceeded).toBe(succeeded);
       }
     }
   });
@@ -360,14 +417,14 @@ describe("engine rules audit: scoring characterization", () => {
     { status: "normal", score: 242 },
     { status: "coinched", score: 322 },
     { status: "surcoinched", score: 482 },
-  ] as const)("characterizes absent capot scoring for a $status contract", ({ status, score }) => {
+  ] as const)("keeps legacy scoring unchanged when no FFB capot is supplied for a $status contract", ({ status, score }) => {
     const result = scoreRound({
       contract: { ...contract, status },
       settings: { scoringMode: "made-points", targetScore: 1000 },
       trickPointsByTeam: { 0: 162, 1: 0 },
     });
     expect(result.roundScore).toEqual({ 0: score, 1: 0 });
-    expect("capot" in result).toBe(false);
+    expect(result.capotTeam).toBeNull();
   });
 });
 
@@ -413,7 +470,12 @@ function playDeterministicRound(seed: number): GameState {
   expect(played.size).toBe(32);
   expect(state.completedTricks).toHaveLength(8);
   expect(state.completedTricks.every((trick) => trick.cards.length === 4)).toBe(true);
-  expect(state.completedTricks.reduce((sum, trick) => sum + trick.points, 0)).toBe(162);
+  const tricksByTeam = {
+    0: state.completedTricks.filter((trick) => playerTeam(trick.winnerId) === 0).length,
+    1: state.completedTricks.filter((trick) => playerTeam(trick.winnerId) === 1).length,
+  };
+  const isCapot = tricksByTeam[0] === 8 || tricksByTeam[1] === 8;
+  expect(state.completedTricks.reduce((sum, trick) => sum + trick.points, 0)).toBe(isCapot ? 252 : 162);
   expect(state.hands[0]).toHaveLength(0);
   expect(state.hands[1]).toHaveLength(0);
   expect(state.hands[2]).toHaveLength(0);
@@ -444,7 +506,7 @@ function playSyntheticLastTrick(totalScore: GameState["totalScore"], targetScore
     bids: [{ playerId: 0, action: "bid", value: 80, trump: "hearts" }],
     contract: { playerId: 0, teamId: 0, value: 80, trump: "hearts", status: "normal" },
     result: null,
-    trickPoints: { 0: 71, 1: 81 },
+    trickPoints: { 0: 72, 1: 70 },
     roundScore: { 0: 0, 1: 0 },
     message: "Audit final trick",
   };
@@ -473,17 +535,17 @@ describe("engine rules audit: round and game invariants", () => {
     expect(nextRound.startingPlayerId).toBe(nextPlayer(next));
   });
 
-  it("handles below-target, one-winner, two-winner and exact-tie totals as currently implemented", () => {
+  it("handles below-target, one-winner, two-winner and exact-tie totals under the FFB finish rule", () => {
     const below = playSyntheticLastTrick({ 0: 0, 1: 0 }, 500);
-    expect(below).toMatchObject({ phase: "finished", winnerTeam: null, totalScore: { 0: 161, 1: 81 } });
+    expect(below).toMatchObject({ phase: "finished", winnerTeam: null, totalScore: { 0: 162, 1: 70 } });
 
     const oneWinner = playSyntheticLastTrick({ 0: 0, 1: 0 }, 100);
-    expect(oneWinner).toMatchObject({ phase: "game-over", winnerTeam: 0, totalScore: { 0: 161, 1: 81 } });
+    expect(oneWinner).toMatchObject({ phase: "game-over", winnerTeam: 0, totalScore: { 0: 162, 1: 70 } });
 
     const higherWinner = playSyntheticLastTrick({ 0: 0, 1: 100 }, 100);
-    expect(higherWinner).toMatchObject({ phase: "game-over", winnerTeam: 1, totalScore: { 0: 161, 1: 181 } });
+    expect(higherWinner).toMatchObject({ phase: "game-over", winnerTeam: 1, totalScore: { 0: 162, 1: 170 } });
 
-    const exactTie = playSyntheticLastTrick({ 0: 0, 1: 80 }, 100);
-    expect(exactTie).toMatchObject({ phase: "game-over", winnerTeam: 0, totalScore: { 0: 161, 1: 161 } });
+    const exactTie = playSyntheticLastTrick({ 0: 0, 1: 92 }, 100);
+    expect(exactTie).toMatchObject({ phase: "finished", winnerTeam: null, totalScore: { 0: 162, 1: 162 } });
   });
 });

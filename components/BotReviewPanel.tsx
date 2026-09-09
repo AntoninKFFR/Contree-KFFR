@@ -46,7 +46,7 @@ export function BotReviewPanel({ scenario, onClose }: BotReviewPanelProps) {
     ? scenario.legalCards.map(formatCard).join(", ")
     : "Sans objet pour une enchère";
   const contract = scenario.contract
-    ? `${scenario.contract.value} ${SUIT_LABELS[scenario.contract.trump]} (${scenario.contract.status})`
+    ? `${scenario.contract.kind === "capot" ? "capot" : scenario.contract.value} ${SUIT_LABELS[scenario.contract.trump]} (${scenario.contract.status})`
     : "Aucun";
   const trick = scenario.currentTrick.cards.length > 0
     ? scenario.currentTrick.cards.map((played) => `P${played.playerId}: ${formatCard(played.card)}`).join(", ")

@@ -7,7 +7,14 @@ import {
   shuffleDeck,
   sortHand,
 } from "./cards";
-import { canCoinche, canSurcoinche } from "./bidding";
+import {
+  declareAnnouncementsForPlayer,
+  emptyAnnouncementState,
+  emptyBeloteState,
+  playBeloteCard,
+  resolveAnnouncements,
+} from "./announcements";
+import { canBidCapot, canCoinche, canSurcoinche, isAllowedBidValue } from "./bidding";
 import { createRandomPlayerNames, playerName, teamName } from "./players";
 import {
   getLegalCards,
@@ -37,7 +44,7 @@ function defaultTargetScore(scoringMode: GameSettings["scoringMode"]): number {
 }
 
 function resolveSettings(settings: Partial<GameSettings>): GameSettings {
-  const scoringMode = settings.scoringMode ?? "made-points";
+  const scoringMode = settings.scoringMode ?? "ffb";
 
   return {
     scoringMode,
@@ -128,6 +135,8 @@ function createRoundState({
     contract: null,
     result: null,
     trickPoints: emptyScore(),
+    announcements: emptyAnnouncementState(),
+    belote: emptyBeloteState(),
     roundScore: emptyScore(),
     message: `Manche ${roundNumber}: phase d'annonces, ${playerName(startingPlayerId, playerNames)} commence.`,
   };
@@ -144,9 +153,38 @@ function addScores(
 }
 
 function winningTeam(totalScore: Record<TeamId, number>, targetScore: number): TeamId | null {
-  if (totalScore[0] >= targetScore && totalScore[0] >= totalScore[1]) return 0;
-  if (totalScore[1] >= targetScore && totalScore[1] >= totalScore[0]) return 1;
+  if (totalScore[0] === totalScore[1]) return null;
+  if (totalScore[0] >= targetScore && totalScore[0] > totalScore[1]) return 0;
+  if (totalScore[1] >= targetScore && totalScore[1] > totalScore[0]) return 1;
   return null;
+}
+
+function reachesTargetOnlyThroughBelote(
+  state: GameState,
+  result: Extract<NonNullable<GameState["result"]>, { kind: "played" }>,
+  teamId: TeamId,
+): boolean {
+  if (state.settings.scoringMode !== "ffb" || result.belotePointsByTeam[teamId] === 0) {
+    return false;
+  }
+  const sufferedCapot = result.capotTeam !== null && result.capotTeam !== teamId;
+  const fellContract = result.contract.teamId === teamId && !result.contractSucceeded;
+  if (!sufferedCapot && !fellContract) return false;
+
+  const tricksWonByTeam: Record<TeamId, number> = result.capotTeam === 0
+    ? { 0: 8, 1: 0 }
+    : result.capotTeam === 1
+      ? { 0: 0, 1: 8 }
+      : { 0: 0, 1: 0 };
+  const withoutBelote = scoreRound({
+    contract: result.contract,
+    settings: state.settings,
+    trickPointsByTeam: result.trickPointsByTeam,
+    tricksWonByTeam,
+    announcementPointsByTeam: result.announcementPointsByTeam,
+    belotePointsByTeam: { 0: 0, 1: 0 },
+  });
+  return state.totalScore[teamId] + withoutBelote.roundScore[teamId] < state.settings.targetScore;
 }
 
 function finishRound(state: GameState, result: GameState["result"], baseMessage: string): GameState {
@@ -155,7 +193,14 @@ function finishRound(state: GameState, result: GameState["result"], baseMessage:
   }
 
   const totalScore = addScores(state.totalScore, result.roundScore);
-  const winnerTeam = winningTeam(totalScore, state.settings.targetScore);
+  let winnerTeam = winningTeam(totalScore, state.settings.targetScore);
+  if (
+    winnerTeam !== null
+    && result.kind === "played"
+    && reachesTargetOnlyThroughBelote(state, result, winnerTeam)
+  ) {
+    winnerTeam = null;
+  }
   const roundHistory = [
     ...state.roundHistory,
     {
@@ -213,9 +258,21 @@ function currentHighestBid(bids: Bid[]): Contract | null {
   for (const bid of bids) {
     if (bid.action === "bid") {
       contract = {
+        kind: "points",
         playerId: bid.playerId,
         teamId: playerTeam(bid.playerId),
         value: bid.value,
+        trump: bid.trump,
+        status: "normal",
+      };
+    }
+
+    if (bid.action === "capot") {
+      contract = {
+        kind: "capot",
+        playerId: bid.playerId,
+        teamId: playerTeam(bid.playerId),
+        value: 250,
         trump: bid.trump,
         status: "normal",
       };
@@ -243,20 +300,20 @@ function currentHighestBid(bids: Bid[]): Contract | null {
 }
 
 function isHigherBid(value: BidValue, currentContract: Contract | null): boolean {
-  return !currentContract || value > currentContract.value;
+  return !currentContract || (currentContract.kind !== "capot" && value > currentContract.value);
 }
 
 function isAllPassWithoutContract(bids: Bid[]): boolean {
   return bids.length === 4 && bids.every((bid) => bid.action === "pass");
 }
 
-function contractHolderAnsweredCoinche(bids: Bid[], contract: Contract): boolean {
-  if (contract.status !== "coinched" || contract.coinchedBy === undefined) {
-    return true;
-  }
-
-  const lastCoincheIndex = bids.findLastIndex((bid) => bid.action === "coinche");
-  return bids.slice(lastCoincheIndex + 1).some((bid) => bid.playerId === contract.playerId);
+function hasThreePassesAfterLastContractAction(bids: Bid[]): boolean {
+  const lastActionIndex = bids.findLastIndex(
+    (bid) => bid.action === "bid" || bid.action === "capot" || bid.action === "coinche",
+  );
+  if (lastActionIndex < 0) return false;
+  const following = bids.slice(lastActionIndex + 1);
+  return following.length === 3 && following.every((bid) => bid.action === "pass");
 }
 
 function finishBidding(state: GameState, bids: Bid[]): GameState {
@@ -284,12 +341,14 @@ function finishBidding(state: GameState, bids: Bid[]): GameState {
     contract,
     trump: contract.trump,
     hands: sortHandsForTrump(state.hands, contract.trump),
-    currentPlayerId: contract.playerId,
+    currentPlayerId: state.startingPlayerId,
     currentTrick: {
-      leaderId: contract.playerId,
+      leaderId: state.startingPlayerId,
       cards: [],
     },
-    message: `${playerName(contract.playerId, state.playerNames)} prend a ${contract.value} et commence.`,
+    announcements: emptyAnnouncementState(),
+    belote: emptyBeloteState(),
+    message: `${playerName(contract.playerId, state.playerNames)} prend ${contract.kind === "capot" ? "capot" : `a ${contract.value}`}. ${playerName(state.startingPlayerId, state.playerNames)} entame.`,
   };
 }
 
@@ -303,6 +362,10 @@ export function makeBid(
     | {
         action: "bid";
         value: BidValue;
+        trump: Suit;
+      }
+    | {
+        action: "capot";
         trump: Suit;
       }
     | {
@@ -322,12 +385,20 @@ export function makeBid(
 
   const currentContract = currentHighestBid(state.bids);
 
-  if (bid.action === "bid" && currentContract && currentContract.status !== "normal") {
+  if ((bid.action === "bid" || bid.action === "capot") && currentContract && currentContract.status !== "normal") {
     throw new Error("A normal bid is not allowed after a contract has been countered.");
+  }
+
+  if (bid.action === "bid" && !isAllowedBidValue(bid.value)) {
+    throw new Error("This bid value is not allowed.");
   }
 
   if (bid.action === "bid" && !isHigherBid(bid.value, currentContract)) {
     throw new Error("A new bid must be higher than the current contract.");
+  }
+
+  if (bid.action === "capot" && !canBidCapot(currentContract)) {
+    throw new Error("A capot bid is not allowed over the current contract.");
   }
 
   if (bid.action === "coinche" && !canCoinche(playerId, currentContract)) {
@@ -341,15 +412,11 @@ export function makeBid(
   const nextBids: Bid[] = [...state.bids, { playerId, ...bid }];
 
   const next = nextPlayer(playerId);
-  const nextContract = currentHighestBid(nextBids);
 
   if (
     isAllPassWithoutContract(nextBids) ||
     bid.action === "surcoinche" ||
-    (bid.action === "pass" &&
-      nextContract?.status === "coinched" &&
-      nextContract.playerId === playerId) ||
-    (nextContract?.playerId === next && contractHolderAnsweredCoinche(nextBids, nextContract))
+    hasThreePassesAfterLastContractAction(nextBids)
   ) {
     return finishBidding(state, nextBids);
   }
@@ -363,9 +430,11 @@ export function makeBid(
         ? `${playerName(playerId, state.playerNames)} passe. A ${playerName(next, state.playerNames)} de parler.`
         : bid.action === "bid"
           ? `${playerName(playerId, state.playerNames)} annonce ${bid.value} a ${formatSuit(bid.trump)}. A ${playerName(next, state.playerNames)} de parler.`
-          : bid.action === "coinche"
-            ? `${playerName(playerId, state.playerNames)} contre. A ${playerName(next, state.playerNames)} de parler.`
-            : `${playerName(playerId, state.playerNames)} surcontre. A ${playerName(next, state.playerNames)} de parler.`,
+          : bid.action === "capot"
+            ? `${playerName(playerId, state.playerNames)} annonce capot a ${formatSuit(bid.trump)}. A ${playerName(next, state.playerNames)} de parler.`
+            : bid.action === "coinche"
+              ? `${playerName(playerId, state.playerNames)} contre. A ${playerName(next, state.playerNames)} de parler.`
+              : `${playerName(playerId, state.playerNames)} surcontre. A ${playerName(next, state.playerNames)} de parler.`,
   };
 }
 
@@ -412,6 +481,25 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     throw new Error(`The card ${formatCard(card)} is not legal for this trick.`);
   }
 
+  let announcements = state.settings.scoringMode === "ffb" && state.completedTricks.length === 0
+    ? declareAnnouncementsForPlayer(state.announcements, hand, playerId, state.trump)
+    : state.announcements ?? emptyAnnouncementState();
+  if (
+    state.settings.scoringMode === "ffb"
+    && state.completedTricks.length === 1
+    && state.currentTrick.cards.length === 0
+    && announcements.declaredPlayerIds.length === 4
+  ) {
+    announcements = resolveAnnouncements(
+      announcements.declarations,
+      announcements.declaredPlayerIds,
+      state.trump,
+    );
+  }
+  const belote = state.settings.scoringMode === "ffb"
+    ? playBeloteCard(state.belote, hand, playerId, card, state.trump)
+    : state.belote ?? emptyBeloteState();
+
   const nextHand = hand.filter((handCard) => !sameCard(handCard, card));
   const nextHands = {
     ...state.hands,
@@ -427,6 +515,8 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     return {
       ...state,
       hands: nextHands,
+      announcements,
+      belote,
       currentTrick: nextTrick,
       currentPlayerId: next,
       message: `${playerName(playerId, state.playerNames)} a joue ${formatCard(card)}.`,
@@ -436,7 +526,11 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
   const winnerId = getTrickWinner(nextTrick, state.trump);
   const winnerTeam = playerTeam(winnerId);
   const isLastTrick = nextHands[0].length === 0;
-  const points = trickPoints(nextTrick.cards, state.trump, isLastTrick);
+  const isCapot = isLastTrick
+    && state.settings.scoringMode === "ffb"
+    && state.completedTricks.length === 7
+    && state.completedTricks.every((trick) => playerTeam(trick.winnerId) === winnerTeam);
+  const points = trickPoints(nextTrick.cards, state.trump, isLastTrick, isCapot);
   const trickPointsByTeam = {
     ...state.trickPoints,
     [winnerTeam]: state.trickPoints[winnerTeam] + points,
@@ -449,12 +543,19 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
       points,
     },
   ];
+  const tricksWonByTeam: Record<TeamId, number> = {
+    0: completedTricks.filter((trick) => playerTeam(trick.winnerId) === 0).length,
+    1: completedTricks.filter((trick) => playerTeam(trick.winnerId) === 1).length,
+  };
   const result =
     isLastTrick
       ? scoreRound({
           contract: state.contract,
           settings: state.settings,
           trickPointsByTeam,
+          tricksWonByTeam,
+          announcementPointsByTeam: announcements.pointsByTeam,
+          belotePointsByTeam: belote.pointsByTeam,
         })
       : null;
 
@@ -462,6 +563,8 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     ...state,
     phase: isLastTrick ? "finished" : "playing",
     hands: nextHands,
+    announcements,
+    belote,
     currentPlayerId: winnerId,
     currentTrick: {
       leaderId: winnerId,

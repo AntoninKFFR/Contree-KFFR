@@ -13,6 +13,11 @@ export type GameAction =
       playerId: PlayerId;
     }
   | {
+      type: "capot";
+      playerId: PlayerId;
+      trump: Suit;
+    }
+  | {
       type: "coinche";
       playerId: PlayerId;
     }
@@ -47,6 +52,8 @@ export function applyGameAction(
       });
     case "pass":
       return makeBid(state, action.playerId, { action: "pass" });
+    case "capot":
+      return makeBid(state, action.playerId, { action: "capot", trump: action.trump });
     case "coinche":
       return makeBid(state, action.playerId, { action: "coinche" });
     case "surcoinche":

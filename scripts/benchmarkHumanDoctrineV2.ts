@@ -51,7 +51,7 @@ type HighLeverageEvent = {
   v2: string;
   change: "v1-pass-v2-bid" | "trump" | "amount" | "other";
   finalContractTeam: TeamId | null;
-  finalContractValue: BidValue | null;
+  finalContractValue: BidValue | 250 | null;
   decisionTeamTookContract: boolean;
   contractSucceeded: boolean | null;
   roundImpact: number;

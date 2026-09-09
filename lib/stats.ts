@@ -61,6 +61,7 @@ export function formatDate(value: string | null) {
 }
 
 export function scoringModeLabel(value: string | null) {
+  if (value === "ffb") return "Coinche FFB";
   if (value === "made-points") return "Points faits";
   if (value === "announced-points") return "Points annonces";
   return value ?? "Mode inconnu";

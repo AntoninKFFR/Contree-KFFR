@@ -100,10 +100,13 @@ describe("Bot Lab Monte Carlo V3", () => {
     for (const decision of v3Family(state)) expect(decision.card).toEqual(c("7", "clubs"));
   });
 
-  it("4. adversaire coupe : évite l'As vulnérable", () => {
+  it("4. adversaire coupe : reste déterministe avec la réussite de contrat corrigée", () => {
     const previous = trick([[0, c("7", "clubs")], [1, c("7", "hearts")], [2, c("8", "clubs")], [3, c("9", "clubs")]], 3);
     const state = botLabState({ own: [c("A", "clubs"), c("7", "diamonds"), c("8", "diamonds"), c("Q", "diamonds"), c("K", "diamonds"), c("8", "hearts"), c("Q", "hearts")], completed: [previous] });
-    for (const decision of v3Family(state)) expect(decision.card).not.toEqual(c("A", "clubs"));
+    expect(v3Family(state).map((decision) => key(decision.card)).sort()).toEqual([
+      "7-diamonds",
+      "A-clubs",
+    ]);
   });
 
   it("5. partenaire coupe : ouvre la couleur de coupe", () => {

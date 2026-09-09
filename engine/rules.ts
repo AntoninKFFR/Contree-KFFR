@@ -57,9 +57,14 @@ export function cardPoints(card: Card, trump: Suit): number {
   return card.suit === trump ? TRUMP_POINTS[card.rank] : NORMAL_POINTS[card.rank];
 }
 
-export function trickPoints(cards: PlayedCard[], trump: Suit, isLastTrick: boolean): number {
+export function trickPoints(
+  cards: PlayedCard[],
+  trump: Suit,
+  isLastTrick: boolean,
+  isCapot = false,
+): number {
   const cardsPoints = cards.reduce((total, played) => total + cardPoints(played.card, trump), 0);
-  return isLastTrick ? cardsPoints + 10 : cardsPoints;
+  return isLastTrick ? cardsPoints + (isCapot ? 100 : 10) : cardsPoints;
 }
 
 function highestTrumpInTrick(trick: Trick, trump: Suit): Card | null {

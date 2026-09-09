@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createInitialGame } from "@/engine/game";
 import type { Card, GameState } from "@/engine/types";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
@@ -6,6 +6,9 @@ import {
   applyAuthorizedAction, applyBotTurns, enableBotTakeover, joinLobbySeat, requireHost,
   requireVersion, resetRoomPlayers, setLobbyReady, viewerSeatIndex,
 } from "@/lib/server/multiplayerGame";
+import { parseRoomIntent } from "@/lib/server/roomIntentValidation";
+
+vi.mock("server-only", () => ({}));
 
 function card(rank: Card["rank"], suit: Card["suit"]): Card { return { rank, suit }; }
 
@@ -51,6 +54,27 @@ function playingState(): GameState {
 }
 
 describe("server-authoritative multiplayer", () => {
+  it("validates capot at the server boundary and rejects an invalid trump", () => {
+    expect(parseRoomIntent({
+      type: "game-action", action: { type: "capot", trump: "hearts" },
+    })).toEqual({ type: "game-action", action: { type: "capot", trump: "hearts" } });
+    expect(() => parseRoomIntent({
+      type: "game-action", action: { type: "capot", trump: "stars" },
+    })).toThrow("invalide");
+  });
+
+  it("accepts a legal capot action through the authoritative action path", () => {
+    const next = applyAuthorizedAction({
+      room,
+      players: players(),
+      state: createInitialGame(() => 0.1),
+      userId: "host",
+      expectedVersion: 8,
+      action: { type: "capot", trump: "spades" },
+    });
+    expect(next.bids).toEqual([{ playerId: 0, action: "capot", trump: "spades" }]);
+  });
+
   it("rejects an action from a seated player outside their turn", () => {
     const state = createInitialGame(() => 0.1);
     expect(() => applyAuthorizedAction({ room, players: players(), state, userId: "user-1", expectedVersion: 8, action: { type: "pass" } }))

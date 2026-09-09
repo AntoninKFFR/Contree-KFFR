@@ -278,7 +278,11 @@ export async function createRoom(input: {
   userId: string; displayName: unknown; scoringMode: unknown; targetScore: unknown;
 }): Promise<MultiplayerRoomView> {
   const displayName = cleanName(input.displayName);
-  if (input.scoringMode !== "made-points" && input.scoringMode !== "announced-points") {
+  if (
+    input.scoringMode !== "ffb"
+    && input.scoringMode !== "made-points"
+    && input.scoringMode !== "announced-points"
+  ) {
     throw new MultiplayerError("Mode de score invalide.");
   }
   if (!Number.isInteger(input.targetScore) || Number(input.targetScore) <= 0) {

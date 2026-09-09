@@ -39,14 +39,14 @@ export default function SoloPage() {
   const gameIdRef = useRef(crypto.randomUUID());
   const savedGameIdsRef = useRef(new Set<string>());
   const botDecisionNumberRef = useRef(0);
-  const [scoringMode, setScoringMode] = useState<ScoringMode>("made-points");
+  const [scoringMode, setScoringMode] = useState<ScoringMode>("ffb");
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [gameState, setGameState] = useState<GameState>(() =>
     createInitialGame(initialRenderRandom, {
-      scoringMode: "made-points",
-      targetScore: getDefaultTargetScore("made-points"),
+      scoringMode: "ffb",
+      targetScore: getDefaultTargetScore("ffb"),
     }),
   );
   const [lastBotReview, setLastBotReview] = useState<BotReviewScenarioV1 | null>(null);
@@ -213,6 +213,10 @@ export default function SoloPage() {
     dispatchGameAction({ type: "bid", playerId: localHumanPlayerId, value, trump });
   }
 
+  function handleHumanCapot(trump: Suit) {
+    dispatchGameAction({ type: "capot", playerId: localHumanPlayerId, trump });
+  }
+
   function handleHumanPass() {
     dispatchGameAction({ type: "pass", playerId: localHumanPlayerId });
   }
@@ -261,6 +265,7 @@ export default function SoloPage() {
             onChange={(event) => setScoringMode(event.target.value as ScoringMode)}
             value={scoringMode}
           >
+            <option value="ffb">Coinche FFB</option>
             <option value="made-points">Points faits</option>
             <option value="announced-points">Points annonces</option>
           </select>
@@ -300,6 +305,7 @@ export default function SoloPage() {
                           compact
                           currentContract={currentContract}
                           onBid={handleHumanBid}
+                          onCapot={handleHumanCapot}
                           onCoinche={handleHumanCoinche}
                           onPass={handleHumanPass}
                           onSurcoinche={handleHumanSurcoinche}
@@ -349,6 +355,7 @@ export default function SoloPage() {
                 canSurcoinche={humanCanSurcoinche}
                 currentContract={currentContract}
                 onBid={handleHumanBid}
+                onCapot={handleHumanCapot}
                 onCoinche={handleHumanCoinche}
                 onPass={handleHumanPass}
                 onSurcoinche={handleHumanSurcoinche}

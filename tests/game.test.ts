@@ -61,8 +61,8 @@ describe("game", () => {
       trump: "hearts",
       status: "normal",
     });
-    expect(afterMaxAgain.currentPlayerId).toBe(2);
-    expect(afterMaxAgain.currentTrick.leaderId).toBe(2);
+    expect(afterMaxAgain.currentPlayerId).toBe(0);
+    expect(afterMaxAgain.currentTrick.leaderId).toBe(0);
   });
 
   it("lets Moi speak again when someone bids after Moi passed", () => {

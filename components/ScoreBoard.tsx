@@ -80,7 +80,8 @@ export function ScoreBoard({
         <p className="font-semibold">Contrat</p>
         {displayedContract ? (
           <p>
-            {displayedContract.value} a {SUIT_LABELS[displayedContract.trump]}{" "}
+            {displayedContract.kind === "capot" ? "Capot" : displayedContract.value} a{" "}
+            {SUIT_LABELS[displayedContract.trump]}{" "}
             {SUIT_SYMBOLS[displayedContract.trump]} par {nameFor(displayedContract.playerId)} -{" "}
             {contractStatusLabel(displayedContract.status)}
           </p>
@@ -98,6 +99,41 @@ export function ScoreBoard({
             Preneurs: {state.result.takerPoints}, defense: {state.result.defenderPoints}, x
             {state.result.multiplier}.
           </p>
+          {state.result.trickPointsByTeam && state.result.announcementPointsByTeam && state.result.belotePointsByTeam ? (
+            <p>
+              Plis: {state.result.trickPointsByTeam[0]} - {state.result.trickPointsByTeam[1]};{" "}
+              annonces: {state.result.announcementPointsByTeam[0]} -{" "}
+              {state.result.announcementPointsByTeam[1]}; belote: {state.result.belotePointsByTeam[0]} -{" "}
+              {state.result.belotePointsByTeam[1]}.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {state.announcements && state.announcements.declarations.length > 0 ? (
+        <div className="mt-2 rounded-md bg-amber-50 p-2 text-xs text-stone-700">
+          <p className="font-semibold">Annonces de cartes</p>
+          <p>
+            {state.announcements.declarations.map((announcement) =>
+              `${nameFor(announcement.playerId)}: ${announcementLabel(announcement.type)}`,
+            ).join(" · ")}
+          </p>
+          {state.announcements.declaredPlayerIds.length === 4 ? (
+            <p>
+              {state.announcements.winningTeam === null
+                ? "Égalité ou résolution en attente."
+                : `${teamFor(state.announcements.winningTeam)} marquent ${state.announcements.pointsByTeam[state.announcements.winningTeam]} points.`}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {state.belote?.declaration ? (
+        <div className="mt-2 rounded-md bg-sky-50 p-2 text-xs text-stone-700">
+          <p className="font-semibold">
+            {state.belote.declaration.completed ? "Belote et rebelote" : "Belote"}
+          </p>
+          <p>{nameFor(state.belote.declaration.playerId)} · {state.belote.declaration.completed ? "20 points" : "déclarée"}</p>
         </div>
       ) : null}
 
@@ -136,6 +172,8 @@ export function ScoreBoard({
                     ? "passe"
                     : bid.action === "bid"
                       ? `${bid.value} a ${SUIT_LABELS[bid.trump]} ${SUIT_SYMBOLS[bid.trump]}`
+                      : bid.action === "capot"
+                        ? `capot a ${SUIT_LABELS[bid.trump]} ${SUIT_SYMBOLS[bid.trump]}`
                       : bid.action === "coinche"
                         ? "contre"
                         : "surcontre"}
@@ -172,4 +210,11 @@ function contractStatusLabel(status: ContractStatus): string {
   if (status === "coinched") return "contré";
   if (status === "surcoinched") return "surcontré";
   return "normal";
+}
+
+function announcementLabel(type: "tierce" | "fifty" | "hundred" | "square"): string {
+  if (type === "tierce") return "tierce";
+  if (type === "fifty") return "cinquante";
+  if (type === "hundred") return "cent";
+  return "carré";
 }

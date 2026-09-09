@@ -24,6 +24,13 @@ describe("game actions", () => {
     expect(nextState.currentPlayerId).toBe(1);
   });
 
+  it("applies a distinct capot action through the engine", () => {
+    const state = createInitialGame(() => 0.1);
+    const nextState = applyGameAction(state, { type: "capot", playerId: 0, trump: "hearts" });
+    expect(nextState.bids).toEqual([{ action: "capot", playerId: 0, trump: "hearts" }]);
+    expect(nextState.currentPlayerId).toBe(1);
+  });
+
   it("applies card actions through the existing game engine", () => {
     const state: GameState = {
       settings: { scoringMode: "made-points", targetScore: 1000 },

@@ -20,6 +20,7 @@ export function parseRoomIntent(value: unknown): RoomIntent {
   if (value.type === "game-action" && record(value.action)) {
     const action = value.action;
     if (action.type === "pass" || action.type === "coinche" || action.type === "surcoinche") return value as RoomIntent;
+    if (action.type === "capot" && SUITS.has(String(action.trump))) return value as RoomIntent;
     if (action.type === "bid" && BIDS.has(Number(action.value)) && SUITS.has(String(action.trump))) return value as RoomIntent;
     if (action.type === "play-card" && record(action.card) && SUITS.has(String(action.card.suit)) && RANKS.has(String(action.card.rank))) return value as RoomIntent;
   }

@@ -1,4 +1,4 @@
-import type { Card, GameState, PlayerId } from "./types";
+import type { Card, CardAnnouncement, GameState, PlayerId, RoundResult, TeamId } from "./types";
 
 export type ServerGameState = GameState;
 
@@ -17,23 +17,39 @@ function handCountsFor(state: ServerGameState): Record<PlayerId, number> {
   };
 }
 
+function cloneResult(result: RoundResult): RoundResult {
+  if (result.kind === "all-pass") {
+    return { ...result, roundScore: { ...result.roundScore } };
+  }
+  return {
+    ...result,
+    contract: { ...result.contract },
+    roundScore: { ...result.roundScore },
+    trickPointsByTeam: { ...result.trickPointsByTeam },
+    announcementPointsByTeam: { ...result.announcementPointsByTeam },
+    belotePointsByTeam: { ...result.belotePointsByTeam },
+    totalPointsByTeam: { ...result.totalPointsByTeam },
+  };
+}
+
+function publicAnnouncement(
+  announcement: CardAnnouncement,
+  winningTeam: TeamId | null,
+): CardAnnouncement {
+  if (winningTeam === announcement.teamId) return { ...announcement };
+  return {
+    playerId: announcement.playerId,
+    teamId: announcement.teamId,
+    type: announcement.type,
+    value: announcement.value,
+  };
+}
+
 export function toPlayerGameView(
   state: ServerGameState,
   viewerPlayerId: PlayerId,
 ): PlayerGameView {
-  const result =
-    state.result?.kind === "played"
-      ? {
-          ...state.result,
-          contract: { ...state.result.contract },
-          roundScore: { ...state.result.roundScore },
-        }
-      : state.result
-        ? {
-            ...state.result,
-            roundScore: { ...state.result.roundScore },
-          }
-        : null;
+  const result = state.result ? cloneResult(state.result) : null;
 
   return {
     settings: { ...state.settings },
@@ -44,6 +60,7 @@ export function toPlayerGameView(
     totalScore: { ...state.totalScore },
     roundHistory: state.roundHistory.map((entry) => ({
       ...entry,
+      result: cloneResult(entry.result),
       totalScoreAfterRound: { ...entry.totalScoreAfterRound },
     })),
     winnerTeam: state.winnerTeam,
@@ -69,6 +86,21 @@ export function toPlayerGameView(
     contract: state.contract ? { ...state.contract } : null,
     result,
     trickPoints: { ...state.trickPoints },
+    announcements: state.announcements
+      ? {
+          ...state.announcements,
+          declarations: state.announcements.declarations.map((announcement) =>
+            publicAnnouncement(announcement, state.announcements?.winningTeam ?? null)),
+          declaredPlayerIds: [...state.announcements.declaredPlayerIds],
+          pointsByTeam: { ...state.announcements.pointsByTeam },
+        }
+      : undefined,
+    belote: state.belote
+      ? {
+          declaration: state.belote.declaration ? { ...state.belote.declaration } : null,
+          pointsByTeam: { ...state.belote.pointsByTeam },
+        }
+      : undefined,
     roundScore: { ...state.roundScore },
     message: state.message,
     viewerPlayerId,

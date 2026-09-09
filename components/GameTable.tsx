@@ -54,6 +54,10 @@ function formatBidLabel(bid: Bid): AnnouncementBubbleContent {
     return { label: "Surcoinche", tone: "accent" };
   }
 
+  if (bid.action === "capot") {
+    return { label: `Capot ${SUIT_SYMBOLS[bid.trump]}`, tone: "accent" };
+  }
+
   return {
     label: `${bid.value} ${SUIT_SYMBOLS[bid.trump]}`,
     tone: "accent",
@@ -61,9 +65,12 @@ function formatBidLabel(bid: Bid): AnnouncementBubbleContent {
 }
 
 function formatFinalContract(contract: Contract): AnnouncementBubbleContent {
+  const label = contract.kind === "capot"
+    ? `Capot ${SUIT_SYMBOLS[contract.trump]}`
+    : `${contract.value} ${SUIT_SYMBOLS[contract.trump]}`;
   if (contract.status === "surcoinched") {
     return {
-      label: `${contract.value} ${SUIT_SYMBOLS[contract.trump]}`,
+      label,
       detail: "Surcoinchee",
       tone: "accent",
     };
@@ -71,14 +78,14 @@ function formatFinalContract(contract: Contract): AnnouncementBubbleContent {
 
   if (contract.status === "coinched") {
     return {
-      label: `${contract.value} ${SUIT_SYMBOLS[contract.trump]}`,
+      label,
       detail: "Coinchee",
       tone: "accent",
     };
   }
 
   return {
-    label: `${contract.value} ${SUIT_SYMBOLS[contract.trump]}`,
+    label,
     tone: "accent",
   };
 }
@@ -88,16 +95,18 @@ function latestBidKey(roundNumber: number, bids: Bid[]): string | null {
 
   if (!latestBid) return null;
 
-  if (latestBid.action === "bid") {
-    return `${roundNumber}-${bids.length}-${latestBid.playerId}-${latestBid.action}-${latestBid.value}-${latestBid.trump}`;
+  if (latestBid.action === "bid" || latestBid.action === "capot") {
+    const amount = latestBid.action === "capot" ? "capot" : latestBid.value;
+    return `${roundNumber}-${bids.length}-${latestBid.playerId}-${latestBid.action}-${amount}-${latestBid.trump}`;
   }
 
   return `${roundNumber}-${bids.length}-${latestBid.playerId}-${latestBid.action}`;
 }
 
 function bidKey(roundNumber: number, bidsLength: number, bid: Bid): string {
-  if (bid.action === "bid") {
-    return `${roundNumber}-${bidsLength}-${bid.playerId}-${bid.action}-${bid.value}-${bid.trump}`;
+  if (bid.action === "bid" || bid.action === "capot") {
+    const amount = bid.action === "capot" ? "capot" : bid.value;
+    return `${roundNumber}-${bidsLength}-${bid.playerId}-${bid.action}-${amount}-${bid.trump}`;
   }
 
   return `${roundNumber}-${bidsLength}-${bid.playerId}-${bid.action}`;
@@ -106,7 +115,7 @@ function bidKey(roundNumber: number, bidsLength: number, bid: Bid): string {
 function dominantBidPlayerId(bids: Bid[]): PlayerId | null {
   for (let index = bids.length - 1; index >= 0; index -= 1) {
     const bid = bids[index];
-    if (bid.action === "bid") {
+    if (bid.action === "bid" || bid.action === "capot") {
       return bid.playerId;
     }
   }
@@ -335,7 +344,9 @@ function TableStatusOverlay({
 }) {
   const currentPlayer = playerName(state.currentPlayerId, state.playerNames);
   const contractText = state.contract
-    ? `${state.contract.value} ${SUIT_SYMBOLS[state.contract.trump]}`
+    ? state.contract.kind === "capot"
+      ? `Capot ${SUIT_SYMBOLS[state.contract.trump]}`
+      : `${state.contract.value} ${SUIT_SYMBOLS[state.contract.trump]}`
     : "Annonces";
 
   return (
