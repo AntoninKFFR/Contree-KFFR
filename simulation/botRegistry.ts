@@ -2,7 +2,7 @@ import { BOT_PROFILES, getBotProfile, type BotProfileId } from "@/bots/profiles"
 import { chooseProfileBid, chooseProfileBidFromHand } from "@/bots/strategy/biddingStrategy";
 import { chooseBiddingV2 } from "@/bots/strategy/biddingStrategyV2";
 import { chooseMonteCarloBid } from "@/bots/strategy/monteCarloBiddingStrategy";
-import { chooseHumanDoctrineBid } from "@/bots/strategy/humanDoctrine";
+import { chooseHumanDoctrineBid, type HumanDoctrineOptions } from "@/bots/strategy/humanDoctrine";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { chooseMonteCarloCardToPlay, chooseMonteCarloV2CardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
 import { chooseMonteCarloV3Decision, V3_1_OPTIONS, type BotDecisionTraceV3, type MonteCarloV3Options } from "@/bots/strategy/monteCarloV3CardStrategy";
@@ -42,7 +42,7 @@ export type BiddingEngine =
   | { kind: "monte-carlo"; profile: BotProfileId }
   | { kind: "legacy-balanced-simple" }
   | { kind: "bidding-v2" }
-  | { kind: "human-doctrine-v1" }
+  | { kind: "human-doctrine-v1"; options?: HumanDoctrineOptions }
   | { kind: "legacy" };
 
 export type CardEngine =
@@ -183,7 +183,9 @@ export function composeStrategy(
 export function chooseStrategyBid(state: GameState, strategy: BotStrategyDefinition): StrategyBid {
   if (strategy.bidding.kind === "legacy") return chooseLegacyBid(state.hands[state.currentPlayerId]);
   if (strategy.bidding.kind === "bidding-v2") return chooseBiddingV2(state);
-  if (strategy.bidding.kind === "human-doctrine-v1") return chooseHumanDoctrineBid(state);
+  if (strategy.bidding.kind === "human-doctrine-v1") {
+    return chooseHumanDoctrineBid(state, strategy.bidding.options);
+  }
   if (strategy.bidding.kind === "legacy-balanced-simple") {
     return chooseProfileBidFromHand(state.hands[state.currentPlayerId], getBotProfile("balanced"), null);
   }

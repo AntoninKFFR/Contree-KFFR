@@ -27,7 +27,47 @@ export type HumanDoctrineHandEvaluation = {
   voidSuits: Suit[];
   vulnerableToCuts: Suit[];
   legacyScore: number;
+  intrinsicScore: number;
   doctrineScore: number;
+  adjustments: HumanDoctrineAdjustments;
+};
+
+export type HumanDoctrineAdjustments = {
+  dryNine: number;
+  thirtyFour: number;
+  jackNineThird: number;
+  longTrump: number;
+  outsideAces: number;
+  protectedTens: number;
+  longSuits: number;
+  voids: number;
+  vulnerableToCuts: number;
+  partnerSupport: number;
+  opponentContract: number;
+  scoreGap: number;
+  firstSeat: number;
+};
+
+export type HumanDoctrineOptions = {
+  thresholds: "legacy" | "doctrine";
+  allow110: boolean;
+  structuralRules: boolean;
+  outsideControls: boolean;
+  handShape: boolean;
+  partnerSupport: boolean;
+  opponentContractPenalty: boolean;
+  scoreGapAdjustment: boolean;
+};
+
+export const HUMAN_DOCTRINE_DEFAULT_OPTIONS: HumanDoctrineOptions = {
+  thresholds: "doctrine",
+  allow110: true,
+  structuralRules: true,
+  outsideControls: true,
+  handShape: true,
+  partnerSupport: true,
+  opponentContractPenalty: true,
+  scoreGapAdjustment: true,
 };
 
 export type HumanDoctrineBidDecision = {
@@ -79,7 +119,11 @@ function trumpControl(trumps: Card[]): HumanDoctrineHandEvaluation["trumpControl
   return "none";
 }
 
-export function evaluateHumanDoctrineHand(hand: Card[], trump: Suit): HumanDoctrineHandEvaluation {
+export function evaluateHumanDoctrineHand(
+  hand: Card[],
+  trump: Suit,
+  options: HumanDoctrineOptions = HUMAN_DOCTRINE_DEFAULT_OPTIONS,
+): HumanDoctrineHandEvaluation {
   const suits = cardsBySuit(hand);
   const trumps = suits[trump];
   const outsideSuits = SUITS.filter((suit) => suit !== trump);
@@ -99,14 +143,22 @@ export function evaluateHumanDoctrineHand(hand: Card[], trump: Suit): HumanDoctr
   const legacyScore = evaluateLegacyHand(hand, trump).score;
   const trumpQuality = trumps.reduce((score, card) => score + TRUMP_QUALITY[card.rank], 0);
 
-  let doctrineAdjustment = 0;
-  if (structure === "dry-nine") doctrineAdjustment -= 18;
-  if (structure === "thirty-four") doctrineAdjustment -= 10;
-  if (structure === "jack-nine-third") doctrineAdjustment += 3;
-  if (structure === "long-trump") doctrineAdjustment += 4;
-  doctrineAdjustment += outsideAces * 3 + protectedOutsideTens * 2;
-  doctrineAdjustment += longOutsideSuits.length * 2 + voidSuits.length;
-  doctrineAdjustment -= vulnerableToCuts.length * 4;
+  const adjustments: HumanDoctrineAdjustments = {
+    dryNine: options.structuralRules && structure === "dry-nine" ? -18 : 0,
+    thirtyFour: options.structuralRules && structure === "thirty-four" ? -10 : 0,
+    jackNineThird: options.structuralRules && structure === "jack-nine-third" ? 3 : 0,
+    longTrump: options.structuralRules && structure === "long-trump" ? 4 : 0,
+    outsideAces: options.outsideControls ? outsideAces * 3 : 0,
+    protectedTens: options.outsideControls ? protectedOutsideTens * 2 : 0,
+    longSuits: options.handShape ? longOutsideSuits.length * 2 : 0,
+    voids: options.handShape ? voidSuits.length : 0,
+    vulnerableToCuts: options.handShape ? -vulnerableToCuts.length * 4 : 0,
+    partnerSupport: 0,
+    opponentContract: 0,
+    scoreGap: 0,
+    firstSeat: 0,
+  };
+  const intrinsicScore = legacyScore + Object.values(adjustments).reduce((sum, value) => sum + value, 0);
 
   return {
     trump,
@@ -122,11 +174,19 @@ export function evaluateHumanDoctrineHand(hand: Card[], trump: Suit): HumanDoctr
     voidSuits,
     vulnerableToCuts,
     legacyScore,
-    doctrineScore: legacyScore + doctrineAdjustment,
+    intrinsicScore,
+    doctrineScore: intrinsicScore,
+    adjustments,
   };
 }
 
-function bidForScore(score: number): BidValue | null {
+function bidForScore(score: number, options: HumanDoctrineOptions): BidValue | null {
+  if (options.thresholds === "legacy") {
+    if (score < 54) return null;
+    if (score < 70) return 80;
+    if (score < 86) return 90;
+    return options.allow110 && score >= 125 ? 110 : 100;
+  }
   // The legacy bidder is deliberately cautious (54/70/86 for 80/90/100).
   // Doctrine adjustments add context, so slightly higher gates preserve that
   // caution instead of turning richer evaluation into automatic aggression.
@@ -134,7 +194,7 @@ function bidForScore(score: number): BidValue | null {
   if (score < 76) return 80;
   if (score < 94) return 90;
   if (score < 125) return 100;
-  return 110;
+  return options.allow110 ? 110 : 100;
 }
 
 function lastPartnerBid(state: GameState) {
@@ -144,36 +204,43 @@ function lastPartnerBid(state: GameState) {
   );
 }
 
-export function chooseHumanDoctrineBid(state: GameState): HumanDoctrineBidDecision {
+export function chooseHumanDoctrineBid(
+  state: GameState,
+  options: HumanDoctrineOptions = HUMAN_DOCTRINE_DEFAULT_OPTIONS,
+): HumanDoctrineBidDecision {
   if (state.phase !== "bidding") throw new Error("Human doctrine bidding requires the bidding phase.");
   const hand = state.hands[state.currentPlayerId];
   const contract = getCurrentContract(state);
-  const evaluations = SUITS.map((trump) => evaluateHumanDoctrineHand(hand, trump));
+  const evaluations = SUITS.map((trump) => evaluateHumanDoctrineHand(hand, trump, options));
   const partnerBid = lastPartnerBid(state);
   const ownTeam = playerTeam(state.currentPlayerId);
   const opponentTeam = ownTeam === 0 ? 1 : 0;
   const isOpeningFromFirstSeat = state.bids.length === 0 && state.currentPlayerId === state.startingPlayerId;
 
   for (const evaluation of evaluations) {
-    if (partnerBid?.action === "bid" && partnerBid.trump === evaluation.trump) {
+    if (options.partnerSupport && partnerBid?.action === "bid" && partnerBid.trump === evaluation.trump) {
       const support = evaluation.trumpQuantity >= 3 ? 5 : evaluation.trumpQuantity >= 2 ? 2 : 0;
-      evaluation.doctrineScore += support + evaluation.outsideAces * 2;
+      evaluation.adjustments.partnerSupport = support + evaluation.outsideAces * 2;
     }
-    if (contract && contract.teamId !== ownTeam) {
-      evaluation.doctrineScore -= Math.max(0, (contract.value - 80) / 10) * 3;
+    if (options.opponentContractPenalty && contract && contract.teamId !== ownTeam) {
+      evaluation.adjustments.opponentContract = -Math.max(0, (contract.value - 80) / 10) * 3;
     }
     const scoreGap = state.totalScore[opponentTeam] - state.totalScore[ownTeam];
-    if (scoreGap >= 250) evaluation.doctrineScore += 2;
-    if (isOpeningFromFirstSeat) evaluation.doctrineScore += 1;
+    if (options.scoreGapAdjustment && scoreGap >= 250) evaluation.adjustments.scoreGap = 2;
+    if (isOpeningFromFirstSeat) evaluation.adjustments.firstSeat = 1;
+    evaluation.doctrineScore = evaluation.intrinsicScore
+      + evaluation.adjustments.partnerSupport
+      + evaluation.adjustments.opponentContract
+      + evaluation.adjustments.scoreGap
+      + evaluation.adjustments.firstSeat;
   }
 
   const best = evaluations.sort((first, second) => second.doctrineScore - first.doctrineScore)[0];
-  let wanted = bidForScore(best.doctrineScore);
-  if (best.structure === "thirty-four" && best.outsideAces === 0 && best.protectedOutsideTens === 0) {
+  let wanted = bidForScore(best.doctrineScore, options);
+  if (options.structuralRules && best.structure === "thirty-four" && best.outsideAces === 0 && best.protectedOutsideTens === 0) {
     wanted = wanted && wanted > 80 ? 80 : wanted;
   }
-  if (best.structure === "dry-nine" && best.outsideAces === 0) wanted = null;
-  if (best.outsideAces === 0 && best.trumpQuantity < 6 && wanted && wanted > 110) wanted = 110;
+  if (options.structuralRules && best.structure === "dry-nine" && best.outsideAces === 0) wanted = null;
 
   const available = contract?.status === "normal" ? getAvailableBidValues(contract) : [];
   const value = wanted && (!contract || contract.status === "normal")

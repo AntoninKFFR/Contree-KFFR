@@ -16,6 +16,14 @@ describe("tournament harness", () => {
     const result = runRoundRobin([findBotStrategy("main"), findBotStrategy("balanced"), findBotStrategy("aggressive")], 2, 800);
     expect(result.totalGames).toBe(6);
     expect(result.ranking).toHaveLength(3);
+    expect(result.ranking[0]).toEqual(expect.objectContaining({
+      attackRounds: expect.any(Number),
+      defenseRounds: expect.any(Number),
+      defensiveSets: expect.any(Number),
+      defensiveSetRate: expect.any(Number),
+      averageAttackScore: expect.any(Number),
+      averageDefenseScore: expect.any(Number),
+    }));
     expect(result.headToHead).toHaveLength(3);
     expect(formatTournament(result)).toContain("HEAD-TO-HEAD");
   });

@@ -30,6 +30,10 @@ export type BotTournamentStats = {
   contractsTaken: number;
   contractsSucceeded: number;
   contractsFailed: number;
+  attackRounds: number;
+  defenseRounds: number;
+  defensiveSets: number;
+  defensiveSetRate: number;
   averageContract: number;
   passes: number;
   bids: number;
@@ -103,12 +107,14 @@ export function playTournamentGame({
   teamStrategies,
   targetScore = 300,
   onCardDecision,
+  onBidDecision,
   seatStrategies,
 }: {
   seed: number;
   teamStrategies: Record<TeamId, BotStrategyDefinition>;
   targetScore?: number;
   onCardDecision?: (state: GameState, strategy: BotStrategyDefinition, card: ReturnType<typeof chooseStrategyCardWithTrace>["card"], elapsedMs: number, trace?: BotDecisionTraceV3) => void;
+  onBidDecision?: (state: GameState, strategy: BotStrategyDefinition, decision: StrategyBid) => void;
   seatStrategies?: Partial<Record<PlayerId, BotStrategyDefinition>>;
 }): TournamentGame {
   const random = createSeededRandom(seed);
@@ -121,7 +127,9 @@ export function playTournamentGame({
       const kind = state.phase === "bidding" ? "bid" : "card";
       const started = performance.now();
       if (kind === "bid") {
-        state = applyStrategyBid(state, chooseStrategyBid(state, strategy));
+        const decision = chooseStrategyBid(state, strategy);
+        onBidDecision?.(state, strategy, decision);
+        state = applyStrategyBid(state, decision);
       } else {
         const before = state;
         const decision = chooseStrategyCardWithTrace(state, strategy);
@@ -149,25 +157,26 @@ export function runPairedMatchup(
   games: number,
   seed: number,
   targetScore = 300,
+  onBidDecision?: (state: GameState, strategy: BotStrategyDefinition, decision: StrategyBid) => void,
 ): TournamentGame[] {
   if (games < 2 || games % 2 !== 0) throw new Error("Un benchmark paired exige un nombre pair de parties >= 2.");
   const results: TournamentGame[] = [];
   for (let pair = 0; pair < games / 2; pair += 1) {
     const dealSeed = seed + pair;
-    results.push(playTournamentGame({ seed: dealSeed, teamStrategies: { 0: first, 1: second }, targetScore }));
-    results.push(playTournamentGame({ seed: dealSeed, teamStrategies: { 0: second, 1: first }, targetScore }));
+    results.push(playTournamentGame({ seed: dealSeed, teamStrategies: { 0: first, 1: second }, targetScore, onBidDecision }));
+    results.push(playTournamentGame({ seed: dealSeed, teamStrategies: { 0: second, 1: first }, targetScore, onBidDecision }));
   }
   return results;
 }
 
-type MutableStats = Omit<BotTournamentStats, "winRate" | "averageScore" | "averageDifferential" | "averageContract" | "averageTricksPerRound" | "averageRoundPoints" | "averageAttackScore" | "averageDefenseScore" | "averageBidMs" | "p95BidMs" | "averageCardMs" | "p95CardMs" | "p99CardMs" | "averageCpuMsPerGame" | "elo"> & {
+type MutableStats = Omit<BotTournamentStats, "winRate" | "averageScore" | "averageDifferential" | "averageContract" | "defensiveSetRate" | "averageTricksPerRound" | "averageRoundPoints" | "averageAttackScore" | "averageDefenseScore" | "averageBidMs" | "p95BidMs" | "averageCardMs" | "p95CardMs" | "p99CardMs" | "averageCpuMsPerGame" | "elo"> & {
   totalScore: number; totalDifferential: number; totalContract: number; totalTricks: number;
   totalRoundPoints: number; attackScore: number; attackRounds: number; defenseScore: number; defenseRounds: number;
   bidTimes: number[]; cardTimes: number[]; totalDecisionMs: number;
 };
 
 function initialStats(strategy: BotStrategyDefinition): MutableStats {
-  return { id: strategy.id, label: strategy.label, games: 0, wins: 0, losses: 0, rounds: 0, contractsTaken: 0, contractsSucceeded: 0, contractsFailed: 0, passes: 0, bids: 0, coinches: 0, surcoinches: 0, openings: 0, raises: 0, partnerRaises: 0, opponentOvercalls: 0, trumpChanges: 0, bidLevels: {}, totalScore: 0, totalDifferential: 0, totalContract: 0, totalTricks: 0, totalRoundPoints: 0, attackScore: 0, attackRounds: 0, defenseScore: 0, defenseRounds: 0, bidTimes: [], cardTimes: [], totalDecisionMs: 0 };
+  return { id: strategy.id, label: strategy.label, games: 0, wins: 0, losses: 0, rounds: 0, contractsTaken: 0, contractsSucceeded: 0, contractsFailed: 0, attackRounds: 0, defenseRounds: 0, defensiveSets: 0, passes: 0, bids: 0, coinches: 0, surcoinches: 0, openings: 0, raises: 0, partnerRaises: 0, opponentOvercalls: 0, trumpChanges: 0, bidLevels: {}, totalScore: 0, totalDifferential: 0, totalContract: 0, totalTricks: 0, totalRoundPoints: 0, attackScore: 0, defenseScore: 0, bidTimes: [], cardTimes: [], totalDecisionMs: 0 };
 }
 
 function percentile(values: number[], fraction: number): number {
@@ -222,6 +231,7 @@ function aggregate(strategies: BotStrategyDefinition[], games: TournamentGame[])
           } else {
             item.defenseRounds += 1;
             item.defenseScore += round.result.roundScore[team];
+            if (!round.result.contractSucceeded) item.defensiveSets += 1;
           }
         }
       }
@@ -237,7 +247,9 @@ function aggregate(strategies: BotStrategyDefinition[], games: TournamentGame[])
       id: item.id, label: item.label, games: item.games, wins: item.wins, losses: item.losses,
       winRate, averageScore: mean(item.totalScore, item.games), averageDifferential: mean(item.totalDifferential, item.games),
       rounds: item.rounds, contractsTaken: item.contractsTaken, contractsSucceeded: item.contractsSucceeded,
-      contractsFailed: item.contractsFailed, averageContract: mean(item.totalContract, item.contractsTaken),
+      contractsFailed: item.contractsFailed, attackRounds: item.attackRounds, defenseRounds: item.defenseRounds,
+      defensiveSets: item.defensiveSets, defensiveSetRate: mean(item.defensiveSets, item.defenseRounds),
+      averageContract: mean(item.totalContract, item.contractsTaken),
       passes: item.passes, bids: item.bids, coinches: item.coinches, surcoinches: item.surcoinches,
       openings: item.openings, raises: item.raises, partnerRaises: item.partnerRaises,
       opponentOvercalls: item.opponentOvercalls, trumpChanges: item.trumpChanges, bidLevels: item.bidLevels,

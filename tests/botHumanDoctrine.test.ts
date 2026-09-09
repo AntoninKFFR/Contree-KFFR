@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
 import {
+  HUMAN_DOCTRINE_DEFAULT_OPTIONS,
   analyzeHumanCardDoctrine,
   chooseHumanDoctrineBid,
   evaluateHumanDoctrineHand,
@@ -140,6 +141,45 @@ describe("human doctrine bidding structures", () => {
       .toBe(chooseHumanDoctrineBid(neutral).evaluation.doctrineScore + 2);
     expect(chooseHumanDoctrineBid(supported).evaluation.doctrineScore)
       .toBeGreaterThan(chooseHumanDoctrineBid(neutral).evaluation.doctrineScore);
+  });
+
+  it("isolates the legacy-threshold effect from doctrine features", () => {
+    const hand = [c("J", "hearts"), c("9", "hearts"), c("7", "clubs"), c("8", "clubs"), c("7", "diamonds"), c("8", "diamonds"), c("7", "spades"), c("8", "spades")];
+    const state = biddingState(hand);
+    const legacyThresholds = chooseHumanDoctrineBid(state, {
+      ...HUMAN_DOCTRINE_DEFAULT_OPTIONS,
+      thresholds: "legacy",
+      allow110: false,
+    });
+
+    expect(chooseHumanDoctrineBid(state).action).toBe("pass");
+    expect(legacyThresholds).toMatchObject({ action: "bid", value: 80 });
+  });
+
+  it("isolates the 110 extension from the rest of the complete doctrine", () => {
+    const hand = [c("J", "hearts"), c("9", "hearts"), c("A", "hearts"), c("10", "hearts"), c("A", "clubs"), c("A", "diamonds"), c("7", "spades"), c("8", "spades")];
+    const state = biddingState(hand);
+
+    expect(chooseHumanDoctrineBid(state)).toMatchObject({ action: "bid", value: 110 });
+    expect(chooseHumanDoctrineBid(state, {
+      ...HUMAN_DOCTRINE_DEFAULT_OPTIONS,
+      allow110: false,
+    })).toMatchObject({ action: "bid", value: 100 });
+  });
+
+  it("keeps intrinsic hand strength separate from opponent-auction utility", () => {
+    const hand = [c("J", "hearts"), c("9", "hearts"), c("7", "hearts"), c("A", "clubs"), c("10", "clubs"), c("K", "diamonds"), c("Q", "diamonds"), c("8", "spades")];
+    const state = biddingState(hand, [{ playerId: 1, action: "bid", value: 100, trump: "clubs" }]);
+    const penalized = chooseHumanDoctrineBid(state).evaluation;
+    const unpenalized = chooseHumanDoctrineBid(state, {
+      ...HUMAN_DOCTRINE_DEFAULT_OPTIONS,
+      opponentContractPenalty: false,
+    }).evaluation;
+
+    expect(penalized.intrinsicScore).toBe(unpenalized.intrinsicScore);
+    expect(penalized.adjustments.opponentContract).toBe(-6);
+    expect(unpenalized.adjustments.opponentContract).toBe(0);
+    expect(penalized.doctrineScore).toBe(unpenalized.doctrineScore - 6);
   });
 });
 
