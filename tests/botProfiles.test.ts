@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getBotProfile } from "@/bots/profiles";
+import { EXPERIMENTAL_BOT_PROFILE_IDS, getBotProfile, OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
 import { chooseBotBid } from "@/bots/simpleBot";
 import { chooseProfileBidFromHand } from "@/bots/strategy/biddingStrategy";
 import type { Card, GameState } from "@/engine/types";
@@ -75,5 +75,10 @@ describe("bot profiles", () => {
     };
 
     expect(chooseBotBid(state)).toEqual({ action: "surcoinche" });
+  });
+
+  it("keeps V3 experimental until benchmark promotion criteria are met", () => {
+    expect(EXPERIMENTAL_BOT_PROFILE_IDS).toContain("main_montecarlo_v3");
+    expect(OFFICIAL_BOT_PROFILE_ID).toBe("main_montecarlo_v2");
   });
 });

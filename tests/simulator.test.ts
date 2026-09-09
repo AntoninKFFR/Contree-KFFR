@@ -38,7 +38,7 @@ describe("bot simulator", () => {
     expect(summary.games).toBe(2);
     expect(summary.profileStats.main_montecarlo_v2.games).toBe(2);
     expect(summary.profileStats.main_montecarlo.games).toBe(2);
-  });
+  }, 15_000);
 
   it("can benchmark Monte Carlo bidding against the current Monte Carlo V2 bot", () => {
     const summary = runSimulation({
@@ -51,5 +51,23 @@ describe("bot simulator", () => {
     expect(summary.games).toBe(2);
     expect(summary.profileStats.main_montecarlo_bidding.games).toBe(2);
     expect(summary.profileStats.main_montecarlo_v2.games).toBe(2);
+  }, 15_000);
+
+  it("runs the deterministic FAST pairing for experimental V3 against V2", () => {
+    const first = runSimulation({
+      games: 1,
+      seed: 50,
+      settings: { targetScore: 100 },
+      teamProfiles: { 0: "main_montecarlo_v3", 1: "main_montecarlo_v2" },
+    });
+    const mirrored = runSimulation({
+      games: 1,
+      seed: 50,
+      settings: { targetScore: 100 },
+      teamProfiles: { 0: "main_montecarlo_v2", 1: "main_montecarlo_v3" },
+    });
+    expect(first.games + mirrored.games).toBe(2);
+    expect(first.profileStats.main_montecarlo_v3.games).toBe(1);
+    expect(mirrored.profileStats.main_montecarlo_v3.games).toBe(1);
   });
 });

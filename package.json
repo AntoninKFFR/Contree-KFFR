@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "simulate:bots": "vite-node --config vitest.config.ts scripts/simulateBots.ts",
+    "benchmark:v3": "vite-node --config vitest.config.ts scripts/benchmarkV3.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

@@ -6,6 +6,7 @@ import {
 import { chooseMonteCarloBid } from "@/bots/strategy/monteCarloBiddingStrategy";
 import { chooseProfileBid } from "@/bots/strategy/biddingStrategy";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
+import { chooseMonteCarloV3CardToPlay } from "@/bots/strategy/monteCarloV3CardStrategy";
 import { createInitialGame, makeBid, playCard, startNextRound } from "@/engine/game";
 import { playerTeam } from "@/engine/rules";
 import type { GameSettings, GameState, TeamId } from "@/engine/types";
@@ -24,6 +25,7 @@ export type SimulationOptions = {
   settings?: Partial<GameSettings>;
   seed?: number;
   maxRoundsPerGame?: number;
+  onDecision?: (profile: BotProfileId, elapsedMs: number, kind: "bid" | "card") => void;
 };
 
 function createSeededRandom(seed: number): () => number {
@@ -52,8 +54,13 @@ function tricksWonByTeam(state: GameState): Record<TeamId, number> {
   );
 }
 
-function playOneDecision(state: GameState, teamProfiles: TeamProfiles): GameState {
+function playOneDecision(
+  state: GameState,
+  teamProfiles: TeamProfiles,
+  onDecision?: SimulationOptions["onDecision"],
+): GameState {
   const profile = getBotProfile(profileForCurrentPlayer(state, teamProfiles));
+  const started = performance.now();
 
   if (state.phase === "bidding") {
     const bid =
@@ -62,32 +69,44 @@ function playOneDecision(state: GameState, teamProfiles: TeamProfiles): GameStat
         : chooseProfileBid(state, profile);
 
     if (bid.action === "bid" && bid.value && bid.trump) {
-      return makeBid(state, state.currentPlayerId, {
+      const next = makeBid(state, state.currentPlayerId, {
         action: "bid",
         value: bid.value,
         trump: bid.trump,
       });
+      onDecision?.(profile.id as BotProfileId, performance.now() - started, "bid");
+      return next;
     }
 
     if (bid.action === "coinche") {
-      return makeBid(state, state.currentPlayerId, { action: "coinche" });
+      const next = makeBid(state, state.currentPlayerId, { action: "coinche" });
+      onDecision?.(profile.id as BotProfileId, performance.now() - started, "bid");
+      return next;
     }
 
     if (bid.action === "surcoinche") {
-      return makeBid(state, state.currentPlayerId, { action: "surcoinche" });
+      const next = makeBid(state, state.currentPlayerId, { action: "surcoinche" });
+      onDecision?.(profile.id as BotProfileId, performance.now() - started, "bid");
+      return next;
     }
 
-    return makeBid(state, state.currentPlayerId, { action: "pass" });
+    const next = makeBid(state, state.currentPlayerId, { action: "pass" });
+    onDecision?.(profile.id as BotProfileId, performance.now() - started, "bid");
+    return next;
   }
 
   const card =
-    profile.id === "main_montecarlo_v2" || profile.id === "main_montecarlo_bidding"
+    profile.id === "main_montecarlo_v3"
+      ? chooseMonteCarloV3CardToPlay(state)
+      : profile.id === "main_montecarlo_v2" || profile.id === "main_montecarlo_bidding"
       ? chooseMonteCarloV2CardToPlay(state)
       : profile.id === "main_montecarlo"
         ? chooseMonteCarloCardToPlay(state)
         : chooseProfileCardToPlay(state, profile);
 
-  return playCard(state, state.currentPlayerId, card);
+  const next = playCard(state, state.currentPlayerId, card);
+  onDecision?.(profile.id as BotProfileId, performance.now() - started, "card");
+  return next;
 }
 
 export function simulateOneGame({
@@ -95,6 +114,7 @@ export function simulateOneGame({
   seed = 1,
   settings = {},
   teamProfiles,
+  onDecision,
 }: Omit<SimulationOptions, "games">): SimulationGameRecord {
   const random = createSeededRandom(seed);
   let state = createInitialGame(random, settings);
@@ -102,7 +122,7 @@ export function simulateOneGame({
 
   while (state.phase !== "game-over" && rounds.length < maxRoundsPerGame) {
     while (state.phase === "bidding" || state.phase === "playing") {
-      state = playOneDecision(state, teamProfiles);
+      state = playOneDecision(state, teamProfiles, onDecision);
     }
 
     if (state.result) {
@@ -140,6 +160,7 @@ export function runSimulation(options: SimulationOptions): SimulationSummary {
       seed: (options.seed ?? 1) + gameIndex,
       settings: options.settings,
       teamProfiles: options.teamProfiles,
+      onDecision: options.onDecision,
     });
 
     addGameToSummary(summary, game);
