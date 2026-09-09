@@ -17,6 +17,7 @@
     "benchmark:bot-synergy": "vite-node --config vitest.config.ts scripts/benchmarkBotSynergy.ts",
     "benchmark:hybrids": "vite-node --config vitest.config.ts scripts/benchmarkHybrids.ts",
     "benchmark:hybrid-finals": "vite-node --config vitest.config.ts scripts/benchmarkHybridFinals.ts",
+    "benchmark:human-doctrine": "vite-node --config vitest.config.ts scripts/benchmarkHumanDoctrine.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

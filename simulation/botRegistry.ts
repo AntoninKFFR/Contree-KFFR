@@ -2,6 +2,7 @@ import { BOT_PROFILES, getBotProfile, type BotProfileId } from "@/bots/profiles"
 import { chooseProfileBid, chooseProfileBidFromHand } from "@/bots/strategy/biddingStrategy";
 import { chooseBiddingV2 } from "@/bots/strategy/biddingStrategyV2";
 import { chooseMonteCarloBid } from "@/bots/strategy/monteCarloBiddingStrategy";
+import { chooseHumanDoctrineBid } from "@/bots/strategy/humanDoctrine";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { chooseMonteCarloCardToPlay, chooseMonteCarloV2CardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
 import { chooseMonteCarloV3Decision, V3_1_OPTIONS, type BotDecisionTraceV3, type MonteCarloV3Options } from "@/bots/strategy/monteCarloV3CardStrategy";
@@ -19,6 +20,7 @@ export type BotBiddingStrategyId =
   | "legacy"
   | "bidding_v2"
   | "monte_carlo"
+  | "human_doctrine_v1"
   | "prudent"
   | "balanced"
   | "aggressive"
@@ -40,6 +42,7 @@ export type BiddingEngine =
   | { kind: "monte-carlo"; profile: BotProfileId }
   | { kind: "legacy-balanced-simple" }
   | { kind: "bidding-v2" }
+  | { kind: "human-doctrine-v1" }
   | { kind: "legacy" };
 
 export type CardEngine =
@@ -64,6 +67,7 @@ export const BIDDING_ENGINES: Record<BotBiddingStrategyId, { label: string; engi
   legacy: { label: "Legacy heuristic bidding", engine: { kind: "legacy" } },
   bidding_v2: { label: "Conservative bidding V2", engine: { kind: "bidding-v2" } },
   monte_carlo: { label: "Monte Carlo bidding", engine: { kind: "monte-carlo", profile: "main" } },
+  human_doctrine_v1: { label: "Human doctrine V1 bidding (experimental)", engine: { kind: "human-doctrine-v1" } },
   prudent: { label: "Prudent bidding", engine: { kind: "heuristic", profile: "prudent" } },
   balanced: { label: "Balanced bidding", engine: { kind: "heuristic", profile: "balanced" } },
   aggressive: { label: "Aggressive bidding", engine: { kind: "heuristic", profile: "aggressive" } },
@@ -179,6 +183,7 @@ export function composeStrategy(
 export function chooseStrategyBid(state: GameState, strategy: BotStrategyDefinition): StrategyBid {
   if (strategy.bidding.kind === "legacy") return chooseLegacyBid(state.hands[state.currentPlayerId]);
   if (strategy.bidding.kind === "bidding-v2") return chooseBiddingV2(state);
+  if (strategy.bidding.kind === "human-doctrine-v1") return chooseHumanDoctrineBid(state);
   if (strategy.bidding.kind === "legacy-balanced-simple") {
     return chooseProfileBidFromHand(state.hands[state.currentPlayerId], getBotProfile("balanced"), null);
   }
