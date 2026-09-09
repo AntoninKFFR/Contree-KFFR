@@ -15,7 +15,7 @@ const NOW_MS = Date.parse("2026-09-09T14:00:00.000Z");
 
 function room(status: RoomRow["status"] = "playing", hostUserId: string | null = "user-0"): RoomRow {
   return {
-    id: "room", code: "ABC123", status, host_user_id: hostUserId,
+    id: "room", code: "ABC123", status, host_user_id: hostUserId, active_game_id: "game-1",
     scoring_mode: "made-points", target_score: 1000,
     game_phase: status === "playing" ? "bidding" : null, state_version: 40,
     turn_deadline_at: status === "playing" ? "2026-09-09T14:00:45.000Z" : null,

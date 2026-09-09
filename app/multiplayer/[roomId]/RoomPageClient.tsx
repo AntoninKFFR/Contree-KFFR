@@ -598,7 +598,7 @@ export default function MultiplayerRoomPage() {
     void handleRoomPlayerAction({ type: "surcoinche" });
   }
 
-  async function handleResetRoom() {
+  async function handleRematch() {
     const supabase = getSupabaseClient();
 
     if (!supabase || !roomWithPlayers || !session || isResettingRoom) return;
@@ -610,7 +610,7 @@ export default function MultiplayerRoomPage() {
       const nextRoom = await sendRoomIntent(
         roomWithPlayers.room.id,
         roomWithPlayers.room.state_version,
-        { type: "reset-room" },
+        { type: "rematch" },
         session,
       );
       setRoomWithPlayers(nextRoom);
@@ -737,14 +737,16 @@ export default function MultiplayerRoomPage() {
                   </p>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={isResettingRoom}
-                    onClick={handleResetRoom}
-                    type="button"
-                  >
-                    Rejouer
-                  </button>
+                  {roomWithPlayers.isHost ? (
+                    <button
+                      className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={isResettingRoom}
+                      onClick={handleRematch}
+                      type="button"
+                    >
+                      {isResettingRoom ? "Préparation…" : "Rejouer"}
+                    </button>
+                  ) : null}
                   <button
                     className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50"
                     onClick={() => loadRoom()}

@@ -120,6 +120,14 @@ export function resetRoomPlayers(players: RoomPlayerRow[]): RoomPlayerRow[] {
   });
 }
 
+export function prepareRematchPlayers(players: RoomPlayerRow[]): RoomPlayerRow[] {
+  return players.map((player) => ({
+    ...player,
+    is_ready: player.kind === "bot",
+    bot_takeover: false,
+  }));
+}
+
 export function forfeitRoom(input: {
   room: RoomRow;
   players: RoomPlayerRow[];

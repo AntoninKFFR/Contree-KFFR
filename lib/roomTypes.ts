@@ -10,6 +10,7 @@ export type RoomRow = {
   code: string;
   status: RoomStatus;
   host_user_id: string | null;
+  active_game_id: string | null;
   scoring_mode: ScoringMode;
   target_score: number;
   game_phase: GamePhase | null;
@@ -47,7 +48,7 @@ export type RoomPlayerView = Pick<
 >;
 
 export type MultiplayerRoomView = {
-  room: Omit<RoomRow, "host_user_id">;
+  room: Omit<RoomRow, "host_user_id" | "active_game_id">;
   players: RoomPlayerView[];
   isHost: boolean;
   canClaimHost: boolean;
@@ -67,6 +68,7 @@ export type RoomIntent =
   | { type: "leave-seat" }
   | { type: "set-ready"; ready: boolean }
   | { type: "start-game" }
+  | { type: "rematch" }
   | { type: "forfeit-game" }
   | { type: "claim-host" }
   | { type: "enable-bot-takeover"; seatIndex: RoomPlayerRow["seat_index"] }

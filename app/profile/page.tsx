@@ -5,6 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getProfileUsername } from "@/lib/profiles";
 import {
+  calculateMultiplayerStats,
+  getUserMultiplayerGames,
+  type MultiplayerHistoryGame,
+} from "@/lib/multiplayerHistory";
+import {
   calculateStats,
   formatDate,
   getUserGames,
@@ -17,6 +22,7 @@ type PageState = "loading" | "ready" | "signed-out" | "unavailable";
 
 export default function ProfilePage() {
   const [games, setGames] = useState<GameRow[]>([]);
+  const [multiplayerGames, setMultiplayerGames] = useState<MultiplayerHistoryGame[]>([]);
   const [pageState, setPageState] = useState<PageState>("loading");
   const [session, setSession] = useState<Session | null>(null);
   const [username, setUsername] = useState<string | null>(null);
@@ -49,20 +55,24 @@ export default function ProfilePage() {
         return;
       }
 
-      const [nextUsername, gamesResult] = await Promise.all([
+      const [nextUsername, gamesResult, multiplayerResult] = await Promise.all([
         getProfileUsername(client, nextSession.user.id),
         getUserGames(client, nextSession.user.id),
+        getUserMultiplayerGames(client),
       ]);
 
       if (isCancelled) return;
 
       setUsername(nextUsername);
 
-      if (gamesResult.error) {
-        setErrorMessage(gamesResult.error.message);
+      const historyError = gamesResult.error ?? multiplayerResult.error;
+      if (historyError) {
+        setErrorMessage(historyError.message);
         setGames([]);
+        setMultiplayerGames([]);
       } else {
         setGames((gamesResult.data ?? []) as GameRow[]);
+        setMultiplayerGames(multiplayerResult.data);
       }
 
       setPageState("ready");
@@ -83,6 +93,10 @@ export default function ProfilePage() {
   }, []);
 
   const stats = useMemo(() => calculateStats(games), [games]);
+  const multiplayerStats = useMemo(
+    () => calculateMultiplayerStats(multiplayerGames),
+    [multiplayerGames],
+  );
   const recentGames = useMemo(() => games.slice(0, 5), [games]);
 
   if (pageState === "unavailable") {
@@ -125,10 +139,13 @@ export default function ProfilePage() {
         </p>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Statistiques solo</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
         <StatCard label="Parties" value={stats.total} />
         <StatCard label="Victoires" value={stats.wins} />
         <StatCard label="Défaites" value={stats.losses} />
+        </div>
       </section>
 
       <section className="grid gap-3 lg:grid-cols-2">
@@ -142,6 +159,24 @@ export default function ProfilePage() {
           <DetailRow label="Série en cours" value={stats.currentStreak} />
           <DetailRow label="Meilleure série" value={stats.bestStreak} />
         </StatsDetails>
+      </section>
+
+      <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Statistiques multijoueur</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-4">
+          <StatCard label="Parties" value={multiplayerStats.total} />
+          <StatCard label="Victoires" value={multiplayerStats.wins} />
+          <StatCard label="Défaites" value={multiplayerStats.losses} />
+          <StatCard label="Taux de victoire" value={`${multiplayerStats.winrate}%`} />
+        </div>
+        <div className="mt-4 grid gap-2 text-sm text-stone-700 sm:grid-cols-2">
+          <DetailRow label="Victoires au score" value={multiplayerStats.scoreWins} />
+          <DetailRow label="Victoires par abandon adverse" value={multiplayerStats.forfeitWins} />
+          <DetailRow label="Défaites par abandon" value={multiplayerStats.forfeitLosses} />
+          <DetailRow label="Score moyen de l'équipe" value={multiplayerStats.averageTeamScore} />
+          <DetailRow label="Partenaire(s) fréquent(s)" value={multiplayerStats.frequentPartners.join(", ") || "—"} />
+          <DetailRow label="Adversaire(s) fréquent(s)" value={multiplayerStats.frequentOpponents.join(", ") || "—"} />
+        </div>
       </section>
 
       <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">

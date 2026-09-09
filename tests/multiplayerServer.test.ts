@@ -10,7 +10,7 @@ import {
 function card(rank: Card["rank"], suit: Card["suit"]): Card { return { rank, suit }; }
 
 const room: RoomRow = {
-  id: "room", code: "ABC123", status: "playing", host_user_id: "host",
+  id: "room", code: "ABC123", status: "playing", host_user_id: "host", active_game_id: "game-1",
   scoring_mode: "made-points", target_score: 1000, game_phase: "bidding", state_version: 8,
   turn_deadline_at: null,
   created_at: "", updated_at: "", started_at: "", finished_at: null,

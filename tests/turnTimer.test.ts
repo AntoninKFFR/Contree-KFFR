@@ -26,7 +26,7 @@ function players(): RoomPlayerRow[] {
 
 function room(deadline: string | null, version = 31): RoomRow {
   return {
-    id: "room", code: "ABC123", status: "playing", host_user_id: "user-0",
+    id: "room", code: "ABC123", status: "playing", host_user_id: "user-0", active_game_id: "game-1",
     scoring_mode: "made-points", target_score: 1000, game_phase: "bidding",
     state_version: version, turn_deadline_at: deadline, created_at: "", updated_at: "",
     started_at: "", finished_at: null,
