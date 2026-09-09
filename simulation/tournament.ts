@@ -2,12 +2,12 @@ import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import { createInitialGame, getCurrentContract, makeBid, playCard, startNextRound } from "@/engine/game";
 import { createSeededRandom } from "@/engine/random";
 import { playerTeam } from "@/engine/rules";
-import type { Bid, GameState, PlayerId, RoundResult, TeamId } from "@/engine/types";
+import type { Bid, BidValue, GameState, PlayerId, RoundResult, TeamId } from "@/engine/types";
 import { chooseStrategyBid, chooseStrategyCardWithTrace, type BotStrategyDefinition, type StrategyBid } from "@/simulation/botRegistry";
 import type { BotDecisionTraceV3 } from "@/bots/strategy/monteCarloV3CardStrategy";
 
-type DecisionTiming = { strategyId: string; kind: "bid" | "card"; elapsedMs: number };
-type TournamentRound = { result: RoundResult; bids: Bid[]; tricksWon: Record<TeamId, number> };
+export type DecisionTiming = { strategyId: string; kind: "bid" | "card"; elapsedMs: number };
+export type TournamentRound = { result: RoundResult; bids: Bid[]; tricksWon: Record<TeamId, number> };
 export type TournamentGame = {
   seed: number;
   winnerTeam: TeamId;
@@ -35,6 +35,12 @@ export type BotTournamentStats = {
   bids: number;
   coinches: number;
   surcoinches: number;
+  openings: number;
+  raises: number;
+  partnerRaises: number;
+  opponentOvercalls: number;
+  trumpChanges: number;
+  bidLevels: Partial<Record<BidValue, number>>;
   averageTricksPerRound: number;
   averageRoundPoints: number;
   averageAttackScore: number;
@@ -44,6 +50,7 @@ export type BotTournamentStats = {
   averageCardMs: number;
   p95CardMs: number;
   p99CardMs: number;
+  averageCpuMsPerGame: number;
   elo: number;
 };
 
@@ -65,7 +72,7 @@ export type TournamentResult = {
   headToHead: HeadToHeadResult[];
 };
 
-function normalizeBid(state: GameState, decision: StrategyBid): StrategyBid {
+export function normalizeStrategyBid(state: GameState, decision: StrategyBid): StrategyBid {
   const contract = getCurrentContract(state);
   if (decision.action === "coinche") return contract && canCoinche(state.currentPlayerId, contract) ? decision : { action: "pass" };
   if (decision.action === "surcoinche") return contract && canSurcoinche(state.currentPlayerId, contract) ? decision : { action: "pass" };
@@ -74,8 +81,8 @@ function normalizeBid(state: GameState, decision: StrategyBid): StrategyBid {
   return decision;
 }
 
-function applyBid(state: GameState, decision: StrategyBid): GameState {
-  const normalized = normalizeBid(state, decision);
+export function applyStrategyBid(state: GameState, decision: StrategyBid): GameState {
+  const normalized = normalizeStrategyBid(state, decision);
   if (normalized.action === "bid" && normalized.value && normalized.trump) {
     return makeBid(state, state.currentPlayerId, { action: "bid", value: normalized.value, trump: normalized.trump });
   }
@@ -114,7 +121,7 @@ export function playTournamentGame({
       const kind = state.phase === "bidding" ? "bid" : "card";
       const started = performance.now();
       if (kind === "bid") {
-        state = applyBid(state, chooseStrategyBid(state, strategy));
+        state = applyStrategyBid(state, chooseStrategyBid(state, strategy));
       } else {
         const before = state;
         const decision = chooseStrategyCardWithTrace(state, strategy);
@@ -141,25 +148,26 @@ export function runPairedMatchup(
   second: BotStrategyDefinition,
   games: number,
   seed: number,
+  targetScore = 300,
 ): TournamentGame[] {
   if (games < 2 || games % 2 !== 0) throw new Error("Un benchmark paired exige un nombre pair de parties >= 2.");
   const results: TournamentGame[] = [];
   for (let pair = 0; pair < games / 2; pair += 1) {
     const dealSeed = seed + pair;
-    results.push(playTournamentGame({ seed: dealSeed, teamStrategies: { 0: first, 1: second } }));
-    results.push(playTournamentGame({ seed: dealSeed, teamStrategies: { 0: second, 1: first } }));
+    results.push(playTournamentGame({ seed: dealSeed, teamStrategies: { 0: first, 1: second }, targetScore }));
+    results.push(playTournamentGame({ seed: dealSeed, teamStrategies: { 0: second, 1: first }, targetScore }));
   }
   return results;
 }
 
-type MutableStats = Omit<BotTournamentStats, "winRate" | "averageScore" | "averageDifferential" | "averageContract" | "averageTricksPerRound" | "averageRoundPoints" | "averageAttackScore" | "averageDefenseScore" | "averageBidMs" | "p95BidMs" | "averageCardMs" | "p95CardMs" | "p99CardMs" | "elo"> & {
+type MutableStats = Omit<BotTournamentStats, "winRate" | "averageScore" | "averageDifferential" | "averageContract" | "averageTricksPerRound" | "averageRoundPoints" | "averageAttackScore" | "averageDefenseScore" | "averageBidMs" | "p95BidMs" | "averageCardMs" | "p95CardMs" | "p99CardMs" | "averageCpuMsPerGame" | "elo"> & {
   totalScore: number; totalDifferential: number; totalContract: number; totalTricks: number;
   totalRoundPoints: number; attackScore: number; attackRounds: number; defenseScore: number; defenseRounds: number;
-  bidTimes: number[]; cardTimes: number[];
+  bidTimes: number[]; cardTimes: number[]; totalDecisionMs: number;
 };
 
 function initialStats(strategy: BotStrategyDefinition): MutableStats {
-  return { id: strategy.id, label: strategy.label, games: 0, wins: 0, losses: 0, rounds: 0, contractsTaken: 0, contractsSucceeded: 0, contractsFailed: 0, passes: 0, bids: 0, coinches: 0, surcoinches: 0, totalScore: 0, totalDifferential: 0, totalContract: 0, totalTricks: 0, totalRoundPoints: 0, attackScore: 0, attackRounds: 0, defenseScore: 0, defenseRounds: 0, bidTimes: [], cardTimes: [] };
+  return { id: strategy.id, label: strategy.label, games: 0, wins: 0, losses: 0, rounds: 0, contractsTaken: 0, contractsSucceeded: 0, contractsFailed: 0, passes: 0, bids: 0, coinches: 0, surcoinches: 0, openings: 0, raises: 0, partnerRaises: 0, opponentOvercalls: 0, trumpChanges: 0, bidLevels: {}, totalScore: 0, totalDifferential: 0, totalContract: 0, totalTricks: 0, totalRoundPoints: 0, attackScore: 0, attackRounds: 0, defenseScore: 0, defenseRounds: 0, bidTimes: [], cardTimes: [], totalDecisionMs: 0 };
 }
 
 function percentile(values: number[], fraction: number): number {
@@ -185,12 +193,24 @@ function aggregate(strategies: BotStrategyDefinition[], games: TournamentGame[])
         item.rounds += 1;
         item.totalTricks += round.tricksWon[team];
         item.totalRoundPoints += round.result.roundScore[team];
+        let previousBid: Extract<Bid, { action: "bid" }> | null = null;
         for (const bid of round.bids) {
-          if (playerTeam(bid.playerId) !== team) continue;
-          if (bid.action === "pass") item.passes += 1;
-          if (bid.action === "bid") item.bids += 1;
-          if (bid.action === "coinche") item.coinches += 1;
-          if (bid.action === "surcoinche") item.surcoinches += 1;
+          const belongsToTeam = playerTeam(bid.playerId) === team;
+          if (belongsToTeam && bid.action === "pass") item.passes += 1;
+          if (belongsToTeam && bid.action === "bid") {
+            item.bids += 1;
+            item.bidLevels[bid.value] = (item.bidLevels[bid.value] ?? 0) + 1;
+            if (!previousBid) item.openings += 1;
+            else {
+              item.raises += 1;
+              if (playerTeam(previousBid.playerId) === team) item.partnerRaises += 1;
+              else item.opponentOvercalls += 1;
+              if (previousBid.trump !== bid.trump) item.trumpChanges += 1;
+            }
+          }
+          if (belongsToTeam && bid.action === "coinche") item.coinches += 1;
+          if (belongsToTeam && bid.action === "surcoinche") item.surcoinches += 1;
+          if (bid.action === "bid") previousBid = bid;
         }
         if (round.result.kind === "played") {
           if (round.result.contract.teamId === team) {
@@ -208,6 +228,7 @@ function aggregate(strategies: BotStrategyDefinition[], games: TournamentGame[])
     }
     for (const timing of game.timings) {
       (timing.kind === "bid" ? stats[timing.strategyId].bidTimes : stats[timing.strategyId].cardTimes).push(timing.elapsedMs);
+      stats[timing.strategyId].totalDecisionMs += timing.elapsedMs;
     }
   }
   return Object.values(stats).map((item) => {
@@ -218,13 +239,23 @@ function aggregate(strategies: BotStrategyDefinition[], games: TournamentGame[])
       rounds: item.rounds, contractsTaken: item.contractsTaken, contractsSucceeded: item.contractsSucceeded,
       contractsFailed: item.contractsFailed, averageContract: mean(item.totalContract, item.contractsTaken),
       passes: item.passes, bids: item.bids, coinches: item.coinches, surcoinches: item.surcoinches,
+      openings: item.openings, raises: item.raises, partnerRaises: item.partnerRaises,
+      opponentOvercalls: item.opponentOvercalls, trumpChanges: item.trumpChanges, bidLevels: item.bidLevels,
       averageTricksPerRound: mean(item.totalTricks, item.rounds), averageRoundPoints: mean(item.totalRoundPoints, item.rounds),
       averageAttackScore: mean(item.attackScore, item.attackRounds), averageDefenseScore: mean(item.defenseScore, item.defenseRounds),
       averageBidMs: mean(item.bidTimes.reduce((sum, value) => sum + value, 0), item.bidTimes.length), p95BidMs: percentile(item.bidTimes, 0.95),
       averageCardMs: mean(item.cardTimes.reduce((sum, value) => sum + value, 0), item.cardTimes.length), p95CardMs: percentile(item.cardTimes, 0.95), p99CardMs: percentile(item.cardTimes, 0.99),
+      averageCpuMsPerGame: mean(item.totalDecisionMs, item.games),
       elo: 1500 + 400 * Math.log10((item.wins + 0.5) / (item.losses + 0.5)),
     };
   }).sort((a, b) => b.winRate - a.winRate || b.averageDifferential - a.averageDifferential);
+}
+
+export function summarizeTournamentGames(
+  strategies: BotStrategyDefinition[],
+  games: TournamentGame[],
+): BotTournamentStats[] {
+  return aggregate(strategies, games);
 }
 
 export function runRoundRobin(
@@ -232,6 +263,7 @@ export function runRoundRobin(
   gamesPerMatchup: number,
   seed: number,
   onMatchup?: (completed: number, total: number, result: HeadToHeadResult) => void,
+  targetScore = 300,
 ): TournamentResult {
   const started = performance.now();
   const games: TournamentGame[] = [];
@@ -242,7 +274,7 @@ export function runRoundRobin(
     for (let secondIndex = firstIndex + 1; secondIndex < strategies.length; secondIndex += 1) {
       const first = strategies[firstIndex];
       const second = strategies[secondIndex];
-      const matchupGames = runPairedMatchup(first, second, gamesPerMatchup, seed + matchup * 10_000);
+      const matchupGames = runPairedMatchup(first, second, gamesPerMatchup, seed + matchup * 10_000, targetScore);
       games.push(...matchupGames);
       const firstWins = matchupGames.filter((game) => game.teamStrategies[game.winnerTeam] === first.id).length;
       const result = { first: first.id, second: second.id, games: matchupGames.length, firstWins, secondWins: matchupGames.length - firstWins, firstWinRate: firstWins / matchupGames.length };
@@ -259,9 +291,9 @@ function number(value: number): string { return value.toFixed(1); }
 
 export function formatTournament(result: TournamentResult): string {
   const lines = [
-    "RANK | BOT | GAMES | WIN% | ELO | SCORE AVG | DIFF AVG | CONTRACT SUCCESS | CARD MS | P95",
-    "---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---:",
-    ...result.ranking.map((bot, index) => `${index + 1} | ${bot.id} | ${bot.games} | ${percent(bot.winRate)} | ${number(bot.elo)} | ${number(bot.averageScore)} | ${number(bot.averageDifferential)} | ${bot.contractsSucceeded}/${bot.contractsTaken} | ${number(bot.averageCardMs)} | ${number(bot.p95CardMs)}`),
+    "RANK | BOT | GAMES | WIN% | ELO | SCORE AVG | DIFF AVG | CONTRACT SUCCESS | BID MS/P95 | CARD MS/P95 | CPU/GAME",
+    "---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---:",
+    ...result.ranking.map((bot, index) => `${index + 1} | ${bot.id} | ${bot.games} | ${percent(bot.winRate)} | ${number(bot.elo)} | ${number(bot.averageScore)} | ${number(bot.averageDifferential)} | ${bot.contractsSucceeded}/${bot.contractsTaken} | ${number(bot.averageBidMs)}/${number(bot.p95BidMs)} | ${number(bot.averageCardMs)}/${number(bot.p95CardMs)} | ${number(bot.averageCpuMsPerGame)}`),
     "",
     `Total games: ${result.totalGames} | seed: ${result.seed} | elapsed: ${number(result.elapsedMs / 1000)}s`,
     "",

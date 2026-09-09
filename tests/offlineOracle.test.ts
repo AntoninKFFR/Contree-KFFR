@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { createInitialGame } from "@/engine/game";
 import { createSeededRandom } from "@/engine/random";
 import { oracleCardValues, decisionRegret } from "@/simulation/offlineOracle";
+import { legalOracleBidCandidates } from "@/simulation/offlineBiddingOracle";
 
 function sourceFiles(root: string): string[] {
   return readdirSync(root).flatMap((name) => {
@@ -25,6 +26,15 @@ describe("offline perfect-information oracle", () => {
     const roots = [join(process.cwd(), "bots"), join(process.cwd(), "lib", "server")];
     for (const file of roots.flatMap(sourceFiles)) {
       expect(readFileSync(file, "utf8")).not.toContain("offlineOracle");
+      expect(readFileSync(file, "utf8")).not.toContain("offlineBiddingOracle");
     }
+  });
+
+  it("enumerates pass and every legal opening without entering production", () => {
+    const state = createInitialGame(createSeededRandom(43));
+    const candidates = legalOracleBidCandidates(state);
+    expect(candidates).toHaveLength(37);
+    expect(candidates[0]).toEqual({ action: "pass" });
+    expect(candidates).toContainEqual({ action: "bid", value: 80, trump: "clubs" });
   });
 });

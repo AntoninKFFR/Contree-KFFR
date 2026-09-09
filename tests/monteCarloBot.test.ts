@@ -114,14 +114,14 @@ describe("monte carlo bot", () => {
     );
   });
 
-  it("uses Monte Carlo V2 for the official web bot card choice", () => {
+  it("uses Monte Carlo V1 for the promoted official web bot card choice", () => {
     const state = stateForMonteCarlo([
       card("J", "hearts"),
       card("9", "hearts"),
       card("A", "diamonds"),
     ]);
 
-    expect(chooseBotCard(state)).toEqual(chooseMonteCarloV2CardToPlay(state));
+    expect(chooseBotCard(state)).toEqual(chooseMonteCarloCardToPlay(state));
   });
 
   it("adds a safe master lead candidate in V2 when leading is ambiguous", () => {

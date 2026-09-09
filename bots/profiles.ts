@@ -5,6 +5,9 @@ export type BotProfileId =
   | "main_montecarlo_v3"
   | "main_montecarlo_v3_1"
   | "main_montecarlo_bidding"
+  | "hybrid_legacy_v1"
+  | "hybrid_legacy_v2"
+  | "hybrid_legacy_v3"
   | "prudent"
   | "balanced"
   | "aggressive";
@@ -88,6 +91,39 @@ export const BOT_PROFILES: Record<BotProfileId, BotProfile> = {
     surcoincheMargin: 42,
     preserveStrongCards: 1.25,
   },
+  hybrid_legacy_v1: {
+    id: "hybrid_legacy_v1",
+    label: "Hybride legacy + Monte Carlo V1",
+    bidRisk: 0.9,
+    cardRisk: 0.82,
+    bidOffset: 11,
+    raiseMargin: 8,
+    coincheMargin: 34,
+    surcoincheMargin: 42,
+    preserveStrongCards: 1.25,
+  },
+  hybrid_legacy_v2: {
+    id: "hybrid_legacy_v2",
+    label: "Hybride legacy + Monte Carlo V2",
+    bidRisk: 0.9,
+    cardRisk: 0.82,
+    bidOffset: 11,
+    raiseMargin: 8,
+    coincheMargin: 34,
+    surcoincheMargin: 42,
+    preserveStrongCards: 1.25,
+  },
+  hybrid_legacy_v3: {
+    id: "hybrid_legacy_v3",
+    label: "Hybride legacy + Monte Carlo V3",
+    bidRisk: 0.9,
+    cardRisk: 0.82,
+    bidOffset: 11,
+    raiseMargin: 8,
+    coincheMargin: 34,
+    surcoincheMargin: 42,
+    preserveStrongCards: 1.25,
+  },
   prudent: {
     id: "prudent",
     label: "Prudent",
@@ -123,12 +159,14 @@ export const BOT_PROFILES: Record<BotProfileId, BotProfile> = {
   },
 };
 
-export const OFFICIAL_BOT_PROFILE_ID: BotProfileId = "main_montecarlo_v2";
+export const OFFICIAL_BOT_PROFILE_ID: BotProfileId = "hybrid_legacy_v1";
 
 export const EXPERIMENTAL_BOT_PROFILE_IDS: BotProfileId[] = [
   "main_montecarlo_v3",
   "main_montecarlo_v3_1",
   "main_montecarlo_bidding",
+  "hybrid_legacy_v2",
+  "hybrid_legacy_v3",
 ];
 
 export function getBotProfile(profileId: BotProfileId = "balanced"): BotProfile {

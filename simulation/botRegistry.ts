@@ -1,5 +1,6 @@
 import { BOT_PROFILES, getBotProfile, type BotProfileId } from "@/bots/profiles";
 import { chooseProfileBid, chooseProfileBidFromHand } from "@/bots/strategy/biddingStrategy";
+import { chooseBiddingV2 } from "@/bots/strategy/biddingStrategyV2";
 import { chooseMonteCarloBid } from "@/bots/strategy/monteCarloBiddingStrategy";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { chooseMonteCarloCardToPlay, chooseMonteCarloV2CardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
@@ -13,13 +14,35 @@ export type StrategyBid = {
   trump?: Suit;
 };
 
-type BiddingEngine =
+export type BotBiddingStrategyId =
+  | "main"
+  | "legacy"
+  | "bidding_v2"
+  | "monte_carlo"
+  | "prudent"
+  | "balanced"
+  | "aggressive"
+  | "legacy_balanced_simple";
+
+export type BotCardStrategyId =
+  | "main"
+  | "monte_carlo_v1"
+  | "monte_carlo_v2"
+  | "monte_carlo_v3"
+  | "monte_carlo_v3_1"
+  | "legacy"
+  | "prudent"
+  | "balanced"
+  | "aggressive";
+
+export type BiddingEngine =
   | { kind: "heuristic"; profile: BotProfileId }
   | { kind: "monte-carlo"; profile: BotProfileId }
   | { kind: "legacy-balanced-simple" }
+  | { kind: "bidding-v2" }
   | { kind: "legacy" };
 
-type CardEngine =
+export type CardEngine =
   | { kind: "heuristic"; profile: BotProfileId }
   | { kind: "monte-carlo-v1" }
   | { kind: "monte-carlo-v2" }
@@ -32,10 +55,63 @@ export type BotStrategyDefinition = {
   status: "active" | "experimental" | "legacy" | "diagnostic";
   bidding: BiddingEngine;
   card: CardEngine;
+  biddingStrategyId?: BotBiddingStrategyId;
+  cardStrategyId?: BotCardStrategyId;
 };
+
+export const BIDDING_ENGINES: Record<BotBiddingStrategyId, { label: string; engine: BiddingEngine }> = {
+  main: { label: "Main heuristic bidding", engine: { kind: "heuristic", profile: "main" } },
+  legacy: { label: "Legacy heuristic bidding", engine: { kind: "legacy" } },
+  bidding_v2: { label: "Conservative bidding V2", engine: { kind: "bidding-v2" } },
+  monte_carlo: { label: "Monte Carlo bidding", engine: { kind: "monte-carlo", profile: "main" } },
+  prudent: { label: "Prudent bidding", engine: { kind: "heuristic", profile: "prudent" } },
+  balanced: { label: "Balanced bidding", engine: { kind: "heuristic", profile: "balanced" } },
+  aggressive: { label: "Aggressive bidding", engine: { kind: "heuristic", profile: "aggressive" } },
+  legacy_balanced_simple: { label: "Legacy balanced bidding without context", engine: { kind: "legacy-balanced-simple" } },
+};
+
+export const CARD_ENGINES: Record<BotCardStrategyId, { label: string; engine: CardEngine }> = {
+  main: { label: "Main heuristic cards", engine: { kind: "heuristic", profile: "main" } },
+  monte_carlo_v1: { label: "Monte Carlo V1 cards", engine: { kind: "monte-carlo-v1" } },
+  monte_carlo_v2: { label: "Monte Carlo V2 cards", engine: { kind: "monte-carlo-v2" } },
+  monte_carlo_v3: { label: "Monte Carlo V3 cards", engine: { kind: "monte-carlo-v3" } },
+  monte_carlo_v3_1: { label: "Monte Carlo V3.1 cards", engine: { kind: "monte-carlo-v3", options: V3_1_OPTIONS } },
+  legacy: { label: "Legacy heuristic cards", engine: { kind: "legacy" } },
+  prudent: { label: "Prudent cards", engine: { kind: "heuristic", profile: "prudent" } },
+  balanced: { label: "Balanced cards", engine: { kind: "heuristic", profile: "balanced" } },
+  aggressive: { label: "Aggressive cards", engine: { kind: "heuristic", profile: "aggressive" } },
+};
+
+export const BIDDING_ENGINE_IDS = Object.keys(BIDDING_ENGINES) as BotBiddingStrategyId[];
+export const CARD_ENGINE_IDS = Object.keys(CARD_ENGINES) as BotCardStrategyId[];
+
+export function createHybridStrategy(
+  biddingStrategyId: BotBiddingStrategyId,
+  cardStrategyId: BotCardStrategyId,
+  options: { id?: string; label?: string; status?: BotStrategyDefinition["status"] } = {},
+): BotStrategyDefinition {
+  return {
+    id: options.id ?? `hybrid_${biddingStrategyId}__${cardStrategyId}`,
+    label: options.label ?? `${BIDDING_ENGINES[biddingStrategyId].label} + ${CARD_ENGINES[cardStrategyId].label}`,
+    status: options.status ?? "diagnostic",
+    bidding: BIDDING_ENGINES[biddingStrategyId].engine,
+    card: CARD_ENGINES[cardStrategyId].engine,
+    biddingStrategyId,
+    cardStrategyId,
+  };
+}
 
 function activeDefinition(profileId: BotProfileId): BotStrategyDefinition {
   const profile = getBotProfile(profileId);
+  if (profileId === "hybrid_legacy_v1") {
+    return { id: profileId, label: profile.label, status: "active", bidding: { kind: "legacy" }, card: { kind: "monte-carlo-v1" }, biddingStrategyId: "legacy", cardStrategyId: "monte_carlo_v1" };
+  }
+  if (profileId === "hybrid_legacy_v2") {
+    return { id: profileId, label: profile.label, status: "experimental", bidding: { kind: "legacy" }, card: { kind: "monte-carlo-v2" }, biddingStrategyId: "legacy", cardStrategyId: "monte_carlo_v2" };
+  }
+  if (profileId === "hybrid_legacy_v3") {
+    return { id: profileId, label: profile.label, status: "experimental", bidding: { kind: "legacy" }, card: { kind: "monte-carlo-v3" }, biddingStrategyId: "legacy", cardStrategyId: "monte_carlo_v3" };
+  }
   if (profileId === "main_montecarlo") {
     return { id: profileId, label: profile.label, status: "active", bidding: { kind: "heuristic", profile: "main" }, card: { kind: "monte-carlo-v1" } };
   }
@@ -102,6 +178,7 @@ export function composeStrategy(
 
 export function chooseStrategyBid(state: GameState, strategy: BotStrategyDefinition): StrategyBid {
   if (strategy.bidding.kind === "legacy") return chooseLegacyBid(state.hands[state.currentPlayerId]);
+  if (strategy.bidding.kind === "bidding-v2") return chooseBiddingV2(state);
   if (strategy.bidding.kind === "legacy-balanced-simple") {
     return chooseProfileBidFromHand(state.hands[state.currentPlayerId], getBotProfile("balanced"), null);
   }

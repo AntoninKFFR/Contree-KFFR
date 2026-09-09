@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { EXPERIMENTAL_BOT_PROFILE_IDS, getBotProfile, OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
 import { chooseBotBid } from "@/bots/simpleBot";
-import { chooseProfileBidFromHand } from "@/bots/strategy/biddingStrategy";
+import { findBotStrategy } from "@/simulation/botRegistry";
+import { chooseProfileBid, chooseProfileBidFromHand } from "@/bots/strategy/biddingStrategy";
 import type { Card, GameState } from "@/engine/types";
 
 function card(rank: Card["rank"], suit: Card["suit"]): Card {
@@ -74,12 +75,26 @@ describe("bot profiles", () => {
       message: "Test",
     };
 
-    expect(chooseBotBid(state)).toEqual({ action: "surcoinche" });
+    expect(chooseProfileBid(state, getBotProfile("main")).action).toBe("surcoinche");
+    expect(chooseBotBid(state)).toEqual({ action: "pass" });
   });
 
-  it("keeps V3 experimental until benchmark promotion criteria are met", () => {
+  it("promotes the measured hybrid champion while keeping V3 experimental", () => {
     expect(EXPERIMENTAL_BOT_PROFILE_IDS).toContain("main_montecarlo_v3");
     expect(EXPERIMENTAL_BOT_PROFILE_IDS).toContain("main_montecarlo_v3_1");
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("main_montecarlo_v2");
+    expect(EXPERIMENTAL_BOT_PROFILE_IDS).not.toContain("hybrid_legacy_v1");
+    expect(OFFICIAL_BOT_PROFILE_ID).toBe("hybrid_legacy_v1");
+  });
+
+  it("registers only the three permanent hybrid finalists", () => {
+    expect(EXPERIMENTAL_BOT_PROFILE_IDS).toEqual(expect.arrayContaining([
+      "hybrid_legacy_v2",
+      "hybrid_legacy_v3",
+    ]));
+    expect(findBotStrategy("hybrid_legacy_v1")).toMatchObject({
+      status: "active",
+      bidding: { kind: "legacy" },
+      card: { kind: "monte-carlo-v1" },
+    });
   });
 });

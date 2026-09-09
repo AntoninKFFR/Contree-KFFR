@@ -12,8 +12,11 @@
     "benchmark:bots": "vite-node --config vitest.config.ts scripts/benchmarkBots.ts",
     "benchmark:v3:ablations": "vite-node --config vitest.config.ts scripts/benchmarkV3Ablations.ts",
     "diagnose:bots": "vite-node --config vitest.config.ts scripts/diagnoseBots.ts",
+    "diagnose:bidding": "vite-node --config vitest.config.ts scripts/diagnoseBidding.ts",
     "benchmark:bot-components": "vite-node --config vitest.config.ts scripts/benchmarkBotComponents.ts",
     "benchmark:bot-synergy": "vite-node --config vitest.config.ts scripts/benchmarkBotSynergy.ts",
+    "benchmark:hybrids": "vite-node --config vitest.config.ts scripts/benchmarkHybrids.ts",
+    "benchmark:hybrid-finals": "vite-node --config vitest.config.ts scripts/benchmarkHybridFinals.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
