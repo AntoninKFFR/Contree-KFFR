@@ -19,6 +19,7 @@
     "benchmark:hybrid-finals": "vite-node --config vitest.config.ts scripts/benchmarkHybridFinals.ts",
     "benchmark:human-doctrine": "vite-node --config vitest.config.ts scripts/benchmarkHumanDoctrine.ts",
     "diagnose:human-doctrine": "vite-node --config vitest.config.ts scripts/diagnoseHumanDoctrineBidding.ts",
+    "benchmark:human-doctrine-v2": "vite-node --config vitest.config.ts scripts/benchmarkHumanDoctrineV2.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

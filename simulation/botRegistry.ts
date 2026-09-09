@@ -3,6 +3,7 @@ import { chooseProfileBid, chooseProfileBidFromHand } from "@/bots/strategy/bidd
 import { chooseBiddingV2 } from "@/bots/strategy/biddingStrategyV2";
 import { chooseMonteCarloBid } from "@/bots/strategy/monteCarloBiddingStrategy";
 import { chooseHumanDoctrineBid, type HumanDoctrineOptions } from "@/bots/strategy/humanDoctrine";
+import { chooseHumanDoctrineV2Bid, type HumanDoctrineV2Options } from "@/bots/strategy/humanDoctrineV2";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { chooseMonteCarloCardToPlay, chooseMonteCarloV2CardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
 import { chooseMonteCarloV3Decision, V3_1_OPTIONS, type BotDecisionTraceV3, type MonteCarloV3Options } from "@/bots/strategy/monteCarloV3CardStrategy";
@@ -21,6 +22,8 @@ export type BotBiddingStrategyId =
   | "bidding_v2"
   | "monte_carlo"
   | "human_doctrine_v1"
+  | "human_doctrine_v2_no110"
+  | "human_doctrine_v2_110"
   | "prudent"
   | "balanced"
   | "aggressive"
@@ -43,6 +46,7 @@ export type BiddingEngine =
   | { kind: "legacy-balanced-simple" }
   | { kind: "bidding-v2" }
   | { kind: "human-doctrine-v1"; options?: HumanDoctrineOptions }
+  | { kind: "human-doctrine-v2"; options: HumanDoctrineV2Options }
   | { kind: "legacy" };
 
 export type CardEngine =
@@ -68,6 +72,8 @@ export const BIDDING_ENGINES: Record<BotBiddingStrategyId, { label: string; engi
   bidding_v2: { label: "Conservative bidding V2", engine: { kind: "bidding-v2" } },
   monte_carlo: { label: "Monte Carlo bidding", engine: { kind: "monte-carlo", profile: "main" } },
   human_doctrine_v1: { label: "Human doctrine V1 bidding (experimental)", engine: { kind: "human-doctrine-v1" } },
+  human_doctrine_v2_no110: { label: "Human doctrine V2 bidding, no 110 (experimental)", engine: { kind: "human-doctrine-v2", options: { allow110: false } } },
+  human_doctrine_v2_110: { label: "Human doctrine V2 bidding, 110 enabled (experimental)", engine: { kind: "human-doctrine-v2", options: { allow110: true } } },
   prudent: { label: "Prudent bidding", engine: { kind: "heuristic", profile: "prudent" } },
   balanced: { label: "Balanced bidding", engine: { kind: "heuristic", profile: "balanced" } },
   aggressive: { label: "Aggressive bidding", engine: { kind: "heuristic", profile: "aggressive" } },
@@ -185,6 +191,9 @@ export function chooseStrategyBid(state: GameState, strategy: BotStrategyDefinit
   if (strategy.bidding.kind === "bidding-v2") return chooseBiddingV2(state);
   if (strategy.bidding.kind === "human-doctrine-v1") {
     return chooseHumanDoctrineBid(state, strategy.bidding.options);
+  }
+  if (strategy.bidding.kind === "human-doctrine-v2") {
+    return chooseHumanDoctrineV2Bid(state, strategy.bidding.options);
   }
   if (strategy.bidding.kind === "legacy-balanced-simple") {
     return chooseProfileBidFromHand(state.hands[state.currentPlayerId], getBotProfile("balanced"), null);
