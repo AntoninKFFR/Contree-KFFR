@@ -135,6 +135,8 @@ function isMainProfile(profile: BotProfile): boolean {
     profile.id === "main" ||
     profile.id === "main_montecarlo" ||
     profile.id === "main_montecarlo_v2" ||
+    profile.id === "main_montecarlo_v3" ||
+    profile.id === "main_montecarlo_v3_1" ||
     profile.id === "main_montecarlo_bidding"
   );
 }

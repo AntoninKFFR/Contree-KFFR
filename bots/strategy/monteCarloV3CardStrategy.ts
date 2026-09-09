@@ -5,6 +5,7 @@ import type { Card, GameState, PlayerId, Suit, TeamId } from "@/engine/types";
 import { buildBotKnowledgeV3, cardBeliefWeight, type BotKnowledgeV3 } from "@/bots/strategy/botKnowledgeV3";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { getBotProfile } from "@/bots/profiles";
+import { createSeededRandom, fisherYatesShuffle } from "@/engine/random";
 
 const PLAYERS: PlayerId[] = [0, 1, 2, 3];
 const DEFAULT_BUDGET = 72;
@@ -25,6 +26,42 @@ export type MonteCarloV3Options = {
   seed?: number;
   nodeCap?: number;
   disableTactics?: boolean;
+  features?: Partial<V3Features>;
+};
+
+export type V3Features = {
+  tacticalEarlyReturn: boolean;
+  candidateFiltering: boolean;
+  softBiddingBeliefs: boolean;
+  hardConstraints: boolean;
+  tacticalRollout: boolean;
+  evaluationV3: boolean;
+  endgameMinimax: boolean;
+  tacticalGuardrail: boolean;
+};
+
+export const DEFAULT_V3_FEATURES: V3Features = {
+  tacticalEarlyReturn: true,
+  candidateFiltering: true,
+  softBiddingBeliefs: true,
+  hardConstraints: true,
+  tacticalRollout: true,
+  evaluationV3: true,
+  endgameMinimax: true,
+  tacticalGuardrail: false,
+};
+
+export const V3_1_OPTIONS: MonteCarloV3Options = {
+  features: {
+    tacticalEarlyReturn: false,
+    candidateFiltering: true,
+    softBiddingBeliefs: false,
+    hardConstraints: true,
+    tacticalRollout: true,
+    evaluationV3: true,
+    endgameMinimax: false,
+    tacticalGuardrail: true,
+  },
 };
 
 export type BotDecisionTraceV3 = {
@@ -39,17 +76,6 @@ export type BotDecisionTraceV3 = {
 
 function cardKey(card: Card): string {
   return `${card.rank}-${card.suit}`;
-}
-
-function seededRandom(seed: number): () => number {
-  let value = seed >>> 0;
-  return () => {
-    value += 0x6d2b79f5;
-    let next = value;
-    next = Math.imul(next ^ (next >>> 15), next | 1);
-    next ^= next + Math.imul(next ^ (next >>> 7), next | 61);
-    return ((next ^ (next >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 export function hashPublicStateV3(state: GameState): number {
@@ -163,6 +189,9 @@ function unique(cards: Array<Card | null>): Card[] {
 export function getMonteCarloV3Candidates(state: GameState, knowledge = buildBotKnowledgeV3(state)): Card[] {
   const legal = playableCardsForCurrentPlayer(state);
   if (!state.trump || legal.length <= 1) return legal;
+  // Late positions are cheap to evaluate and disproportionately sensitive to
+  // filtering mistakes. Keep every credible move instead of collapsing them.
+  if (legal.length <= 4) return legal;
   const winners = legal.filter((card) => wouldWin(card, state));
   const losers = legal.filter((card) => !wouldWin(card, state));
   const masters = legal.filter((card) => {
@@ -194,14 +223,21 @@ function weightedChoice(players: PlayerId[], card: Card, knowledge: BotKnowledge
   return players[players.length - 1];
 }
 
-export function createPlausibleStateV3(state: GameState, random: () => number): GameState | null {
-  const knowledge = buildBotKnowledgeV3(state);
+export function createPlausibleStateV3(
+  state: GameState,
+  random: () => number,
+  features: Pick<V3Features, "hardConstraints" | "softBiddingBeliefs"> = DEFAULT_V3_FEATURES,
+): GameState | null {
+  const knowledge = buildBotKnowledgeV3(state, {
+    hardConstraints: features.hardConstraints,
+    softBeliefs: features.softBiddingBeliefs,
+  });
   for (let attempt = 0; attempt < 24; attempt += 1) {
     const quotas = { ...knowledge.remainingCardCounts };
     quotas[knowledge.viewerId] = 0;
     const hands = { 0: [], 1: [], 2: [], 3: [] } as GameState["hands"];
     hands[knowledge.viewerId] = [...knowledge.ownHand];
-    const shuffled = [...knowledge.unknownCards].sort(() => random() - 0.5).sort((a, b) => {
+    const shuffled = fisherYatesShuffle(knowledge.unknownCards, random).sort((a, b) => {
       const options = (card: Card) => PLAYERS.filter((player) => player !== knowledge.viewerId && quotas[player] > 0 && !knowledge.hardVoidSuits[player].includes(card.suit)).length;
       return options(a) - options(b);
     });
@@ -218,19 +254,19 @@ export function createPlausibleStateV3(state: GameState, random: () => number): 
   return null;
 }
 
-function tacticalRolloutCard(state: GameState): Card {
+function tacticalRolloutCard(state: GameState, enabled: boolean): Card {
   const knowledge = buildBotKnowledgeV3(state);
-  const fourthSeatTactic = state.currentTrick.cards.length === 3
+  const fourthSeatTactic = enabled && state.currentTrick.cards.length === 3
     ? chooseTacticalCardV3(state, knowledge)
     : null;
   return fourthSeatTactic?.card ?? chooseProfileCardToPlay(state, getBotProfile("main"));
 }
 
-function rollout(state: GameState): GameState {
+function rollout(state: GameState, tacticalRollout: boolean): GameState {
   let next = state;
   let guard = 0;
   while (next.phase === "playing" && guard < 40) {
-    next = playCard(next, next.currentPlayerId, tacticalRolloutCard(next));
+    next = playCard(next, next.currentPlayerId, tacticalRolloutCard(next, tacticalRollout));
     guard += 1;
   }
   return next;
@@ -247,6 +283,17 @@ function evaluate(finalState: GameState, team: TeamId): number {
   return roundDiff * V3_EVALUATION_WEIGHTS.roundScoreDifference + trickDiff * V3_EVALUATION_WEIGHTS.trickPointDifference + contract * (made ? V3_EVALUATION_WEIGHTS.contractOutcome : -V3_EVALUATION_WEIGHTS.contractFailure);
 }
 
+function evaluateV2Style(finalState: GameState, team: TeamId): number {
+  const opponent = team === 0 ? 1 : 0;
+  const trickDiff = finalState.trickPoints[team] - finalState.trickPoints[opponent];
+  if (finalState.result?.kind !== "played") return trickDiff;
+  const contractTeam = finalState.result.contract.teamId;
+  const contractWeight = finalState.result.contract.value * finalState.result.multiplier;
+  const roundDiff = finalState.result.roundScore[team] - finalState.result.roundScore[opponent];
+  const successForTeam = finalState.result.contractSucceeded === (contractTeam === team);
+  return roundDiff + trickDiff * 0.2 + contractWeight * (successForTeam ? 1.5 : -1.8);
+}
+
 function immediateAdjustment(state: GameState, card: Card): number {
   if (!state.trump || state.currentTrick.cards.length === 0) return 0;
   const points = cardPoints(card, state.trump);
@@ -254,15 +301,20 @@ function immediateAdjustment(state: GameState, card: Card): number {
   return wouldWin(card, state) ? trickPoints * V3_EVALUATION_WEIGHTS.immediateTrick : -points * V3_EVALUATION_WEIGHTS.protectedCardLoss;
 }
 
-function minimax(state: GameState, team: TeamId, cap: { nodes: number; max: number }): number | null {
+function minimax(
+  state: GameState,
+  team: TeamId,
+  cap: { nodes: number; max: number },
+  evaluationV3: boolean,
+): number | null {
   cap.nodes += 1;
   if (cap.nodes > cap.max) return null;
-  if (state.phase !== "playing") return evaluate(state, team);
+  if (state.phase !== "playing") return evaluationV3 ? evaluate(state, team) : evaluateV2Style(state, team);
   const legal = playableCardsForCurrentPlayer(state);
   const maximizing = playerTeam(state.currentPlayerId) === team;
   let best = maximizing ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
   for (const card of legal) {
-    const score = minimax(playCard(state, state.currentPlayerId, card), team, cap);
+    const score = minimax(playCard(state, state.currentPlayerId, card), team, cap, evaluationV3);
     if (score === null) return null;
     best = maximizing ? Math.max(best, score) : Math.min(best, score);
   }
@@ -271,19 +323,38 @@ function minimax(state: GameState, team: TeamId, cap: { nodes: number; max: numb
 
 export function chooseMonteCarloV3Decision(state: GameState, options: MonteCarloV3Options = {}): BotDecisionTraceV3 {
   if (state.phase !== "playing" || !state.trump) throw new Error("V3 ne peut jouer qu'après la détermination de l'atout.");
-  const knowledge = buildBotKnowledgeV3(state);
+  const features = {
+    ...DEFAULT_V3_FEATURES,
+    ...options.features,
+    ...(options.disableTactics ? { tacticalEarlyReturn: false } : {}),
+  };
+  const knowledge = buildBotKnowledgeV3(state, {
+    hardConstraints: features.hardConstraints,
+    softBeliefs: features.softBiddingBeliefs,
+  });
   const legal = playableCardsForCurrentPlayer(state);
   if (!legal.length) throw new Error("V3 n'a aucune carte jouable.");
   if (legal.length === 1) return { card: legal[0], source: "forced", reason: "seul coup légal", candidates: legal, scores: [], samples: 0, nodes: 0 };
-  const tactical = options.disableTactics ? null : chooseTacticalCardV3(state, knowledge);
+  const tactical = features.tacticalEarlyReturn ? chooseTacticalCardV3(state, knowledge) : null;
   if (tactical) return { card: tactical.card, source: "tactical", reason: tactical.reason, candidates: legal, scores: [], samples: 0, nodes: 0 };
 
-  const candidates = getMonteCarloV3Candidates(state, knowledge);
+  let candidates = features.candidateFiltering
+    ? getMonteCarloV3Candidates(state, knowledge)
+    : legal;
+  const tacticalGuardrail = features.tacticalGuardrail
+    ? chooseTacticalCardV3(state, knowledge)
+    : null;
+  if (
+    tacticalGuardrail &&
+    !candidates.some((candidate) => sameCard(candidate, tacticalGuardrail.card))
+  ) {
+    candidates = [...candidates, tacticalGuardrail.card];
+  }
   const budget = Math.max(candidates.length, options.totalBudget ?? DEFAULT_BUDGET);
   const samplesPerCandidate = Math.max(1, Math.floor(budget / candidates.length));
   const baseSeed = options.seed ?? (hashPublicStateV3(state) ^ 0x51ed270b);
   const team = playerTeam(state.currentPlayerId);
-  const endgame = knowledge.ownHand.length <= 3;
+  const endgame = features.endgameMinimax && knowledge.ownHand.length <= 3;
   let totalNodes = 0;
   const scores = candidates.map((candidate) => {
     let total = 0;
@@ -291,19 +362,34 @@ export function chooseMonteCarloV3Decision(state: GameState, options: MonteCarlo
     for (let sample = 0; sample < samplesPerCandidate; sample += 1) {
       // Common random numbers make candidate comparisons less noisy: every
       // candidate is evaluated against the same public-information deal sample.
-      const plausible = createPlausibleStateV3(state, seededRandom(baseSeed + sample * 8191));
+      const plausible = createPlausibleStateV3(
+        state,
+        createSeededRandom(baseSeed + sample * 8191),
+        features,
+      );
       if (!plausible) continue;
       const after = playCard(plausible, plausible.currentPlayerId, candidate);
       let score: number | null;
       if (endgame) {
         const cap = { nodes: 0, max: options.nodeCap ?? ENDGAME_NODE_CAP };
-        score = minimax(after, team, cap);
+        score = minimax(after, team, cap, features.evaluationV3);
         totalNodes += cap.nodes;
-        if (score === null) score = evaluate(rollout(after), team);
+        if (score === null) {
+          const finalState = rollout(after, features.tacticalRollout);
+          score = features.evaluationV3 ? evaluate(finalState, team) : evaluateV2Style(finalState, team);
+        }
       } else {
-        score = evaluate(rollout(after), team);
+        const finalState = rollout(after, features.tacticalRollout);
+        score = features.evaluationV3 ? evaluate(finalState, team) : evaluateV2Style(finalState, team);
       }
-      total += score + immediateAdjustment(state, candidate);
+      const guardrailBonus = tacticalGuardrail && sameCard(tacticalGuardrail.card, candidate)
+        ? state.currentTrick.cards.length === 3
+          ? 1_000
+          : tacticalGuardrail.reason.startsWith("tirer atout")
+            ? 250
+            : 100
+        : 0;
+      total += score + immediateAdjustment(state, candidate) + guardrailBonus;
       completed += 1;
     }
     return { card: candidate, score: completed ? total / completed : Number.NEGATIVE_INFINITY };

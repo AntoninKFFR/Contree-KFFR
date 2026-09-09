@@ -9,6 +9,11 @@
     "lint": "eslint .",
     "simulate:bots": "vite-node --config vitest.config.ts scripts/simulateBots.ts",
     "benchmark:v3": "vite-node --config vitest.config.ts scripts/benchmarkV3.ts",
+    "benchmark:bots": "vite-node --config vitest.config.ts scripts/benchmarkBots.ts",
+    "benchmark:v3:ablations": "vite-node --config vitest.config.ts scripts/benchmarkV3Ablations.ts",
+    "diagnose:bots": "vite-node --config vitest.config.ts scripts/diagnoseBots.ts",
+    "benchmark:bot-components": "vite-node --config vitest.config.ts scripts/benchmarkBotComponents.ts",
+    "benchmark:bot-synergy": "vite-node --config vitest.config.ts scripts/benchmarkBotSynergy.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

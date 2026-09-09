@@ -79,6 +79,7 @@ describe("bot profiles", () => {
 
   it("keeps V3 experimental until benchmark promotion criteria are met", () => {
     expect(EXPERIMENTAL_BOT_PROFILE_IDS).toContain("main_montecarlo_v3");
+    expect(EXPERIMENTAL_BOT_PROFILE_IDS).toContain("main_montecarlo_v3_1");
     expect(OFFICIAL_BOT_PROFILE_ID).toBe("main_montecarlo_v2");
   });
 });

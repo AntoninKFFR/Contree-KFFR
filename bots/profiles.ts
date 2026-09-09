@@ -3,6 +3,7 @@ export type BotProfileId =
   | "main_montecarlo"
   | "main_montecarlo_v2"
   | "main_montecarlo_v3"
+  | "main_montecarlo_v3_1"
   | "main_montecarlo_bidding"
   | "prudent"
   | "balanced"
@@ -65,6 +66,17 @@ export const BOT_PROFILES: Record<BotProfileId, BotProfile> = {
     surcoincheMargin: 42,
     preserveStrongCards: 1.25,
   },
+  main_montecarlo_v3_1: {
+    id: "main_montecarlo_v3_1",
+    label: "Bot principal Monte Carlo V3.1 (expérimental)",
+    bidRisk: 0.9,
+    cardRisk: 0.82,
+    bidOffset: 11,
+    raiseMargin: 8,
+    coincheMargin: 34,
+    surcoincheMargin: 42,
+    preserveStrongCards: 1.25,
+  },
   main_montecarlo_bidding: {
     id: "main_montecarlo_bidding",
     label: "Experimental MC annonces",
@@ -115,6 +127,7 @@ export const OFFICIAL_BOT_PROFILE_ID: BotProfileId = "main_montecarlo_v2";
 
 export const EXPERIMENTAL_BOT_PROFILE_IDS: BotProfileId[] = [
   "main_montecarlo_v3",
+  "main_montecarlo_v3_1",
   "main_montecarlo_bidding",
 ];
 

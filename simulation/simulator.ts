@@ -7,6 +7,7 @@ import { chooseMonteCarloBid } from "@/bots/strategy/monteCarloBiddingStrategy";
 import { chooseProfileBid } from "@/bots/strategy/biddingStrategy";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { chooseMonteCarloV3CardToPlay } from "@/bots/strategy/monteCarloV3CardStrategy";
+import { V3_1_OPTIONS } from "@/bots/strategy/monteCarloV3CardStrategy";
 import { createInitialGame, makeBid, playCard, startNextRound } from "@/engine/game";
 import { playerTeam } from "@/engine/rules";
 import type { GameSettings, GameState, TeamId } from "@/engine/types";
@@ -96,8 +97,8 @@ function playOneDecision(
   }
 
   const card =
-    profile.id === "main_montecarlo_v3"
-      ? chooseMonteCarloV3CardToPlay(state)
+    profile.id === "main_montecarlo_v3" || profile.id === "main_montecarlo_v3_1"
+      ? chooseMonteCarloV3CardToPlay(state, profile.id === "main_montecarlo_v3_1" ? V3_1_OPTIONS : undefined)
       : profile.id === "main_montecarlo_v2" || profile.id === "main_montecarlo_bidding"
       ? chooseMonteCarloV2CardToPlay(state)
       : profile.id === "main_montecarlo"

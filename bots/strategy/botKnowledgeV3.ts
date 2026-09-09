@@ -43,6 +43,11 @@ export type BotKnowledgeV3 = {
   suitBeliefs: Record<PlayerId, Record<Suit, SuitBelief>>;
 };
 
+export type BotKnowledgeV3Options = {
+  hardConstraints?: boolean;
+  softBeliefs?: boolean;
+};
+
 function key(card: Card): string {
   return `${card.rank}-${card.suit}`;
 }
@@ -127,14 +132,19 @@ function suitBeliefs(state: GameState): BotKnowledgeV3["suitBeliefs"] {
   return beliefs;
 }
 
-export function buildBotKnowledgeV3(state: GameState): BotKnowledgeV3 {
+export function buildBotKnowledgeV3(
+  state: GameState,
+  options: BotKnowledgeV3Options = {},
+): BotKnowledgeV3 {
   const viewerId = state.currentPlayerId;
   const ownHand = state.hands[viewerId].map((card) => ({ ...card }));
   const played = playedCards(state);
   const visible = [...ownHand, ...played];
   const visibleKeys = new Set(visible.map(key));
   const unknownCards = createDeck().filter((card) => !visibleKeys.has(key(card)));
-  const hardVoidSuits = inferHardVoids(state);
+  const hardVoidSuits = options.hardConstraints === false
+    ? Object.fromEntries(PLAYERS.map((player) => [player, []])) as unknown as Record<PlayerId, Suit[]>
+    : inferHardVoids(state);
   const counts = remainingCounts(state);
   counts[viewerId] = ownHand.length;
   const masterCardsBySuit = Object.fromEntries(SUITS.map((suit) => [
@@ -195,7 +205,9 @@ export function buildBotKnowledgeV3(state: GameState): BotKnowledgeV3 {
       partnerWinning: currentWinnerId !== null && playerTeam(currentWinnerId) === playerTeam(viewerId),
       opponentWinning: currentWinnerId !== null && playerTeam(currentWinnerId) !== playerTeam(viewerId),
     },
-    suitBeliefs: suitBeliefs(state),
+    suitBeliefs: options.softBeliefs === false
+      ? Object.fromEntries(PLAYERS.map((player) => [player, Object.fromEntries(SUITS.map((suit) => [suit, { weight: 1, reasons: [] }]))])) as unknown as BotKnowledgeV3["suitBeliefs"]
+      : suitBeliefs(state),
   };
 }
 

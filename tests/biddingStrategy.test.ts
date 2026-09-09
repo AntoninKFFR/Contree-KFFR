@@ -214,4 +214,15 @@ describe("bidding strategy", () => {
 
     expect(chooseProfileBid(state, getBotProfile("main")).action).toBe("pass");
   });
+
+  it("routes Monte Carlo V3 through the same main bidding logic", () => {
+    const hand = [
+      card("J", "hearts"), card("9", "hearts"), card("A", "hearts"), card("7", "hearts"),
+      card("A", "clubs"), card("8", "clubs"), card("7", "spades"), card("8", "diamonds"),
+    ];
+    const state = createBiddingState(hand, [], 0);
+    expect(chooseProfileBid(state, getBotProfile("main_montecarlo_v3"))).toEqual(
+      chooseProfileBid(state, getBotProfile("main")),
+    );
+  });
 });
