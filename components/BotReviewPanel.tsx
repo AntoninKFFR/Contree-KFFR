@@ -1,0 +1,100 @@
+"use client";
+
+import { useState } from "react";
+import { formatCard, SUIT_LABELS } from "@/engine/cards";
+import type { BotReviewScenarioV1 } from "@/bots/botReview";
+import { serializeBotReviewScenario } from "@/bots/botReview";
+
+type BotReviewPanelProps = {
+  scenario: BotReviewScenarioV1;
+  onClose: () => void;
+};
+
+function formatBid(scenario: BotReviewScenarioV1): string {
+  const bid = scenario.chosenBid;
+  if (!bid) return "—";
+  if (bid.action !== "bid") return bid.action;
+  return `${bid.value} ${SUIT_LABELS[bid.trump]}`;
+}
+
+export function BotReviewPanel({ scenario, onClose }: BotReviewPanelProps) {
+  const [humanComment, setHumanComment] = useState(scenario.humanComment ?? "");
+  const [status, setStatus] = useState("");
+  const json = () => serializeBotReviewScenario(scenario, humanComment);
+
+  async function copyScenario() {
+    try {
+      await navigator.clipboard.writeText(json());
+      setStatus("Scénario copié.");
+    } catch {
+      setStatus("Copie impossible dans ce navigateur.");
+    }
+  }
+
+  function downloadScenario() {
+    const url = URL.createObjectURL(new Blob([json()], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `bot-review-${scenario.decisionId}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatus("JSON téléchargé.");
+  }
+
+  const chosen = scenario.chosenCard ? formatCard(scenario.chosenCard) : `Enchère : ${formatBid(scenario)}`;
+  const legalCards = scenario.legalCards.length > 0
+    ? scenario.legalCards.map(formatCard).join(", ")
+    : "Sans objet pour une enchère";
+  const contract = scenario.contract
+    ? `${scenario.contract.value} ${SUIT_LABELS[scenario.contract.trump]} (${scenario.contract.status})`
+    : "Aucun";
+  const trick = scenario.currentTrick.cards.length > 0
+    ? scenario.currentTrick.cards.map((played) => `P${played.playerId}: ${formatCard(played.card)}`).join(", ")
+    : "Début de pli";
+
+  return (
+    <aside className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-stone-900 shadow-sm" aria-label="Analyse du dernier coup du bot">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-bold">Review bot · {scenario.decisionId}</p>
+          <p className="text-stone-600">Capture locale, sans mains adverses.</p>
+        </div>
+        <button className="font-semibold text-stone-600 hover:text-stone-950" onClick={onClose} type="button">
+          Fermer
+        </button>
+      </div>
+
+      <dl className="mt-3 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1">
+        <dt className="font-semibold">Bot :</dt><dd>P{scenario.playerId} · {scenario.botProfile}</dd>
+        <dt className="font-semibold">Carte choisie :</dt><dd>{chosen}</dd>
+        <dt className="font-semibold">Cartes possibles :</dt><dd>{legalCards}</dd>
+        <dt className="font-semibold">Atout :</dt><dd>{scenario.trump ? SUIT_LABELS[scenario.trump] : "Aucun"}</dd>
+        <dt className="font-semibold">Contrat :</dt><dd>{contract}</dd>
+        <dt className="font-semibold">Pli :</dt><dd>{trick}</dd>
+        <dt className="font-semibold">Stratégie :</dt><dd>{scenario.decisionEngine}</dd>
+        <dt className="font-semibold">Temps :</dt><dd>{scenario.elapsedMs.toFixed(2)} ms</dd>
+      </dl>
+
+      <label className="mt-3 block font-semibold" htmlFor="bot-review-comment">
+        Pourquoi ce coup est mauvais ?
+      </label>
+      <textarea
+        className="mt-1 min-h-16 w-full rounded-md border border-stone-300 bg-white p-2"
+        id="bot-review-comment"
+        onChange={(event) => setHumanComment(event.target.value)}
+        placeholder="Le partenaire est déjà maître, il ne faut pas mettre le 10."
+        value={humanComment}
+      />
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button className="rounded-md bg-stone-900 px-3 py-2 font-semibold text-white" onClick={copyScenario} type="button">
+          Copier le scénario
+        </button>
+        <button className="rounded-md border border-stone-400 bg-white px-3 py-2 font-semibold" onClick={downloadScenario} type="button">
+          Télécharger JSON
+        </button>
+      </div>
+      {status ? <p className="mt-2 text-stone-600" role="status">{status}</p> : null}
+    </aside>
+  );
+}

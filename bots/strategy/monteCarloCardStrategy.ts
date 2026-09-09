@@ -83,6 +83,13 @@ function knownCardsForCurrentPlayer(state: GameState): Card[] {
   ];
 }
 
+function publicRemainingCardCount(state: GameState, playerId: PlayerId): number {
+  const alreadyPlayedCurrentTrick = state.currentTrick.cards.some(
+    (played) => played.playerId === playerId,
+  );
+  return Math.max(0, 8 - state.completedTricks.length - (alreadyPlayedCurrentTrick ? 1 : 0));
+}
+
 function createPlausibleState(state: GameState, random: () => number): GameState | null {
   const knownCards = knownCardsForCurrentPlayer(state);
   const unknownCards = createDeck().filter((card) => !containsCard(knownCards, card));
@@ -102,7 +109,7 @@ function createPlausibleState(state: GameState, random: () => number): GameState
       continue;
     }
 
-    const cardCount = state.hands[playerId].length;
+    const cardCount = publicRemainingCardCount(state, playerId);
     hands[playerId] = shuffledUnknownCards.slice(cursor, cursor + cardCount);
     cursor += cardCount;
   }
@@ -215,10 +222,10 @@ function dealPlausibleHandsV2(
 ): GameState["hands"] | null {
   const voidSuits = inferVoidSuits(state);
   const quotas: Record<PlayerId, number> = {
-    0: state.currentPlayerId === 0 ? 0 : state.hands[0].length,
-    1: state.currentPlayerId === 1 ? 0 : state.hands[1].length,
-    2: state.currentPlayerId === 2 ? 0 : state.hands[2].length,
-    3: state.currentPlayerId === 3 ? 0 : state.hands[3].length,
+    0: state.currentPlayerId === 0 ? 0 : publicRemainingCardCount(state, 0),
+    1: state.currentPlayerId === 1 ? 0 : publicRemainingCardCount(state, 1),
+    2: state.currentPlayerId === 2 ? 0 : publicRemainingCardCount(state, 2),
+    3: state.currentPlayerId === 3 ? 0 : publicRemainingCardCount(state, 3),
   };
   const hands: GameState["hands"] = {
     0: state.currentPlayerId === 0 ? [...state.hands[0]] : [],

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
 import { BiddingPanel } from "@/components/BiddingPanel";
+import { BotReviewPanel } from "@/components/BotReviewPanel";
 import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
@@ -24,6 +25,11 @@ import {
 import type { BidValue, Card, GameState, ScoringMode, Suit } from "@/engine/types";
 import { saveCompletedGame } from "@/lib/games";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import {
+  BOT_REVIEW_MODE_ENABLED,
+  captureBotReviewScenario,
+  type BotReviewScenarioV1,
+} from "@/bots/botReview";
 
 const initialRenderRandom = () => 0.42;
 const soloSeatAssignments = SOLO_SEAT_ASSIGNMENTS;
@@ -32,6 +38,7 @@ const localHumanPlayerId = firstHumanSeat(soloSeatAssignments) ?? 0;
 export default function SoloPage() {
   const gameIdRef = useRef(crypto.randomUUID());
   const savedGameIdsRef = useRef(new Set<string>());
+  const botDecisionNumberRef = useRef(0);
   const [scoringMode, setScoringMode] = useState<ScoringMode>("made-points");
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
@@ -42,6 +49,8 @@ export default function SoloPage() {
       targetScore: getDefaultTargetScore("made-points"),
     }),
   );
+  const [lastBotReview, setLastBotReview] = useState<BotReviewScenarioV1 | null>(null);
+  const [isBotReviewOpen, setIsBotReviewOpen] = useState(false);
 
   const humanCanPlay =
     gameState.phase === "playing" &&
@@ -105,38 +114,57 @@ export default function SoloPage() {
     }
 
     const timeoutId = window.setTimeout(() => {
-      setGameState((currentState) => {
-        if (
-          (currentState.phase !== "playing" && currentState.phase !== "bidding") ||
-          !isBotSeat(soloSeatAssignments, currentState.currentPlayerId)
-        ) {
-          return currentState;
-        }
+      const currentState = gameState;
+      if (
+        (currentState.phase !== "playing" && currentState.phase !== "bidding") ||
+        !isBotSeat(soloSeatAssignments, currentState.currentPlayerId)
+      ) {
+        return;
+      }
 
-        if (currentState.phase === "bidding") {
-          const botBid = chooseBotBid(currentState);
-          if (botBid.action === "bid") {
-            return applyGameAction(currentState, {
+      botDecisionNumberRef.current += 1;
+      const started = performance.now();
+
+      if (currentState.phase === "bidding") {
+        const botBid = chooseBotBid(currentState);
+        const elapsedMs = performance.now() - started;
+        if (BOT_REVIEW_MODE_ENABLED) {
+          setLastBotReview(captureBotReviewScenario(currentState, {
+            decisionNumber: botDecisionNumberRef.current,
+            elapsedMs,
+            chosenBid: botBid,
+          }));
+        }
+        if (botBid.action === "bid") {
+          setGameState(applyGameAction(currentState, {
               type: "bid",
               playerId: currentState.currentPlayerId,
               value: botBid.value,
               trump: botBid.trump,
-            });
-          }
-
-          return applyGameAction(currentState, {
+          }));
+          return;
+        }
+        setGameState(applyGameAction(currentState, {
             type: botBid.action,
             playerId: currentState.currentPlayerId,
-          });
-        }
+        }));
+        return;
+      }
 
-        const botCard = chooseBotCard(currentState);
-        return applyGameAction(currentState, {
+      const botCard = chooseBotCard(currentState);
+      const elapsedMs = performance.now() - started;
+      if (BOT_REVIEW_MODE_ENABLED) {
+        setLastBotReview(captureBotReviewScenario(currentState, {
+          decisionNumber: botDecisionNumberRef.current,
+          elapsedMs,
+          chosenCard: botCard,
+        }));
+      }
+      setGameState(applyGameAction(currentState, {
           type: "play-card",
           playerId: currentState.currentPlayerId,
           card: botCard,
-        });
-      });
+      }));
     }, 650);
 
     return () => window.clearTimeout(timeoutId);
@@ -199,6 +227,9 @@ export default function SoloPage() {
 
   function handleNewGame() {
     gameIdRef.current = crypto.randomUUID();
+    botDecisionNumberRef.current = 0;
+    setLastBotReview(null);
+    setIsBotReviewOpen(false);
     setGameState(
       createInitialGame(Math.random, {
         scoringMode,
@@ -291,6 +322,25 @@ export default function SoloPage() {
               state={gameState}
               showLiveScore={isMobileLandscape || (!isRightPanelOpen && gameState.phase === "playing")}
             />
+
+            {BOT_REVIEW_MODE_ENABLED && !isMobileLandscape && lastBotReview ? (
+              <div className="grid gap-2">
+                <button
+                  className="justify-self-end rounded-md border border-amber-400 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-stone-800 shadow-sm hover:bg-amber-100"
+                  onClick={() => setIsBotReviewOpen(true)}
+                  type="button"
+                >
+                  Signaler la dernière décision du bot
+                </button>
+                {isBotReviewOpen ? (
+                  <BotReviewPanel
+                    key={lastBotReview.decisionId}
+                    onClose={() => setIsBotReviewOpen(false)}
+                    scenario={lastBotReview}
+                  />
+                ) : null}
+              </div>
+            ) : null}
 
             {!isMobileLandscape && gameState.phase === "bidding" ? (
               <BiddingPanel
