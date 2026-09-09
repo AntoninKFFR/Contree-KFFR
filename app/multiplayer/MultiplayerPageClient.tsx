@@ -7,7 +7,6 @@ import type { Session } from "@supabase/supabase-js";
 import { getProfileUsername } from "@/lib/profiles";
 import { createMultiplayerRoom, findMultiplayerRoom } from "@/lib/multiplayerApi";
 import { getSupabaseClient } from "@/lib/supabaseClient";
-import type { ScoringMode } from "@/engine/types";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
 
@@ -27,7 +26,6 @@ export default function MultiplayerPage() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [pageState, setPageState] = useState<PageState>("loading");
   const [roomCode, setRoomCode] = useState("");
-  const [scoringMode, setScoringMode] = useState<ScoringMode>("ffb");
   const [session, setSession] = useState<Session | null>(null);
   const [targetScore, setTargetScore] = useState(1000);
 
@@ -90,7 +88,6 @@ export default function MultiplayerPage() {
     try {
       const result = await createMultiplayerRoom({
         displayName,
-        scoringMode,
         targetScore,
       }, session);
 
@@ -177,20 +174,6 @@ export default function MultiplayerPage() {
                   onChange={setDisplayName}
                   value={displayName}
                 />
-
-                <label className="flex flex-col gap-1 text-sm font-semibold">
-                  Mode de score
-                  <select
-                    className="rounded-md border border-stone-300 px-3 py-2 font-normal"
-                    disabled={!canSubmit}
-                    onChange={(event) => setScoringMode(event.target.value as ScoringMode)}
-                    value={scoringMode}
-                  >
-                    <option value="ffb">Coinche FFB</option>
-                    <option value="made-points">Points faits</option>
-                    <option value="announced-points">Points annonces</option>
-                  </select>
-                </label>
 
                 <label className="flex flex-col gap-1 text-sm font-semibold">
                   Score cible

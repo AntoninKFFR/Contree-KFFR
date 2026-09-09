@@ -12,7 +12,6 @@ import { applyGameAction, type GameAction } from "@/engine/actions";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import {
   createInitialGame,
-  getDefaultTargetScore,
   getCurrentContract,
   playableCardsForCurrentPlayer,
 } from "@/engine/game";
@@ -22,7 +21,7 @@ import {
   isHumanSeat,
   SOLO_SEAT_ASSIGNMENTS,
 } from "@/engine/seats";
-import type { BidValue, Card, GameState, ScoringMode, Suit } from "@/engine/types";
+import type { BidValue, Card, GameState, Suit } from "@/engine/types";
 import { saveCompletedGame } from "@/lib/games";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import {
@@ -30,6 +29,7 @@ import {
   captureBotReviewScenario,
   type BotReviewScenarioV1,
 } from "@/bots/botReview";
+import { PRODUCT_SCORING_MODE } from "@/lib/productGame";
 
 const initialRenderRandom = () => 0.42;
 const soloSeatAssignments = SOLO_SEAT_ASSIGNMENTS;
@@ -39,14 +39,12 @@ export default function SoloPage() {
   const gameIdRef = useRef(crypto.randomUUID());
   const savedGameIdsRef = useRef(new Set<string>());
   const botDecisionNumberRef = useRef(0);
-  const [scoringMode, setScoringMode] = useState<ScoringMode>("ffb");
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [gameState, setGameState] = useState<GameState>(() =>
     createInitialGame(initialRenderRandom, {
-      scoringMode: "ffb",
-      targetScore: getDefaultTargetScore("ffb"),
+      scoringMode: PRODUCT_SCORING_MODE,
     }),
   );
   const [lastBotReview, setLastBotReview] = useState<BotReviewScenarioV1 | null>(null);
@@ -236,8 +234,7 @@ export default function SoloPage() {
     setIsBotReviewOpen(false);
     setGameState(
       createInitialGame(Math.random, {
-        scoringMode,
-        targetScore: getDefaultTargetScore(scoringMode),
+        scoringMode: PRODUCT_SCORING_MODE,
       }),
     );
   }
@@ -258,19 +255,6 @@ export default function SoloPage() {
       ].join(" ")}
     >
       <div className="mx-auto flex h-full max-w-7xl flex-col gap-2">
-        <div className={`flex shrink-0 justify-end ${isMobileLandscape ? "hidden" : ""}`}>
-          <select
-            aria-label="Mode de score"
-            className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-semibold shadow-sm"
-            onChange={(event) => setScoringMode(event.target.value as ScoringMode)}
-            value={scoringMode}
-          >
-            <option value="ffb">Coinche FFB</option>
-            <option value="made-points">Points faits</option>
-            <option value="announced-points">Points annonces</option>
-          </select>
-        </div>
-
         <div
           className={[
             "grid min-h-0 flex-1 gap-2",

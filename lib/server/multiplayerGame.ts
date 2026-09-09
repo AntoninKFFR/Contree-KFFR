@@ -31,6 +31,12 @@ export function viewerSeatIndex(players: RoomPlayerRow[], userId: string): RoomP
   return players.find((player) => player.kind === "human" && player.user_id === userId)?.seat_index ?? null;
 }
 
+export function requireLobbySeatChange(room: RoomRow): void {
+  if (room.status !== "lobby") {
+    throw new MultiplayerError("La table n'accepte plus de joueurs.", 409, "wrong_room_status");
+  }
+}
+
 export function joinLobbySeat(input: {
   players: RoomPlayerRow[];
   userId: string;
@@ -39,6 +45,9 @@ export function joinLobbySeat(input: {
   now: string;
 }): RoomPlayerRow[] {
   const occupied = input.players.find((player) => player.seat_index === input.seatIndex);
+  if (occupied?.kind === "human" && occupied.user_id === input.userId) {
+    return input.players;
+  }
   if (!occupied || occupied.kind !== "empty") {
     throw new MultiplayerError("Cette place n'est plus libre.", 409);
   }

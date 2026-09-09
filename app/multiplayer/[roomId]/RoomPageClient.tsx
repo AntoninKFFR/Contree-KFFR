@@ -20,6 +20,7 @@ import { fetchRoomView, sendPresenceHeartbeat, sendRoomIntent, sendRoomTick } fr
 import type { RoomPlayerAction, RoomPlayerRow, RoomPlayerView, MultiplayerRoomView } from "@/lib/roomTypes";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { MULTIPLAYER_TICK_INTERVAL_MS } from "@/lib/multiplayerTurnTimer";
+import { scoringModeLabel } from "@/lib/productGame";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable" | "missing";
 
@@ -43,11 +44,6 @@ function statusLabel(status: MultiplayerRoomView["room"]["status"]): string {
   if (status === "playing") return "en cours";
   if (status === "finished") return "terminée";
   return "annulée";
-}
-
-function scoringModeLabel(scoringMode: MultiplayerRoomView["room"]["scoring_mode"]): string {
-  if (scoringMode === "ffb") return "coinche FFB";
-  return scoringMode === "made-points" ? "points faits" : "points annoncés";
 }
 
 export default function MultiplayerRoomPage() {
@@ -920,6 +916,7 @@ export default function MultiplayerRoomPage() {
                     }
                     immersiveMobileLandscape={isMobileLandscape}
                     players={roomWithPlayers.players}
+                    presentationScope={roomId ?? "multiplayer"}
                     state={playerView}
                     showLiveScore={isMobileLandscape || (!isRightPanelOpen && playerView.phase === "playing")}
                     turnSecondsRemaining={turnSecondsRemaining}

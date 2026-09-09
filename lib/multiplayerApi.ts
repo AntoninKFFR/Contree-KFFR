@@ -1,4 +1,3 @@
-import type { ScoringMode } from "@/engine/types";
 import type { MultiplayerRoomView, RoomIntent } from "@/lib/roomTypes";
 
 type AccessTokenSource = { access_token: string };
@@ -52,7 +51,7 @@ export function sendRoomIntent(
 }
 
 export function createMultiplayerRoom(
-  input: { displayName: string; scoringMode: ScoringMode; targetScore: number },
+  input: { displayName: string; targetScore: number },
   token: AccessTokenSource,
 ) {
   return request<MultiplayerRoomView>("/api/multiplayer/rooms", token, {

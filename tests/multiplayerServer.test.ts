@@ -4,7 +4,7 @@ import type { Card, GameState } from "@/engine/types";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import {
   applyAuthorizedAction, applyBotTurns, enableBotTakeover, joinLobbySeat, requireHost,
-  requireVersion, resetRoomPlayers, setLobbyReady, viewerSeatIndex,
+  requireLobbySeatChange, requireVersion, resetRoomPlayers, setLobbyReady, viewerSeatIndex,
 } from "@/lib/server/multiplayerGame";
 import { parseRoomIntent } from "@/lib/server/roomIntentValidation";
 
@@ -195,6 +195,9 @@ describe("server-authoritative multiplayer", () => {
     });
     expect(moved[1]).toMatchObject({ kind: "empty", user_id: null, display_name: null });
     expect(moved[3]).toMatchObject({ kind: "human", user_id: "guest" });
+    expect(moved.filter((player) => player.user_id === "guest")).toHaveLength(1);
+    expect(new Set(moved.map((player) => player.seat_index)).size).toBe(4);
+    expect(viewerSeatIndex(moved, "guest")).toBe(3);
   });
 
   it("prevents two users from taking the same seat", () => {
@@ -212,5 +215,33 @@ describe("server-authoritative multiplayer", () => {
     });
     const ready = setLobbyReady(joined, "guest", true, "ready");
     expect(ready[2]).toMatchObject({ is_ready: true, last_seen_at: "ready" });
+  });
+
+  it("treats clicking the current user's own seat as an idempotent operation", () => {
+    const joined = joinLobbySeat({
+      players: lobbyPlayers(), userId: "guest", seatIndex: 2, displayName: "Guest", now: "joined",
+    });
+    expect(joinLobbySeat({
+      players: joined, userId: "guest", seatIndex: 2, displayName: "Guest", now: "again",
+    })).toBe(joined);
+  });
+
+  it("resets ready when a ready player moves to another free seat", () => {
+    const joined = joinLobbySeat({
+      players: lobbyPlayers(), userId: "guest", seatIndex: 1, displayName: "Guest", now: "joined",
+    });
+    const ready = setLobbyReady(joined, "guest", true, "ready");
+    const moved = joinLobbySeat({
+      players: ready, userId: "guest", seatIndex: 3, displayName: "Guest", now: "moved",
+    });
+    expect(moved[1]).toMatchObject({ kind: "empty", user_id: null, is_ready: false });
+    expect(moved[3]).toMatchObject({ kind: "human", user_id: "guest", is_ready: false });
+  });
+
+  it("rejects seat changes once the game has started", () => {
+    expect(() => requireLobbySeatChange({ ...room, status: "playing" })).toThrow(
+      "n'accepte plus de joueurs",
+    );
+    expect(() => requireLobbySeatChange({ ...room, status: "lobby" })).not.toThrow();
   });
 });

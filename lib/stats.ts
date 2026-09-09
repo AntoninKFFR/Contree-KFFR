@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+export { scoringModeLabel } from "@/lib/productGame";
 
 export type GameRow = {
   id: string;
@@ -58,13 +59,6 @@ export function formatDate(value: string | null) {
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(value));
-}
-
-export function scoringModeLabel(value: string | null) {
-  if (value === "ffb") return "Coinche FFB";
-  if (value === "made-points") return "Points faits";
-  if (value === "announced-points") return "Points annonces";
-  return value ?? "Mode inconnu";
 }
 
 function average(values: Array<number | null>) {

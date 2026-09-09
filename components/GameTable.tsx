@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { CardView } from "@/components/CardView";
 import { PlayerPanel } from "@/components/PlayerPanel";
-import { SUIT_SYMBOLS, cardId } from "@/engine/cards";
+import { SUIT_SYMBOLS } from "@/engine/cards";
 import { playerName, teamName } from "@/engine/players";
 import type {
   Bid,
@@ -15,6 +15,13 @@ import type {
 } from "@/engine/types";
 import type { PlayerGameView } from "@/engine/views";
 import type { RoomPlayerView } from "@/lib/roomTypes";
+import {
+  observeCompletedTricks,
+  selectVisualTrick,
+  TRICK_PRESENTATION_MS,
+  type PresentedTrick,
+  type TrickObservation,
+} from "@/lib/trickPresentation";
 
 type GameTableState = GameState | PlayerGameView;
 
@@ -23,6 +30,7 @@ type GameTableProps = {
   bottomOverlay?: ReactNode;
   immersiveMobileLandscape?: boolean;
   players?: RoomPlayerView[];
+  presentationScope?: string;
   showLiveScore?: boolean;
   turnSecondsRemaining?: number | null;
 };
@@ -33,13 +41,7 @@ type AnnouncementBubbleContent = {
   tone: "neutral" | "accent";
 };
 
-type AnimatedCompletedTrick = {
-  key: string;
-  trick: CompletedTrick;
-};
-
 const TABLE_BACKGROUND_IMAGE = "/TapisKFFR.png";
-const TRICK_COLLECTION_ANIMATION_MS = 420;
 
 function formatBidLabel(bid: Bid): AnnouncementBubbleContent {
   if (bid.action === "pass") {
@@ -124,26 +126,7 @@ function dominantBidPlayerId(bids: Bid[]): PlayerId | null {
 }
 
 function playedCardsToShow(state: GameTableState): { title: string; cards: PlayedCard[] } {
-  if (state.currentTrick.cards.length > 0) {
-    return { title: "Pli en cours", cards: state.currentTrick.cards };
-  }
-
-  const lastTrick = state.completedTricks.at(-1);
-  if (lastTrick) {
-    return { title: "Dernier pli", cards: lastTrick.cards };
-  }
-
-  return { title: "Pli en cours", cards: [] };
-}
-
-function completedTrickKey(
-  roundNumber: number,
-  trickIndex: number,
-  trick: CompletedTrick,
-): string {
-  return `${roundNumber}-${trickIndex}-${trick.winnerId}-${trick.cards
-    .map((played) => `${played.playerId}-${cardId(played.card)}`)
-    .join("_")}`;
+  return { title: "Pli en cours", cards: state.currentTrick.cards };
 }
 
 function trickCollectionOffset(winnerId: PlayerId): { x: string; y: string } {
@@ -221,20 +204,29 @@ function TrickCenter({ cards, title }: { cards: PlayedCard[]; title: string }) {
   );
 }
 
-function TrickCollectionAnimation({ trick }: { trick: CompletedTrick }) {
+function TrickCollectionAnimation({
+  trick,
+  winnerName,
+}: {
+  trick: CompletedTrick;
+  winnerName: string;
+}) {
   const offset = trickCollectionOffset(trick.winnerId);
 
   return (
     <div
+      aria-live="polite"
       className="pointer-events-none absolute inset-0 z-20 coinche-trick-collect"
+      role="status"
       style={
         {
           "--coinche-trick-collect-x": offset.x,
           "--coinche-trick-collect-y": offset.y,
+          animationDuration: `${TRICK_PRESENTATION_MS}ms`,
         } as React.CSSProperties
       }
     >
-      <TrickCenter cards={trick.cards} title="Pli gagne" />
+      <TrickCenter cards={trick.cards} title={`${winnerName} remporte le pli`} />
     </div>
   );
 }
@@ -368,19 +360,17 @@ export function GameTable({
   bottomOverlay,
   immersiveMobileLandscape = false,
   players,
+  presentationScope = "game",
   showLiveScore = false,
   turnSecondsRemaining,
 }: GameTableProps) {
-  const previousCompletedTrickKeyRef = useRef<string | null>(null);
-  const [animatedCompletedTrick, setAnimatedCompletedTrick] = useState<AnimatedCompletedTrick | null>(
+  const observationRef = useRef<TrickObservation | null>(null);
+  const pendingTricksRef = useRef<PresentedTrick[]>([]);
+  const [animatedCompletedTrick, setAnimatedCompletedTrick] = useState<PresentedTrick | null>(
     null,
   );
-  const [hiddenCompletedTrickKey, setHiddenCompletedTrickKey] = useState<string | null>(null);
-  const latestCompletedTrick = state.completedTricks.at(-1) ?? null;
-  const latestCompletedTrickKey = latestCompletedTrick
-    ? completedTrickKey(state.roundNumber, state.completedTricks.length, latestCompletedTrick)
-    : null;
   const center = playedCardsToShow(state);
+  const visualTrick = selectVisualTrick(center.cards, animatedCompletedTrick);
   const nameFor = (playerId: PlayerId) => playerName(playerId, state.playerNames);
   const connectionFor = (playerId: PlayerId) => {
     const player = players?.find((candidate) => candidate.seat_index === playerId);
@@ -442,44 +432,42 @@ export function GameTable({
   const leftAnnouncement = announcementFor(3);
   const rightAnnouncement = announcementFor(1);
   const bottomAnnouncement = announcementFor(0);
-  const displayedCenter =
-    hiddenCompletedTrickKey &&
-    latestCompletedTrick &&
-    latestCompletedTrickKey === hiddenCompletedTrickKey &&
-    center.cards === latestCompletedTrick.cards
-      ? { title: "Pli en cours", cards: [] as PlayedCard[] }
-      : center;
+  useEffect(() => {
+    const transition = observeCompletedTricks(observationRef.current, {
+      completedTricks: state.completedTricks,
+      roundNumber: state.roundNumber,
+      scope: presentationScope,
+    });
+    observationRef.current = transition.observation;
+    if (transition.reset) {
+      pendingTricksRef.current = [];
+      setAnimatedCompletedTrick(null);
+      return;
+    }
+    if (transition.additions.length === 0) return;
+
+    setAnimatedCompletedTrick((current) => {
+      if (current) {
+        pendingTricksRef.current.push(...transition.additions);
+        return current;
+      }
+      const [first, ...remaining] = transition.additions;
+      pendingTricksRef.current.push(...remaining);
+      return first;
+    });
+  }, [presentationScope, state.completedTricks, state.roundNumber]);
 
   useEffect(() => {
-    if (!latestCompletedTrick || !latestCompletedTrickKey) {
-      previousCompletedTrickKeyRef.current = latestCompletedTrickKey;
-      return;
-    }
-
-    if (previousCompletedTrickKeyRef.current === null) {
-      previousCompletedTrickKeyRef.current = latestCompletedTrickKey;
-      return;
-    }
-
-    if (previousCompletedTrickKeyRef.current === latestCompletedTrickKey) {
-      return;
-    }
-
-    previousCompletedTrickKeyRef.current = latestCompletedTrickKey;
-    setHiddenCompletedTrickKey(latestCompletedTrickKey);
-    setAnimatedCompletedTrick({
-      key: latestCompletedTrickKey,
-      trick: latestCompletedTrick,
-    });
-
+    if (!animatedCompletedTrick) return;
     const timeoutId = window.setTimeout(() => {
-      setAnimatedCompletedTrick((current) =>
-        current?.key === latestCompletedTrickKey ? null : current,
-      );
-    }, TRICK_COLLECTION_ANIMATION_MS);
+      setAnimatedCompletedTrick((current) => {
+        if (current?.key !== animatedCompletedTrick.key) return current;
+        return pendingTricksRef.current.shift() ?? null;
+      });
+    }, TRICK_PRESENTATION_MS);
 
     return () => window.clearTimeout(timeoutId);
-  }, [latestCompletedTrick, latestCompletedTrickKey]);
+  }, [animatedCompletedTrick]);
 
   return (
     <section
@@ -491,8 +479,14 @@ export function GameTable({
       ].join(" ")}
       style={{ backgroundImage: `url(${TABLE_BACKGROUND_IMAGE})` }}
     >
-      <TrickCenter cards={displayedCenter.cards} title={displayedCenter.title} />
-      {animatedCompletedTrick ? <TrickCollectionAnimation trick={animatedCompletedTrick.trick} /> : null}
+      {animatedCompletedTrick ? (
+        <TrickCollectionAnimation
+          trick={animatedCompletedTrick.trick}
+          winnerName={nameFor(animatedCompletedTrick.trick.winnerId)}
+        />
+      ) : (
+        <TrickCenter cards={visualTrick.cards} title={center.title} />
+      )}
       {showLiveScore ? <LiveScoreOverlay state={state} /> : null}
       {immersiveMobileLandscape ? (
         <TableStatusOverlay state={state} turnSecondsRemaining={turnSecondsRemaining} />

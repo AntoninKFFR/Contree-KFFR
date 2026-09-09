@@ -13,11 +13,13 @@ import {
   PRESENCE_OFFLINE_TIMEOUT_MS, PresenceMembershipError, projectRoomPlayers,
   recordPresenceHeartbeat,
 } from "@/lib/multiplayerPresence";
+import { PRODUCT_SCORING_MODE } from "@/lib/productGame";
 import { parseServerGameState } from "./gameStateValidation";
 import {
   applyAuthorizedAction, applyBotTurns, applyTimedOutTurnIfExpired, enableBotTakeover,
   forfeitRoom, humanSeat, joinLobbySeat, leaveLobbySeat, MultiplayerError, requireHost,
-  prepareRematchPlayers, requireVersion, resetRoomPlayers, setLobbyReady, viewerSeatIndex,
+  prepareRematchPlayers, requireLobbySeatChange, requireVersion, resetRoomPlayers, setLobbyReady,
+  viewerSeatIndex,
 } from "./multiplayerGame";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 
@@ -154,6 +156,31 @@ async function commit(
   if (data !== true) throw new MultiplayerError("La partie a changé. Recharge la table puis réessaie.", 409, "version_conflict");
 }
 
+async function commitLobbySeatMove(input: {
+  room: RoomRow;
+  userId: string;
+  seatIndex: RoomPlayerRow["seat_index"];
+  displayName: string;
+  now: string;
+}): Promise<void> {
+  const { data, error } = await getSupabaseAdmin().rpc("move_room_seat", {
+    p_room_id: input.room.id,
+    p_actor_user_id: input.userId,
+    p_seat_index: input.seatIndex,
+    p_display_name: input.displayName,
+    p_expected_version: input.room.state_version,
+    p_now: input.now,
+  });
+  if (error) throw error;
+  if (data !== true) {
+    throw new MultiplayerError(
+      "La table ou la place a changé. Recharge puis réessaie.",
+      409,
+      "version_conflict",
+    );
+  }
+}
+
 async function claimHost(roomId: string, userId: string, nowMs: number): Promise<void> {
   const { data, error } = await getSupabaseAdmin().rpc("claim_room_host", {
     p_room_id: roomId,
@@ -275,16 +302,9 @@ export async function tickRoom(
 }
 
 export async function createRoom(input: {
-  userId: string; displayName: unknown; scoringMode: unknown; targetScore: unknown;
+  userId: string; displayName: unknown; targetScore: unknown;
 }): Promise<MultiplayerRoomView> {
   const displayName = cleanName(input.displayName);
-  if (
-    input.scoringMode !== "ffb"
-    && input.scoringMode !== "made-points"
-    && input.scoringMode !== "announced-points"
-  ) {
-    throw new MultiplayerError("Mode de score invalide.");
-  }
   if (!Number.isInteger(input.targetScore) || Number(input.targetScore) <= 0) {
     throw new MultiplayerError("Score cible invalide.");
   }
@@ -292,7 +312,7 @@ export async function createRoom(input: {
   let room: RoomRow | null = null;
   for (let attempt = 0; attempt < 8 && !room; attempt += 1) {
     const result = await db.from("rooms").insert({
-      code: code(), host_user_id: input.userId, scoring_mode: input.scoringMode,
+      code: code(), host_user_id: input.userId, scoring_mode: PRODUCT_SCORING_MODE,
       target_score: input.targetScore, status: "lobby",
     }).select(ROOM_COLUMNS).single();
     if (!result.error) room = result.data as RoomRow;
@@ -422,12 +442,19 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
       : undefined;
     await commit(current.room, null, "lobby", players, players, nowMs, successor);
   } else if (intent.type === "join-seat") {
-    if (current.room.status !== "lobby") throw new MultiplayerError("La table n'accepte plus de joueurs.", 409);
-    const players = joinLobbySeat({
+    requireLobbySeatChange(current.room);
+    const displayName = cleanName(intent.displayName);
+    joinLobbySeat({
       players: current.players, userId, seatIndex: intent.seatIndex,
-      displayName: cleanName(intent.displayName), now,
+      displayName, now,
     });
-    await commit(current.room, null, "lobby", players);
+    await commitLobbySeatMove({
+      room: current.room,
+      userId,
+      seatIndex: intent.seatIndex,
+      displayName,
+      now,
+    });
   }
   return roomView(roomId, userId);
 }

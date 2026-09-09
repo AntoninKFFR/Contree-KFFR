@@ -151,8 +151,6 @@ export default function ProfilePage() {
       <section className="grid gap-3 lg:grid-cols-2">
         <StatsDetails title="Winrate" summary={`${stats.winrate}%`}>
           <DetailRow label="Global" value={`${stats.winrate}%`} />
-          <DetailRow label="Points faits" value={`${stats.madePointsWinrate}%`} />
-          <DetailRow label="Points annoncés" value={`${stats.announcedPointsWinrate}%`} />
         </StatsDetails>
 
         <StatsDetails title="Série" summary={`${stats.currentStreak} en cours`}>

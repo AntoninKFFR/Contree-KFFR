@@ -38,7 +38,8 @@ select {
 }
 
 @keyframes coinche-trick-collect {
-  from {
+  0%,
+  85% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
   }
@@ -55,7 +56,7 @@ select {
 }
 
 .coinche-trick-collect {
-  animation: coinche-trick-collect 420ms ease-in forwards;
+  animation: coinche-trick-collect 1000ms ease-in forwards;
 }
 
 @keyframes coinche-bid-bubble-enter {
