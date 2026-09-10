@@ -15,13 +15,14 @@ describe("hybrid bot composition", () => {
       CARD_ENGINE_IDS.map((card) => createHybridStrategy(bidding, card)),
     );
 
-    expect(BIDDING_ENGINE_IDS).toHaveLength(11);
+    expect(BIDDING_ENGINE_IDS).toHaveLength(12);
     expect(BIDDING_ENGINE_IDS).toContain("human_doctrine_v1");
     expect(BIDDING_ENGINE_IDS).toContain("human_doctrine_v2_no110");
+    expect(BIDDING_ENGINE_IDS).toContain("human_doctrine_v2_comm");
     expect(BIDDING_ENGINE_IDS).toContain("human_doctrine_v2_110");
     expect(CARD_ENGINE_IDS).toHaveLength(9);
-    expect(combinations).toHaveLength(99);
-    expect(new Set(combinations.map((strategy) => strategy.id))).toHaveLength(99);
+    expect(combinations).toHaveLength(108);
+    expect(new Set(combinations.map((strategy) => strategy.id))).toHaveLength(108);
     expect(createHybridStrategy("legacy", "monte_carlo_v3")).toMatchObject({
       id: "hybrid_legacy__monte_carlo_v3",
       bidding: { kind: "legacy" },

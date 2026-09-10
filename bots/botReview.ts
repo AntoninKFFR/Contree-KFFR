@@ -1,5 +1,6 @@
 import { OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
 import { buildTrickKnowledge } from "@/bots/strategy/trickKnowledge";
+import type { HumanDoctrineV2Trace } from "@/bots/strategy/humanDoctrineV2";
 import { cardId, createDeck } from "@/engine/cards";
 import { getCurrentContract, playableCardsForCurrentPlayer } from "@/engine/game";
 import type {
@@ -36,7 +37,7 @@ export type BotReviewScenarioV1 = {
   version: 1;
   decisionId: string;
   capturedAt: string;
-  botProfile: typeof OFFICIAL_BOT_PROFILE_ID;
+  botProfile: string;
   playerId: PlayerId;
   phase: "bidding" | "playing";
   roundNumber: number;
@@ -55,11 +56,12 @@ export type BotReviewScenarioV1 = {
   legalCards: Card[];
   chosenCard: Card | null;
   chosenBid: BotReviewBidDecision | null;
-  decisionEngine: "legacy_heuristic" | "montecarlo_v1";
+  decisionEngine: "legacy_heuristic" | "human_doctrine_v2_comm" | "montecarlo_v1";
   elapsedMs: number;
   trace: {
-    source: "legacy-heuristic" | "monte-carlo-v1";
+    source: "legacy-heuristic" | "human-doctrine-v2-communication" | "monte-carlo-v1";
     knowledge?: BotReviewKnowledgeV1;
+    bidding?: HumanDoctrineV2Trace;
   };
   humanComment?: string;
 };
@@ -69,6 +71,8 @@ type CaptureOptions = {
   elapsedMs: number;
   chosenCard?: Card;
   chosenBid?: BotReviewBidDecision;
+  botProfile?: string;
+  biddingTrace?: HumanDoctrineV2Trace;
   capturedAt?: string;
 };
 
@@ -116,13 +120,16 @@ export function captureBotReviewScenario(
   if (!isCardDecision && !options.chosenBid) {
     throw new Error("Bot review: annonce choisie manquante.");
   }
+  if (isCardDecision && options.biddingTrace) {
+    throw new Error("Bot review: une trace d'enchere ne peut pas accompagner une decision carte.");
+  }
   const playerId = state.currentPlayerId;
   const trickNumber = state.completedTricks.length + 1;
   return {
     version: 1,
     decisionId: `r${state.roundNumber}-t${trickNumber}-p${playerId}-d${options.decisionNumber}`,
     capturedAt: options.capturedAt ?? new Date().toISOString(),
-    botProfile: OFFICIAL_BOT_PROFILE_ID,
+    botProfile: options.botProfile ?? OFFICIAL_BOT_PROFILE_ID,
     playerId,
     phase: state.phase,
     roundNumber: state.roundNumber,
@@ -141,11 +148,12 @@ export function captureBotReviewScenario(
     legalCards: isCardDecision ? cloneCards(playableCardsForCurrentPlayer(state)) : [],
     chosenCard: options.chosenCard ? { ...options.chosenCard } : null,
     chosenBid: options.chosenBid ? { ...options.chosenBid } : null,
-    decisionEngine: isCardDecision ? "montecarlo_v1" : "legacy_heuristic",
+    decisionEngine: isCardDecision ? "montecarlo_v1" : options.biddingTrace ? "human_doctrine_v2_comm" : "legacy_heuristic",
     elapsedMs: options.elapsedMs,
     trace: {
-      source: isCardDecision ? "monte-carlo-v1" : "legacy-heuristic",
+      source: isCardDecision ? "monte-carlo-v1" : options.biddingTrace ? "human-doctrine-v2-communication" : "legacy-heuristic",
       knowledge: reviewKnowledge(state),
+      bidding: options.biddingTrace,
     },
   };
 }

@@ -20,6 +20,7 @@
     "benchmark:human-doctrine": "vite-node --config vitest.config.ts scripts/benchmarkHumanDoctrine.ts",
     "diagnose:human-doctrine": "vite-node --config vitest.config.ts scripts/diagnoseHumanDoctrineBidding.ts",
     "benchmark:human-doctrine-v2": "vite-node --config vitest.config.ts scripts/benchmarkHumanDoctrineV2.ts",
+    "benchmark:human-doctrine-v2-comm": "vite-node --config vitest.config.ts scripts/benchmarkHumanDoctrineV2Comm.ts",
     "benchmark:ffb-recalibration": "vite-node --config vitest.config.ts scripts/recalibrateBotsFfb.ts",
     "benchmark:ffb-merge": "vite-node --config vitest.config.ts scripts/mergeFfbScreening.ts",
     "test": "vitest run",

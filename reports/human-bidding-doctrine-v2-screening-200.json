@@ -1,0 +1,253 @@
+{
+  "experiment": "Human bidding doctrine V2 communication versus official V1",
+  "generatedAt": "2026-09-10T11:40:11.481Z",
+  "settings": {
+    "scoringMode": "ffb",
+    "targetScore": 1000,
+    "totalGames": 200,
+    "seeds": [
+      20261001,
+      20262001,
+      20263001,
+      20264001
+    ],
+    "gamesPerSeed": 50,
+    "pairedDeals": true,
+    "invertedSides": true,
+    "candidateCardEngine": "monte-carlo-v1",
+    "championCardEngine": "monte-carlo-v1"
+  },
+  "result": {
+    "candidate": {
+      "id": "human_doctrine_v2_comm_mc_v1",
+      "games": 200,
+      "wins": 86,
+      "losses": 114,
+      "winRate": 0.43,
+      "averageScore": 864.75,
+      "averageDifferential": -47.95,
+      "contractsTaken": 307,
+      "contractsSucceeded": 251,
+      "contractSuccessRate": 0.8175895765472313,
+      "averageContract": 104.29967426710098,
+      "bidLevels": {
+        "80": 468,
+        "90": 43,
+        "100": 181,
+        "110": 157
+      },
+      "attackRounds": 307,
+      "averageAttackScore": 215.0814332247557,
+      "defenseRounds": 900,
+      "defensiveSets": 278,
+      "defensiveSetRate": 0.3088888888888889,
+      "averageDefenseScore": 118.8,
+      "averageBidMs": 0.05921628264135225,
+      "p95BidMs": 0.11000000000058208,
+      "averageCardMs": 27.46791791114315,
+      "p95CardMs": 87.98149999999441,
+      "averageCpuMsPerGame": 2663.505,
+      "confidence95": {
+        "low": 0.3613860014282799,
+        "high": 0.49861399857172006
+      }
+    },
+    "champion": {
+      "id": "human_doctrine_v1_mc_v1",
+      "games": 200,
+      "wins": 114,
+      "losses": 86,
+      "winRate": 0.57,
+      "averageScore": 912.7,
+      "averageDifferential": 47.95,
+      "contractsTaken": 900,
+      "contractsSucceeded": 622,
+      "contractSuccessRate": 0.6911111111111111,
+      "averageContract": 101.41111111111111,
+      "bidLevels": {
+        "80": 85,
+        "90": 338,
+        "100": 622,
+        "110": 255
+      },
+      "attackRounds": 900,
+      "averageAttackScore": 173.26666666666668,
+      "defenseRounds": 307,
+      "defensiveSets": 56,
+      "defensiveSetRate": 0.18241042345276873,
+      "averageDefenseScore": 86.64495114006515,
+      "averageBidMs": 0.02916591216086924,
+      "p95BidMs": 0.06049999999231659,
+      "averageCardMs": 27.77967894055511,
+      "p95CardMs": 87.93479999998817,
+      "averageCpuMsPerGame": 2697.675
+    },
+    "perSeed": [
+      {
+        "seed": 20261001,
+        "games": 50,
+        "wins": 21,
+        "losses": 29,
+        "winRate": 0.42
+      },
+      {
+        "seed": 20262001,
+        "games": 50,
+        "wins": 21,
+        "losses": 29,
+        "winRate": 0.42
+      },
+      {
+        "seed": 20263001,
+        "games": 50,
+        "wins": 20,
+        "losses": 30,
+        "winRate": 0.4
+      },
+      {
+        "seed": 20264001,
+        "games": 50,
+        "wins": 24,
+        "losses": 26,
+        "winRate": 0.48
+      }
+    ]
+  },
+  "doctrineMetrics": {
+    "openingsCappedTo80ForProbing": 434,
+    "partnerSupportedRaises": 128,
+    "singleMajorOpenings": 434,
+    "jackOnly": {
+      "structure": "jack-only",
+      "decisions": 1339,
+      "openings": 238,
+      "averageOpening": 80,
+      "gameWinRateAroundDecision": 0.4152352501867065,
+      "contractsTaken": 243,
+      "contractSuccessRate": 0.7901234567901234,
+      "averageRoundDifferential": -17.266616878267364
+    },
+    "nineOnly": {
+      "structure": "nine-only",
+      "decisions": 1076,
+      "openings": 196,
+      "averageOpening": 80,
+      "gameWinRateAroundDecision": 0.4275092936802974,
+      "contractsTaken": 223,
+      "contractSuccessRate": 0.7668161434977578,
+      "averageRoundDifferential": -23.12267657992565
+    },
+    "thirtyFourOpenings": 18,
+    "jackNineThirdOpenings": 50,
+    "averageOpeningByTrumpStructure": [
+      {
+        "structure": "jack-only",
+        "openings": 238,
+        "averageOpening": 80
+      },
+      {
+        "structure": "nine-only",
+        "openings": 196,
+        "averageOpening": 80
+      },
+      {
+        "structure": "thirty-four",
+        "openings": 18,
+        "averageOpening": 80
+      },
+      {
+        "structure": "jack-nine-third",
+        "openings": 50,
+        "averageOpening": 98.4
+      },
+      {
+        "structure": "strong-long-trump",
+        "openings": 53,
+        "averageOpening": 103.01886792452831
+      },
+      {
+        "structure": "weak-long-trump",
+        "openings": 14,
+        "averageOpening": 90.71428571428571
+      },
+      {
+        "structure": "ordinary",
+        "openings": 30,
+        "averageOpening": 89
+      }
+    ],
+    "structureResults": [
+      {
+        "structure": "jack-only",
+        "decisions": 1339,
+        "openings": 238,
+        "averageOpening": 80,
+        "gameWinRateAroundDecision": 0.4152352501867065,
+        "contractsTaken": 243,
+        "contractSuccessRate": 0.7901234567901234,
+        "averageRoundDifferential": -17.266616878267364
+      },
+      {
+        "structure": "nine-only",
+        "decisions": 1076,
+        "openings": 196,
+        "averageOpening": 80,
+        "gameWinRateAroundDecision": 0.4275092936802974,
+        "contractsTaken": 223,
+        "contractSuccessRate": 0.7668161434977578,
+        "averageRoundDifferential": -23.12267657992565
+      },
+      {
+        "structure": "thirty-four",
+        "decisions": 105,
+        "openings": 18,
+        "averageOpening": 80,
+        "gameWinRateAroundDecision": 0.41904761904761906,
+        "contractsTaken": 12,
+        "contractSuccessRate": 0.8333333333333334,
+        "averageRoundDifferential": -30.38095238095238
+      },
+      {
+        "structure": "jack-nine-third",
+        "decisions": 260,
+        "openings": 50,
+        "averageOpening": 98.4,
+        "gameWinRateAroundDecision": 0.45384615384615384,
+        "contractsTaken": 85,
+        "contractSuccessRate": 0.8235294117647058,
+        "averageRoundDifferential": -6.884615384615385
+      },
+      {
+        "structure": "strong-long-trump",
+        "decisions": 220,
+        "openings": 53,
+        "averageOpening": 103.01886792452831,
+        "gameWinRateAroundDecision": 0.5363636363636364,
+        "contractsTaken": 136,
+        "contractSuccessRate": 0.9044117647058824,
+        "averageRoundDifferential": 90.36363636363636
+      },
+      {
+        "structure": "weak-long-trump",
+        "decisions": 69,
+        "openings": 14,
+        "averageOpening": 90.71428571428571,
+        "gameWinRateAroundDecision": 0.4492753623188406,
+        "contractsTaken": 28,
+        "contractSuccessRate": 0.8928571428571429,
+        "averageRoundDifferential": -11.304347826086957
+      },
+      {
+        "structure": "ordinary",
+        "decisions": 186,
+        "openings": 30,
+        "averageOpening": 89,
+        "gameWinRateAroundDecision": 0.41397849462365593,
+        "contractsTaken": 63,
+        "contractSuccessRate": 0.6825396825396826,
+        "averageRoundDifferential": -33.064516129032256
+      }
+    ]
+  },
+  "privacy": "Metrics and traces use only the acting hand, public auction, public score and posterior outcomes; no hidden hand feeds a decision."
+}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { captureBotReviewScenario, botReviewScenarioToGameState, isBotReviewModeEnabled, serializeBotReviewScenario } from "@/bots/botReview";
 import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
+import { chooseHumanDoctrineV2Bid } from "@/bots/strategy/humanDoctrineV2";
 import { cardId } from "@/engine/cards";
 import { createInitialGame, makeBid, playableCardsForCurrentPlayer } from "@/engine/game";
 import { createSeededRandom } from "@/engine/random";
@@ -90,5 +91,36 @@ describe("human bot decision review", () => {
       chosenCard: { rank: "7", suit: "clubs" },
       legalCards: [],
     })).toThrow(/carte choisie n'est pas legale/);
+  });
+
+  it("exports a reconstructible communicative bidding diagnosis without hidden hands", () => {
+    const bidding = createInitialGame(createSeededRandom(8110), { scoringMode: "ffb", targetScore: 1000 });
+    const decision = chooseHumanDoctrineV2Bid(bidding);
+    const scenario = captureBotReviewScenario(bidding, {
+      decisionNumber: 3,
+      elapsedMs: 0.2,
+      chosenBid: decision.action === "bid"
+        ? { action: "bid", value: decision.value, trump: decision.trump }
+        : { action: "pass" },
+      botProfile: "human_doctrine_v2_comm_mc_v1",
+      biddingTrace: decision.trace,
+      capturedAt: "2026-09-10T12:00:00.000Z",
+    });
+    const json = serializeBotReviewScenario(scenario);
+    const reconstructed = botReviewScenarioToGameState(scenario);
+
+    expect(scenario.decisionEngine).toBe("human_doctrine_v2_comm");
+    expect(scenario.trace.bidding).toMatchObject({
+      intrinsic: { evaluation: { trumpStructure: expect.any(Object), intrinsicHandStrength: expect.any(Number) } },
+      auction: {
+        context: { publicBids: [], biddingPosition: "first" },
+        partnerInference: { source: "public-auction-only" },
+        intent: expect.any(String),
+        ceiling: { estimatedMissingHighPoints: expect.any(Number) },
+        reason: expect.any(String),
+      },
+    });
+    expect(json).not.toContain('"hands"');
+    expect(chooseHumanDoctrineV2Bid(reconstructed)).toEqual(decision);
   });
 });
