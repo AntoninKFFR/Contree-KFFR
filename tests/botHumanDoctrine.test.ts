@@ -237,15 +237,15 @@ describe("human doctrine card-play diagnostics", () => {
 });
 
 describe("human doctrine isolation and anti-cheat", () => {
-  it("stays experimental while hybrid_legacy_v1 remains official", () => {
-    const strategy = createHybridStrategy("human_doctrine_v1", "monte_carlo_v1", { status: "experimental" });
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("hybrid_legacy_v1");
+  it("is the official profile after the FFB recalibration", () => {
+    const strategy = createHybridStrategy("human_doctrine_v1", "monte_carlo_v1", { id: "human_doctrine_v1_mc_v1", status: "active" });
+    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v1_mc_v1");
     expect(findBotStrategy(OFFICIAL_BOT_PROFILE_ID)).toMatchObject({
       status: "active",
-      bidding: { kind: "legacy" },
+      bidding: { kind: "human-doctrine-v1" },
       card: { kind: "monte-carlo-v1" },
     });
-    expect(strategy).toMatchObject({ status: "experimental", bidding: { kind: "human-doctrine-v1" }, card: { kind: "monte-carlo-v1" } });
+    expect(strategy).toMatchObject({ status: "active", bidding: { kind: "human-doctrine-v1" }, card: { kind: "monte-carlo-v1" } });
   });
 
   it("does not change decisions or doctrine knowledge when hidden opponent hands are permuted", () => {

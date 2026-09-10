@@ -1,4 +1,5 @@
 import "server-only";
+import { OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
 import { createInitialGame } from "@/engine/game";
 import { BOT_NAME_POOL } from "@/engine/players";
 import type { GameState } from "@/engine/types";
@@ -397,7 +398,7 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
       (name) => !current.players.some((player) => player.display_name === name),
     );
     const players = current.players.map((p, index) => p.kind === "empty" ? {
-      ...p, kind: "bot" as const, bot_profile_id: "main_montecarlo_v2",
+      ...p, kind: "bot" as const, bot_profile_id: OFFICIAL_BOT_PROFILE_ID,
       display_name: availableNames.shift() ?? `Bot ${index + 1}`,
       is_ready: true, is_connected: true, bot_takeover: false, last_seen_at: now,
     } : p);

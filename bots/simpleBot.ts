@@ -2,25 +2,26 @@ import { getBotProfile, OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
 import { chooseMonteCarloCardToPlay, chooseMonteCarloV2CardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
 import { chooseMonteCarloV3CardToPlay } from "@/bots/strategy/monteCarloV3CardStrategy";
 import { chooseProfileBid } from "@/bots/strategy/biddingStrategy";
+import { chooseHumanDoctrineBid } from "@/bots/strategy/humanDoctrine";
 import { chooseSimpleBid as chooseLegacyBid } from "@/bots/heuristicBot 2";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import { getCurrentContract } from "@/engine/game";
 import { isBotSeat, SOLO_SEAT_ASSIGNMENTS, type SeatAssignments } from "@/engine/seats";
 import type { Card, GameState } from "@/engine/types";
 
-const OFFICIAL_BOT_PROFILE = getBotProfile(OFFICIAL_BOT_PROFILE_ID);
-
 export function chooseBotCard(state: GameState): Card {
-  if (OFFICIAL_BOT_PROFILE_ID === "hybrid_legacy_v1") return chooseMonteCarloCardToPlay(state);
+  if (OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v1_mc_v1" || OFFICIAL_BOT_PROFILE_ID === "hybrid_legacy_v1") return chooseMonteCarloCardToPlay(state);
   if (OFFICIAL_BOT_PROFILE_ID === "hybrid_legacy_v3") return chooseMonteCarloV3CardToPlay(state);
   return chooseMonteCarloV2CardToPlay(state);
 }
 
 export function chooseBotBid(state: GameState) {
   const currentContract = getCurrentContract(state);
-  const decision = OFFICIAL_BOT_PROFILE_ID.startsWith("hybrid_legacy_")
-    ? chooseLegacyBid(state.hands[state.currentPlayerId])
-    : chooseProfileBid(state, OFFICIAL_BOT_PROFILE);
+  const decision = OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v1_mc_v1"
+    ? chooseHumanDoctrineBid(state)
+    : OFFICIAL_BOT_PROFILE_ID.startsWith("hybrid_legacy_")
+      ? chooseLegacyBid(state.hands[state.currentPlayerId])
+      : chooseProfileBid(state, getBotProfile(OFFICIAL_BOT_PROFILE_ID));
 
   if (
     currentContract &&

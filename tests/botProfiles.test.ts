@@ -79,14 +79,14 @@ describe("bot profiles", () => {
     expect(chooseBotBid(state)).toEqual({ action: "pass" });
   });
 
-  it("promotes the measured hybrid champion while keeping V3 experimental", () => {
+  it("promotes the measured FFB champion while keeping V3 experimental", () => {
     expect(EXPERIMENTAL_BOT_PROFILE_IDS).toContain("main_montecarlo_v3");
     expect(EXPERIMENTAL_BOT_PROFILE_IDS).toContain("main_montecarlo_v3_1");
     expect(EXPERIMENTAL_BOT_PROFILE_IDS).not.toContain("hybrid_legacy_v1");
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("hybrid_legacy_v1");
+    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v1_mc_v1");
   });
 
-  it("registers only the three permanent hybrid finalists", () => {
+  it("keeps the historical hybrids registered beside the new official strategy", () => {
     expect(EXPERIMENTAL_BOT_PROFILE_IDS).toEqual(expect.arrayContaining([
       "hybrid_legacy_v2",
       "hybrid_legacy_v3",
@@ -94,6 +94,11 @@ describe("bot profiles", () => {
     expect(findBotStrategy("hybrid_legacy_v1")).toMatchObject({
       status: "active",
       bidding: { kind: "legacy" },
+      card: { kind: "monte-carlo-v1" },
+    });
+    expect(findBotStrategy("human_doctrine_v1_mc_v1")).toMatchObject({
+      status: "active",
+      bidding: { kind: "human-doctrine-v1" },
       card: { kind: "monte-carlo-v1" },
     });
   });

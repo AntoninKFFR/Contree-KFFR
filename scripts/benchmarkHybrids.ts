@@ -38,7 +38,7 @@ if (requested?.length) {
     findBotStrategy("main_montecarlo_v3"),
   ];
   const gamesPerOpponent = 20;
-  const targetScore = process.argv.includes("--full") ? 300 : 100;
+  const targetScore = 1000;
   const requestedBidding = read("bidding") as BotBiddingStrategyId | undefined;
   const biddingIds = requestedBidding ? [requestedBidding] : BIDDING_ENGINE_IDS;
   const combinations = biddingIds.flatMap((bidding) =>
@@ -58,7 +58,7 @@ if (requested?.length) {
     return stats;
   }).sort((a, b) => b.winRate - a.winRate || b.averageDifferential - a.averageDifferential);
   console.log(JSON.stringify({
-    mode: targetScore === 100 ? "SCREENING_FAST" : "SCREENING_FULL",
+    mode: "FFB_1000",
     seed,
     gamesPerOpponent,
     opponents: panel.map((item) => item.id),

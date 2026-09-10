@@ -6,7 +6,7 @@ import type { Bid, BidValue, GameState, PlayerId, RoundResult, TeamId } from "@/
 import { chooseStrategyBid, chooseStrategyCardWithTrace, type BotStrategyDefinition, type StrategyBid } from "@/simulation/botRegistry";
 import type { BotDecisionTraceV3 } from "@/bots/strategy/monteCarloV3CardStrategy";
 
-export type DecisionTiming = { strategyId: string; kind: "bid" | "card"; elapsedMs: number };
+export type DecisionTiming = { strategyId: string; kind: "bid" | "card"; elapsedMs: number; cpuMs: number };
 export type TournamentRound = { result: RoundResult; bids: Bid[]; tricksWon: Record<TeamId, number> };
 export type TournamentGame = {
   seed: number;
@@ -15,7 +15,14 @@ export type TournamentGame = {
   teamStrategies: Record<TeamId, string>;
   rounds: TournamentRound[];
   timings: DecisionTiming[];
+  scoringMode: "ffb";
+  targetScore: number;
+  seriesSeed?: number;
 };
+
+export const CANONICAL_SCORING_MODE = "ffb" as const;
+export const CANONICAL_TARGET_SCORE = 1000;
+export const MAX_TOURNAMENT_ROUNDS = 80;
 
 export type BotTournamentStats = {
   id: string;
@@ -36,6 +43,7 @@ export type BotTournamentStats = {
   defensiveSetRate: number;
   averageContract: number;
   passes: number;
+  passRate: number;
   bids: number;
   coinches: number;
   surcoinches: number;
@@ -45,7 +53,17 @@ export type BotTournamentStats = {
   opponentOvercalls: number;
   trumpChanges: number;
   bidLevels: Partial<Record<BidValue, number>>;
+  capotsBid: number;
+  capotsBidSucceeded: number;
+  unbidCapotsMade: number;
+  capotsSuffered: number;
+  announcementPoints: number;
+  opponentAnnouncementPoints: number;
+  belotes: number;
+  announcementAndBelotePoints: number;
   averageTricksPerRound: number;
+  averageTrickPointsPerRound: number;
+  capotRate: number;
   averageRoundPoints: number;
   averageAttackScore: number;
   averageDefenseScore: number;
@@ -105,7 +123,8 @@ function tricksWon(state: GameState): Record<TeamId, number> {
 export function playTournamentGame({
   seed,
   teamStrategies,
-  targetScore = 300,
+  targetScore = CANONICAL_TARGET_SCORE,
+  maxRounds = MAX_TOURNAMENT_ROUNDS,
   onCardDecision,
   onBidDecision,
   seatStrategies,
@@ -113,19 +132,21 @@ export function playTournamentGame({
   seed: number;
   teamStrategies: Record<TeamId, BotStrategyDefinition>;
   targetScore?: number;
+  maxRounds?: number;
   onCardDecision?: (state: GameState, strategy: BotStrategyDefinition, card: ReturnType<typeof chooseStrategyCardWithTrace>["card"], elapsedMs: number, trace?: BotDecisionTraceV3) => void;
   onBidDecision?: (state: GameState, strategy: BotStrategyDefinition, decision: StrategyBid) => void;
   seatStrategies?: Partial<Record<PlayerId, BotStrategyDefinition>>;
 }): TournamentGame {
   const random = createSeededRandom(seed);
-  let state = createInitialGame(random, { targetScore });
+  let state = createInitialGame(random, { scoringMode: CANONICAL_SCORING_MODE, targetScore });
   const rounds: TournamentRound[] = [];
   const timings: DecisionTiming[] = [];
-  while (state.phase !== "game-over" && rounds.length < 80) {
+  while (state.phase !== "game-over" && rounds.length < maxRounds) {
     while (state.phase === "bidding" || state.phase === "playing") {
       const strategy = seatStrategies?.[state.currentPlayerId] ?? teamStrategies[playerTeam(state.currentPlayerId)];
       const kind = state.phase === "bidding" ? "bid" : "card";
       const started = performance.now();
+      const startedCpu = process.cpuUsage();
       if (kind === "bid") {
         const decision = chooseStrategyBid(state, strategy);
         onBidDecision?.(state, strategy, decision);
@@ -136,18 +157,24 @@ export function playTournamentGame({
         state = playCard(state, state.currentPlayerId, decision.card);
         onCardDecision?.(before, strategy, decision.card, performance.now() - started, decision.trace);
       }
-      timings.push({ strategyId: strategy.id, kind, elapsedMs: performance.now() - started });
+      const cpu = process.cpuUsage(startedCpu);
+      timings.push({ strategyId: strategy.id, kind, elapsedMs: performance.now() - started, cpuMs: (cpu.user + cpu.system) / 1000 });
     }
     if (state.result) rounds.push({ result: state.result, bids: state.bids, tricksWon: tricksWon(state) });
     if (state.phase === "finished") state = startNextRound(state, random);
   }
+  if (state.phase !== "game-over" || state.winnerTeam === null) {
+    throw new Error(`Partie invalide: limite de sécurité de ${maxRounds} manches atteinte sans game-over (seed ${seed}).`);
+  }
   return {
     seed,
-    winnerTeam: state.winnerTeam ?? (state.totalScore[0] >= state.totalScore[1] ? 0 : 1),
+    winnerTeam: state.winnerTeam,
     totalScore: state.totalScore,
     teamStrategies: { 0: teamStrategies[0].id, 1: teamStrategies[1].id },
     rounds,
     timings,
+    scoringMode: CANONICAL_SCORING_MODE,
+    targetScore,
   };
 }
 
@@ -156,7 +183,7 @@ export function runPairedMatchup(
   second: BotStrategyDefinition,
   games: number,
   seed: number,
-  targetScore = 300,
+  targetScore = CANONICAL_TARGET_SCORE,
   onBidDecision?: (state: GameState, strategy: BotStrategyDefinition, decision: StrategyBid) => void,
 ): TournamentGame[] {
   if (games < 2 || games % 2 !== 0) throw new Error("Un benchmark paired exige un nombre pair de parties >= 2.");
@@ -169,14 +196,14 @@ export function runPairedMatchup(
   return results;
 }
 
-type MutableStats = Omit<BotTournamentStats, "winRate" | "averageScore" | "averageDifferential" | "averageContract" | "defensiveSetRate" | "averageTricksPerRound" | "averageRoundPoints" | "averageAttackScore" | "averageDefenseScore" | "averageBidMs" | "p95BidMs" | "averageCardMs" | "p95CardMs" | "p99CardMs" | "averageCpuMsPerGame" | "elo"> & {
+type MutableStats = Omit<BotTournamentStats, "winRate" | "averageScore" | "averageDifferential" | "averageContract" | "defensiveSetRate" | "passRate" | "averageTricksPerRound" | "averageTrickPointsPerRound" | "capotRate" | "averageRoundPoints" | "averageAttackScore" | "averageDefenseScore" | "averageBidMs" | "p95BidMs" | "averageCardMs" | "p95CardMs" | "p99CardMs" | "averageCpuMsPerGame" | "elo"> & {
   totalScore: number; totalDifferential: number; totalContract: number; totalTricks: number;
-  totalRoundPoints: number; attackScore: number; attackRounds: number; defenseScore: number; defenseRounds: number;
-  bidTimes: number[]; cardTimes: number[]; totalDecisionMs: number;
+  totalTrickPoints: number; totalRoundPoints: number; attackScore: number; attackRounds: number; defenseScore: number; defenseRounds: number;
+  bidTimes: number[]; cardTimes: number[]; totalCpuMs: number;
 };
 
 function initialStats(strategy: BotStrategyDefinition): MutableStats {
-  return { id: strategy.id, label: strategy.label, games: 0, wins: 0, losses: 0, rounds: 0, contractsTaken: 0, contractsSucceeded: 0, contractsFailed: 0, attackRounds: 0, defenseRounds: 0, defensiveSets: 0, passes: 0, bids: 0, coinches: 0, surcoinches: 0, openings: 0, raises: 0, partnerRaises: 0, opponentOvercalls: 0, trumpChanges: 0, bidLevels: {}, totalScore: 0, totalDifferential: 0, totalContract: 0, totalTricks: 0, totalRoundPoints: 0, attackScore: 0, defenseScore: 0, bidTimes: [], cardTimes: [], totalDecisionMs: 0 };
+  return { id: strategy.id, label: strategy.label, games: 0, wins: 0, losses: 0, rounds: 0, contractsTaken: 0, contractsSucceeded: 0, contractsFailed: 0, attackRounds: 0, defenseRounds: 0, defensiveSets: 0, passes: 0, bids: 0, coinches: 0, surcoinches: 0, openings: 0, raises: 0, partnerRaises: 0, opponentOvercalls: 0, trumpChanges: 0, bidLevels: {}, capotsBid: 0, capotsBidSucceeded: 0, unbidCapotsMade: 0, capotsSuffered: 0, announcementPoints: 0, opponentAnnouncementPoints: 0, belotes: 0, announcementAndBelotePoints: 0, totalScore: 0, totalDifferential: 0, totalContract: 0, totalTricks: 0, totalTrickPoints: 0, totalRoundPoints: 0, attackScore: 0, defenseScore: 0, bidTimes: [], cardTimes: [], totalCpuMs: 0 };
 }
 
 function percentile(values: number[], fraction: number): number {
@@ -222,11 +249,22 @@ function aggregate(strategies: BotStrategyDefinition[], games: TournamentGame[])
           if (bid.action === "bid") previousBid = bid;
         }
         if (round.result.kind === "played") {
+          item.totalTrickPoints += round.result.trickPointsByTeam[team];
+          item.announcementPoints += round.result.announcementPointsByTeam[team];
+          item.opponentAnnouncementPoints += round.result.announcementPointsByTeam[opponent];
+          item.belotes += round.result.belotePointsByTeam[team] / 20;
+          item.announcementAndBelotePoints += round.result.announcementPointsByTeam[team] + round.result.belotePointsByTeam[team];
+          if (round.result.capotTeam === opponent) item.capotsSuffered += 1;
+          if (round.result.capotTeam === team && round.result.contract.kind !== "capot") item.unbidCapotsMade += 1;
           if (round.result.contract.teamId === team) {
             item.attackRounds += 1;
             item.attackScore += round.result.roundScore[team];
             item.contractsTaken += 1;
             item.totalContract += round.result.contract.value;
+            if (round.result.contract.kind === "capot") {
+              item.capotsBid += 1;
+              if (round.result.contractSucceeded) item.capotsBidSucceeded += 1;
+            }
             if (round.result.contractSucceeded) item.contractsSucceeded += 1; else item.contractsFailed += 1;
           } else {
             item.defenseRounds += 1;
@@ -238,7 +276,7 @@ function aggregate(strategies: BotStrategyDefinition[], games: TournamentGame[])
     }
     for (const timing of game.timings) {
       (timing.kind === "bid" ? stats[timing.strategyId].bidTimes : stats[timing.strategyId].cardTimes).push(timing.elapsedMs);
-      stats[timing.strategyId].totalDecisionMs += timing.elapsedMs;
+      stats[timing.strategyId].totalCpuMs += timing.cpuMs;
     }
   }
   return Object.values(stats).map((item) => {
@@ -250,14 +288,19 @@ function aggregate(strategies: BotStrategyDefinition[], games: TournamentGame[])
       contractsFailed: item.contractsFailed, attackRounds: item.attackRounds, defenseRounds: item.defenseRounds,
       defensiveSets: item.defensiveSets, defensiveSetRate: mean(item.defensiveSets, item.defenseRounds),
       averageContract: mean(item.totalContract, item.contractsTaken),
-      passes: item.passes, bids: item.bids, coinches: item.coinches, surcoinches: item.surcoinches,
+      passes: item.passes, passRate: mean(item.passes, item.passes + item.bids + item.capotsBid + item.coinches + item.surcoinches), bids: item.bids, coinches: item.coinches, surcoinches: item.surcoinches,
       openings: item.openings, raises: item.raises, partnerRaises: item.partnerRaises,
       opponentOvercalls: item.opponentOvercalls, trumpChanges: item.trumpChanges, bidLevels: item.bidLevels,
-      averageTricksPerRound: mean(item.totalTricks, item.rounds), averageRoundPoints: mean(item.totalRoundPoints, item.rounds),
+      capotsBid: item.capotsBid, capotsBidSucceeded: item.capotsBidSucceeded, unbidCapotsMade: item.unbidCapotsMade,
+      capotsSuffered: item.capotsSuffered, announcementPoints: item.announcementPoints,
+      opponentAnnouncementPoints: item.opponentAnnouncementPoints, belotes: item.belotes,
+      announcementAndBelotePoints: item.announcementAndBelotePoints,
+      averageTricksPerRound: mean(item.totalTricks, item.rounds), averageTrickPointsPerRound: mean(item.totalTrickPoints, item.rounds),
+      capotRate: mean(item.capotsBidSucceeded + item.unbidCapotsMade, item.rounds), averageRoundPoints: mean(item.totalRoundPoints, item.rounds),
       averageAttackScore: mean(item.attackScore, item.attackRounds), averageDefenseScore: mean(item.defenseScore, item.defenseRounds),
       averageBidMs: mean(item.bidTimes.reduce((sum, value) => sum + value, 0), item.bidTimes.length), p95BidMs: percentile(item.bidTimes, 0.95),
       averageCardMs: mean(item.cardTimes.reduce((sum, value) => sum + value, 0), item.cardTimes.length), p95CardMs: percentile(item.cardTimes, 0.95), p99CardMs: percentile(item.cardTimes, 0.99),
-      averageCpuMsPerGame: mean(item.totalDecisionMs, item.games),
+      averageCpuMsPerGame: mean(item.totalCpuMs, item.games),
       elo: 1500 + 400 * Math.log10((item.wins + 0.5) / (item.losses + 0.5)),
     };
   }).sort((a, b) => b.winRate - a.winRate || b.averageDifferential - a.averageDifferential);
@@ -275,7 +318,7 @@ export function runRoundRobin(
   gamesPerMatchup: number,
   seed: number,
   onMatchup?: (completed: number, total: number, result: HeadToHeadResult) => void,
-  targetScore = 300,
+  targetScore = CANONICAL_TARGET_SCORE,
 ): TournamentResult {
   const started = performance.now();
   const games: TournamentGame[] = [];

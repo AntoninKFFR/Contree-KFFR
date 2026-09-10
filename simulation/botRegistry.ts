@@ -140,7 +140,16 @@ function activeDefinition(profileId: BotProfileId): BotStrategyDefinition {
   return { id: profileId, label: profile.label, status: "active", bidding: { kind: "heuristic", profile: profileId }, card: { kind: "heuristic", profile: profileId } };
 }
 
-export const ACTIVE_BOT_STRATEGIES: BotStrategyDefinition[] = (Object.keys(BOT_PROFILES) as BotProfileId[]).map(activeDefinition);
+export const HUMAN_DOCTRINE_V1_STRATEGY = createHybridStrategy("human_doctrine_v1", "monte_carlo_v1", {
+  id: "human_doctrine_v1_mc_v1",
+  label: "Human Doctrine V1 + Monte Carlo V1",
+  status: "active",
+});
+
+export const ACTIVE_BOT_STRATEGIES: BotStrategyDefinition[] = [
+  ...(Object.keys(BOT_PROFILES) as BotProfileId[]).map(activeDefinition),
+  HUMAN_DOCTRINE_V1_STRATEGY,
+];
 
 export const LEGACY_BOT_STRATEGIES: BotStrategyDefinition[] = [
   {

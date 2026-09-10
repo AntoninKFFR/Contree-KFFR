@@ -156,16 +156,16 @@ describe("human doctrine V2 separation", () => {
     expect(chooseHumanDoctrineV2Bid(changed)).toEqual(chooseHumanDoctrineV2Bid(state));
   });
 
-  it("keeps both V2 variants experimental and the legacy hybrid official", () => {
+  it("keeps both V2 variants experimental after the V1 promotion", () => {
     const no110 = createHybridStrategy("human_doctrine_v2_no110", "monte_carlo_v1", { status: "experimental" });
     const with110 = createHybridStrategy("human_doctrine_v2_110", "monte_carlo_v1", { status: "experimental" });
 
     expect(no110.status).toBe("experimental");
     expect(with110.status).toBe("experimental");
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("hybrid_legacy_v1");
+    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v1_mc_v1");
     expect(findBotStrategy(OFFICIAL_BOT_PROFILE_ID)).toMatchObject({
       status: "active",
-      bidding: { kind: "legacy" },
+      bidding: { kind: "human-doctrine-v1" },
       card: { kind: "monte-carlo-v1" },
     });
   });

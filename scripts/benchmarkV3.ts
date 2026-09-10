@@ -4,7 +4,7 @@ import type { BotProfileId } from "@/bots/profiles";
 const mode = process.argv.find((argument) => argument.startsWith("--mode="))?.split("=")[1]?.toUpperCase() ?? "FAST";
 const gamesPerSide = mode === "FULL" ? 50 : 10;
 const seed = Number(process.argv.find((argument) => argument.startsWith("--seed="))?.split("=")[1] ?? 20260908);
-const targetScore = 300;
+const targetScore = 1000;
 
 function run(v3Team: 0 | 1) {
   const profiles: Record<0 | 1, BotProfileId> = v3Team === 0
@@ -13,7 +13,7 @@ function run(v3Team: 0 | 1) {
   const started = performance.now();
   const decisions: Record<string, number[]> = { main_montecarlo_v2: [], main_montecarlo_v3: [] };
   const summary = runSimulation({
-    games: gamesPerSide, seed, settings: { targetScore }, teamProfiles: profiles,
+    games: gamesPerSide, seed, settings: { scoringMode: "ffb", targetScore }, teamProfiles: profiles,
     onDecision: (profile, elapsedMs, kind) => { if (kind === "card") decisions[profile]?.push(elapsedMs); },
   });
   return { summary, decisions, elapsedMs: performance.now() - started, v3Team };

@@ -140,12 +140,12 @@ export function simulateOneGame({
     }
   }
 
-  const winnerTeam =
-    state.winnerTeam ??
-    (state.totalScore[0] >= state.totalScore[1] ? 0 : 1);
+  if (state.phase !== "game-over" || state.winnerTeam === null) {
+    throw new Error(`Partie invalide: limite de sécurité de ${maxRoundsPerGame} manches atteinte sans game-over (seed ${seed}).`);
+  }
 
   return {
-    winnerTeam,
+    winnerTeam: state.winnerTeam,
     totalScore: state.totalScore,
     rounds,
     teamProfiles,

@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { simulateOneGame, runSimulation } from "@/simulation/simulator";
 
 describe("bot simulator", () => {
+  it("rejects a safety-limit result instead of choosing the current score leader", () => {
+    expect(() => simulateOneGame({
+      seed: 9,
+      maxRoundsPerGame: 0,
+      teamProfiles: { 0: "balanced", 1: "aggressive" },
+    })).toThrow(/Partie invalide/);
+  });
+
   it("plays a full bot game without using the React interface", () => {
     const game = simulateOneGame({
       seed: 10,
