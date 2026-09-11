@@ -40,6 +40,24 @@ describe("player game views", () => {
     expect(state.hands[0]).toHaveLength(8);
   });
 
+  it("never leaks any opponent hand through a player view", () => {
+    const state = createInitialGame(() => 0.37);
+
+    for (const viewerPlayerId of [0, 1, 2, 3] as const) {
+      const view = toPlayerGameView(state, viewerPlayerId);
+      const serializedView = JSON.stringify(view);
+
+      expect("hands" in view).toBe(false);
+      expect("server_state" in view).toBe(false);
+      for (const opponentPlayerId of [0, 1, 2, 3] as const) {
+        if (opponentPlayerId === viewerPlayerId) continue;
+        for (const opponentCard of state.hands[opponentPlayerId]) {
+          expect(serializedView).not.toContain(JSON.stringify(opponentCard));
+        }
+      }
+    }
+  });
+
   it("exposes only public announcement information before resolution", () => {
     const state: GameState = {
       ...createInitialGame(() => 0.1),

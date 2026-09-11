@@ -3,7 +3,7 @@ import { captureBotReviewScenario, botReviewScenarioToGameState, isBotReviewMode
 import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
 import { chooseHumanDoctrineV2Bid } from "@/bots/strategy/humanDoctrineV2";
 import { cardId } from "@/engine/cards";
-import { createInitialGame, makeBid, playableCardsForCurrentPlayer } from "@/engine/game";
+import { createInitialGame, makeBid, playCard, playableCardsForCurrentPlayer } from "@/engine/game";
 import { createSeededRandom } from "@/engine/random";
 import type { GameState, PlayerId } from "@/engine/types";
 
@@ -46,6 +46,28 @@ describe("human bot decision review", () => {
     expect(json).not.toContain('"hands"');
     expect(json).not.toContain("distribution");
     expect(parsed.humanComment).toBe("Le partenaire est deja maitre.");
+  });
+
+  it("captures the complete pre-decision hand before the chosen card is played", () => {
+    const stateBeforeDecision = playingState(8104);
+    const chosenCard = chooseBotCard(stateBeforeDecision);
+    const expectedHandIds = stateBeforeDecision.hands[stateBeforeDecision.currentPlayerId].map(cardId);
+    const expectedLegalIds = playableCardsForCurrentPlayer(stateBeforeDecision).map(cardId);
+    const scenario = captureBotReviewScenario(stateBeforeDecision, {
+      decisionNumber: 4,
+      elapsedMs: 0.4,
+      chosenCard,
+    });
+    const stateAfterDecision = playCard(
+      stateBeforeDecision,
+      stateBeforeDecision.currentPlayerId,
+      chosenCard,
+    );
+
+    expect(scenario.ownHand.map(cardId)).toEqual(expectedHandIds);
+    expect(scenario.ownHand.map(cardId)).toContain(cardId(chosenCard));
+    expect(scenario.legalCards.map(cardId)).toEqual(expectedLegalIds);
+    expect(stateAfterDecision.hands[scenario.playerId].map(cardId)).not.toContain(cardId(chosenCard));
   });
 
   it("reconstructs a Bot Lab position and reproduces the official V1 choice", () => {

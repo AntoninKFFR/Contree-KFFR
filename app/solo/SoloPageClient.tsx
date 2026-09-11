@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { BotReviewPanel } from "@/components/BotReviewPanel";
+import { SoloBotHandsPanel } from "@/components/BotHandAnalysis";
 import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
@@ -49,6 +50,7 @@ export default function SoloPage() {
   );
   const [lastBotReview, setLastBotReview] = useState<BotReviewScenarioV1 | null>(null);
   const [isBotReviewOpen, setIsBotReviewOpen] = useState(false);
+  const [isAnalysisModeEnabled, setIsAnalysisModeEnabled] = useState(false);
 
   const humanCanPlay =
     gameState.phase === "playing" &&
@@ -268,6 +270,21 @@ export default function SoloPage() {
           <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
             <div className={`flex items-center justify-end lg:hidden ${isMobileLandscape ? "hidden" : ""}`} />
             <div className={`flex items-center justify-end ${isMobileLandscape ? "hidden" : ""}`}>
+              {BOT_REVIEW_MODE_ENABLED ? (
+                <button
+                  aria-pressed={isAnalysisModeEnabled}
+                  className={[
+                    "mr-2 rounded-md border px-2 py-1 text-xs font-semibold shadow-sm",
+                    isAnalysisModeEnabled
+                      ? "border-amber-500 bg-amber-100 text-stone-950"
+                      : "border-stone-300 bg-white/90 text-stone-700 hover:bg-white",
+                  ].join(" ")}
+                  onClick={() => setIsAnalysisModeEnabled((current) => !current)}
+                  type="button"
+                >
+                  Mode analyse : {isAnalysisModeEnabled ? "activé" : "désactivé"}
+                </button>
+              ) : null}
               <button
                 className="hidden rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white lg:inline-flex"
                 onClick={() => setIsRightPanelOpen((current) => !current)}
@@ -313,6 +330,10 @@ export default function SoloPage() {
               showLiveScore={isMobileLandscape || (!isRightPanelOpen && gameState.phase === "playing")}
             />
 
+            {BOT_REVIEW_MODE_ENABLED && isAnalysisModeEnabled && !isMobileLandscape ? (
+              <SoloBotHandsPanel state={gameState} />
+            ) : null}
+
             {BOT_REVIEW_MODE_ENABLED && !isMobileLandscape && lastBotReview ? (
               <div className="grid gap-2">
                 <button
@@ -320,7 +341,7 @@ export default function SoloPage() {
                   onClick={() => setIsBotReviewOpen(true)}
                   type="button"
                 >
-                  Signaler la dernière décision du bot
+                  Analyser ce coup
                 </button>
                 {isBotReviewOpen ? (
                   <BotReviewPanel

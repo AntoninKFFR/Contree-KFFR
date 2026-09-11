@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnalysisCardList } from "@/components/BotHandAnalysis";
 import { formatCard, SUIT_LABELS } from "@/engine/cards";
 import type { BotReviewScenarioV1 } from "@/bots/botReview";
 import { serializeBotReviewScenario } from "@/bots/botReview";
@@ -42,9 +43,6 @@ export function BotReviewPanel({ scenario, onClose }: BotReviewPanelProps) {
   }
 
   const chosen = scenario.chosenCard ? formatCard(scenario.chosenCard) : `Enchère : ${formatBid(scenario)}`;
-  const legalCards = scenario.legalCards.length > 0
-    ? scenario.legalCards.map(formatCard).join(", ")
-    : "Sans objet pour une enchère";
   const contract = scenario.contract
     ? `${scenario.contract.kind === "capot" ? "capot" : scenario.contract.value} ${SUIT_LABELS[scenario.contract.trump]} (${scenario.contract.status})`
     : "Aucun";
@@ -64,10 +62,37 @@ export function BotReviewPanel({ scenario, onClose }: BotReviewPanelProps) {
         </button>
       </div>
 
+      <section className="mt-3 rounded-lg border-2 border-amber-400 bg-white p-3">
+        <h2 className="text-base font-bold">Main du bot avant la décision</h2>
+        <p className="mb-3 mt-1 text-sm text-stone-600">
+          La carte cerclée est celle que le bot a choisie.
+        </p>
+        <AnalysisCardList
+          cards={scenario.ownHand}
+          chosenCard={scenario.chosenCard}
+          label="Main complète du bot avant sa décision"
+          trump={scenario.trump ?? undefined}
+        />
+      </section>
+
+      <section className="mt-3 rounded-md border border-stone-300 bg-white/80 p-3">
+        <h2 className="text-sm font-bold">Cartes légales</h2>
+        {scenario.legalCards.length > 0 ? (
+          <div className="mt-2">
+            <AnalysisCardList
+              cards={scenario.legalCards}
+              label="Cartes légales pour cette décision"
+              trump={scenario.trump ?? undefined}
+            />
+          </div>
+        ) : (
+          <p className="mt-1 text-sm text-stone-600">Sans objet pour une enchère.</p>
+        )}
+      </section>
+
       <dl className="mt-3 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1">
         <dt className="font-semibold">Bot :</dt><dd>P{scenario.playerId} · {scenario.botProfile}</dd>
         <dt className="font-semibold">Carte choisie :</dt><dd>{chosen}</dd>
-        <dt className="font-semibold">Cartes possibles :</dt><dd>{legalCards}</dd>
         <dt className="font-semibold">Atout :</dt><dd>{scenario.trump ? SUIT_LABELS[scenario.trump] : "Aucun"}</dd>
         <dt className="font-semibold">Contrat :</dt><dd>{contract}</dd>
         <dt className="font-semibold">Pli :</dt><dd>{trick}</dd>
