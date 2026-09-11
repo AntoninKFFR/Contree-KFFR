@@ -1,0 +1,2218 @@
+{
+  "sourceBenchmark": "reports/human-bidding-doctrine-v2-screening-200.json",
+  "replay": {
+    "scoringMode": "ffb",
+    "targetScore": 1000,
+    "games": 200,
+    "seeds": [
+      20261001,
+      20262001,
+      20263001,
+      20264001
+    ],
+    "pairedDeals": true,
+    "invertedSides": true
+  },
+  "totals": {
+    "decisions": 3255,
+    "v2Bids": 849,
+    "v1WouldBid": 1107,
+    "v2Capped80V1Higher": 380,
+    "v2PassV1Bid": 356,
+    "missedCompetitiveOvercalls": 295,
+    "defendedRounds": 900,
+    "defendedRoundsWithV2PassV1Bid": 248,
+    "defendedRoundsWithMissedCompetitiveOvercall": 224
+  },
+  "ranking": [
+    {
+      "id": "human_doctrine_v1_mc_v1",
+      "label": "Human Doctrine V1 + Monte Carlo V1",
+      "games": 200,
+      "wins": 114,
+      "losses": 86,
+      "winRate": 0.57,
+      "averageScore": 912.7,
+      "averageDifferential": 47.95,
+      "rounds": 1207,
+      "contractsTaken": 900,
+      "contractsSucceeded": 622,
+      "contractsFailed": 278,
+      "attackRounds": 900,
+      "defenseRounds": 307,
+      "defensiveSets": 56,
+      "defensiveSetRate": 0.18241042345276873,
+      "averageContract": 101.41111111111111,
+      "passes": 1660,
+      "passRate": 0.5608108108108109,
+      "bids": 1300,
+      "coinches": 0,
+      "surcoinches": 0,
+      "openings": 608,
+      "raises": 692,
+      "partnerRaises": 215,
+      "opponentOvercalls": 477,
+      "trumpChanges": 608,
+      "bidLevels": {
+        "80": 85,
+        "90": 338,
+        "100": 622,
+        "110": 255
+      },
+      "capotsBid": 0,
+      "capotsBidSucceeded": 0,
+      "unbidCapotsMade": 33,
+      "capotsSuffered": 20,
+      "announcementPoints": 13820,
+      "opponentAnnouncementPoints": 13020,
+      "belotes": 141,
+      "announcementAndBelotePoints": 16640,
+      "averageTricksPerRound": 4.444076222038111,
+      "averageTrickPointsPerRound": 93.51367025683513,
+      "capotRate": 0.027340513670256836,
+      "averageRoundPoints": 151.23446561723281,
+      "averageAttackScore": 173.26666666666668,
+      "averageDefenseScore": 86.64495114006515,
+      "averageBidMs": 0.025139020269511925,
+      "p95BidMs": 0.056799999991199,
+      "averageCardMs": 27.84776882249404,
+      "p95CardMs": 87.85739999997895,
+      "p99CardMs": 93.38889999996172,
+      "averageCpuMsPerGame": 2699.65,
+      "elo": 1548.715751684437
+    },
+    {
+      "id": "human_doctrine_v2_comm_mc_v1",
+      "label": "Human Doctrine V2 communication + Monte Carlo V1",
+      "games": 200,
+      "wins": 86,
+      "losses": 114,
+      "winRate": 0.43,
+      "averageScore": 864.75,
+      "averageDifferential": -47.95,
+      "rounds": 1207,
+      "contractsTaken": 307,
+      "contractsSucceeded": 251,
+      "contractsFailed": 56,
+      "attackRounds": 307,
+      "defenseRounds": 900,
+      "defensiveSets": 278,
+      "defensiveSetRate": 0.3088888888888889,
+      "averageContract": 104.29967426710098,
+      "passes": 2406,
+      "passRate": 0.7391705069124423,
+      "bids": 849,
+      "coinches": 0,
+      "surcoinches": 0,
+      "openings": 599,
+      "raises": 250,
+      "partnerRaises": 65,
+      "opponentOvercalls": 185,
+      "trumpChanges": 195,
+      "bidLevels": {
+        "80": 468,
+        "90": 43,
+        "100": 181,
+        "110": 157
+      },
+      "capotsBid": 0,
+      "capotsBidSucceeded": 0,
+      "unbidCapotsMade": 20,
+      "capotsSuffered": 33,
+      "announcementPoints": 13020,
+      "opponentAnnouncementPoints": 13820,
+      "belotes": 116,
+      "announcementAndBelotePoints": 15340,
+      "averageTricksPerRound": 3.555923777961889,
+      "averageTrickPointsPerRound": 72.43827671913836,
+      "capotRate": 0.016570008285004142,
+      "averageRoundPoints": 143.28914664457332,
+      "averageAttackScore": 215.0814332247557,
+      "averageDefenseScore": 118.8,
+      "averageBidMs": 0.0728360368669185,
+      "p95BidMs": 0.13419999997131526,
+      "averageCardMs": 27.536649704846596,
+      "p95CardMs": 88.09130000000005,
+      "p99CardMs": 93.75210000004154,
+      "averageCpuMsPerGame": 2662.155,
+      "elo": 1451.284248315563
+    }
+  ],
+  "buckets": [
+    {
+      "dimension": "structure",
+      "buckets": [
+        {
+          "key": "jack-only",
+          "decisions": 1339,
+          "v2Bids": 293,
+          "v1Bids": 430,
+          "v2Capped80V1Higher": 202,
+          "v2PassV1Bid": 176,
+          "missedCompetitiveOvercall": 147,
+          "candidateContractsTaken": 243
+        },
+        {
+          "key": "nine-only",
+          "decisions": 1076,
+          "v2Bids": 249,
+          "v1Bids": 328,
+          "v2Capped80V1Higher": 165,
+          "v2PassV1Bid": 119,
+          "missedCompetitiveOvercall": 96,
+          "candidateContractsTaken": 223
+        },
+        {
+          "key": "jack-nine-third",
+          "decisions": 260,
+          "v2Bids": 92,
+          "v1Bids": 122,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 37,
+          "missedCompetitiveOvercall": 35,
+          "candidateContractsTaken": 85
+        },
+        {
+          "key": "strong-long-trump",
+          "decisions": 220,
+          "v2Bids": 126,
+          "v1Bids": 132,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 11,
+          "missedCompetitiveOvercall": 6,
+          "candidateContractsTaken": 136
+        },
+        {
+          "key": "ordinary",
+          "decisions": 186,
+          "v2Bids": 46,
+          "v1Bids": 41,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 0,
+          "missedCompetitiveOvercall": 0,
+          "candidateContractsTaken": 63
+        },
+        {
+          "key": "thirty-four",
+          "decisions": 105,
+          "v2Bids": 21,
+          "v1Bids": 31,
+          "v2Capped80V1Higher": 11,
+          "v2PassV1Bid": 11,
+          "missedCompetitiveOvercall": 9,
+          "candidateContractsTaken": 12
+        },
+        {
+          "key": "weak-long-trump",
+          "decisions": 69,
+          "v2Bids": 22,
+          "v1Bids": 23,
+          "v2Capped80V1Higher": 2,
+          "v2PassV1Bid": 2,
+          "missedCompetitiveOvercall": 2,
+          "candidateContractsTaken": 28
+        }
+      ]
+    },
+    {
+      "dimension": "trumpCount",
+      "buckets": [
+        {
+          "key": "3",
+          "decisions": 1380,
+          "v2Bids": 331,
+          "v1Bids": 452,
+          "v2Capped80V1Higher": 152,
+          "v2PassV1Bid": 151,
+          "missedCompetitiveOvercall": 132,
+          "candidateContractsTaken": 269
+        },
+        {
+          "key": "2",
+          "decisions": 907,
+          "v2Bids": 223,
+          "v1Bids": 242,
+          "v2Capped80V1Higher": 107,
+          "v2PassV1Bid": 66,
+          "missedCompetitiveOvercall": 50,
+          "candidateContractsTaken": 217
+        },
+        {
+          "key": "4",
+          "decisions": 772,
+          "v2Bids": 231,
+          "v1Bids": 331,
+          "v2Capped80V1Higher": 99,
+          "v2PassV1Bid": 110,
+          "missedCompetitiveOvercall": 92,
+          "candidateContractsTaken": 236
+        },
+        {
+          "key": "5",
+          "decisions": 130,
+          "v2Bids": 43,
+          "v1Bids": 68,
+          "v2Capped80V1Higher": 16,
+          "v2PassV1Bid": 27,
+          "missedCompetitiveOvercall": 20,
+          "candidateContractsTaken": 44
+        },
+        {
+          "key": "1",
+          "decisions": 58,
+          "v2Bids": 18,
+          "v1Bids": 11,
+          "v2Capped80V1Higher": 6,
+          "v2PassV1Bid": 2,
+          "missedCompetitiveOvercall": 1,
+          "candidateContractsTaken": 21
+        },
+        {
+          "key": "6",
+          "decisions": 8,
+          "v2Bids": 3,
+          "v1Bids": 3,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 0,
+          "missedCompetitiveOvercall": 0,
+          "candidateContractsTaken": 3
+        }
+      ]
+    },
+    {
+      "dimension": "outsideAces",
+      "buckets": [
+        {
+          "key": "0",
+          "decisions": 1556,
+          "v2Bids": 360,
+          "v1Bids": 413,
+          "v2Capped80V1Higher": 147,
+          "v2PassV1Bid": 87,
+          "missedCompetitiveOvercall": 64,
+          "candidateContractsTaken": 315
+        },
+        {
+          "key": "1",
+          "decisions": 1395,
+          "v2Bids": 393,
+          "v1Bids": 529,
+          "v2Capped80V1Higher": 187,
+          "v2PassV1Bid": 188,
+          "missedCompetitiveOvercall": 163,
+          "candidateContractsTaken": 378
+        },
+        {
+          "key": "2",
+          "decisions": 291,
+          "v2Bids": 91,
+          "v1Bids": 155,
+          "v2Capped80V1Higher": 43,
+          "v2PassV1Bid": 75,
+          "missedCompetitiveOvercall": 63,
+          "candidateContractsTaken": 91
+        },
+        {
+          "key": "3",
+          "decisions": 13,
+          "v2Bids": 5,
+          "v1Bids": 10,
+          "v2Capped80V1Higher": 3,
+          "v2PassV1Bid": 6,
+          "missedCompetitiveOvercall": 5,
+          "candidateContractsTaken": 6
+        }
+      ]
+    },
+    {
+      "dimension": "protectedOutsideTens",
+      "buckets": [
+        {
+          "key": "0",
+          "decisions": 2860,
+          "v2Bids": 738,
+          "v1Bids": 937,
+          "v2Capped80V1Higher": 320,
+          "v2PassV1Bid": 278,
+          "missedCompetitiveOvercall": 233,
+          "candidateContractsTaken": 672
+        },
+        {
+          "key": "1",
+          "decisions": 385,
+          "v2Bids": 108,
+          "v1Bids": 165,
+          "v2Capped80V1Higher": 58,
+          "v2PassV1Bid": 76,
+          "missedCompetitiveOvercall": 60,
+          "candidateContractsTaken": 117
+        },
+        {
+          "key": "2",
+          "decisions": 10,
+          "v2Bids": 3,
+          "v1Bids": 5,
+          "v2Capped80V1Higher": 2,
+          "v2PassV1Bid": 2,
+          "missedCompetitiveOvercall": 2,
+          "candidateContractsTaken": 1
+        }
+      ]
+    },
+    {
+      "dimension": "outsideControls",
+      "buckets": [
+        {
+          "key": "0",
+          "decisions": 1556,
+          "v2Bids": 360,
+          "v1Bids": 413,
+          "v2Capped80V1Higher": 147,
+          "v2PassV1Bid": 87,
+          "missedCompetitiveOvercall": 64,
+          "candidateContractsTaken": 315
+        },
+        {
+          "key": "1",
+          "decisions": 1395,
+          "v2Bids": 393,
+          "v1Bids": 529,
+          "v2Capped80V1Higher": 187,
+          "v2PassV1Bid": 188,
+          "missedCompetitiveOvercall": 163,
+          "candidateContractsTaken": 378
+        },
+        {
+          "key": "2",
+          "decisions": 291,
+          "v2Bids": 91,
+          "v1Bids": 155,
+          "v2Capped80V1Higher": 43,
+          "v2PassV1Bid": 75,
+          "missedCompetitiveOvercall": 63,
+          "candidateContractsTaken": 91
+        },
+        {
+          "key": "3",
+          "decisions": 13,
+          "v2Bids": 5,
+          "v1Bids": 10,
+          "v2Capped80V1Higher": 3,
+          "v2PassV1Bid": 6,
+          "missedCompetitiveOvercall": 5,
+          "candidateContractsTaken": 6
+        }
+      ]
+    },
+    {
+      "dimension": "partance",
+      "buckets": [
+        {
+          "key": "false",
+          "decisions": 2149,
+          "v2Bids": 249,
+          "v1Bids": 489,
+          "v2Capped80V1Higher": 18,
+          "v2PassV1Bid": 322,
+          "missedCompetitiveOvercall": 268,
+          "candidateContractsTaken": 458
+        },
+        {
+          "key": "true",
+          "decisions": 1106,
+          "v2Bids": 600,
+          "v1Bids": 618,
+          "v2Capped80V1Higher": 362,
+          "v2PassV1Bid": 34,
+          "missedCompetitiveOvercall": 27,
+          "candidateContractsTaken": 332
+        }
+      ]
+    },
+    {
+      "dimension": "position",
+      "buckets": [
+        {
+          "key": "first",
+          "decisions": 1106,
+          "v2Bids": 600,
+          "v1Bids": 618,
+          "v2Capped80V1Higher": 362,
+          "v2PassV1Bid": 34,
+          "missedCompetitiveOvercall": 27,
+          "candidateContractsTaken": 332
+        },
+        {
+          "key": "second",
+          "decisions": 802,
+          "v2Bids": 85,
+          "v1Bids": 225,
+          "v2Capped80V1Higher": 18,
+          "v2PassV1Bid": 144,
+          "missedCompetitiveOvercall": 142,
+          "candidateContractsTaken": 127
+        },
+        {
+          "key": "third",
+          "decisions": 740,
+          "v2Bids": 129,
+          "v1Bids": 177,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 117,
+          "missedCompetitiveOvercall": 70,
+          "candidateContractsTaken": 237
+        },
+        {
+          "key": "fourth",
+          "decisions": 607,
+          "v2Bids": 35,
+          "v1Bids": 87,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 61,
+          "missedCompetitiveOvercall": 56,
+          "candidateContractsTaken": 94
+        }
+      ]
+    },
+    {
+      "dimension": "auctionRole",
+      "buckets": [
+        {
+          "key": "competitive-overcall",
+          "decisions": 1312,
+          "v2Bids": 87,
+          "v1Bids": 278,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 198,
+          "missedCompetitiveOvercall": 198,
+          "candidateContractsTaken": 108
+        },
+        {
+          "key": "response",
+          "decisions": 778,
+          "v2Bids": 140,
+          "v1Bids": 183,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 118,
+          "missedCompetitiveOvercall": 65,
+          "candidateContractsTaken": 307
+        },
+        {
+          "key": "opening",
+          "decisions": 623,
+          "v2Bids": 599,
+          "v1Bids": 602,
+          "v2Capped80V1Higher": 380,
+          "v2PassV1Bid": 3,
+          "missedCompetitiveOvercall": 0,
+          "candidateContractsTaken": 224
+        },
+        {
+          "key": "rebid",
+          "decisions": 542,
+          "v2Bids": 23,
+          "v1Bids": 44,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 37,
+          "missedCompetitiveOvercall": 32,
+          "candidateContractsTaken": 151
+        }
+      ]
+    },
+    {
+      "dimension": "opponentContractPresent",
+      "buckets": [
+        {
+          "key": "true",
+          "decisions": 2219,
+          "v2Bids": 185,
+          "v1Bids": 410,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 295,
+          "missedCompetitiveOvercall": 295,
+          "candidateContractsTaken": 198
+        },
+        {
+          "key": "false",
+          "decisions": 1036,
+          "v2Bids": 664,
+          "v1Bids": 697,
+          "v2Capped80V1Higher": 380,
+          "v2PassV1Bid": 61,
+          "missedCompetitiveOvercall": 0,
+          "candidateContractsTaken": 592
+        }
+      ]
+    },
+    {
+      "dimension": "partnerSupportPresent",
+      "buckets": [
+        {
+          "key": "false",
+          "decisions": 2930,
+          "v2Bids": 721,
+          "v1Bids": 1069,
+          "v2Capped80V1Higher": 380,
+          "v2PassV1Bid": 356,
+          "missedCompetitiveOvercall": 295,
+          "candidateContractsTaken": 549
+        },
+        {
+          "key": "true",
+          "decisions": 325,
+          "v2Bids": 128,
+          "v1Bids": 38,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 0,
+          "missedCompetitiveOvercall": 0,
+          "candidateContractsTaken": 241
+        }
+      ]
+    },
+    {
+      "dimension": "intrinsicStrength",
+      "buckets": [
+        {
+          "key": "94-124",
+          "decisions": 1258,
+          "v2Bids": 333,
+          "v1Bids": 515,
+          "v2Capped80V1Higher": 172,
+          "v2PassV1Bid": 216,
+          "missedCompetitiveOvercall": 186,
+          "candidateContractsTaken": 322
+        },
+        {
+          "key": "76-93",
+          "decisions": 1024,
+          "v2Bids": 253,
+          "v1Bids": 252,
+          "v2Capped80V1Higher": 172,
+          "v2PassV1Bid": 33,
+          "missedCompetitiveOvercall": 23,
+          "candidateContractsTaken": 201
+        },
+        {
+          "key": "60-75",
+          "decisions": 498,
+          "v2Bids": 105,
+          "v1Bids": 89,
+          "v2Capped80V1Higher": 4,
+          "v2PassV1Bid": 0,
+          "missedCompetitiveOvercall": 0,
+          "candidateContractsTaken": 94
+        },
+        {
+          "key": "125+",
+          "decisions": 321,
+          "v2Bids": 148,
+          "v1Bids": 248,
+          "v2Capped80V1Higher": 32,
+          "v2PassV1Bid": 104,
+          "missedCompetitiveOvercall": 86,
+          "candidateContractsTaken": 147
+        },
+        {
+          "key": "<60",
+          "decisions": 154,
+          "v2Bids": 10,
+          "v1Bids": 3,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 3,
+          "missedCompetitiveOvercall": 0,
+          "candidateContractsTaken": 26
+        }
+      ]
+    },
+    {
+      "dimension": "bidCeiling",
+      "buckets": [
+        {
+          "key": "80",
+          "decisions": 2270,
+          "v2Bids": 468,
+          "v1Bids": 773,
+          "v2Capped80V1Higher": 380,
+          "v2PassV1Bid": 305,
+          "missedCompetitiveOvercall": 254,
+          "candidateContractsTaken": 297
+        },
+        {
+          "key": "100",
+          "decisions": 416,
+          "v2Bids": 181,
+          "v1Bids": 161,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 11,
+          "missedCompetitiveOvercall": 6,
+          "candidateContractsTaken": 237
+        },
+        {
+          "key": "90",
+          "decisions": 238,
+          "v2Bids": 43,
+          "v1Bids": 78,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 37,
+          "missedCompetitiveOvercall": 35,
+          "candidateContractsTaken": 54
+        },
+        {
+          "key": "110",
+          "decisions": 216,
+          "v2Bids": 157,
+          "v1Bids": 92,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 0,
+          "missedCompetitiveOvercall": 0,
+          "candidateContractsTaken": 198
+        },
+        {
+          "key": "null",
+          "decisions": 115,
+          "v2Bids": 0,
+          "v1Bids": 3,
+          "v2Capped80V1Higher": 0,
+          "v2PassV1Bid": 3,
+          "missedCompetitiveOvercall": 0,
+          "candidateContractsTaken": 4
+        }
+      ]
+    }
+  ],
+  "examples": {
+    "capped80VersusHigherV1": [
+      {
+        "gameIndex": 0,
+        "roundNumber": 2,
+        "team": 0,
+        "playerId": 2,
+        "structure": "jack-only",
+        "trumpCount": 4,
+        "outsideAces": 1,
+        "protectedOutsideTens": 1,
+        "outsideControls": 1,
+        "isPartance": true,
+        "position": "first",
+        "role": "opening",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 125,
+        "intrinsicBand": "125+",
+        "bidCeiling": 80,
+        "v1": "110-spades",
+        "v2": "80-spades",
+        "v2Capped80V1Higher": true,
+        "v2PassV1Bid": false,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "10-hearts",
+          "J-spades",
+          "10-spades",
+          "Q-spades",
+          "7-spades",
+          "A-diamonds",
+          "10-diamonds",
+          "Q-clubs"
+        ],
+        "publicBids": [],
+        "finalContractTeam": 0,
+        "finalContractValue": 110,
+        "candidateTookContract": true,
+        "contractSucceeded": true
+      },
+      {
+        "gameIndex": 0,
+        "roundNumber": 4,
+        "team": 0,
+        "playerId": 0,
+        "structure": "nine-only",
+        "trumpCount": 4,
+        "outsideAces": 0,
+        "protectedOutsideTens": 0,
+        "outsideControls": 0,
+        "isPartance": true,
+        "position": "first",
+        "role": "opening",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 104,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "100-diamonds",
+        "v2": "80-diamonds",
+        "v2Capped80V1Higher": true,
+        "v2PassV1Bid": false,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "K-spades",
+          "9-diamonds",
+          "A-diamonds",
+          "Q-diamonds",
+          "7-diamonds",
+          "J-clubs",
+          "10-clubs",
+          "8-clubs"
+        ],
+        "publicBids": [],
+        "finalContractTeam": 1,
+        "finalContractValue": 110,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 0,
+        "roundNumber": 6,
+        "team": 0,
+        "playerId": 2,
+        "structure": "nine-only",
+        "trumpCount": 2,
+        "outsideAces": 0,
+        "protectedOutsideTens": 0,
+        "outsideControls": 0,
+        "isPartance": true,
+        "position": "first",
+        "role": "opening",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 83,
+        "intrinsicBand": "76-93",
+        "bidCeiling": 80,
+        "v1": "90-diamonds",
+        "v2": "80-diamonds",
+        "v2Capped80V1Higher": true,
+        "v2PassV1Bid": false,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "7-hearts",
+          "10-spades",
+          "9-diamonds",
+          "10-diamonds",
+          "10-clubs",
+          "K-clubs",
+          "Q-clubs",
+          "7-clubs"
+        ],
+        "publicBids": [],
+        "finalContractTeam": 1,
+        "finalContractValue": 110,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 1,
+        "roundNumber": 5,
+        "team": 1,
+        "playerId": 1,
+        "structure": "jack-only",
+        "trumpCount": 4,
+        "outsideAces": 1,
+        "protectedOutsideTens": 0,
+        "outsideControls": 1,
+        "isPartance": true,
+        "position": "first",
+        "role": "opening",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 124,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "110-spades",
+        "v2": "80-spades",
+        "v2Capped80V1Higher": true,
+        "v2PassV1Bid": false,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "J-hearts",
+          "A-hearts",
+          "J-spades",
+          "A-spades",
+          "10-spades",
+          "Q-spades",
+          "9-diamonds",
+          "7-diamonds"
+        ],
+        "publicBids": [],
+        "finalContractTeam": 0,
+        "finalContractValue": 100,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 2,
+        "roundNumber": 3,
+        "team": 0,
+        "playerId": 2,
+        "structure": "jack-only",
+        "trumpCount": 3,
+        "outsideAces": 1,
+        "protectedOutsideTens": 1,
+        "outsideControls": 1,
+        "isPartance": true,
+        "position": "first",
+        "role": "opening",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 126,
+        "intrinsicBand": "125+",
+        "bidCeiling": 80,
+        "v1": "110-diamonds",
+        "v2": "80-diamonds",
+        "v2Capped80V1Higher": true,
+        "v2PassV1Bid": false,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "9-spades",
+          "A-spades",
+          "10-spades",
+          "J-diamonds",
+          "A-diamonds",
+          "7-diamonds",
+          "10-clubs",
+          "K-clubs"
+        ],
+        "publicBids": [],
+        "finalContractTeam": 1,
+        "finalContractValue": 110,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 2,
+        "roundNumber": 5,
+        "team": 0,
+        "playerId": 0,
+        "structure": "nine-only",
+        "trumpCount": 4,
+        "outsideAces": 0,
+        "protectedOutsideTens": 0,
+        "outsideControls": 0,
+        "isPartance": true,
+        "position": "first",
+        "role": "opening",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 76,
+        "intrinsicBand": "76-93",
+        "bidCeiling": 80,
+        "v1": "90-diamonds",
+        "v2": "80-diamonds",
+        "v2Capped80V1Higher": true,
+        "v2PassV1Bid": false,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "J-hearts",
+          "10-hearts",
+          "9-spades",
+          "9-diamonds",
+          "K-diamonds",
+          "Q-diamonds",
+          "8-diamonds",
+          "Q-clubs"
+        ],
+        "publicBids": [],
+        "finalContractTeam": 1,
+        "finalContractValue": 100,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 3,
+        "roundNumber": 4,
+        "team": 1,
+        "playerId": 3,
+        "structure": "jack-only",
+        "trumpCount": 2,
+        "outsideAces": 1,
+        "protectedOutsideTens": 1,
+        "outsideControls": 1,
+        "isPartance": true,
+        "position": "first",
+        "role": "opening",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 91,
+        "intrinsicBand": "76-93",
+        "bidCeiling": 80,
+        "v1": "90-hearts",
+        "v2": "80-hearts",
+        "v2Capped80V1Higher": true,
+        "v2PassV1Bid": false,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "J-hearts",
+          "K-hearts",
+          "A-spades",
+          "10-spades",
+          "10-diamonds",
+          "8-diamonds",
+          "9-clubs",
+          "K-clubs"
+        ],
+        "publicBids": [],
+        "finalContractTeam": 0,
+        "finalContractValue": 100,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 4,
+        "roundNumber": 2,
+        "team": 0,
+        "playerId": 0,
+        "structure": "jack-only",
+        "trumpCount": 4,
+        "outsideAces": 0,
+        "protectedOutsideTens": 0,
+        "outsideControls": 0,
+        "isPartance": true,
+        "position": "first",
+        "role": "opening",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 92,
+        "intrinsicBand": "76-93",
+        "bidCeiling": 80,
+        "v1": "90-spades",
+        "v2": "80-spades",
+        "v2Capped80V1Higher": true,
+        "v2PassV1Bid": false,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "K-hearts",
+          "J-spades",
+          "10-spades",
+          "Q-spades",
+          "8-spades",
+          "10-diamonds",
+          "8-diamonds",
+          "Q-clubs"
+        ],
+        "publicBids": [],
+        "finalContractTeam": 1,
+        "finalContractValue": 110,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      }
+    ],
+    "passVersusV1Bid": [
+      {
+        "gameIndex": 0,
+        "roundNumber": 4,
+        "team": 0,
+        "playerId": 2,
+        "structure": "nine-only",
+        "trumpCount": 5,
+        "outsideAces": 0,
+        "protectedOutsideTens": 0,
+        "outsideControls": 0,
+        "isPartance": false,
+        "position": "third",
+        "role": "response",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 98,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "100-hearts",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "9-hearts",
+          "A-hearts",
+          "K-hearts",
+          "8-hearts",
+          "7-hearts",
+          "8-spades",
+          "9-clubs",
+          "K-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 0,
+            "action": "bid",
+            "value": 80,
+            "trump": "diamonds"
+          },
+          {
+            "playerId": 1,
+            "action": "bid",
+            "value": 90,
+            "trump": "diamonds"
+          }
+        ],
+        "finalContractTeam": 1,
+        "finalContractValue": 110,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 1,
+        "roundNumber": 3,
+        "team": 1,
+        "playerId": 1,
+        "structure": "strong-long-trump",
+        "trumpCount": 4,
+        "outsideAces": 0,
+        "protectedOutsideTens": 0,
+        "outsideControls": 0,
+        "isPartance": false,
+        "position": "third",
+        "role": "response",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 138,
+        "intrinsicBand": "125+",
+        "bidCeiling": 100,
+        "v1": "110-spades",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "J-spades",
+          "9-spades",
+          "A-spades",
+          "K-spades",
+          "10-diamonds",
+          "K-diamonds",
+          "7-diamonds",
+          "Q-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 3,
+            "action": "bid",
+            "value": 100,
+            "trump": "clubs"
+          },
+          {
+            "playerId": 0,
+            "action": "pass"
+          }
+        ],
+        "finalContractTeam": 1,
+        "finalContractValue": 100,
+        "candidateTookContract": true,
+        "contractSucceeded": true
+      },
+      {
+        "gameIndex": 1,
+        "roundNumber": 6,
+        "team": 1,
+        "playerId": 3,
+        "structure": "jack-only",
+        "trumpCount": 4,
+        "outsideAces": 0,
+        "protectedOutsideTens": 0,
+        "outsideControls": 0,
+        "isPartance": false,
+        "position": "second",
+        "role": "competitive-overcall",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 100,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "100-diamonds",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "Q-spades",
+          "8-spades",
+          "J-diamonds",
+          "A-diamonds",
+          "K-diamonds",
+          "Q-diamonds",
+          "J-clubs",
+          "8-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 2,
+            "action": "bid",
+            "value": 90,
+            "trump": "diamonds"
+          }
+        ],
+        "finalContractTeam": 1,
+        "finalContractValue": 110,
+        "candidateTookContract": true,
+        "contractSucceeded": true
+      },
+      {
+        "gameIndex": 2,
+        "roundNumber": 6,
+        "team": 0,
+        "playerId": 2,
+        "structure": "jack-only",
+        "trumpCount": 3,
+        "outsideAces": 1,
+        "protectedOutsideTens": 0,
+        "outsideControls": 1,
+        "isPartance": false,
+        "position": "second",
+        "role": "competitive-overcall",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 85,
+        "intrinsicBand": "76-93",
+        "bidCeiling": 80,
+        "v1": "90-spades",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "8-hearts",
+          "J-spades",
+          "8-spades",
+          "7-spades",
+          "10-diamonds",
+          "Q-diamonds",
+          "7-diamonds",
+          "A-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 1,
+            "action": "bid",
+            "value": 80,
+            "trump": "hearts"
+          }
+        ],
+        "finalContractTeam": 1,
+        "finalContractValue": 100,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 3,
+        "roundNumber": 2,
+        "team": 1,
+        "playerId": 3,
+        "structure": "jack-nine-third",
+        "trumpCount": 3,
+        "outsideAces": 1,
+        "protectedOutsideTens": 1,
+        "outsideControls": 1,
+        "isPartance": false,
+        "position": "third",
+        "role": "response",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 134,
+        "intrinsicBand": "125+",
+        "bidCeiling": 90,
+        "v1": "110-clubs",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "A-hearts",
+          "10-hearts",
+          "Q-hearts",
+          "K-spades",
+          "7-spades",
+          "J-clubs",
+          "9-clubs",
+          "10-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 1,
+            "action": "bid",
+            "value": 100,
+            "trump": "hearts"
+          },
+          {
+            "playerId": 2,
+            "action": "pass"
+          }
+        ],
+        "finalContractTeam": 1,
+        "finalContractValue": 100,
+        "candidateTookContract": true,
+        "contractSucceeded": true
+      },
+      {
+        "gameIndex": 3,
+        "roundNumber": 5,
+        "team": 1,
+        "playerId": 1,
+        "structure": "jack-only",
+        "trumpCount": 3,
+        "outsideAces": 2,
+        "protectedOutsideTens": 0,
+        "outsideControls": 2,
+        "isPartance": false,
+        "position": "second",
+        "role": "competitive-overcall",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 122,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "100-diamonds",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "9-hearts",
+          "A-hearts",
+          "A-spades",
+          "K-spades",
+          "J-diamonds",
+          "A-diamonds",
+          "7-diamonds",
+          "J-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 0,
+            "action": "bid",
+            "value": 90,
+            "trump": "diamonds"
+          }
+        ],
+        "finalContractTeam": 0,
+        "finalContractValue": 90,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 3,
+        "roundNumber": 6,
+        "team": 1,
+        "playerId": 3,
+        "structure": "nine-only",
+        "trumpCount": 2,
+        "outsideAces": 1,
+        "protectedOutsideTens": 0,
+        "outsideControls": 1,
+        "isPartance": false,
+        "position": "third",
+        "role": "response",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 101,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "100-diamonds",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "A-hearts",
+          "Q-hearts",
+          "7-hearts",
+          "Q-spades",
+          "9-diamonds",
+          "A-diamonds",
+          "K-clubs",
+          "Q-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 1,
+            "action": "bid",
+            "value": 80,
+            "trump": "hearts"
+          },
+          {
+            "playerId": 2,
+            "action": "bid",
+            "value": 90,
+            "trump": "spades"
+          }
+        ],
+        "finalContractTeam": 0,
+        "finalContractValue": 100,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 4,
+        "roundNumber": 3,
+        "team": 0,
+        "playerId": 2,
+        "structure": "jack-only",
+        "trumpCount": 3,
+        "outsideAces": 2,
+        "protectedOutsideTens": 1,
+        "outsideControls": 2,
+        "isPartance": false,
+        "position": "second",
+        "role": "competitive-overcall",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 125,
+        "intrinsicBand": "125+",
+        "bidCeiling": 80,
+        "v1": "110-clubs",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "9-hearts",
+          "A-spades",
+          "10-spades",
+          "Q-spades",
+          "A-diamonds",
+          "J-clubs",
+          "10-clubs",
+          "Q-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 1,
+            "action": "bid",
+            "value": 80,
+            "trump": "spades"
+          }
+        ],
+        "finalContractTeam": 1,
+        "finalContractValue": 100,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      }
+    ],
+    "missedCompetitiveOvercall": [
+      {
+        "gameIndex": 0,
+        "roundNumber": 4,
+        "team": 0,
+        "playerId": 2,
+        "structure": "nine-only",
+        "trumpCount": 5,
+        "outsideAces": 0,
+        "protectedOutsideTens": 0,
+        "outsideControls": 0,
+        "isPartance": false,
+        "position": "third",
+        "role": "response",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 98,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "100-hearts",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "9-hearts",
+          "A-hearts",
+          "K-hearts",
+          "8-hearts",
+          "7-hearts",
+          "8-spades",
+          "9-clubs",
+          "K-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 0,
+            "action": "bid",
+            "value": 80,
+            "trump": "diamonds"
+          },
+          {
+            "playerId": 1,
+            "action": "bid",
+            "value": 90,
+            "trump": "diamonds"
+          }
+        ],
+        "finalContractTeam": 1,
+        "finalContractValue": 110,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 1,
+        "roundNumber": 6,
+        "team": 1,
+        "playerId": 3,
+        "structure": "jack-only",
+        "trumpCount": 4,
+        "outsideAces": 0,
+        "protectedOutsideTens": 0,
+        "outsideControls": 0,
+        "isPartance": false,
+        "position": "second",
+        "role": "competitive-overcall",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 100,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "100-diamonds",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "Q-spades",
+          "8-spades",
+          "J-diamonds",
+          "A-diamonds",
+          "K-diamonds",
+          "Q-diamonds",
+          "J-clubs",
+          "8-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 2,
+            "action": "bid",
+            "value": 90,
+            "trump": "diamonds"
+          }
+        ],
+        "finalContractTeam": 1,
+        "finalContractValue": 110,
+        "candidateTookContract": true,
+        "contractSucceeded": true
+      },
+      {
+        "gameIndex": 2,
+        "roundNumber": 6,
+        "team": 0,
+        "playerId": 2,
+        "structure": "jack-only",
+        "trumpCount": 3,
+        "outsideAces": 1,
+        "protectedOutsideTens": 0,
+        "outsideControls": 1,
+        "isPartance": false,
+        "position": "second",
+        "role": "competitive-overcall",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 85,
+        "intrinsicBand": "76-93",
+        "bidCeiling": 80,
+        "v1": "90-spades",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "8-hearts",
+          "J-spades",
+          "8-spades",
+          "7-spades",
+          "10-diamonds",
+          "Q-diamonds",
+          "7-diamonds",
+          "A-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 1,
+            "action": "bid",
+            "value": 80,
+            "trump": "hearts"
+          }
+        ],
+        "finalContractTeam": 1,
+        "finalContractValue": 100,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 3,
+        "roundNumber": 5,
+        "team": 1,
+        "playerId": 1,
+        "structure": "jack-only",
+        "trumpCount": 3,
+        "outsideAces": 2,
+        "protectedOutsideTens": 0,
+        "outsideControls": 2,
+        "isPartance": false,
+        "position": "second",
+        "role": "competitive-overcall",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 122,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "100-diamonds",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "9-hearts",
+          "A-hearts",
+          "A-spades",
+          "K-spades",
+          "J-diamonds",
+          "A-diamonds",
+          "7-diamonds",
+          "J-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 0,
+            "action": "bid",
+            "value": 90,
+            "trump": "diamonds"
+          }
+        ],
+        "finalContractTeam": 0,
+        "finalContractValue": 90,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 3,
+        "roundNumber": 6,
+        "team": 1,
+        "playerId": 3,
+        "structure": "nine-only",
+        "trumpCount": 2,
+        "outsideAces": 1,
+        "protectedOutsideTens": 0,
+        "outsideControls": 1,
+        "isPartance": false,
+        "position": "third",
+        "role": "response",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 101,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "100-diamonds",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "A-hearts",
+          "Q-hearts",
+          "7-hearts",
+          "Q-spades",
+          "9-diamonds",
+          "A-diamonds",
+          "K-clubs",
+          "Q-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 1,
+            "action": "bid",
+            "value": 80,
+            "trump": "hearts"
+          },
+          {
+            "playerId": 2,
+            "action": "bid",
+            "value": 90,
+            "trump": "spades"
+          }
+        ],
+        "finalContractTeam": 0,
+        "finalContractValue": 100,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 4,
+        "roundNumber": 3,
+        "team": 0,
+        "playerId": 2,
+        "structure": "jack-only",
+        "trumpCount": 3,
+        "outsideAces": 2,
+        "protectedOutsideTens": 1,
+        "outsideControls": 2,
+        "isPartance": false,
+        "position": "second",
+        "role": "competitive-overcall",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 125,
+        "intrinsicBand": "125+",
+        "bidCeiling": 80,
+        "v1": "110-clubs",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "9-hearts",
+          "A-spades",
+          "10-spades",
+          "Q-spades",
+          "A-diamonds",
+          "J-clubs",
+          "10-clubs",
+          "Q-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 1,
+            "action": "bid",
+            "value": 80,
+            "trump": "spades"
+          }
+        ],
+        "finalContractTeam": 1,
+        "finalContractValue": 100,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 4,
+        "roundNumber": 5,
+        "team": 0,
+        "playerId": 2,
+        "structure": "jack-only",
+        "trumpCount": 4,
+        "outsideAces": 1,
+        "protectedOutsideTens": 1,
+        "outsideControls": 1,
+        "isPartance": false,
+        "position": "fourth",
+        "role": "competitive-overcall",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 145,
+        "intrinsicBand": "125+",
+        "bidCeiling": 80,
+        "v1": "110-hearts",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "J-hearts",
+          "A-hearts",
+          "10-hearts",
+          "Q-hearts",
+          "7-spades",
+          "A-clubs",
+          "10-clubs",
+          "K-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 3,
+            "action": "bid",
+            "value": 100,
+            "trump": "spades"
+          },
+          {
+            "playerId": 0,
+            "action": "pass"
+          },
+          {
+            "playerId": 1,
+            "action": "pass"
+          }
+        ],
+        "finalContractTeam": 1,
+        "finalContractValue": 100,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 5,
+        "roundNumber": 1,
+        "team": 1,
+        "playerId": 1,
+        "structure": "nine-only",
+        "trumpCount": 3,
+        "outsideAces": 1,
+        "protectedOutsideTens": 0,
+        "outsideControls": 1,
+        "isPartance": false,
+        "position": "third",
+        "role": "response",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 107,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "100-clubs",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "8-hearts",
+          "10-spades",
+          "Q-spades",
+          "7-spades",
+          "A-diamonds",
+          "9-clubs",
+          "A-clubs",
+          "7-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 3,
+            "action": "bid",
+            "value": 80,
+            "trump": "hearts"
+          },
+          {
+            "playerId": 0,
+            "action": "bid",
+            "value": 90,
+            "trump": "hearts"
+          }
+        ],
+        "finalContractTeam": 0,
+        "finalContractValue": 90,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      }
+    ],
+    "highControlSingleMajorCapped": [
+      {
+        "gameIndex": 14,
+        "roundNumber": 4,
+        "team": 0,
+        "playerId": 0,
+        "structure": "jack-only",
+        "trumpCount": 4,
+        "outsideAces": 2,
+        "protectedOutsideTens": 0,
+        "outsideControls": 2,
+        "isPartance": false,
+        "position": "third",
+        "role": "response",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 106,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "pass",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": false,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "A-hearts",
+          "K-hearts",
+          "A-spades",
+          "8-spades",
+          "J-clubs",
+          "K-clubs",
+          "8-clubs",
+          "7-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 2,
+            "action": "bid",
+            "value": 100,
+            "trump": "spades"
+          },
+          {
+            "playerId": 3,
+            "action": "pass"
+          }
+        ],
+        "finalContractTeam": 1,
+        "finalContractValue": 110,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 14,
+        "roundNumber": 4,
+        "team": 0,
+        "playerId": 0,
+        "structure": "jack-only",
+        "trumpCount": 4,
+        "outsideAces": 2,
+        "protectedOutsideTens": 0,
+        "outsideControls": 2,
+        "isPartance": false,
+        "position": "third",
+        "role": "response",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 106,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "pass",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": false,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "A-hearts",
+          "K-hearts",
+          "A-spades",
+          "8-spades",
+          "J-clubs",
+          "K-clubs",
+          "8-clubs",
+          "7-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 2,
+            "action": "bid",
+            "value": 100,
+            "trump": "spades"
+          },
+          {
+            "playerId": 3,
+            "action": "pass"
+          },
+          {
+            "playerId": 0,
+            "action": "pass"
+          },
+          {
+            "playerId": 1,
+            "action": "bid",
+            "value": 110,
+            "trump": "diamonds"
+          },
+          {
+            "playerId": 2,
+            "action": "pass"
+          },
+          {
+            "playerId": 3,
+            "action": "pass"
+          }
+        ],
+        "finalContractTeam": 1,
+        "finalContractValue": 110,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 26,
+        "roundNumber": 4,
+        "team": 0,
+        "playerId": 2,
+        "structure": "jack-only",
+        "trumpCount": 4,
+        "outsideAces": 2,
+        "protectedOutsideTens": 0,
+        "outsideControls": 2,
+        "isPartance": false,
+        "position": "fourth",
+        "role": "response",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 117,
+        "intrinsicBand": "94-124",
+        "bidCeiling": 80,
+        "v1": "pass",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": false,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "A-hearts",
+          "8-hearts",
+          "J-diamonds",
+          "10-diamonds",
+          "Q-diamonds",
+          "7-diamonds",
+          "A-clubs",
+          "K-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 3,
+            "action": "bid",
+            "value": 80,
+            "trump": "clubs"
+          },
+          {
+            "playerId": 0,
+            "action": "bid",
+            "value": 100,
+            "trump": "spades"
+          },
+          {
+            "playerId": 1,
+            "action": "pass"
+          }
+        ],
+        "finalContractTeam": 0,
+        "finalContractValue": 100,
+        "candidateTookContract": true,
+        "contractSucceeded": true
+      },
+      {
+        "gameIndex": 41,
+        "roundNumber": 6,
+        "team": 1,
+        "playerId": 1,
+        "structure": "nine-only",
+        "trumpCount": 4,
+        "outsideAces": 2,
+        "protectedOutsideTens": 0,
+        "outsideControls": 2,
+        "isPartance": false,
+        "position": "third",
+        "role": "response",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 137,
+        "intrinsicBand": "125+",
+        "bidCeiling": 80,
+        "v1": "110-diamonds",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "Q-hearts",
+          "8-hearts",
+          "A-spades",
+          "9-diamonds",
+          "A-diamonds",
+          "10-diamonds",
+          "7-diamonds",
+          "A-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 3,
+            "action": "bid",
+            "value": 80,
+            "trump": "spades"
+          },
+          {
+            "playerId": 0,
+            "action": "pass"
+          }
+        ],
+        "finalContractTeam": 0,
+        "finalContractValue": 100,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 41,
+        "roundNumber": 6,
+        "team": 1,
+        "playerId": 1,
+        "structure": "nine-only",
+        "trumpCount": 4,
+        "outsideAces": 2,
+        "protectedOutsideTens": 0,
+        "outsideControls": 2,
+        "isPartance": false,
+        "position": "third",
+        "role": "response",
+        "opponentContractPresent": true,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 137,
+        "intrinsicBand": "125+",
+        "bidCeiling": 80,
+        "v1": "110-diamonds",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": true,
+        "ownHand": [
+          "Q-hearts",
+          "8-hearts",
+          "A-spades",
+          "9-diamonds",
+          "A-diamonds",
+          "10-diamonds",
+          "7-diamonds",
+          "A-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 3,
+            "action": "bid",
+            "value": 80,
+            "trump": "spades"
+          },
+          {
+            "playerId": 0,
+            "action": "pass"
+          },
+          {
+            "playerId": 1,
+            "action": "pass"
+          },
+          {
+            "playerId": 2,
+            "action": "bid",
+            "value": 100,
+            "trump": "clubs"
+          },
+          {
+            "playerId": 3,
+            "action": "pass"
+          },
+          {
+            "playerId": 0,
+            "action": "pass"
+          }
+        ],
+        "finalContractTeam": 0,
+        "finalContractValue": 100,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      },
+      {
+        "gameIndex": 52,
+        "roundNumber": 2,
+        "team": 0,
+        "playerId": 2,
+        "structure": "nine-only",
+        "trumpCount": 4,
+        "outsideAces": 2,
+        "protectedOutsideTens": 0,
+        "outsideControls": 2,
+        "isPartance": true,
+        "position": "first",
+        "role": "opening",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 131,
+        "intrinsicBand": "125+",
+        "bidCeiling": 80,
+        "v1": "110-clubs",
+        "v2": "80-clubs",
+        "v2Capped80V1Higher": true,
+        "v2PassV1Bid": false,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "A-hearts",
+          "Q-hearts",
+          "A-diamonds",
+          "K-diamonds",
+          "9-clubs",
+          "A-clubs",
+          "K-clubs",
+          "8-clubs"
+        ],
+        "publicBids": [],
+        "finalContractTeam": 0,
+        "finalContractValue": 100,
+        "candidateTookContract": true,
+        "contractSucceeded": true
+      },
+      {
+        "gameIndex": 52,
+        "roundNumber": 2,
+        "team": 0,
+        "playerId": 2,
+        "structure": "nine-only",
+        "trumpCount": 4,
+        "outsideAces": 2,
+        "protectedOutsideTens": 0,
+        "outsideControls": 2,
+        "isPartance": true,
+        "position": "first",
+        "role": "rebid",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 131,
+        "intrinsicBand": "125+",
+        "bidCeiling": 80,
+        "v1": "110-clubs",
+        "v2": "pass",
+        "v2Capped80V1Higher": false,
+        "v2PassV1Bid": true,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "A-hearts",
+          "Q-hearts",
+          "A-diamonds",
+          "K-diamonds",
+          "9-clubs",
+          "A-clubs",
+          "K-clubs",
+          "8-clubs"
+        ],
+        "publicBids": [
+          {
+            "playerId": 2,
+            "action": "bid",
+            "value": 80,
+            "trump": "clubs"
+          },
+          {
+            "playerId": 3,
+            "action": "pass"
+          },
+          {
+            "playerId": 0,
+            "action": "bid",
+            "value": 100,
+            "trump": "diamonds"
+          },
+          {
+            "playerId": 1,
+            "action": "pass"
+          }
+        ],
+        "finalContractTeam": 0,
+        "finalContractValue": 100,
+        "candidateTookContract": true,
+        "contractSucceeded": true
+      },
+      {
+        "gameIndex": 68,
+        "roundNumber": 1,
+        "team": 0,
+        "playerId": 0,
+        "structure": "jack-only",
+        "trumpCount": 4,
+        "outsideAces": 2,
+        "protectedOutsideTens": 0,
+        "outsideControls": 2,
+        "isPartance": true,
+        "position": "first",
+        "role": "opening",
+        "opponentContractPresent": false,
+        "partnerSupportPresent": false,
+        "intrinsicStrength": 148,
+        "intrinsicBand": "125+",
+        "bidCeiling": 80,
+        "v1": "110-diamonds",
+        "v2": "80-diamonds",
+        "v2Capped80V1Higher": true,
+        "v2PassV1Bid": false,
+        "missedCompetitiveOvercall": false,
+        "ownHand": [
+          "A-hearts",
+          "K-hearts",
+          "A-spades",
+          "J-diamonds",
+          "A-diamonds",
+          "10-diamonds",
+          "7-diamonds",
+          "K-clubs"
+        ],
+        "publicBids": [],
+        "finalContractTeam": 1,
+        "finalContractValue": 100,
+        "candidateTookContract": false,
+        "contractSucceeded": null
+      }
+    ]
+  },
+  "privacy": "Examples contain only the acting hand and public auction. No real partner or opponent hand is retained."
+}

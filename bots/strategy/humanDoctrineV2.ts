@@ -79,6 +79,16 @@ export type PartnerInformation = {
   inferredOutsideControls: "unknown" | "possible";
 };
 export type AuctionIntent = "probing-major-trump" | "showing-strong-trump" | "showing-length" | "partner-support" | "partner-supported-rebid" | "competitive-overcall" | "natural-strength";
+export type HandDependency = "partner-dependent" | "semi-autonomous" | "autonomous";
+export type SelectiveProbePolicy = "selective-probe-conservative" | "selective-probe-balanced" | "selective-probe-aggressive";
+export type HandDependencyAnalysis = {
+  classification: HandDependency;
+  autonomyScore: number;
+  policy: SelectiveProbePolicy;
+  autonomousThreshold: number;
+  semiAutonomousThreshold: number;
+  reasons: string[];
+};
 export type BidCeiling = {
   value: BidValue | null;
   intrinsicValue: BidValue | null;
@@ -88,10 +98,13 @@ export type BidCeiling = {
   estimatedMissingHighPoints: number;
   reasons: string[];
 };
-export type HumanDoctrineV2Options = { allow110: boolean; communication?: boolean };
+export type HumanDoctrineV2Options = { allow110: boolean; communication?: boolean; selectiveProbePolicy?: SelectiveProbePolicy };
 export const HUMAN_DOCTRINE_V2_NO110: HumanDoctrineV2Options = { allow110: false, communication: false };
 export const HUMAN_DOCTRINE_V2_110: HumanDoctrineV2Options = { allow110: true, communication: false };
 export const HUMAN_DOCTRINE_V2_COMMUNICATION: HumanDoctrineV2Options = { allow110: true, communication: true };
+export const HUMAN_DOCTRINE_V2_1_CONSERVATIVE: HumanDoctrineV2Options = { allow110: true, communication: true, selectiveProbePolicy: "selective-probe-conservative" };
+export const HUMAN_DOCTRINE_V2_1_BALANCED: HumanDoctrineV2Options = { allow110: true, communication: true, selectiveProbePolicy: "selective-probe-balanced" };
+export const HUMAN_DOCTRINE_V2_1_AGGRESSIVE: HumanDoctrineV2Options = { allow110: true, communication: true, selectiveProbePolicy: "selective-probe-aggressive" };
 
 export type HumanDoctrineV2Trace = {
   evaluations: IntrinsicHandEvaluation[];
@@ -99,6 +112,7 @@ export type HumanDoctrineV2Trace = {
   auction: {
     context: AuctionDecisionContext;
     partnerInference: PartnerInformation;
+    handDependency: HandDependencyAnalysis | null;
     intent: AuctionIntent;
     ceiling: BidCeiling;
     overcallDecision: "open" | "raise" | "pass-insufficient" | "pass-not-higher" | "pass-blocked";
@@ -222,11 +236,66 @@ export function inferPartnerInformation(evaluation: IntrinsicHandEvaluation, con
 export function determineOpeningIntent(evaluation: IntrinsicHandEvaluation, context: AuctionDecisionContext, partner: PartnerInformation): AuctionIntent {
   if (partner.supportKnown && context.auctionRole === "rebid") return "partner-supported-rebid";
   if (partner.supportKnown) return "partner-support";
-  if ((evaluation.trumpStructure.hasJackOnly || evaluation.trumpStructure.hasNineOnly) && context.ownBids.length === 0) return "probing-major-trump";
   if (context.auctionRole === "competitive-overcall") return "competitive-overcall";
+  if ((evaluation.trumpStructure.hasJackOnly || evaluation.trumpStructure.hasNineOnly) && context.ownBids.length === 0) return "probing-major-trump";
   if (evaluation.trumpStructure.hasBoth && evaluation.trumpQuantity >= 3) return "showing-strong-trump";
   if (evaluation.trumpQuantity >= 4) return "showing-length";
   return "natural-strength";
+}
+
+export function classifyHandDependency(
+  evaluation: IntrinsicHandEvaluation,
+  context: AuctionDecisionContext,
+  policy: SelectiveProbePolicy,
+): HandDependencyAnalysis {
+  const reasons: string[] = [];
+  let autonomyScore = evaluation.trumpQuantity >= 5 ? 3 : evaluation.trumpQuantity === 4 ? 2 : evaluation.trumpQuantity === 3 ? 1 : 0;
+  if (evaluation.trumpQuantity >= 4) reasons.push(`${evaluation.trumpQuantity} atouts donnent une base autonome.`);
+  autonomyScore += evaluation.outsideControlCount * 2;
+  if (evaluation.outsideControlCount) reasons.push(`${evaluation.outsideControlCount} controle(s) exterieur(s).`);
+  autonomyScore += evaluation.protectedOutsideTens;
+  if (evaluation.protectedOutsideTens) reasons.push(`${evaluation.protectedOutsideTens} As+10 protege(s).`);
+  if (evaluation.intrinsicHandStrength >= 125) {
+    autonomyScore += 2;
+    reasons.push("Force intrinseque au moins 125.");
+  } else if (evaluation.intrinsicHandStrength >= 94) {
+    autonomyScore += 1;
+    reasons.push("Force intrinseque au moins 94.");
+  }
+  if (evaluation.estimatedMissingHighPoints <= 20) {
+    autonomyScore += 2;
+    reasons.push("Peu de gros points estimes exposes.");
+  } else if (evaluation.estimatedMissingHighPoints <= 30) {
+    autonomyScore += 1;
+  }
+  if (evaluation.voidSuits.length > 0 && evaluation.trumpQuantity >= 4) autonomyScore += 1;
+  if (evaluation.vulnerableToCuts.length > 0) {
+    autonomyScore -= 1;
+    reasons.push("Un 10 exterieur reste vulnerable.");
+  }
+  if (context.isPartance) {
+    autonomyScore += 1;
+    reasons.push("La partance ajoute une marge d'initiative.");
+  }
+  const thresholds = policy === "selective-probe-conservative"
+    ? { autonomous: 10, semi: 7 }
+    : policy === "selective-probe-balanced"
+      ? { autonomous: 8, semi: 5 }
+      : { autonomous: 7, semi: 4 };
+  const classification: HandDependency = autonomyScore >= thresholds.autonomous
+    ? "autonomous"
+    : autonomyScore >= thresholds.semi
+      ? "semi-autonomous"
+      : "partner-dependent";
+  if (!reasons.length) reasons.push("Aucun indice structurel d'autonomie.");
+  return {
+    classification,
+    autonomyScore,
+    policy,
+    autonomousThreshold: thresholds.autonomous,
+    semiAutonomousThreshold: thresholds.semi,
+    reasons,
+  };
 }
 
 function intrinsicContract(score: number, allow110: boolean): BidValue | null {
@@ -249,6 +318,7 @@ export function determineBidCeiling(
   context: AuctionDecisionContext,
   partner: PartnerInformation,
   options: HumanDoctrineV2Options = HUMAN_DOCTRINE_V2_COMMUNICATION,
+  dependency: HandDependencyAnalysis | null = null,
 ): BidCeiling {
   const reasons: string[] = [];
   const intrinsicValue = intrinsicContract(evaluation.intrinsicHandStrength, options.allow110);
@@ -257,15 +327,45 @@ export function determineBidCeiling(
   let partnerSupportBonus = 0;
   let positionAdjustment = 0;
   const structure = evaluation.trumpStructure;
-  if ((structure.hasJackOnly || structure.hasNineOnly) && !partner.supportKnown) {
+  const selectivePolicy = options.selectiveProbePolicy;
+  const communicativeOpening = context.auctionRole === "opening" && !context.currentContract && !partner.supportKnown;
+  if (selectivePolicy && dependency) {
+    if ((structure.hasJackOnly || structure.hasNineOnly) && communicativeOpening) {
+      if (dependency.classification === "partner-dependent") {
+        openingCap = 80;
+        value = lowerBid(value, 80);
+        reasons.push("Main dependante: sondage d'ouverture plafonne a 80.");
+      } else if (dependency.classification === "semi-autonomous") {
+        openingCap = 90;
+        value = lowerBid(value, 90);
+        reasons.push("Main semi-autonome: message conserve sans bloquer toute initiative.");
+      } else {
+        reasons.push("Main autonome: aucun plafond de sondage artificiel.");
+      }
+    }
+    const exceptionalThirtyFour = dependency.classification === "autonomous"
+      && evaluation.outsideControlCount >= 2
+      && evaluation.protectedOutsideTens >= 1;
+    if (structure.hasBoth && structure.trumpCount === 2 && !partner.supportKnown && !exceptionalThirtyFour) {
+      openingCap = 80;
+      value = lowerBid(value, 80);
+      reasons.push("Le 34 reste prudent sans soutien ni main exterieure exceptionnelle.");
+    }
+    if (context.auctionRole === "competitive-overcall" && intrinsicValue !== null && (evaluation.structure !== "thirty-four" || exceptionalThirtyFour)) {
+      value = intrinsicValue;
+      openingCap = null;
+      reasons.push("Le plafond communicatif d'ouverture ne s'applique pas a l'overcall competitif.");
+    }
+  }
+  if (!selectivePolicy && (structure.hasJackOnly || structure.hasNineOnly) && !partner.supportKnown) {
     openingCap = 80; value = lowerBid(value, 80);
     reasons.push("La piece majeure unique est annoncee par un sondage plafonne a 80.");
   }
-  if (structure.hasBoth && structure.trumpCount === 2 && !partner.supportKnown) {
+  if (!selectivePolicy && structure.hasBoth && structure.trumpCount === 2 && !partner.supportKnown) {
     openingCap = 80; value = lowerBid(value, 80);
     reasons.push("Le 34 sans longueur ni soutien ne justifie pas une grosse ouverture.");
   }
-  if (evaluation.structure === "jack-nine-third" && evaluation.outsideControlCount > 0 && !partner.supportKnown) {
+  if (evaluation.structure === "jack-nine-third" && evaluation.outsideControlCount > 0 && !partner.supportKnown && (!selectivePolicy || communicativeOpening)) {
     const cap: BidValue = context.isPartance ? 100 : 90;
     openingCap = cap; value = value === null ? null : cap; positionAdjustment = context.isPartance ? 10 : 0;
     reasons.push(context.isPartance ? "J+9+troisieme avec controle exterieur valorise la partance." : "Sans partance, J+9+troisieme reste prudent face au risque de coupe.");
@@ -329,6 +429,7 @@ function chooseSeparatedV2Bid(
     auction: {
       context,
       partnerInference,
+      handDependency: null,
       intent: selected.trumpQuantity >= 4 ? "showing-length" : "natural-strength",
       ceiling,
       overcallDecision: result.outcome,
@@ -348,10 +449,13 @@ export function chooseHumanDoctrineV2Bid(state: GameState, options: HumanDoctrin
   const plans = evaluations.map((evaluation) => {
     const partner = inferPartnerInformation(evaluation, context);
     const intent = determineOpeningIntent(evaluation, context, partner);
-    const ceiling = determineBidCeiling(evaluation, context, partner, options);
+    const handDependency = options.selectiveProbePolicy
+      ? classifyHandDependency(evaluation, context, options.selectiveProbePolicy)
+      : null;
+    const ceiling = determineBidCeiling(evaluation, context, partner, options, handDependency);
     const supportValue = partner.supportKnown ? 18 : 0;
     const ownSuitContinuity = context.ownBids.some((bid) => bid.trump === evaluation.trump) ? 8 : 0;
-    return { evaluation, partner, intent, ceiling, selectionScore: evaluation.intrinsicHandStrength + supportValue + ownSuitContinuity };
+    return { evaluation, partner, handDependency, intent, ceiling, selectionScore: evaluation.intrinsicHandStrength + supportValue + ownSuitContinuity };
   }).sort((first, second) => second.selectionScore - first.selectionScore || second.evaluation.trumpQuality - first.evaluation.trumpQuality);
   const selected = plans[0];
   const result = chooseAuctionAction(selected.evaluation.trump, selected.ceiling, context);
@@ -362,7 +466,7 @@ export function chooseHumanDoctrineV2Bid(state: GameState, options: HumanDoctrin
   const trace: HumanDoctrineV2Trace = {
     evaluations: evaluations.map((evaluation) => ({ ...evaluation })),
     intrinsic: { evaluation: selected.evaluation, desiredContract: selected.ceiling.intrinsicValue, desiredTrump: selected.evaluation.trump },
-    auction: { context, partnerInference: selected.partner, intent: selected.intent, ceiling: selected.ceiling, overcallDecision: result.outcome, finalAction: result.action, reason },
+    auction: { context, partnerInference: selected.partner, handDependency: selected.handDependency, intent: selected.intent, ceiling: selected.ceiling, overcallDecision: result.outcome, finalAction: result.action, reason },
   };
   return { ...result.action, trace } as HumanDoctrineV2Decision;
 }

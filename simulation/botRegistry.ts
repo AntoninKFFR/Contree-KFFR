@@ -25,6 +25,9 @@ export type BotBiddingStrategyId =
   | "human_doctrine_v2_no110"
   | "human_doctrine_v2_110"
   | "human_doctrine_v2_comm"
+  | "human_doctrine_v2_1_conservative"
+  | "human_doctrine_v2_1_balanced"
+  | "human_doctrine_v2_1_aggressive"
   | "prudent"
   | "balanced"
   | "aggressive"
@@ -76,6 +79,9 @@ export const BIDDING_ENGINES: Record<BotBiddingStrategyId, { label: string; engi
   human_doctrine_v2_no110: { label: "Human doctrine V2 bidding, no 110 (experimental)", engine: { kind: "human-doctrine-v2", options: { allow110: false, communication: false } } },
   human_doctrine_v2_110: { label: "Human doctrine V2 bidding, 110 enabled (experimental)", engine: { kind: "human-doctrine-v2", options: { allow110: true, communication: false } } },
   human_doctrine_v2_comm: { label: "Human doctrine V2 communicative bidding (experimental)", engine: { kind: "human-doctrine-v2", options: { allow110: true, communication: true } } },
+  human_doctrine_v2_1_conservative: { label: "Human doctrine V2.1 selective probe conservative", engine: { kind: "human-doctrine-v2", options: { allow110: true, communication: true, selectiveProbePolicy: "selective-probe-conservative" } } },
+  human_doctrine_v2_1_balanced: { label: "Human doctrine V2.1 selective probe balanced", engine: { kind: "human-doctrine-v2", options: { allow110: true, communication: true, selectiveProbePolicy: "selective-probe-balanced" } } },
+  human_doctrine_v2_1_aggressive: { label: "Human doctrine V2.1 selective probe aggressive", engine: { kind: "human-doctrine-v2", options: { allow110: true, communication: true, selectiveProbePolicy: "selective-probe-aggressive" } } },
   prudent: { label: "Prudent bidding", engine: { kind: "heuristic", profile: "prudent" } },
   balanced: { label: "Balanced bidding", engine: { kind: "heuristic", profile: "balanced" } },
   aggressive: { label: "Aggressive bidding", engine: { kind: "heuristic", profile: "aggressive" } },
@@ -154,6 +160,12 @@ export const HUMAN_DOCTRINE_V2_COMM_STRATEGY = createHybridStrategy("human_doctr
   status: "experimental",
 });
 
+export const HUMAN_DOCTRINE_V2_1_STRATEGIES = [
+  createHybridStrategy("human_doctrine_v2_1_conservative", "monte_carlo_v1", { id: "human_doctrine_v2_1_conservative_mc_v1", status: "experimental" }),
+  createHybridStrategy("human_doctrine_v2_1_balanced", "monte_carlo_v1", { id: "human_doctrine_v2_1_balanced_mc_v1", status: "experimental" }),
+  createHybridStrategy("human_doctrine_v2_1_aggressive", "monte_carlo_v1", { id: "human_doctrine_v2_1_aggressive_mc_v1", status: "experimental" }),
+];
+
 export const ACTIVE_BOT_STRATEGIES: BotStrategyDefinition[] = [
   ...(Object.keys(BOT_PROFILES) as BotProfileId[]).map(activeDefinition),
   HUMAN_DOCTRINE_V1_STRATEGY,
@@ -176,7 +188,7 @@ export const LEGACY_BOT_STRATEGIES: BotStrategyDefinition[] = [
   },
 ];
 
-export const ALL_BOT_STRATEGIES = [...ACTIVE_BOT_STRATEGIES, HUMAN_DOCTRINE_V2_COMM_STRATEGY, ...LEGACY_BOT_STRATEGIES];
+export const ALL_BOT_STRATEGIES = [...ACTIVE_BOT_STRATEGIES, HUMAN_DOCTRINE_V2_COMM_STRATEGY, ...HUMAN_DOCTRINE_V2_1_STRATEGIES, ...LEGACY_BOT_STRATEGIES];
 
 export function findBotStrategy(id: string): BotStrategyDefinition {
   const strategy = ALL_BOT_STRATEGIES.find((candidate) => candidate.id === id);

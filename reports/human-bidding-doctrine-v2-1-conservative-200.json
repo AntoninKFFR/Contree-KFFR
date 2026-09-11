@@ -1,0 +1,123 @@
+{
+  "experiment": "Human bidding doctrine V2.1 short selective-probe variants",
+  "generatedAt": "2026-09-11T16:55:37.774Z",
+  "settings": {
+    "scoringMode": "ffb",
+    "targetScore": 1000,
+    "gamesPerVariant": 200,
+    "seeds": [
+      20261201,
+      20262201,
+      20263201,
+      20264201,
+      20265201
+    ],
+    "pairedDeals": true,
+    "invertedSides": true,
+    "cardEngine": "monte-carlo-v1"
+  },
+  "baseline": {
+    "v1ContractsTakenInPrior200": 900,
+    "v2ContractsTakenInPrior200": 307
+  },
+  "variants": [
+    {
+      "id": "human_doctrine_v2_1_conservative_mc_v1",
+      "policy": "selective-probe-conservative",
+      "result": {
+        "candidate": {
+          "games": 200,
+          "wins": 100,
+          "losses": 100,
+          "winRate": 0.5,
+          "averageScore": 860.3,
+          "averageDifferential": 16.9,
+          "contractsTaken": 517,
+          "contractsSucceeded": 406,
+          "attackSuccessRate": 0.7852998065764023,
+          "averageContract": 104.79690522243713,
+          "defenseRounds": 611,
+          "defensiveSets": 148,
+          "defenseSetRate": 0.24222585924713586,
+          "averageBidMs": 0.06143335552680258,
+          "p95BidMs": 0.1110000000007858,
+          "averageCpuMsPerGame": 2426.895,
+          "confidence95": {
+            "low": 0.4307035354437183,
+            "high": 0.5692964645562817
+          }
+        },
+        "champion": {
+          "games": 200,
+          "wins": 100,
+          "losses": 100,
+          "winRate": 0.5,
+          "averageScore": 843.4,
+          "averageDifferential": -16.9,
+          "contractsTaken": 611,
+          "contractsSucceeded": 463,
+          "attackSuccessRate": 0.7577741407528642,
+          "averageContract": 103.09328968903436,
+          "defenseRounds": 517,
+          "defensiveSets": 111,
+          "defenseSetRate": 0.21470019342359767,
+          "averageBidMs": 0.029308189509421472,
+          "p95BidMs": 0.05829999997513369,
+          "averageCpuMsPerGame": 2425.825
+        },
+        "contractShare": 0.4583333333333333,
+        "perSeed": [
+          {
+            "seed": 20261201,
+            "games": 40,
+            "wins": 20,
+            "losses": 20,
+            "winRate": 0.5
+          },
+          {
+            "seed": 20262201,
+            "games": 40,
+            "wins": 20,
+            "losses": 20,
+            "winRate": 0.5
+          },
+          {
+            "seed": 20263201,
+            "games": 40,
+            "wins": 21,
+            "losses": 19,
+            "winRate": 0.525
+          },
+          {
+            "seed": 20264201,
+            "games": 40,
+            "wins": 20,
+            "losses": 20,
+            "winRate": 0.5
+          },
+          {
+            "seed": 20265201,
+            "games": 40,
+            "wins": 19,
+            "losses": 21,
+            "winRate": 0.475
+          }
+        ]
+      },
+      "initiative": {
+        "decisions": 3004,
+        "passesWhileBidWasAvailable": 1946,
+        "probing80Count": 267,
+        "autonomousHandsCappedAt80": 0,
+        "competitiveOvercallsAttempted": 204,
+        "competitiveOvercallsPassed": 851,
+        "partnerSupportedRaises": 117,
+        "dependency": {
+          "partner-dependent": 2337,
+          "semi-autonomous": 559,
+          "autonomous": 108
+        }
+      }
+    }
+  ]
+}
