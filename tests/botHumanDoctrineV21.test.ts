@@ -119,6 +119,6 @@ describe("human doctrine V2.1 initiative", () => {
     for (const id of ["human_doctrine_v2_1_conservative_mc_v1", "human_doctrine_v2_1_balanced_mc_v1", "human_doctrine_v2_1_aggressive_mc_v1"]) {
       expect(findBotStrategy(id)).toMatchObject({ status: "experimental", card: { kind: "monte-carlo-v1" } });
     }
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_conversation_mc_v1");
+    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_1_conversation_mc_v1");
   });
 });

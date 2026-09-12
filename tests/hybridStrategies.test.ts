@@ -15,9 +15,10 @@ describe("hybrid bot composition", () => {
       CARD_ENGINE_IDS.map((card) => createHybridStrategy(bidding, card)),
     );
 
-    expect(BIDDING_ENGINE_IDS).toHaveLength(16);
+    expect(BIDDING_ENGINE_IDS).toHaveLength(17);
     expect(BIDDING_ENGINE_IDS).toContain("human_doctrine_v1");
     expect(BIDDING_ENGINE_IDS).toContain("human_doctrine_v2_no110");
+    expect(BIDDING_ENGINE_IDS).toContain("human_doctrine_v3_1_conversation");
     expect(BIDDING_ENGINE_IDS).toContain("human_doctrine_v2_comm");
     expect(BIDDING_ENGINE_IDS).toContain("human_doctrine_v2_110");
     expect(BIDDING_ENGINE_IDS).toContain("human_doctrine_v2_1_balanced");

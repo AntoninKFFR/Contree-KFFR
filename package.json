@@ -24,6 +24,7 @@
     "diagnose:human-doctrine-v2-initiative": "vite-node --config vitest.config.ts scripts/diagnoseHumanDoctrineV2Initiative.ts",
     "benchmark:human-doctrine-v2-1": "vite-node --config vitest.config.ts scripts/benchmarkHumanDoctrineV21.ts",
     "benchmark:auction-doctrine-v3": "vite-node --config vitest.config.ts scripts/benchmarkAuctionDoctrineV3.ts",
+    "benchmark:auction-doctrine-v3-1-smoke": "vite-node --config vitest.config.ts scripts/benchmarkAuctionDoctrineV31Smoke.ts",
     "benchmark:ffb-recalibration": "vite-node --config vitest.config.ts scripts/recalibrateBotsFfb.ts",
     "benchmark:ffb-merge": "vite-node --config vitest.config.ts scripts/mergeFfbScreening.ts",
     "test": "vitest run",

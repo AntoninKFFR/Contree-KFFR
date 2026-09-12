@@ -4,6 +4,7 @@ import { chooseMonteCarloV3CardToPlay } from "@/bots/strategy/monteCarloV3CardSt
 import { chooseProfileBid } from "@/bots/strategy/biddingStrategy";
 import { chooseHumanDoctrineBid } from "@/bots/strategy/humanDoctrine";
 import { chooseHumanDoctrineV3Bid, type HumanDoctrineV3Trace } from "@/bots/strategy/humanDoctrineV3";
+import { chooseHumanDoctrineV31Bid } from "@/bots/strategy/humanDoctrineV31";
 import { chooseSimpleBid as chooseLegacyBid } from "@/bots/heuristicBot 2";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import { getCurrentContract } from "@/engine/game";
@@ -12,7 +13,8 @@ import type { BidValue, Card, GameState, Suit } from "@/engine/types";
 
 export function chooseBotCard(state: GameState): Card {
   if (
-    OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_conversation_mc_v1"
+    OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_1_conversation_mc_v1"
+    || OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_conversation_mc_v1"
     || OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v1_mc_v1"
     || OFFICIAL_BOT_PROFILE_ID === "hybrid_legacy_v1"
   ) return chooseMonteCarloCardToPlay(state);
@@ -68,6 +70,10 @@ export function chooseBotBidWithTrace(state: GameState): {
   bid: OfficialBotBid;
   biddingTrace?: HumanDoctrineV3Trace;
 } {
+  if (OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_1_conversation_mc_v1") {
+    const decision = chooseHumanDoctrineV31Bid(state);
+    return { bid: normalizeBotBid(state, decision), biddingTrace: decision.trace };
+  }
   if (OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_conversation_mc_v1") {
     const decision = chooseHumanDoctrineV3Bid(state);
     return { bid: normalizeBotBid(state, decision), biddingTrace: decision.trace };

@@ -5,6 +5,7 @@ import { AnalysisCardList } from "@/components/BotHandAnalysis";
 import { formatCard, SUIT_LABELS } from "@/engine/cards";
 import type { BotReviewBundleV2, BotReviewScenarioV1 } from "@/bots/botReview";
 import { serializeBotReviewBundle, serializeBotReviewScenario } from "@/bots/botReview";
+import type { HumanDoctrineV31Trace } from "@/bots/strategy/humanDoctrineV31";
 import type { PlayerId } from "@/engine/types";
 
 type BotReviewPanelProps = {
@@ -77,6 +78,11 @@ export function BotReviewPanel({ scenario, onClose, createFullBundle }: BotRevie
   const v3Trace = biddingTrace && "version" in biddingTrace && biddingTrace.version === 3
     ? biddingTrace
     : null;
+  const v31Trace: HumanDoctrineV31Trace | null = v3Trace
+    && "doctrineVersion" in v3Trace
+    && v3Trace.doctrineVersion === "3.1"
+    ? v3Trace as HumanDoctrineV31Trace
+    : null;
 
   return (
     <aside className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-stone-900 shadow-sm" aria-label="Analyse du dernier coup du bot">
@@ -144,6 +150,13 @@ export function BotReviewPanel({ scenario, onClose, createFullBundle }: BotRevie
             <dt className="font-semibold">Plafond de rebid :</dt><dd>{v3Trace.rebidCeiling ?? "Aucun"}</dd>
             <dt className="font-semibold">Intention :</dt><dd>{v3Trace.communicationIntent}</dd>
             <dt className="font-semibold">Raison :</dt><dd>{v3Trace.reason}</dd>
+            {v31Trace ? (
+              <>
+                <dt className="font-semibold">Plafond premier message :</dt><dd>{v31Trace.firstMessageCeiling ?? "Aucun"}</dd>
+                <dt className="font-semibold">Escalade après fit :</dt><dd>{v31Trace.fitEscalation}</dd>
+                <dt className="font-semibold">Palier de rebid choisi :</dt><dd>{v31Trace.selectedRebidStep ?? "Aucun"}</dd>
+              </>
+            ) : null}
           </dl>
         </section>
       ) : null}

@@ -99,7 +99,7 @@ describe("solo bot hand analysis", () => {
     expect(markup).toContain(`data-card-id="${cardId(chosenCard)}" data-chosen="true"`);
   });
 
-  it("renders every available official V3 auction diagnostic", () => {
+  it("renders every available official V3.1 auction diagnostic", () => {
     const state = createInitialGame(createSeededRandom(8203));
     const { bid, biddingTrace } = chooseBotBidWithTrace(state);
     const scenario = captureBotReviewScenario(state, {
@@ -122,6 +122,9 @@ describe("solo bot hand analysis", () => {
       "Plafond de rebid",
       "Intention",
       "Raison",
+      "Plafond premier message",
+      "Escalade après fit",
+      "Palier de rebid choisi",
     ]) {
       expect(markup).toContain(label);
     }

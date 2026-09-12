@@ -216,7 +216,7 @@ describe("human doctrine V2 communicative bidding", () => {
       bidding: { kind: "human-doctrine-v2", options: { allow110: true, communication: true } },
       card: { kind: "monte-carlo-v1" },
     });
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_conversation_mc_v1");
+    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_1_conversation_mc_v1");
     expect(analyzeAuctionContext(stateWith({ hand: jackOnlyStrong })).publicBids).toEqual([]);
   });
 

@@ -79,14 +79,14 @@ describe("bot profiles", () => {
     expect(chooseBotBid(state)).toEqual({ action: "pass" });
   });
 
-  it("promotes V3 by product decision while keeping historical profiles available", () => {
+  it("promotes V3.1 by product decision while keeping historical profiles available", () => {
     expect(EXPERIMENTAL_BOT_PROFILE_IDS).toContain("main_montecarlo_v3");
     expect(EXPERIMENTAL_BOT_PROFILE_IDS).toContain("main_montecarlo_v3_1");
     expect(EXPERIMENTAL_BOT_PROFILE_IDS).not.toContain("hybrid_legacy_v1");
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_conversation_mc_v1");
+    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_1_conversation_mc_v1");
     expect(findBotStrategy(OFFICIAL_BOT_PROFILE_ID)).toMatchObject({
       status: "active",
-      bidding: { kind: "human-doctrine-v3" },
+      bidding: { kind: "human-doctrine-v3-1" },
       card: { kind: "monte-carlo-v1" },
     });
   });

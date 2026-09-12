@@ -101,7 +101,7 @@ describe("human bot decision review", () => {
     expect(chooseBotCard(reconstructed)).toEqual(chosenCard);
   });
 
-  it("captures the official V3 bidding trace and rejects a forged illegal chosen card", () => {
+  it("captures the official V3.1 bidding trace and rejects a forged illegal chosen card", () => {
     const bidding = createInitialGame(createSeededRandom(8102));
     const { bid: chosenBid, biddingTrace } = chooseBotBidWithTrace(bidding);
     const bidScenario = captureBotReviewScenario(bidding, {
@@ -115,10 +115,11 @@ describe("human bot decision review", () => {
       currentPlayerId: bidding.currentPlayerId,
     });
     expect(bidScenario.legalCards).toEqual([]);
-    expect(bidScenario.botProfile).toBe("human_doctrine_v3_conversation_mc_v1");
-    expect(bidScenario.decisionEngine).toBe("auction_doctrine_v3");
+    expect(bidScenario.botProfile).toBe("human_doctrine_v3_1_conversation_mc_v1");
+    expect(bidScenario.decisionEngine).toBe("auction_doctrine_v3_1");
     expect(bidScenario.trace.bidding).toMatchObject({
       version: 3,
+      doctrineVersion: "3.1",
       trumpFoundation: expect.any(String),
       partnerFit: expect.any(String),
       partnerSuitOverride: expect.any(String),
