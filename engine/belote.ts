@@ -11,6 +11,7 @@ export function playBeloteCard(
   playerId: PlayerId,
   card: Card,
   trump: Suit,
+  points = 20,
 ): BeloteState {
   const current = state ?? emptyBeloteState();
   if (card.suit !== trump || (card.rank !== "K" && card.rank !== "Q")) return current;
@@ -34,6 +35,6 @@ export function playBeloteCard(
 
   return {
     declaration: { ...declaration, completed: true },
-    pointsByTeam: { ...current.pointsByTeam, [declaration.teamId]: 20 },
+    pointsByTeam: { ...current.pointsByTeam, [declaration.teamId]: points },
   };
 }

@@ -22,6 +22,7 @@ import {
   SOLO_SEAT_ASSIGNMENTS,
 } from "@/engine/seats";
 import type { BidValue, Card, GameState, Suit } from "@/engine/types";
+import { resolveGameRules } from "@/engine/rulesets/resolve";
 import { saveCompletedGame } from "@/lib/games";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import {
@@ -68,8 +69,9 @@ export default function SoloPage() {
     gameState?.phase === "bidding" &&
     isHumanSeat(soloSeatAssignments, gameState.currentPlayerId);
   const currentContract = useMemo(() => gameState ? getCurrentContract(gameState) : null, [gameState]);
-  const humanCanCoinche = humanCanBid && canCoinche(localHumanPlayerId, currentContract);
-  const humanCanSurcoinche = humanCanBid && canSurcoinche(localHumanPlayerId, currentContract);
+  const gameRules = useMemo(() => gameState ? resolveGameRules(gameState.settings) : null, [gameState]);
+  const humanCanCoinche = humanCanBid && canCoinche(localHumanPlayerId, currentContract, gameRules?.bidding);
+  const humanCanSurcoinche = humanCanBid && canSurcoinche(localHumanPlayerId, currentContract, gameRules?.bidding);
   const legalHumanCards = useMemo(() => {
     if (!humanCanPlay || !gameState) return [];
     return playableCardsForCurrentPlayer(gameState);
@@ -346,6 +348,7 @@ export default function SoloPage() {
                   ? gameState.phase === "bidding"
                     ? (
                         <BiddingPanel
+                          biddingRules={gameRules?.bidding}
                           canBid={humanCanBid}
                           canCoinche={humanCanCoinche}
                           canSurcoinche={humanCanSurcoinche}
@@ -423,6 +426,7 @@ export default function SoloPage() {
 
             {!isMobileLandscape && gameState.phase === "bidding" ? (
               <BiddingPanel
+                biddingRules={gameRules?.bidding}
                 canBid={humanCanBid}
                 canCoinche={humanCanCoinche}
                 canSurcoinche={humanCanSurcoinche}

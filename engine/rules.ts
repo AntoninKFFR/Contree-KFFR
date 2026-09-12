@@ -1,4 +1,6 @@
 import { RANKS, sameCard } from "./cards";
+import { CONTREE_KFFR_RULESET } from "./rulesets/presets";
+import type { GameRulesetSnapshot } from "./rulesets/types";
 import type { Card, PlayedCard, PlayerId, Suit, TeamId, Trick } from "./types";
 
 const NORMAL_POINTS: Record<Card["rank"], number> = {
@@ -62,9 +64,12 @@ export function trickPoints(
   trump: Suit,
   isLastTrick: boolean,
   isCapot = false,
+  rules: GameRulesetSnapshot["trickScoring"] = CONTREE_KFFR_RULESET.trickScoring,
 ): number {
   const cardsPoints = cards.reduce((total, played) => total + cardPoints(played.card, trump), 0);
-  return isLastTrick ? cardsPoints + (isCapot ? 100 : 10) : cardsPoints;
+  return isLastTrick
+    ? cardsPoints + (isCapot ? rules.capotLastTrickBonus : rules.lastTrickBonus)
+    : cardsPoints;
 }
 
 function highestTrumpInTrick(trick: Trick, trump: Suit): Card | null {
@@ -93,6 +98,7 @@ export function getLegalCards(
   trick: Trick,
   playerId: PlayerId,
   trump: Suit,
+  rules: GameRulesetSnapshot["cardPlay"] = CONTREE_KFFR_RULESET.cardPlay,
 ): Card[] {
   if (trick.cards.length === 0) {
     return hand;
@@ -102,9 +108,10 @@ export function getLegalCards(
   const matchingSuit = hand.filter((card) => card.suit === requestedSuit);
 
   if (matchingSuit.length > 0) {
+    if (!rules.mustFollowSuit) return hand;
     if (requestedSuit === trump) {
       const higherTrumps = strongerTrumps(hand, trump, highestTrumpInTrick(trick, trump));
-      return higherTrumps.length > 0 ? higherTrumps : matchingSuit;
+      return rules.mustRaiseAtTrump && higherTrumps.length > 0 ? higherTrumps : matchingSuit;
     }
 
     return matchingSuit;
@@ -112,7 +119,7 @@ export function getLegalCards(
 
   const trumpCards = hand.filter((card) => card.suit === trump);
 
-  if (trumpCards.length === 0) {
+  if (trumpCards.length === 0 || !rules.mustTrumpWhenVoid) {
     return hand;
   }
 
@@ -121,12 +128,14 @@ export function getLegalCards(
 
   // Quand le partenaire est maitre du pli, on peut "pisser":
   // le joueur n'est pas oblige de couper.
-  if (partnerIsWinning) {
+  if (partnerIsWinning && rules.allowDiscardWhenPartnerWinning) {
     return hand;
   }
 
+  if (!rules.mustOvertrump) return trumpCards;
   const higherTrumps = strongerTrumps(hand, trump, highestTrumpInTrick(trick, trump));
-  return higherTrumps.length > 0 ? higherTrumps : hand;
+  if (higherTrumps.length > 0) return higherTrumps;
+  return rules.allowDiscardWhenCannotOvertrump ? hand : trumpCards;
 }
 
 export function isLegalCard(
@@ -135,8 +144,9 @@ export function isLegalCard(
   card: Card,
   playerId: PlayerId,
   trump: Suit,
+  rules: GameRulesetSnapshot["cardPlay"] = CONTREE_KFFR_RULESET.cardPlay,
 ): boolean {
-  return getLegalCards(hand, trick, playerId, trump).some((legalCard) => sameCard(legalCard, card));
+  return getLegalCards(hand, trick, playerId, trump, rules).some((legalCard) => sameCard(legalCard, card));
 }
 
 export function compareCards(

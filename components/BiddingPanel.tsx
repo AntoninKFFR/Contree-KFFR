@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { SUIT_LABELS, SUIT_SYMBOLS, SUITS } from "@/engine/cards";
 import { canBidCapot, getAvailableBidValues } from "@/engine/bidding";
+import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import type { BidValue, Contract, Suit } from "@/engine/types";
 
 type BiddingPanelProps = {
@@ -10,6 +11,7 @@ type BiddingPanelProps = {
   canCoinche: boolean;
   canSurcoinche: boolean;
   currentContract: Contract | null;
+  biddingRules?: GameRulesetSnapshot["bidding"];
   compact?: boolean;
   onBid: (value: BidValue, trump: Suit) => void;
   onCapot: (trump: Suit) => void;
@@ -24,6 +26,7 @@ export function BiddingPanel({
   canSurcoinche,
   compact = false,
   currentContract,
+  biddingRules,
   onBid,
   onCapot,
   onCoinche,
@@ -31,14 +34,14 @@ export function BiddingPanel({
   onSurcoinche,
 }: BiddingPanelProps) {
   const availableValues = useMemo(
-    () => getAvailableBidValues(currentContract),
-    [currentContract],
+    () => getAvailableBidValues(currentContract, biddingRules),
+    [biddingRules, currentContract],
   );
   const [value, setValue] = useState<BidValue | "">(availableValues[0] ?? "");
   const [trump, setTrump] = useState<Suit>("hearts");
 
   const canMakeBid = canBid && availableValues.length > 0;
-  const canMakeCapot = canBid && canBidCapot(currentContract);
+  const canMakeCapot = canBid && canBidCapot(currentContract, biddingRules);
 
   useEffect(() => {
     if (value === "" || !availableValues.includes(value)) {

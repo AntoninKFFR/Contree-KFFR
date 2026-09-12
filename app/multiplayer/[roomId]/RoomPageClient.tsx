@@ -12,6 +12,7 @@ import { ScoreBoard } from "@/components/ScoreBoard";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import { teamName } from "@/engine/players";
 import { getLegalCards } from "@/engine/rules";
+import { resolveGameRules } from "@/engine/rulesets/resolve";
 import type { BidValue, Card, Suit } from "@/engine/types";
 import type { PlayerGameView } from "@/engine/views";
 import { PRESENCE_HEARTBEAT_INTERVAL_MS } from "@/lib/multiplayerPresence";
@@ -141,11 +142,12 @@ export default function MultiplayerRoomPage() {
       playerView.currentPlayerId === currentSeat.seat_index,
   );
   const currentContract = playerView?.contract ?? null;
+  const gameRules = playerView ? resolveGameRules(playerView.settings) : null;
   const canBidCoinche = Boolean(
-    currentSeat && canBid && canCoinche(currentSeat.seat_index, currentContract),
+    currentSeat && canBid && canCoinche(currentSeat.seat_index, currentContract, gameRules?.bidding),
   );
   const canBidSurcoinche = Boolean(
-    currentSeat && canBid && canSurcoinche(currentSeat.seat_index, currentContract),
+    currentSeat && canBid && canSurcoinche(currentSeat.seat_index, currentContract, gameRules?.bidding),
   );
   const legalCards = canPlayCard && playerView?.trump
     ? getLegalCards(
@@ -153,6 +155,7 @@ export default function MultiplayerRoomPage() {
         playerView.currentTrick,
         playerView.viewerPlayerId,
         playerView.trump,
+        gameRules?.cardPlay,
       )
     : [];
 
@@ -889,6 +892,7 @@ export default function MultiplayerRoomPage() {
                         ? playerView.phase === "bidding"
                           ? (
                               <BiddingPanel
+                                biddingRules={gameRules?.bidding}
                                 canBid={canBid && !isPlayingCard}
                                 canCoinche={canBidCoinche && !isPlayingCard}
                                 canSurcoinche={canBidSurcoinche && !isPlayingCard}
@@ -924,6 +928,7 @@ export default function MultiplayerRoomPage() {
 
                   {!isMobileLandscape && playerView.phase === "bidding" ? (
                     <BiddingPanel
+                      biddingRules={gameRules?.bidding}
                       canBid={canBid && !isPlayingCard}
                       canCoinche={canBidCoinche && !isPlayingCard}
                       canSurcoinche={canBidSurcoinche && !isPlayingCard}

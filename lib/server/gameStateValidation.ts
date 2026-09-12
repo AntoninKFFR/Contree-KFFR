@@ -1,5 +1,6 @@
 import "server-only";
 import type { Card, GameState, PlayerId, Rank, Suit } from "@/engine/types";
+import { normalizeGameSettings } from "@/engine/rulesets/resolve";
 
 const SUITS = new Set<Suit>(["clubs", "diamonds", "hearts", "spades"]);
 const RANKS = new Set<Rank>(["7", "8", "9", "J", "Q", "K", "10", "A"]);
@@ -54,5 +55,9 @@ export function parseServerGameState(value: unknown): GameState {
   if (!Array.isArray(value.bids) || !Array.isArray(value.completedTricks) || !object(value.currentTrick)) {
     throw new Error("Stored game history is invalid.");
   }
-  return value as GameState;
+  if (!object(value.settings)) throw new Error("Stored game settings are invalid.");
+  return {
+    ...(value as GameState),
+    settings: normalizeGameSettings(value.settings),
+  };
 }

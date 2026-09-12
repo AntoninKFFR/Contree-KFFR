@@ -1,10 +1,16 @@
 import type { Contract, GameSettings, RoundResult, TeamId } from "./types";
+import { CONTREE_KFFR_RULESET } from "./rulesets/presets";
+import { resolveGameRules } from "./rulesets/resolve";
+import type { GameRulesetSnapshot } from "./rulesets/types";
 
 const ZERO_POINTS: Record<TeamId, number> = { 0: 0, 1: 0 };
 
-export function contractMultiplier(contract: Contract): 1 | 2 | 4 {
-  if (contract.status === "surcoinched") return 4;
-  if (contract.status === "coinched") return 2;
+export function contractMultiplier(
+  contract: Contract,
+  rules: GameRulesetSnapshot["scoring"] = CONTREE_KFFR_RULESET.scoring,
+): number {
+  if (contract.status === "surcoinched") return rules.surcoincheMultiplier;
+  if (contract.status === "coinched") return rules.coincheMultiplier;
   return 1;
 }
 
@@ -27,18 +33,24 @@ function scoreFfb({
   multiplier,
   takerTeam,
   totalPoints,
+  rules,
 }: {
   belotePoints: Record<TeamId, number>;
   capotTeam: TeamId | null;
   contract: Contract;
   contractSucceeded: boolean;
   defenderTeam: TeamId;
-  multiplier: 1 | 2 | 4;
+  multiplier: number;
   takerTeam: TeamId;
   totalPoints: Record<TeamId, number>;
+  rules: GameRulesetSnapshot;
 }): Record<TeamId, number> {
   const contractAmount = contract.value;
-  const regulatoryBase = contract.kind === "capot" || capotTeam !== null ? 250 : 160;
+  const regulatoryBase = contract.kind === "capot" || capotTeam !== null
+    ? rules.scoring.capotBasePoints
+    : rules.scoring.failureBasePoints;
+  const takerBelote = rules.belote.enabled ? belotePoints[takerTeam] : 0;
+  const defenderBelote = rules.belote.enabled ? belotePoints[defenderTeam] : 0;
   let raw: Record<TeamId, number>;
 
   if (contractSucceeded && multiplier === 1) {
@@ -55,30 +67,33 @@ function scoreFfb({
       [takerTeam]: (
         regulatoryBase
         + contractAmount
-        + belotePoints[takerTeam]
+        + takerBelote
       ) * multiplier,
-      [defenderTeam]: belotePoints[defenderTeam],
+      [defenderTeam]: defenderBelote,
     };
   } else {
     raw = {
       0: 0,
       1: 0,
-      [takerTeam]: belotePoints[takerTeam],
+      [takerTeam]: rules.belote.countsForContractFailure ? takerBelote : 0,
       [defenderTeam]: (
         regulatoryBase
         + contractAmount
-        + belotePoints[defenderTeam]
+        + defenderBelote
       ) * multiplier,
     };
   }
 
-  return { 0: roundFfbScore(raw[0]), 1: roundFfbScore(raw[1]) };
+  return rules.scoring.roundToTen
+    ? { 0: roundFfbScore(raw[0]), 1: roundFfbScore(raw[1]) }
+    : raw;
 }
 
 export function scoreRound({
   belotePointsByTeam = ZERO_POINTS,
   contract,
   settings,
+  rules: explicitRules,
   trickPointsByTeam,
   tricksWonByTeam = ZERO_POINTS,
 }: {
@@ -87,27 +102,40 @@ export function scoreRound({
   belotePointsByTeam?: Record<TeamId, number>;
   contract: Contract;
   settings: GameSettings;
+  rules?: GameRulesetSnapshot;
   trickPointsByTeam: Record<TeamId, number>;
   tricksWonByTeam?: Record<TeamId, number>;
 }): Extract<RoundResult, { kind: "played" }> {
+  const rules = explicitRules
+    ? resolveGameRules({ ruleset: explicitRules })
+    : resolveGameRules(settings);
   const takerTeam = contract.teamId;
   const defenderTeam = takerTeam === 0 ? 1 : 0;
   const capotTeam = capotTeamFrom(tricksWonByTeam);
+  const awardedBelotePoints: Record<TeamId, number> = rules.belote.enabled
+    ? { ...belotePointsByTeam }
+    : { ...ZERO_POINTS };
   const totalPointsByTeam: Record<TeamId, number> = {
-    0: trickPointsByTeam[0] + belotePointsByTeam[0],
-    1: trickPointsByTeam[1] + belotePointsByTeam[1],
+    0: trickPointsByTeam[0] + awardedBelotePoints[0],
+    1: trickPointsByTeam[1] + awardedBelotePoints[1],
+  };
+  const contractPointsByTeam: Record<TeamId, number> = {
+    0: trickPointsByTeam[0] + (rules.belote.countsForContractSuccess ? awardedBelotePoints[0] : 0),
+    1: trickPointsByTeam[1] + (rules.belote.countsForContractSuccess ? awardedBelotePoints[1] : 0),
   };
   const takerPoints = totalPointsByTeam[takerTeam];
   const defenderPoints = totalPointsByTeam[defenderTeam];
   const contractSucceeded = contract.kind === "capot"
     ? capotTeam === takerTeam
-    : takerPoints >= contract.value && takerPoints > defenderPoints;
-  const multiplier = contractMultiplier(contract);
+    : (!rules.contractSuccess.mustReachBid || contractPointsByTeam[takerTeam] >= contract.value)
+      && (!rules.contractSuccess.mustBeatDefense
+        || contractPointsByTeam[takerTeam] > contractPointsByTeam[defenderTeam]);
+  const multiplier = contractMultiplier(contract, rules.scoring);
   const contractScore = contract.value * multiplier;
 
-  const roundScore: Record<TeamId, number> = settings.scoringMode === "ffb"
+  const roundScore: Record<TeamId, number> = rules.scoring.mode === "ffb"
     ? scoreFfb({
-        belotePoints: belotePointsByTeam,
+        belotePoints: awardedBelotePoints,
         capotTeam,
         contract,
         contractSucceeded,
@@ -115,8 +143,9 @@ export function scoreRound({
         multiplier,
         takerTeam,
         totalPoints: totalPointsByTeam,
+        rules,
       })
-    : settings.scoringMode === "announced-points"
+    : rules.scoring.mode === "contract-only"
       ? scoreAnnouncedPoints({ contractScore, contractSucceeded, defenderTeam, takerTeam })
       : scoreMadePoints({
           contractScore,
@@ -125,6 +154,7 @@ export function scoreRound({
           defenderTeam,
           takerPoints,
           takerTeam,
+          failureBasePoints: rules.scoring.failureBasePoints,
         });
 
   return {
@@ -134,7 +164,7 @@ export function scoreRound({
     defenderPoints,
     trickPointsByTeam: { ...trickPointsByTeam },
     announcementPointsByTeam: { ...ZERO_POINTS },
-    belotePointsByTeam: { ...belotePointsByTeam },
+    belotePointsByTeam: awardedBelotePoints,
     totalPointsByTeam,
     capotTeam,
     contractSucceeded,
@@ -167,6 +197,7 @@ function scoreMadePoints({
   defenderTeam,
   takerPoints,
   takerTeam,
+  failureBasePoints,
 }: {
   contractScore: number;
   contractSucceeded: boolean;
@@ -174,8 +205,9 @@ function scoreMadePoints({
   defenderTeam: TeamId;
   takerPoints: number;
   takerTeam: TeamId;
+  failureBasePoints: number;
 }): Record<TeamId, number> {
   return contractSucceeded
     ? { 0: 0, 1: 0, [takerTeam]: takerPoints + contractScore, [defenderTeam]: defenderPoints }
-    : { 0: 0, 1: 0, [defenderTeam]: 162 + contractScore };
+    : { 0: 0, 1: 0, [defenderTeam]: failureBasePoints + contractScore };
 }

@@ -1,3 +1,5 @@
+import type { GameRulesetSnapshot } from "./rulesets/types";
+
 export type Suit = "clubs" | "diamonds" | "hearts" | "spades";
 
 export type Rank = "7" | "8" | "9" | "J" | "Q" | "K" | "10" | "A";
@@ -19,6 +21,8 @@ export type ContractStatus = "normal" | "coinched" | "surcoinched";
 export type GameSettings = {
   scoringMode: ScoringMode;
   targetScore: number;
+  /** Absent only on historical states; every newly created game stores a frozen snapshot. */
+  ruleset?: GameRulesetSnapshot;
 };
 
 export type Card = {
@@ -124,7 +128,7 @@ export type RoundResult =
       capotTeam: TeamId | null;
       contractSucceeded: boolean;
       scoringMode: ScoringMode;
-      multiplier: 1 | 2 | 4;
+      multiplier: number;
       roundScore: Record<TeamId, number>;
     }
   | {

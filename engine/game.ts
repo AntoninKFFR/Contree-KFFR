@@ -19,6 +19,7 @@ import {
   trickPoints,
 } from "./rules";
 import { scoreRound } from "./scoring";
+import { normalizeGameSettings, resolveGameRules } from "./rulesets/resolve";
 import type {
   Bid,
   BidValue,
@@ -32,19 +33,6 @@ import type {
 } from "./types";
 
 type PlayerNames = Record<PlayerId, string>;
-
-function defaultTargetScore(scoringMode: GameSettings["scoringMode"]): number {
-  return scoringMode === "announced-points" ? 500 : 1000;
-}
-
-function resolveSettings(settings: Partial<GameSettings>): GameSettings {
-  const scoringMode = settings.scoringMode ?? "ffb";
-
-  return {
-    scoringMode,
-    targetScore: settings.targetScore ?? defaultTargetScore(scoringMode),
-  };
-}
 
 function emptyScore(): Record<TeamId, number> {
   return { 0: 0, 1: 0 };
@@ -79,7 +67,7 @@ export function createInitialGame(
 
   return createRoundState({
     random,
-    settings: resolveSettings(settings),
+    settings: normalizeGameSettings(settings),
     playerNames: createRandomPlayerNames(random),
     roundHistory: [],
     roundNumber: 1,
@@ -162,7 +150,8 @@ function reachesTargetOnlyThroughBelote(
   result: Extract<NonNullable<GameState["result"]>, { kind: "played" }>,
   teamId: TeamId,
 ): boolean {
-  if (state.settings.scoringMode !== "ffb" || result.belotePointsByTeam[teamId] === 0) {
+  const rules = resolveGameRules(state.settings);
+  if (rules.scoring.mode !== "ffb" || result.belotePointsByTeam[teamId] === 0) {
     return false;
   }
   const sufferedCapot = result.capotTeam !== null && result.capotTeam !== teamId;
@@ -177,11 +166,12 @@ function reachesTargetOnlyThroughBelote(
   const withoutBelote = scoreRound({
     contract: result.contract,
     settings: state.settings,
+    rules,
     trickPointsByTeam: result.trickPointsByTeam,
     tricksWonByTeam,
     belotePointsByTeam: { 0: 0, 1: 0 },
   });
-  return state.totalScore[teamId] + withoutBelote.roundScore[teamId] < state.settings.targetScore;
+  return state.totalScore[teamId] + withoutBelote.roundScore[teamId] < rules.game.targetScore;
 }
 
 function finishRound(state: GameState, result: GameState["result"], baseMessage: string): GameState {
@@ -190,7 +180,8 @@ function finishRound(state: GameState, result: GameState["result"], baseMessage:
   }
 
   const totalScore = addScores(state.totalScore, result.roundScore);
-  let winnerTeam = winningTeam(totalScore, state.settings.targetScore);
+  const rules = resolveGameRules(state.settings);
+  let winnerTeam = winningTeam(totalScore, rules.game.targetScore);
   if (
     winnerTeam !== null
     && result.kind === "played"
@@ -380,13 +371,14 @@ export function makeBid(
     throw new Error(`It is player ${state.currentPlayerId}'s bid turn, not player ${playerId}.`);
   }
 
+  const rules = resolveGameRules(state.settings);
   const currentContract = currentHighestBid(state.bids);
 
   if ((bid.action === "bid" || bid.action === "capot") && currentContract && currentContract.status !== "normal") {
     throw new Error("A normal bid is not allowed after a contract has been countered.");
   }
 
-  if (bid.action === "bid" && !isAllowedBidValue(bid.value)) {
+  if (bid.action === "bid" && !isAllowedBidValue(bid.value, rules.bidding)) {
     throw new Error("This bid value is not allowed.");
   }
 
@@ -394,15 +386,15 @@ export function makeBid(
     throw new Error("A new bid must be higher than the current contract.");
   }
 
-  if (bid.action === "capot" && !canBidCapot(currentContract)) {
+  if (bid.action === "capot" && !canBidCapot(currentContract, rules.bidding)) {
     throw new Error("A capot bid is not allowed over the current contract.");
   }
 
-  if (bid.action === "coinche" && !canCoinche(playerId, currentContract)) {
+  if (bid.action === "coinche" && !canCoinche(playerId, currentContract, rules.bidding)) {
     throw new Error("This player cannot coinche the current contract.");
   }
 
-  if (bid.action === "surcoinche" && !canSurcoinche(playerId, currentContract)) {
+  if (bid.action === "surcoinche" && !canSurcoinche(playerId, currentContract, rules.bidding)) {
     throw new Error("This player cannot surcoinche the current contract.");
   }
 
@@ -453,6 +445,7 @@ export function playableCardsForCurrentPlayer(state: GameState): Card[] {
     state.currentTrick,
     state.currentPlayerId,
     state.trump,
+    resolveGameRules(state.settings).cardPlay,
   );
 }
 
@@ -470,17 +463,18 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
   }
 
   const hand = state.hands[playerId];
+  const rules = resolveGameRules(state.settings);
   if (!hand.some((handCard) => sameCard(handCard, card))) {
     throw new Error(`Player ${playerId} does not have ${formatCard(card)}.`);
   }
 
-  if (!isLegalCard(hand, state.currentTrick, card, playerId, state.trump)) {
+  if (!isLegalCard(hand, state.currentTrick, card, playerId, state.trump, rules.cardPlay)) {
     throw new Error(`The card ${formatCard(card)} is not legal for this trick.`);
   }
 
   const announcements = emptyAnnouncementState();
-  const belote = state.settings.scoringMode === "ffb"
-    ? playBeloteCard(state.belote, hand, playerId, card, state.trump)
+  const belote = rules.belote.enabled
+    ? playBeloteCard(state.belote, hand, playerId, card, state.trump, rules.belote.points)
     : state.belote ?? emptyBeloteState();
 
   const nextHand = hand.filter((handCard) => !sameCard(handCard, card));
@@ -510,10 +504,10 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
   const winnerTeam = playerTeam(winnerId);
   const isLastTrick = nextHands[0].length === 0;
   const isCapot = isLastTrick
-    && state.settings.scoringMode === "ffb"
+    && rules.trickScoring.capotLastTrickBonus !== rules.trickScoring.lastTrickBonus
     && state.completedTricks.length === 7
     && state.completedTricks.every((trick) => playerTeam(trick.winnerId) === winnerTeam);
-  const points = trickPoints(nextTrick.cards, state.trump, isLastTrick, isCapot);
+  const points = trickPoints(nextTrick.cards, state.trump, isLastTrick, isCapot, rules.trickScoring);
   const trickPointsByTeam = {
     ...state.trickPoints,
     [winnerTeam]: state.trickPoints[winnerTeam] + points,
@@ -535,6 +529,7 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
       ? scoreRound({
           contract: state.contract,
           settings: state.settings,
+          rules,
           trickPointsByTeam,
           tricksWonByTeam,
           belotePointsByTeam: belote.pointsByTeam,
@@ -599,5 +594,5 @@ export function startNextRound(state: GameState, random = Math.random): GameStat
 }
 
 export function getDefaultTargetScore(scoringMode: GameSettings["scoringMode"]): number {
-  return defaultTargetScore(scoringMode);
+  return normalizeGameSettings({ scoringMode }).targetScore;
 }

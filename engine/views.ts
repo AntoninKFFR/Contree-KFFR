@@ -1,4 +1,5 @@
 import type { Card, CardAnnouncement, GameState, PlayerId, RoundResult, TeamId } from "./types";
+import { normalizeGameSettings } from "./rulesets/resolve";
 
 export type ServerGameState = GameState;
 
@@ -52,7 +53,7 @@ export function toPlayerGameView(
   const result = state.result ? cloneResult(state.result) : null;
 
   return {
-    settings: { ...state.settings },
+    settings: normalizeGameSettings(state.settings),
     playerNames: state.playerNames ? { ...state.playerNames } : undefined,
     phase: state.phase,
     roundNumber: state.roundNumber,

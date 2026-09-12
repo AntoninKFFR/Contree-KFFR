@@ -1,6 +1,7 @@
 import "server-only";
 import { OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
 import { createInitialGame } from "@/engine/game";
+import { normalizeGameSettings } from "@/engine/rulesets/resolve";
 import { BOT_NAME_POOL } from "@/engine/players";
 import type { GameState } from "@/engine/types";
 import { toPlayerGameView } from "@/engine/views";
@@ -403,7 +404,13 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
       is_ready: true, is_connected: true, bot_takeover: false, last_seen_at: now,
     } : p);
     const names = Object.fromEntries(players.map((p) => [p.seat_index, p.display_name ?? `Joueur ${p.seat_index + 1}`])) as GameState["playerNames"];
-    const state = applyBotTurns({ ...createInitialGame(Math.random, { scoringMode: current.room.scoring_mode, targetScore: current.room.target_score }), playerNames: names }, players);
+    const state = applyBotTurns({
+      ...createInitialGame(Math.random, normalizeGameSettings({
+        scoringMode: current.room.scoring_mode,
+        targetScore: current.room.target_score,
+      })),
+      playerNames: names,
+    }, players);
     await commit(
       current.room,
       state,
