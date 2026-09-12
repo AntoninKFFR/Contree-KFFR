@@ -6,6 +6,7 @@ import type { Card, GameState } from "@/engine/types";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import {
   applyAuthorizedAction, applyBotTurns, enableBotTakeover, joinLobbySeat, requireHost,
+  prepareRoomRulesUpdate,
   requireLobbySeatChange, requireVersion, resetRoomPlayers, setLobbyReady, viewerSeatIndex,
 } from "@/lib/server/multiplayerGame";
 import { parseRoomIntent } from "@/lib/server/roomIntentValidation";
@@ -61,6 +62,27 @@ function playingState(): GameState {
 }
 
 describe("server-authoritative multiplayer", () => {
+  it("rejects arbitrary ruleset JSON at the intent boundary", () => {
+    expect(() => parseRoomIntent({ type: "update-room-rules", rules: { presetId: "contree-kffr", overrides: { scoring: { coincheMultiplier: -2 }, internal: true } } })).toThrow(/interdite|invalide/);
+  });
+  it("lets only the host change lobby rules and resets ready", () => {
+    const lobbyRoom = { ...room, status: "lobby" as const, game_phase: null };
+    const readyPlayers = players().map((player) => ({ ...player, is_ready: true }));
+    expect(() => prepareRoomRulesUpdate({ room: lobbyRoom, players: readyPlayers, userId: "user-1", rules: { presetId: "contree-kffr" } })).toThrow("hôte");
+    const result = prepareRoomRulesUpdate({ room: lobbyRoom, players: readyPlayers, userId: "host", rules: { presetId: "contree-kffr", overrides: { bidding: { allowNoTrump: true } } } });
+    expect(result.ruleset.bidding.allowNoTrump).toBe(true);
+    expect(result.players.every((player) => !player.is_ready)).toBe(true);
+  });
+
+  it("locks room rules after start even for the host", () => {
+    expect(() => prepareRoomRulesUpdate({ room, players: players(), userId: "host", rules: { presetId: "contree-kffr" } })).toThrow("verrouillées");
+  });
+
+  it("keeps bot readiness while resetting human readiness", () => {
+    const lobbyRoom = { ...room, status: "lobby" as const, game_phase: null };
+    const result = prepareRoomRulesUpdate({ room: lobbyRoom, players: players(["human", "bot", "human", "bot"]).map((player) => ({ ...player, is_ready: true })), userId: "host", rules: { presetId: "contree-kffr", overrides: { game: { targetScore: 500 } } } });
+    expect(result.players.map((player) => player.is_ready)).toEqual([false, true, false, true]);
+  });
   it("validates capot at the server boundary and rejects an invalid trump", () => {
     expect(parseRoomIntent({
       type: "game-action", action: { type: "capot", trump: "hearts" },

@@ -2,6 +2,7 @@ import "server-only";
 import { OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
 import { createInitialGame } from "@/engine/game";
 import { normalizeGameSettings } from "@/engine/rulesets/resolve";
+import { buildRoomRulesFields, resolveRoomRules } from "@/engine/rulesets/room";
 import { BOT_NAME_POOL } from "@/engine/players";
 import type { GameState } from "@/engine/types";
 import { toPlayerGameView } from "@/engine/views";
@@ -15,17 +16,17 @@ import {
   PRESENCE_OFFLINE_TIMEOUT_MS, PresenceMembershipError, projectRoomPlayers,
   recordPresenceHeartbeat,
 } from "@/lib/multiplayerPresence";
-import { PRODUCT_SCORING_MODE } from "@/lib/productGame";
 import { parseServerGameState } from "./gameStateValidation";
 import {
   applyAuthorizedAction, applyBotTurns, applyTimedOutTurnIfExpired, enableBotTakeover,
   forfeitRoom, humanSeat, joinLobbySeat, leaveLobbySeat, MultiplayerError, requireHost,
   prepareRematchPlayers, requireLobbySeatChange, requireVersion, resetRoomPlayers, setLobbyReady,
+  prepareRoomRulesUpdate,
   viewerSeatIndex,
 } from "./multiplayerGame";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 
-const ROOM_COLUMNS = "id,code,status,host_user_id,active_game_id,scoring_mode,target_score,game_phase,state_version,turn_deadline_at,created_at,updated_at,started_at,finished_at";
+const ROOM_COLUMNS = "id,code,status,host_user_id,active_game_id,scoring_mode,target_score,ruleset_id,ruleset_version,ruleset_snapshot,game_phase,state_version,turn_deadline_at,created_at,updated_at,started_at,finished_at";
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function cleanName(value: unknown): string {
@@ -304,18 +305,17 @@ export async function tickRoom(
 }
 
 export async function createRoom(input: {
-  userId: string; displayName: unknown; targetScore: unknown;
+  userId: string; displayName: unknown; rules: unknown;
 }): Promise<MultiplayerRoomView> {
   const displayName = cleanName(input.displayName);
-  if (!Number.isInteger(input.targetScore) || Number(input.targetScore) <= 0) {
-    throw new MultiplayerError("Score cible invalide.");
-  }
   const db = getSupabaseAdmin();
+  let fields: ReturnType<typeof buildRoomRulesFields>;
+  try { fields = buildRoomRulesFields(input.rules); }
+  catch (error) { throw new MultiplayerError(error instanceof Error ? error.message : "Règles invalides."); }
   let room: RoomRow | null = null;
   for (let attempt = 0; attempt < 8 && !room; attempt += 1) {
     const result = await db.from("rooms").insert({
-      code: code(), host_user_id: input.userId, scoring_mode: PRODUCT_SCORING_MODE,
-      target_score: input.targetScore, status: "lobby",
+      code: code(), host_user_id: input.userId, ...fields, status: "lobby",
     }).select(ROOM_COLUMNS).single();
     if (!result.error) room = result.data as RoomRow;
     else if (result.error.code !== "23505") throw result.error;
@@ -371,6 +371,22 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
       nowMs,
       result.nextHostUserId,
     );
+  } else if (intent.type === "update-room-rules") {
+    const prepared = prepareRoomRulesUpdate({ ...current, userId, rules: intent.rules });
+    const ruleset = prepared.ruleset;
+    const db = getSupabaseAdmin();
+    const { data: updated, error } = await db.rpc("update_room_rules", {
+      p_room_id: roomId,
+      p_actor_user_id: userId,
+      p_expected_version: current.room.state_version,
+      p_ruleset_id: ruleset.id,
+      p_ruleset_version: ruleset.version,
+      p_ruleset_snapshot: ruleset,
+      p_scoring_mode: normalizeGameSettings({ ruleset }).scoringMode,
+      p_target_score: ruleset.game.targetScore,
+    });
+    if (error) throw error;
+    if (!updated) throw new MultiplayerError("La table a changé ou les règles sont verrouillées. Recharge puis réessaie.", 409, "version_conflict");
   } else if (intent.type === "game-action") {
     const state = applyAuthorizedAction({ ...current, state: await serverState(roomId), userId, expectedVersion, action: intent.action });
     await commit(current.room, state, state.phase === "game-over" ? "finished" : "playing", null, current.players);
@@ -404,11 +420,9 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
       is_ready: true, is_connected: true, bot_takeover: false, last_seen_at: now,
     } : p);
     const names = Object.fromEntries(players.map((p) => [p.seat_index, p.display_name ?? `Joueur ${p.seat_index + 1}`])) as GameState["playerNames"];
+    const storedRules = resolveRoomRules(current.room);
     const state = applyBotTurns({
-      ...createInitialGame(Math.random, normalizeGameSettings({
-        scoringMode: current.room.scoring_mode,
-        targetScore: current.room.target_score,
-      })),
+      ...createInitialGame(Math.random, normalizeGameSettings({ ruleset: storedRules })),
       playerNames: names,
     }, players);
     await commit(

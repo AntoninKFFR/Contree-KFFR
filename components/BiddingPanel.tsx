@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { SUIT_LABELS, SUIT_SYMBOLS, SUITS } from "@/engine/cards";
 import { canBidCapot, getAvailableBidValues } from "@/engine/bidding";
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { GameEndReason, GameState, TeamId } from "@/engine/types";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
+import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 
 export type MultiplayerArchiveGame = {
   id: string;
@@ -15,6 +16,9 @@ export type MultiplayerArchiveGame = {
   end_reason: GameEndReason;
   forfeiting_team: TeamId | null;
   round_count: number;
+  ruleset_id?: string | null;
+  ruleset_version?: number | null;
+  ruleset_snapshot?: GameRulesetSnapshot | null;
 };
 
 export type MultiplayerArchivePlayer = {
@@ -75,6 +79,9 @@ export function buildMultiplayerArchive(input: {
       end_reason: endReason,
       forfeiting_team: endReason === "forfeit" ? input.state.forfeitingTeam ?? null : null,
       round_count: input.state.roundNumber,
+      ruleset_id: input.state.settings.ruleset?.id ?? input.room.ruleset_id ?? null,
+      ruleset_version: input.state.settings.ruleset?.version ?? input.room.ruleset_version ?? null,
+      ruleset_snapshot: input.state.settings.ruleset ?? input.room.ruleset_snapshot ?? null,
     },
     players: input.players
       .filter((player): player is RoomPlayerRow & { kind: "human" | "bot" } => player.kind !== "empty")

@@ -9,10 +9,15 @@ import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { ScoreBoard } from "@/components/ScoreBoard";
+import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
+import { RulesetSummary } from "@/components/rules/RulesetSummary";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import { teamName } from "@/engine/players";
 import { getLegalCards } from "@/engine/rules";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
+import { rulesetToCustomInput, type CustomRulesetInput } from "@/engine/rulesets/custom";
+import { CONTREE_KFFR_RULESET } from "@/engine/rulesets/presets";
+import { resolveRoomRules } from "@/engine/rulesets/room";
 import type { BidValue, Card, ContractMode } from "@/engine/types";
 import type { PlayerGameView } from "@/engine/views";
 import { PRESENCE_HEARTBEAT_INTERVAL_MS } from "@/lib/multiplayerPresence";
@@ -70,6 +75,11 @@ export default function MultiplayerRoomPage() {
   const [roomWithPlayers, setRoomWithPlayers] = useState<MultiplayerRoomView | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [countdownNowMs, setCountdownNowMs] = useState<number | null>(null);
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [rulesDraft, setRulesDraft] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
+  const [isUpdatingRules, setIsUpdatingRules] = useState(false);
+  const [rulesChangedNotice, setRulesChangedNotice] = useState(false);
+  const previousRulesKeyRef = useRef<string | null>(null);
   const previousPhaseRef = useRef<PlayerGameView["phase"] | null>(null);
   const accessToken = session?.access_token ?? null;
   const viewerSeatIndex = roomWithPlayers?.viewerSeatIndex ?? null;
@@ -82,6 +92,13 @@ export default function MultiplayerRoomPage() {
   }, [roomWithPlayers]);
 
   const isHost = roomWithPlayers?.isHost ?? false;
+  const lobbyRules = useMemo(() => roomWithPlayers ? resolveRoomRules(roomWithPlayers.room) : CONTREE_KFFR_RULESET, [roomWithPlayers]);
+  useEffect(() => {
+    if (!roomWithPlayers || roomWithPlayers.room.status !== "lobby") return;
+    const key = JSON.stringify(roomWithPlayers.room.ruleset_snapshot ?? [roomWithPlayers.room.scoring_mode, roomWithPlayers.room.target_score]);
+    if (previousRulesKeyRef.current !== null && previousRulesKeyRef.current !== key) setRulesChangedNotice(true);
+    previousRulesKeyRef.current = key;
+  }, [roomWithPlayers]);
   const takeoverCandidates = roomWithPlayers?.room.status === "playing" && isHost
     ? roomWithPlayers.players.filter(
         (player) => player.kind === "human" && !player.is_connected && !player.bot_takeover,
@@ -484,6 +501,21 @@ export default function MultiplayerRoomPage() {
     }
   }
 
+  async function handleUpdateRules() {
+    if (!roomWithPlayers || !session || !isHost || roomWithPlayers.room.status !== "lobby") return;
+    setIsUpdatingRules(true);
+    setError(null);
+    try {
+      const nextRoom = await sendRoomIntent(roomWithPlayers.room.id, roomWithPlayers.room.state_version, { type: "update-room-rules", rules: rulesDraft }, session);
+      setRoomWithPlayers(nextRoom);
+      setIsRulesOpen(false);
+    } catch (rulesError) {
+      setError(errorMessage(rulesError));
+    } finally {
+      setIsUpdatingRules(false);
+    }
+  }
+
   async function handleEnableBotTakeover(seatIndex: RoomPlayerRow["seat_index"]) {
     if (!roomWithPlayers || !session || !isHost || takeoverSeatInFlight !== null) return;
 
@@ -811,6 +843,12 @@ export default function MultiplayerRoomPage() {
 
                 </section>
 
+                <section className="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-bold">Règles de la table</h2><p className="text-xs text-stone-600">Toute modification remet les joueurs en attente de confirmation.</p></div>{isHost ? <button className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold" type="button" onClick={() => { setRulesDraft(rulesetToCustomInput(lobbyRules)); setIsRulesOpen(true); }}>Modifier les règles</button> : null}</div>
+                  <RulesetSummary ruleset={lobbyRules} />
+                  {rulesChangedNotice ? <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">Les règles ont changé. Les joueurs doivent se remettre prêts.</p> : null}
+                </section>
+
                 <LobbyTable
                   canJoinSeat={!isJoiningSeat}
                   currentSeatIndex={roomWithPlayers.viewerSeatIndex}
@@ -833,6 +871,7 @@ export default function MultiplayerRoomPage() {
                 />
               </>
             ) : null}
+            {isRulesOpen && displayedRoomStatus === "lobby" ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3" role="dialog" aria-modal="true"><section className="flex max-h-[94dvh] w-full max-w-3xl flex-col rounded-xl bg-[#f4f1e8] p-4"><div className="mb-2 flex justify-between"><div><h2 className="text-xl font-bold">Règles de la table</h2><p className="text-xs text-stone-600">Les joueurs devront se remettre prêts.</p></div><button className="rounded border px-3" type="button" onClick={() => setIsRulesOpen(false)}>Fermer</button></div><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /><button className="mt-3 rounded bg-emerald-800 px-4 py-2 font-bold text-white disabled:opacity-50" disabled={isUpdatingRules} type="button" onClick={() => void handleUpdateRules()}>{isUpdatingRules ? "Enregistrement…" : "Enregistrer les règles"}</button></section></div> : null}
 
             {displayedRoomStatus === "playing" && playerView ? (
               <div

@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     action = typeof body.type === "string" ? body.type : "unknown";
     const data = body.type === "create"
-      ? await createRoom({ userId, displayName: body.displayName, targetScore: body.targetScore })
+      ? await createRoom({ userId, displayName: body.displayName, rules: body.rules })
       : body.type === "find"
         ? await findRoomByCode(body.code, userId)
         : (() => { throw new MultiplayerError("Requête inconnue."); })();

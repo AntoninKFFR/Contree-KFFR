@@ -1,4 +1,6 @@
 import type { BidValue, Card, ContractMode, ScoringMode, Suit } from "@/engine/types";
+import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
+import type { CustomRulesetInput } from "@/engine/rulesets/custom";
 import type { PlayerGameView } from "@/engine/views";
 
 export type RoomStatus = "lobby" | "playing" | "finished" | "cancelled";
@@ -13,6 +15,9 @@ export type RoomRow = {
   active_game_id: string | null;
   scoring_mode: ScoringMode;
   target_score: number;
+  ruleset_id?: string | null;
+  ruleset_version?: number | null;
+  ruleset_snapshot?: GameRulesetSnapshot | null;
   game_phase: GamePhase | null;
   state_version: number;
   turn_deadline_at: string | null;
@@ -72,6 +77,7 @@ export type RoomIntent =
   | { type: "rematch" }
   | { type: "forfeit-game" }
   | { type: "claim-host" }
+  | { type: "update-room-rules"; rules: CustomRulesetInput }
   | { type: "enable-bot-takeover"; seatIndex: RoomPlayerRow["seat_index"] }
   | { type: "game-action"; action: RoomPlayerAction }
   | { type: "next-round" }

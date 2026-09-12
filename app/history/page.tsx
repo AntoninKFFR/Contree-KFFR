@@ -14,6 +14,9 @@ import {
 } from "@/lib/multiplayerHistory";
 import { formatDate, getUserGames, scoringModeLabel, type GameRow } from "@/lib/stats";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { RulesetSummary } from "@/components/rules/RulesetSummary";
+import { buildCustomRuleset, rulesetToCustomInput } from "@/engine/rulesets/custom";
+import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
 type HistoryFilter = "all" | "solo" | "multiplayer";
@@ -135,6 +138,7 @@ function SoloHistoryItem({ game }: { game: GameRow }) {
         <p>Mode: {scoringModeLabel(game.scoring_mode)}</p><p>Score: {game.player_score ?? "-"} – {game.bot_score ?? "-"}</p>
         <p>Cible: {game.target_score ?? "-"}</p><p>Fin: score</p>
       </div>
+      <HistoryRules id={game.ruleset_id} snapshot={game.ruleset_snapshot} />
     </li>
   );
 }
@@ -152,8 +156,20 @@ function MultiplayerHistoryItem({ game }: { game: MultiplayerHistoryGame }) {
         <p>Fin: {multiplayerEndLabel(game)}</p>
         <p>Manches: {game.round_count}</p>
       </div>
+      <HistoryRules id={game.ruleset_id} snapshot={game.ruleset_snapshot} />
     </li>
   );
+}
+
+function HistoryRules({ id, snapshot }: { id?: string | null; snapshot?: GameRulesetSnapshot | null }) {
+  const label = id === "custom" ? "Variante personnalisée" : "Contrée KFFR";
+  if (!snapshot) return <p className="mt-2 text-xs font-semibold text-stone-600">{label}</p>;
+  try {
+    const safe = buildCustomRuleset(rulesetToCustomInput(snapshot));
+    return <details className="mt-2"><summary className="cursor-pointer text-xs font-semibold">{label} · Voir les règles</summary><div className="mt-2"><RulesetSummary ruleset={safe} compact /></div></details>;
+  } catch {
+    return <p className="mt-2 text-xs font-semibold text-stone-600">{label}</p>;
+  }
 }
 
 function HistoryHeader({ date, label, won }: { date: string | null; label: string; won: boolean }) {

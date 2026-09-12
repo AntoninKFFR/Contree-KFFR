@@ -107,6 +107,19 @@ describe("multiplayer game archives", () => {
     });
   });
 
+  it("archives the immutable ruleset snapshot", () => {
+    expect(archive([0]).game).toMatchObject({ ruleset_id: "contree-kffr", ruleset_version: 1 });
+    expect(archive([0]).game.ruleset_snapshot?.game.targetScore).toBe(1000);
+  });
+
+  it("keeps legacy archives readable without a ruleset snapshot", () => {
+    const game = historyForSeat(0);
+    delete game.ruleset_id;
+    delete game.ruleset_version;
+    delete game.ruleset_snapshot;
+    expect(game.target_score).toBe(1000);
+  });
+
   it("builds a forfeit victory summary", () => {
     expect(archive([0, 1], "forfeit").game).toMatchObject({
       winner_team: 0,

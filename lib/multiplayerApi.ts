@@ -1,4 +1,5 @@
 import type { MultiplayerRoomView, RoomIntent } from "@/lib/roomTypes";
+import type { CustomRulesetInput } from "@/engine/rulesets/custom";
 
 type AccessTokenSource = { access_token: string };
 
@@ -51,7 +52,7 @@ export function sendRoomIntent(
 }
 
 export function createMultiplayerRoom(
-  input: { displayName: string; targetScore: number },
+  input: { displayName: string; rules: CustomRulesetInput },
   token: AccessTokenSource,
 ) {
   return request<MultiplayerRoomView>("/api/multiplayer/rooms", token, {

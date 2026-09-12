@@ -5,6 +5,8 @@ import { playerTeam } from "@/engine/rules";
 import type { GameState, PlayerId } from "@/engine/types";
 import { nextHostUserId } from "@/lib/multiplayerHost";
 import type { RoomPlayerAction, RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
+import { buildCustomRuleset, type CustomRulesetInput } from "@/engine/rulesets/custom";
+import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import { isPlayerConnected } from "@/lib/multiplayerPresence";
 import { isTurnDeadlineExpired } from "@/lib/multiplayerTurnTimer";
 
@@ -86,6 +88,16 @@ export function requireHost(room: RoomRow, userId: string): void {
   if (room.host_user_id !== userId) {
     throw new MultiplayerError("Seul l'hôte peut effectuer cette opération.", 403, "host_required");
   }
+}
+
+export function prepareRoomRulesUpdate(input: { room: RoomRow; players: RoomPlayerRow[]; userId: string; rules: CustomRulesetInput }): { ruleset: GameRulesetSnapshot; players: RoomPlayerRow[] } {
+  humanSeat(input.players, input.userId);
+  requireHost(input.room, input.userId);
+  if (input.room.status !== "lobby" || input.room.game_phase) throw new MultiplayerError("Les règles sont verrouillées après le démarrage.", 409, "rules_locked");
+  return {
+    ruleset: buildCustomRuleset(input.rules),
+    players: input.players.map((player) => ({ ...player, is_ready: player.kind === "bot" })),
+  };
 }
 
 function gameAction(action: RoomPlayerAction, playerId: PlayerId): GameAction {

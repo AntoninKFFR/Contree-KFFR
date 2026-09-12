@@ -9,6 +9,8 @@ import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { ScoreBoard } from "@/components/ScoreBoard";
+import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
+import { RulesetSummary } from "@/components/rules/RulesetSummary";
 import { applyGameAction, type GameAction } from "@/engine/actions";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import {
@@ -23,6 +25,7 @@ import {
 } from "@/engine/seats";
 import type { BidValue, Card, ContractMode, GameState } from "@/engine/types";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
+import { buildCustomRuleset, rulesetToCustomInput, type CustomRulesetInput } from "@/engine/rulesets/custom";
 import { saveCompletedGame } from "@/lib/games";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import {
@@ -41,7 +44,7 @@ import {
   soloGridClassName,
   soloMainClassName,
 } from "@/app/solo/soloAnalysis";
-import { createSoloGame } from "@/app/solo/soloGameInitialization";
+import { createSoloGame, loadSoloRules, saveSoloRules } from "@/app/solo/soloGameInitialization";
 
 const soloSeatAssignments = SOLO_SEAT_ASSIGNMENTS;
 const localHumanPlayerId = firstHumanSeat(soloSeatAssignments) ?? 0;
@@ -61,6 +64,9 @@ export default function SoloPage() {
   const [selectedBotReviewId, setSelectedBotReviewId] = useState<string | null>(null);
   const [isBotReviewOpen, setIsBotReviewOpen] = useState(false);
   const [isAnalysisModeEnabled, setIsAnalysisModeEnabled] = useState(false);
+  const [rulesInput, setRulesInput] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
+  const [rulesDraft, setRulesDraft] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
 
   const humanCanPlay =
     gameState?.phase === "playing" &&
@@ -92,7 +98,10 @@ export default function SoloPage() {
     }
 
     hasInitializedRandomGameRef.current = true;
-    setGameState(createSoloGame());
+    const savedRules = loadSoloRules(window.localStorage);
+    setRulesInput(savedRules);
+    setRulesDraft(savedRules);
+    setGameState(createSoloGame(Math.random, buildCustomRuleset(savedRules)));
   }, []);
 
   useEffect(() => {
@@ -182,6 +191,7 @@ export default function SoloPage() {
               playerId: currentState.currentPlayerId,
               value: botBid.value,
               trump: botBid.trump,
+              contractMode: botBid.contractMode,
           });
           if (BOT_REVIEW_MODE_ENABLED) {
             setBotReviewPublicAuctions((auctions) => updateBotReviewPublicAuctions(auctions, nextState));
@@ -280,7 +290,7 @@ export default function SoloPage() {
     dispatchGameAction({ type: "surcoinche", playerId: localHumanPlayerId });
   }
 
-  function handleNewGame() {
+  function resetBotReview() {
     gameIdRef.current = crypto.randomUUID();
     botDecisionNumberRef.current = 0;
     setLastBotReview(null);
@@ -288,7 +298,22 @@ export default function SoloPage() {
     setBotReviewPublicAuctions([]);
     setSelectedBotReviewId(null);
     setIsBotReviewOpen(false);
-    setGameState(createSoloGame());
+  }
+
+  function handleNewGame() {
+    resetBotReview();
+    setGameState(createSoloGame(Math.random, buildCustomRuleset(rulesInput)));
+  }
+
+  function applyRulesAndStartGame() {
+    const safe = buildCustomRuleset(rulesDraft);
+    const normalized = rulesetToCustomInput(safe);
+    saveSoloRules(window.localStorage, normalized);
+    setRulesInput(normalized);
+    setRulesDraft(normalized);
+    setIsRulesOpen(false);
+    resetBotReview();
+    setGameState(createSoloGame(Math.random, safe));
   }
 
   function handleNextRound() {
@@ -318,6 +343,7 @@ export default function SoloPage() {
           <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
             <div className={`flex items-center justify-end lg:hidden ${isMobileLandscape ? "hidden" : ""}`} />
             <div className={`flex items-center justify-end ${isMobileLandscape ? "hidden" : ""}`}>
+              <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white" type="button" onClick={() => { setRulesDraft(rulesInput); setIsRulesOpen(true); }}>Règles</button>
               {BOT_REVIEW_MODE_ENABLED ? (
                 <button
                   aria-pressed={isAnalysisModeEnabled}
@@ -484,6 +510,7 @@ export default function SoloPage() {
           ) : null}
         </div>
       </div>
+      {isRulesOpen ? <div aria-modal="true" role="dialog" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3"><section className="flex max-h-[94dvh] w-full max-w-3xl flex-col rounded-xl bg-[#f4f1e8] p-4 shadow-2xl"><div className="mb-3 flex items-center justify-between"><div><h2 className="text-xl font-bold">Règles de la prochaine partie</h2><p className="text-xs text-stone-600">La partie en cours reste inchangée.</p></div><button className="rounded border px-3 py-1" type="button" onClick={() => setIsRulesOpen(false)}>Fermer</button></div><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /><div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]"><RulesetSummary ruleset={buildCustomRuleset(rulesDraft)} compact /><button className="rounded-lg bg-emerald-800 px-4 py-3 font-bold text-white" type="button" onClick={applyRulesAndStartGame}>Appliquer et nouvelle partie</button></div></section></div> : null}
     </main>
   );
 }

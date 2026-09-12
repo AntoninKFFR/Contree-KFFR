@@ -9,6 +9,9 @@ type SavedGamePayload = {
   target_score: number;
   user_id: string;
   won: boolean;
+  ruleset_id?: string;
+  ruleset_version?: number;
+  ruleset_snapshot?: GameState["settings"]["ruleset"];
 };
 
 function botSummary(state: GameState) {
@@ -34,6 +37,7 @@ export function buildSavedGamePayload(
     bot_score: state.totalScore[1],
     target_score: state.settings.targetScore,
     bot_summary: botSummary(state),
+    ...(state.settings.ruleset ? { ruleset_id: state.settings.ruleset.id, ruleset_version: state.settings.ruleset.version, ruleset_snapshot: state.settings.ruleset } : {}),
   };
 }
 

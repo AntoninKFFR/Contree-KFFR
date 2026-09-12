@@ -1,6 +1,7 @@
 import "server-only";
 import type { RoomIntent } from "@/lib/roomTypes";
 import { MultiplayerError } from "./multiplayerGame";
+import { parseCustomRulesetInput } from "@/engine/rulesets/custom";
 
 const SUITS = new Set(["clubs", "diamonds", "hearts", "spades"]);
 const RANKS = new Set(["7", "8", "9", "J", "Q", "K", "10", "A"]);
@@ -23,6 +24,9 @@ export function parseRoomIntent(value: unknown): RoomIntent {
   if (value.type === "forfeit-game" || value.type === "claim-host") return { type: value.type };
   if (value.type === "leave-seat" || value.type === "start-game" || value.type === "next-round" || value.type === "reset-room" || value.type === "rematch") return { type: value.type };
   if (value.type === "set-ready" && typeof value.ready === "boolean") return value as RoomIntent;
+  if (value.type === "update-room-rules") {
+    return { type: "update-room-rules", rules: parseCustomRulesetInput(value.rules) };
+  }
   if (value.type === "game-action" && record(value.action)) {
     const action = value.action;
     if (action.type === "pass" || action.type === "coinche" || action.type === "surcoinche") return value as RoomIntent;

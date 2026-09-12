@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createInitialGame } from "@/engine/game";
+import { buildRoomRulesFields } from "@/engine/rulesets/room";
 import {
   PRODUCT_GAME_LABEL,
   PRODUCT_SCORING_MODE,
@@ -33,11 +34,16 @@ describe("single product game mode", () => {
     }
   });
 
-  it("hardcodes ffb at the server creation boundary and ignores no client mode field", () => {
+  it("builds scoring from validated rules at the server boundary and ignores a client scalar mode", () => {
     const service = readFileSync("lib/server/multiplayerService.ts", "utf8");
     const api = readFileSync("lib/multiplayerApi.ts", "utf8");
-    expect(service).toContain("scoring_mode: PRODUCT_SCORING_MODE");
+    expect(service).toContain("buildRoomRulesFields(input.rules)");
     expect(service).not.toContain("input.scoringMode");
     expect(api).not.toContain("scoringMode:");
+    expect(buildRoomRulesFields(undefined).scoring_mode).toBe(PRODUCT_SCORING_MODE);
+    expect(buildRoomRulesFields({
+      presetId: "contree-kffr",
+      overrides: { scoring: { mode: "contract-only" } },
+    }).scoring_mode).toBe("announced-points");
   });
 });

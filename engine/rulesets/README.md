@@ -4,7 +4,7 @@
 - **Ruleset** : `GameRulesetSnapshot` regroupe les domaines partie, enchères, jeu de la carte, annonces, Belote, réussite du contrat et score.
 - **Preset** : `CONTREE_KFFR_RULESET` est aujourd'hui le seul preset de production actif.
 - **Snapshot** : chaque nouvelle partie conserve dans `settings.ruleset` une copie complète, versionnée et gelée de ses règles. Une évolution future du preset ne modifiera donc pas les parties existantes.
-- **Custom ruleset** : la structure et la validation acceptent un snapshot explicite, mais aucune interface utilisateur de personnalisation n'est encore exposée.
+- **Custom ruleset** : `custom.ts` reçoit uniquement un DTO `{ presetId, overrides }` à liste blanche. Il reconstruit, normalise, valide, clone et gèle le snapshot; le client et le serveur utilisent cette même entrée.
 - **Legacy normalization** : `normalizeGameSettings` convertit les anciens couples `scoringMode`/`targetScore` en snapshot. `ffb` devient `contree-kffr`; les anciens modes `made-points` et `announced-points` restent lisibles via des snapshots de compatibilité.
 
 ## Règles configurables actives
@@ -51,4 +51,8 @@ La Belote/Rebelote est impossible en Sans Atout. En Tout Atout, `belote.allowInA
 
 Le flag Générale reste représenté mais non implémenté.
 
-Le multijoueur conserve ce même snapshot dans le `GameState` autoritaire déjà sérialisé dans `room_game_states.state`. Aucune colonne ni migration SQL supplémentaire n'est nécessaire pour cette phase.
+Le solo conserve le DTO validé sous la clé locale versionnée `coinche:solo-rules:v1`. Cette préférence n'est lue qu'après hydratation; une valeur absente ou corrompue revient au preset Contrée KFFR. Une modification ne touche jamais la partie en cours et s'applique à une nouvelle partie.
+
+Le lobby multijoueur stocke `ruleset_id`, `ruleset_version` et `ruleset_snapshot` dans `rooms`. Seul l'hôte peut envoyer l'intention autoritaire `update-room-rules` avant le démarrage; la modification incrémente la version de room et réinitialise les confirmations « prêt ». Après démarrage, le snapshot est verrouillé et le `GameState` est créé depuis la valeur serveur. Les anciennes rooms sans snapshot sont normalisées depuis `scoring_mode` et `target_score`.
+
+Les historiques solo et multijoueur conservent les mêmes trois champs sans supprimer les anciennes colonnes. Voir aussi `docs/CUSTOM_GAMES.md`.

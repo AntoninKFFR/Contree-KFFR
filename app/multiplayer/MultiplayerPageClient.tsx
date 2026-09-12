@@ -7,6 +7,9 @@ import type { Session } from "@supabase/supabase-js";
 import { getProfileUsername } from "@/lib/profiles";
 import { createMultiplayerRoom, findMultiplayerRoom } from "@/lib/multiplayerApi";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
+import { RulesetSummary } from "@/components/rules/RulesetSummary";
+import { buildCustomRuleset, type CustomRulesetInput } from "@/engine/rulesets/custom";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
 
@@ -27,7 +30,8 @@ export default function MultiplayerPage() {
   const [pageState, setPageState] = useState<PageState>("loading");
   const [roomCode, setRoomCode] = useState("");
   const [session, setSession] = useState<Session | null>(null);
-  const [targetScore, setTargetScore] = useState(1000);
+  const [rules, setRules] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -88,7 +92,7 @@ export default function MultiplayerPage() {
     try {
       const result = await createMultiplayerRoom({
         displayName,
-        targetScore,
+        rules,
       }, session);
 
       router.push(`/multiplayer/${result.room.id}`);
@@ -175,18 +179,8 @@ export default function MultiplayerPage() {
                   value={displayName}
                 />
 
-                <label className="flex flex-col gap-1 text-sm font-semibold">
-                  Score cible
-                  <input
-                    className="rounded-md border border-stone-300 px-3 py-2 font-normal"
-                    disabled={!canSubmit}
-                    min={1}
-                    onChange={(event) => setTargetScore(Number(event.target.value))}
-                    required
-                    type="number"
-                    value={targetScore}
-                  />
-                </label>
+                <RulesetSummary ruleset={buildCustomRuleset(rules)} compact />
+                <button className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold" disabled={!canSubmit} type="button" onClick={() => setIsRulesOpen(true)}>Règles de la table</button>
 
                 <button
                   className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -230,6 +224,7 @@ export default function MultiplayerPage() {
             </section>
           </div>
         ) : null}
+        {isRulesOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3" role="dialog" aria-modal="true"><section className="flex max-h-[94dvh] w-full max-w-3xl flex-col rounded-xl bg-[#f4f1e8] p-4"><div className="mb-2 flex justify-between"><h2 className="text-xl font-bold">Règles de la table</h2><button className="rounded border px-3" type="button" onClick={() => setIsRulesOpen(false)}>Fermer</button></div><RulesetConfigurator value={rules} onChange={setRules} /><button className="mt-3 rounded bg-emerald-800 px-4 py-2 font-bold text-white" type="button" onClick={() => setIsRulesOpen(false)}>Valider les règles</button></section></div> : null}
       </div>
     </main>
   );
