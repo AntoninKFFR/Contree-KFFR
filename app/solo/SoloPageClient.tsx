@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { chooseBotBidWithTrace, chooseBotCard } from "@/bots/simpleBot";
 import { BiddingPanel } from "@/components/BiddingPanel";
-import { BotReviewPanel } from "@/components/BotReviewPanel";
+import { BotReviewHistory, BotReviewPanel } from "@/components/BotReviewPanel";
 import { SoloBotHandsPanel } from "@/components/BotHandAnalysis";
 import { GameTable } from "@/components/GameTable";
 import { HumanHand } from "@/components/HumanHand";
@@ -27,10 +27,21 @@ import { saveCompletedGame } from "@/lib/games";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import {
   BOT_REVIEW_MODE_ENABLED,
+  appendBotReviewHistory,
   captureBotReviewScenario,
+  createBotReviewBundle,
+  createEmptyBotReviewHistory,
+  type BotReviewPublicAuctionV2,
   type BotReviewScenarioV1,
+  updateBotReviewPublicAuctions,
 } from "@/bots/botReview";
 import { PRODUCT_SCORING_MODE } from "@/lib/productGame";
+import {
+  isSoloDesktopAnalysisLayout,
+  soloContentClassName,
+  soloGridClassName,
+  soloMainClassName,
+} from "@/app/solo/soloAnalysis";
 
 const initialRenderRandom = () => 0.42;
 const soloSeatAssignments = SOLO_SEAT_ASSIGNMENTS;
@@ -49,6 +60,9 @@ export default function SoloPage() {
     }),
   );
   const [lastBotReview, setLastBotReview] = useState<BotReviewScenarioV1 | null>(null);
+  const [botReviewHistory, setBotReviewHistory] = useState<BotReviewScenarioV1[]>(createEmptyBotReviewHistory);
+  const [botReviewPublicAuctions, setBotReviewPublicAuctions] = useState<BotReviewPublicAuctionV2[]>([]);
+  const [selectedBotReviewId, setSelectedBotReviewId] = useState<string | null>(null);
   const [isBotReviewOpen, setIsBotReviewOpen] = useState(false);
   const [isAnalysisModeEnabled, setIsAnalysisModeEnabled] = useState(false);
 
@@ -65,6 +79,15 @@ export default function SoloPage() {
     if (!humanCanPlay) return [];
     return playableCardsForCurrentPlayer(gameState);
   }, [gameState, humanCanPlay]);
+  const displayedBotReview = useMemo(
+    () => botReviewHistory.find((scenario) => scenario.decisionId === selectedBotReviewId) ?? lastBotReview,
+    [botReviewHistory, lastBotReview, selectedBotReviewId],
+  );
+  const analysisDesktop = isSoloDesktopAnalysisLayout(
+    BOT_REVIEW_MODE_ENABLED,
+    isAnalysisModeEnabled,
+    isMobileLandscape,
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -102,7 +125,11 @@ export default function SoloPage() {
   }, [gameState.phase]);
 
   function dispatchGameAction(action: GameAction) {
-    setGameState((currentState) => applyGameAction(currentState, action));
+    const nextState = applyGameAction(gameState, action);
+    if (BOT_REVIEW_MODE_ENABLED && gameState.phase === "bidding") {
+      setBotReviewPublicAuctions((auctions) => updateBotReviewPublicAuctions(auctions, nextState));
+    }
+    setGameState(nextState);
   }
 
   useEffect(() => {
@@ -129,37 +156,49 @@ export default function SoloPage() {
         const { bid: botBid, biddingTrace } = chooseBotBidWithTrace(currentState);
         const elapsedMs = performance.now() - started;
         if (BOT_REVIEW_MODE_ENABLED) {
-          setLastBotReview(captureBotReviewScenario(currentState, {
+          const scenario = captureBotReviewScenario(currentState, {
             decisionNumber: botDecisionNumberRef.current,
             elapsedMs,
             chosenBid: botBid,
             biddingTrace,
-          }));
+          });
+          setLastBotReview(scenario);
+          setBotReviewHistory((history) => appendBotReviewHistory(history, scenario));
         }
         if (botBid.action === "bid") {
-          setGameState(applyGameAction(currentState, {
+          const nextState = applyGameAction(currentState, {
               type: "bid",
               playerId: currentState.currentPlayerId,
               value: botBid.value,
               trump: botBid.trump,
-          }));
+          });
+          if (BOT_REVIEW_MODE_ENABLED) {
+            setBotReviewPublicAuctions((auctions) => updateBotReviewPublicAuctions(auctions, nextState));
+          }
+          setGameState(nextState);
           return;
         }
-        setGameState(applyGameAction(currentState, {
+        const nextState = applyGameAction(currentState, {
             type: botBid.action,
             playerId: currentState.currentPlayerId,
-        }));
+        });
+        if (BOT_REVIEW_MODE_ENABLED) {
+          setBotReviewPublicAuctions((auctions) => updateBotReviewPublicAuctions(auctions, nextState));
+        }
+        setGameState(nextState);
         return;
       }
 
       const botCard = chooseBotCard(currentState);
       const elapsedMs = performance.now() - started;
       if (BOT_REVIEW_MODE_ENABLED) {
-        setLastBotReview(captureBotReviewScenario(currentState, {
+        const scenario = captureBotReviewScenario(currentState, {
           decisionNumber: botDecisionNumberRef.current,
           elapsedMs,
           chosenCard: botCard,
-        }));
+        });
+        setLastBotReview(scenario);
+        setBotReviewHistory((history) => appendBotReviewHistory(history, scenario));
       }
       setGameState(applyGameAction(currentState, {
           type: "play-card",
@@ -234,6 +273,9 @@ export default function SoloPage() {
     gameIdRef.current = crypto.randomUUID();
     botDecisionNumberRef.current = 0;
     setLastBotReview(null);
+    setBotReviewHistory(createEmptyBotReviewHistory());
+    setBotReviewPublicAuctions([]);
+    setSelectedBotReviewId(null);
     setIsBotReviewOpen(false);
     setGameState(
       createInitialGame(Math.random, {
@@ -252,21 +294,11 @@ export default function SoloPage() {
 
   return (
     <main
-      className={[
-        "min-h-[calc(100dvh-56px)] overflow-x-hidden overflow-y-auto bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4 lg:h-[calc(100dvh-56px)] lg:overflow-hidden",
-        isMobileLandscape ? "overflow-hidden px-0 py-0 sm:px-4" : "",
-      ].join(" ")}
+      className={soloMainClassName(analysisDesktop, isMobileLandscape)}
     >
-      <div className="mx-auto flex h-full max-w-7xl flex-col gap-2">
+      <div className={soloContentClassName(analysisDesktop)}>
         <div
-          className={[
-            "grid min-h-0 flex-1 gap-2",
-            isMobileLandscape
-              ? "grid-cols-[minmax(0,1fr)]"
-              : isRightPanelOpen
-                ? "lg:grid-cols-[minmax(0,1fr)_310px]"
-                : "lg:grid-cols-[minmax(0,1fr)]",
-          ].join(" ")}
+          className={soloGridClassName(analysisDesktop, isMobileLandscape, isRightPanelOpen)}
         >
           <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
             <div className={`flex items-center justify-end lg:hidden ${isMobileLandscape ? "hidden" : ""}`} />
@@ -332,23 +364,45 @@ export default function SoloPage() {
             />
 
             {BOT_REVIEW_MODE_ENABLED && isAnalysisModeEnabled && !isMobileLandscape ? (
-              <SoloBotHandsPanel state={gameState} />
+              <>
+                <SoloBotHandsPanel state={gameState} />
+                {botReviewHistory.length > 0 ? (
+                  <BotReviewHistory
+                    decisions={botReviewHistory}
+                    onSelect={(scenario) => {
+                      setSelectedBotReviewId(scenario.decisionId);
+                      setIsBotReviewOpen(true);
+                    }}
+                    playerNames={gameState.playerNames}
+                    selectedDecisionId={displayedBotReview?.decisionId ?? null}
+                  />
+                ) : null}
+              </>
             ) : null}
 
             {BOT_REVIEW_MODE_ENABLED && !isMobileLandscape && lastBotReview ? (
               <div className="grid gap-2">
                 <button
                   className="justify-self-end rounded-md border border-amber-400 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-stone-800 shadow-sm hover:bg-amber-100"
-                  onClick={() => setIsBotReviewOpen(true)}
+                  onClick={() => {
+                    setSelectedBotReviewId(null);
+                    setIsBotReviewOpen(true);
+                  }}
                   type="button"
                 >
                   Analyser ce coup
                 </button>
-                {isBotReviewOpen ? (
+                {isBotReviewOpen && displayedBotReview ? (
                   <BotReviewPanel
-                    key={lastBotReview.decisionId}
+                    createFullBundle={(humanComment) => createBotReviewBundle(gameState, botReviewHistory, {
+                      gameId: gameIdRef.current,
+                      humanComment,
+                      publicAuctions: botReviewPublicAuctions,
+                      selectedDecisionId: displayedBotReview.decisionId,
+                    })}
+                    key={displayedBotReview.decisionId}
                     onClose={() => setIsBotReviewOpen(false)}
-                    scenario={lastBotReview}
+                    scenario={displayedBotReview}
                   />
                 ) : null}
               </div>

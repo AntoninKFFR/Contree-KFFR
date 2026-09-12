@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { captureBotReviewScenario, botReviewScenarioToGameState, isBotReviewModeEnabled, serializeBotReviewScenario } from "@/bots/botReview";
+import {
+  appendBotReviewHistory,
+  BOT_REVIEW_HISTORY_LIMIT,
+  botReviewScenarioToGameState,
+  captureBotReviewScenario,
+  createBotReviewBundle,
+  createEmptyBotReviewHistory,
+  isBotReviewModeEnabled,
+  serializeBotReviewBundle,
+  serializeBotReviewScenario,
+  updateBotReviewPublicAuctions,
+} from "@/bots/botReview";
 import { chooseBotBidWithTrace, chooseBotCard } from "@/bots/simpleBot";
 import { chooseHumanDoctrineV2Bid } from "@/bots/strategy/humanDoctrineV2";
 import { chooseHumanDoctrineV3Bid } from "@/bots/strategy/humanDoctrineV3";
@@ -7,6 +18,7 @@ import { cardId } from "@/engine/cards";
 import { createInitialGame, makeBid, playCard, playableCardsForCurrentPlayer } from "@/engine/game";
 import { createSeededRandom } from "@/engine/random";
 import type { GameState, PlayerId } from "@/engine/types";
+import { toPlayerGameView } from "@/engine/views";
 
 function playingState(seed = 8100): GameState {
   let state = createInitialGame(createSeededRandom(seed));
@@ -183,5 +195,120 @@ describe("human bot decision review", () => {
       reason: expect.any(String),
     });
     expect(json).not.toContain('"hands"');
+  });
+
+  it("keeps successive bot decisions in chronological FIFO history with their exact hands", () => {
+    const firstState = createInitialGame(createSeededRandom(8112));
+    const firstDecision = chooseBotBidWithTrace(firstState);
+    const firstScenario = captureBotReviewScenario(firstState, {
+      decisionNumber: 1,
+      elapsedMs: 0.1,
+      chosenBid: firstDecision.bid,
+      biddingTrace: firstDecision.biddingTrace,
+    });
+    const secondState = makeBid(firstState, firstState.currentPlayerId, firstDecision.bid);
+    const secondDecision = chooseBotBidWithTrace(secondState);
+    const secondScenario = captureBotReviewScenario(secondState, {
+      decisionNumber: 2,
+      elapsedMs: 0.2,
+      chosenBid: secondDecision.bid,
+      biddingTrace: secondDecision.biddingTrace,
+    });
+    let history = createEmptyBotReviewHistory();
+    history = appendBotReviewHistory(history, firstScenario);
+    history = appendBotReviewHistory(history, secondScenario);
+
+    expect(history.map((scenario) => scenario.decisionId)).toEqual([
+      firstScenario.decisionId,
+      secondScenario.decisionId,
+    ]);
+    expect(history[0]).not.toBe(firstScenario);
+    expect(history[0].ownHand.map(cardId)).toEqual(firstState.hands[firstState.currentPlayerId].map(cardId));
+    expect(history[1].ownHand.map(cardId)).toEqual(secondState.hands[secondState.currentPlayerId].map(cardId));
+    expect(history[0].trace.bidding).toMatchObject({ version: 3 });
+    expect(history[1].trace.bidding).toMatchObject({ version: 3 });
+
+    const capped = Array.from({ length: BOT_REVIEW_HISTORY_LIMIT + 1 }, (_, index) => ({
+      ...firstScenario,
+      decisionId: `decision-${index}`,
+    })).reduce((current, scenario) => appendBotReviewHistory(current, scenario), createEmptyBotReviewHistory());
+    expect(capped).toHaveLength(BOT_REVIEW_HISTORY_LIMIT);
+    expect(capped[0].decisionId).toBe("decision-1");
+    expect(createEmptyBotReviewHistory()).toEqual([]);
+  });
+
+  it("builds a V2 bundle with complete public state and pre-decision card evidence", () => {
+    let state = playingState(8113);
+    for (let index = 0; index < 5; index += 1) {
+      const card = playableCardsForCurrentPlayer(state)[0];
+      state = playCard(state, state.currentPlayerId, card);
+    }
+    const chosenCard = chooseBotCard(state);
+    const cardScenario = captureBotReviewScenario(state, {
+      decisionNumber: 8,
+      elapsedMs: 0.8,
+      chosenCard,
+      capturedAt: "2026-09-12T12:00:00.000Z",
+    });
+    const publicBids: GameState["bids"] = [
+      { playerId: 0, action: "bid", value: 80, trump: "hearts" },
+      { playerId: 1, action: "pass" },
+      { playerId: 2, action: "coinche" },
+      { playerId: 0, action: "surcoinche" },
+      { playerId: 3, action: "capot", trump: "clubs" },
+    ];
+    const bundleState = { ...state, bids: publicBids };
+    const previousScenario = {
+      ...cardScenario,
+      decisionId: "previous-decision",
+      capturedAt: "2026-09-12T11:59:00.000Z",
+    };
+    const publicAuctions = updateBotReviewPublicAuctions([], bundleState);
+    const updatedPublicAuctions = updateBotReviewPublicAuctions(publicAuctions, {
+      ...bundleState,
+      bids: [...publicBids, { playerId: 1, action: "pass" }],
+    });
+    const bundle = createBotReviewBundle(bundleState, [previousScenario, cardScenario], {
+      gameId: "game-123",
+      selectedDecisionId: cardScenario.decisionId,
+      humanComment: "  À revoir.  ",
+      exportedAt: "2026-09-12T12:01:00.000Z",
+      publicAuctions,
+    });
+    const parsed = JSON.parse(serializeBotReviewBundle(bundle));
+
+    expect(bundle).toMatchObject({
+      version: 2,
+      type: "solo-analysis-bundle",
+      gameId: "game-123",
+      selectedDecisionId: cardScenario.decisionId,
+      humanComment: "À revoir.",
+    });
+    expect(bundle.decisions[0].ownHand.map(cardId)).toEqual(state.hands[state.currentPlayerId].map(cardId));
+    expect(bundle.decisions.map((decision) => decision.decisionId)).toEqual(["previous-decision", cardScenario.decisionId]);
+    expect(bundle.decisions[1].legalCards.map(cardId)).toEqual(playableCardsForCurrentPlayer(state).map(cardId));
+    expect(bundle.decisions[1].chosenCard).toEqual(chosenCard);
+    expect(bundle.current.bids).toEqual(publicBids);
+    expect(bundle.current.playerNames).toEqual(state.playerNames);
+    expect(bundle.publicAuctions).toEqual([{ roundNumber: state.roundNumber, bids: publicBids }]);
+    expect(updatedPublicAuctions).toEqual([{
+      roundNumber: state.roundNumber,
+      bids: [...publicBids, { playerId: 1, action: "pass" }],
+    }]);
+    expect(bundle.current.completedTricks).toEqual(state.completedTricks);
+    expect(bundle.current.currentTrick).toEqual(state.currentTrick);
+    expect(parsed).not.toHaveProperty("hands");
+  });
+
+  it("does not change multiplayer PlayerGameView hand isolation", () => {
+    const state = playingState(8114);
+    const view = toPlayerGameView(state, 0);
+    const json = JSON.stringify(view);
+
+    expect("hands" in view).toBe(false);
+    expect(view.hand).toEqual(state.hands[0]);
+    for (const opponent of [1, 2, 3] as PlayerId[]) {
+      expect(json).not.toContain(JSON.stringify(state.hands[opponent]));
+    }
   });
 });

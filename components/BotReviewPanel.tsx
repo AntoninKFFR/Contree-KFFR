@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { AnalysisCardList } from "@/components/BotHandAnalysis";
 import { formatCard, SUIT_LABELS } from "@/engine/cards";
-import type { BotReviewScenarioV1 } from "@/bots/botReview";
-import { serializeBotReviewScenario } from "@/bots/botReview";
+import type { BotReviewBundleV2, BotReviewScenarioV1 } from "@/bots/botReview";
+import { serializeBotReviewBundle, serializeBotReviewScenario } from "@/bots/botReview";
+import type { PlayerId } from "@/engine/types";
 
 type BotReviewPanelProps = {
   scenario: BotReviewScenarioV1;
   onClose: () => void;
+  createFullBundle?: (humanComment: string) => BotReviewBundleV2;
 };
 
 function formatBid(scenario: BotReviewScenarioV1): string {
@@ -18,7 +20,7 @@ function formatBid(scenario: BotReviewScenarioV1): string {
   return `${bid.value} ${SUIT_LABELS[bid.trump]}`;
 }
 
-export function BotReviewPanel({ scenario, onClose }: BotReviewPanelProps) {
+export function BotReviewPanel({ scenario, onClose, createFullBundle }: BotReviewPanelProps) {
   const [humanComment, setHumanComment] = useState(scenario.humanComment ?? "");
   const [status, setStatus] = useState("");
   const json = () => serializeBotReviewScenario(scenario, humanComment);
@@ -40,6 +42,28 @@ export function BotReviewPanel({ scenario, onClose }: BotReviewPanelProps) {
     link.click();
     URL.revokeObjectURL(url);
     setStatus("JSON téléchargé.");
+  }
+
+  async function copyFullAnalysis() {
+    if (!createFullBundle) return;
+    try {
+      await navigator.clipboard.writeText(serializeBotReviewBundle(createFullBundle(humanComment)));
+      setStatus("Analyse complète copiée.");
+    } catch {
+      setStatus("Copie impossible dans ce navigateur.");
+    }
+  }
+
+  function downloadFullAnalysis() {
+    if (!createFullBundle) return;
+    const bundle = createFullBundle(humanComment);
+    const url = URL.createObjectURL(new Blob([serializeBotReviewBundle(bundle)], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `bot-analysis-game-${bundle.gameId}-r${bundle.current.roundNumber}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatus("Analyse complète téléchargée.");
   }
 
   const chosen = scenario.chosenCard ? formatCard(scenario.chosenCard) : `Enchère : ${formatBid(scenario)}`;
@@ -142,8 +166,66 @@ export function BotReviewPanel({ scenario, onClose }: BotReviewPanelProps) {
         <button className="rounded-md border border-stone-400 bg-white px-3 py-2 font-semibold" onClick={downloadScenario} type="button">
           Télécharger JSON
         </button>
+        {createFullBundle ? (
+          <>
+            <button className="rounded-md bg-amber-700 px-3 py-2 font-semibold text-white" onClick={downloadFullAnalysis} type="button">
+              Télécharger analyse complète
+            </button>
+            <button className="rounded-md border border-amber-600 bg-white px-3 py-2 font-semibold" onClick={copyFullAnalysis} type="button">
+              Copier analyse complète
+            </button>
+          </>
+        ) : null}
       </div>
       {status ? <p className="mt-2 text-stone-600" role="status">{status}</p> : null}
     </aside>
+  );
+}
+
+function decisionLabel(scenario: BotReviewScenarioV1): string {
+  if (scenario.chosenCard) return formatCard(scenario.chosenCard);
+  const bid = scenario.chosenBid;
+  if (!bid) return "Décision inconnue";
+  if (bid.action === "bid") return `${bid.value}${SUIT_LABELS[bid.trump]}`;
+  if (bid.action === "coinche") return "Coinche";
+  if (bid.action === "surcoinche") return "Surcoinche";
+  return "Passe";
+}
+
+export function BotReviewHistory({
+  decisions,
+  playerNames,
+  selectedDecisionId,
+  onSelect,
+}: {
+  decisions: BotReviewScenarioV1[];
+  playerNames?: Record<PlayerId, string>;
+  selectedDecisionId: string | null;
+  onSelect: (scenario: BotReviewScenarioV1) => void;
+}) {
+  const recentDecisions = decisions.slice(-20).reverse();
+  return (
+    <section className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-stone-900" aria-label="Historique des décisions bots">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-bold">Historique des décisions</h2>
+        <span className="text-stone-600">{decisions.length} conservée{decisions.length > 1 ? "s" : ""}</span>
+      </div>
+      <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
+        {recentDecisions.map((scenario, index) => {
+          const decisionNumber = decisions.length - index;
+          const isSelected = scenario.decisionId === selectedDecisionId;
+          return (
+            <button
+              className={`block w-full rounded px-2 py-1.5 text-left ${isSelected ? "bg-amber-200 font-bold" : "bg-white hover:bg-amber-100"}`}
+              key={scenario.decisionId}
+              onClick={() => onSelect(scenario)}
+              type="button"
+            >
+              D{decisionNumber} · {playerNames?.[scenario.playerId] ?? `P${scenario.playerId}`} · {decisionLabel(scenario)}
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }

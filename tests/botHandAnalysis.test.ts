@@ -1,17 +1,23 @@
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { captureBotReviewScenario, isBotReviewModeEnabled } from "@/bots/botReview";
+import { captureBotReviewScenario, createBotReviewBundle, isBotReviewModeEnabled } from "@/bots/botReview";
 import { chooseBotBidWithTrace, chooseBotCard } from "@/bots/simpleBot";
 import {
   SoloBotHandsPanel,
   sortCardsForAnalysis,
 } from "@/components/BotHandAnalysis";
-import { BotReviewPanel } from "@/components/BotReviewPanel";
+import { BotReviewHistory, BotReviewPanel } from "@/components/BotReviewPanel";
 import { cardId } from "@/engine/cards";
 import { createInitialGame, makeBid } from "@/engine/game";
 import { createSeededRandom } from "@/engine/random";
 import type { Card, GameState } from "@/engine/types";
+import {
+  isSoloDesktopAnalysisLayout,
+  soloContentClassName,
+  soloGridClassName,
+  soloMainClassName,
+} from "@/app/solo/soloAnalysis";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
@@ -119,5 +125,60 @@ describe("solo bot hand analysis", () => {
     ]) {
       expect(markup).toContain(label);
     }
+  });
+
+  it("renders selectable recent history and complete-analysis export controls", () => {
+    const state = playingState(8204);
+    const chosenCard = chooseBotCard(state);
+    const first = captureBotReviewScenario(state, {
+      decisionNumber: 1,
+      elapsedMs: 1,
+      chosenCard,
+    });
+    const second = { ...first, decisionId: "second-decision" };
+    const historyMarkup = renderToStaticMarkup(React.createElement(BotReviewHistory, {
+      decisions: [first, second],
+      onSelect: () => undefined,
+      playerNames: state.playerNames,
+      selectedDecisionId: first.decisionId,
+    }));
+    const panelMarkup = renderToStaticMarkup(React.createElement(BotReviewPanel, {
+      createFullBundle: (humanComment: string) => createBotReviewBundle(state, [first, second], {
+        gameId: "game-ui",
+        humanComment,
+        selectedDecisionId: first.decisionId,
+      }),
+      onClose: () => undefined,
+      scenario: first,
+    }));
+
+    expect(historyMarkup).toContain("Historique des décisions");
+    expect(historyMarkup).toContain("2 conservées");
+    expect(historyMarkup).toContain("D2");
+    expect(historyMarkup).toContain("D1");
+    expect(panelMarkup).toContain("Télécharger analyse complète");
+    expect(panelMarkup).toContain("Copier analyse complète");
+    expect(panelMarkup).toContain("Télécharger JSON");
+    expect(panelMarkup).toContain("Copier le scénario");
+  });
+
+  it("enables desktop scrolling only for active analysis mode", () => {
+    const analysisDesktop = isSoloDesktopAnalysisLayout(true, true, false);
+    expect(analysisDesktop).toBe(true);
+    expect(soloMainClassName(analysisDesktop, false)).toContain("lg:h-auto");
+    expect(soloMainClassName(analysisDesktop, false)).toContain("lg:overflow-y-auto");
+    expect(soloContentClassName(analysisDesktop)).toContain("h-auto min-h-full");
+    expect(soloGridClassName(analysisDesktop, false, true)).toContain("flex-none");
+
+    const normalDesktop = isSoloDesktopAnalysisLayout(true, false, false);
+    expect(normalDesktop).toBe(false);
+    expect(soloMainClassName(normalDesktop, false)).toContain("lg:h-[calc(100dvh-56px)]");
+    expect(soloMainClassName(normalDesktop, false)).toContain("lg:overflow-hidden");
+    expect(soloContentClassName(normalDesktop)).toContain("h-full");
+    expect(soloGridClassName(normalDesktop, false, true)).toContain("flex-1");
+
+    const mobileLandscape = isSoloDesktopAnalysisLayout(true, true, true);
+    expect(mobileLandscape).toBe(false);
+    expect(soloMainClassName(mobileLandscape, true)).toContain("overflow-hidden px-0 py-0");
   });
 });

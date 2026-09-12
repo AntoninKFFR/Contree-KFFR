@@ -67,6 +67,45 @@ export type BotReviewScenarioV1 = {
   humanComment?: string;
 };
 
+export const BOT_REVIEW_HISTORY_LIMIT = 300;
+
+export function createEmptyBotReviewHistory(): BotReviewScenarioV1[] {
+  return [];
+}
+
+export type BotReviewCurrentStateV2 = {
+  roundNumber: number;
+  phase: GameState["phase"];
+  startingPlayerId: PlayerId;
+  playerNames?: Record<PlayerId, string>;
+  trump: Suit | null;
+  contract: Contract | null;
+  bids: Bid[];
+  currentTrick: Trick;
+  completedTricks: CompletedTrick[];
+  totalScore: Record<TeamId, number>;
+  trickPoints: Record<TeamId, number>;
+  roundScore: Record<TeamId, number>;
+};
+
+export type BotReviewPublicAuctionV2 = {
+  roundNumber: number;
+  bids: Bid[];
+};
+
+export type BotReviewBundleV2 = {
+  version: 2;
+  type: "solo-analysis-bundle";
+  exportedAt: string;
+  gameId: string;
+  botProfile: string;
+  selectedDecisionId: string | null;
+  current: BotReviewCurrentStateV2;
+  publicAuctions: BotReviewPublicAuctionV2[];
+  decisions: BotReviewScenarioV1[];
+  humanComment?: string;
+};
+
 type CaptureOptions = {
   decisionNumber: number;
   elapsedMs: number;
@@ -86,6 +125,95 @@ function cloneTrick<T extends Trick | CompletedTrick>(trick: T): T {
     ...trick,
     cards: trick.cards.map((played) => ({ playerId: played.playerId, card: { ...played.card } })),
   };
+}
+
+function cloneScenario(scenario: BotReviewScenarioV1): BotReviewScenarioV1 {
+  return {
+    ...scenario,
+    settings: { ...scenario.settings },
+    ownHand: cloneCards(scenario.ownHand),
+    contract: scenario.contract ? { ...scenario.contract } : null,
+    bids: scenario.bids.map((bid) => ({ ...bid })),
+    currentTrick: cloneTrick(scenario.currentTrick),
+    completedTricks: scenario.completedTricks.map(cloneTrick),
+    totalScore: { ...scenario.totalScore },
+    trickPoints: { ...scenario.trickPoints },
+    roundScore: { ...scenario.roundScore },
+    legalCards: cloneCards(scenario.legalCards),
+    chosenCard: scenario.chosenCard ? { ...scenario.chosenCard } : null,
+    chosenBid: scenario.chosenBid ? { ...scenario.chosenBid } : null,
+  };
+}
+
+export function appendBotReviewHistory(
+  history: BotReviewScenarioV1[],
+  scenario: BotReviewScenarioV1,
+  limit = BOT_REVIEW_HISTORY_LIMIT,
+): BotReviewScenarioV1[] {
+  if (!Number.isInteger(limit) || limit < 1) {
+    throw new Error("Bot review: la limite d'historique doit etre positive.");
+  }
+  return [...history, cloneScenario(scenario)].slice(-limit);
+}
+
+export function updateBotReviewPublicAuctions(
+  auctions: BotReviewPublicAuctionV2[],
+  state: GameState,
+): BotReviewPublicAuctionV2[] {
+  const currentAuction = {
+    roundNumber: state.roundNumber,
+    bids: state.bids.map((bid) => ({ ...bid })),
+  };
+  const existingIndex = auctions.findIndex((auction) => auction.roundNumber === state.roundNumber);
+  if (existingIndex < 0) return [...auctions, currentAuction];
+  return auctions.map((auction, index) => index === existingIndex ? currentAuction : auction);
+}
+
+export function createBotReviewBundle(
+  state: GameState,
+  decisions: BotReviewScenarioV1[],
+  options: {
+    gameId: string;
+    selectedDecisionId?: string | null;
+    humanComment?: string;
+    exportedAt?: string;
+    botProfile?: string;
+    publicAuctions?: BotReviewPublicAuctionV2[];
+  },
+): BotReviewBundleV2 {
+  const humanComment = options.humanComment?.trim();
+  return {
+    version: 2,
+    type: "solo-analysis-bundle",
+    exportedAt: options.exportedAt ?? new Date().toISOString(),
+    gameId: options.gameId,
+    botProfile: options.botProfile ?? OFFICIAL_BOT_PROFILE_ID,
+    selectedDecisionId: options.selectedDecisionId ?? null,
+    current: {
+      roundNumber: state.roundNumber,
+      phase: state.phase,
+      startingPlayerId: state.startingPlayerId,
+      playerNames: state.playerNames ? { ...state.playerNames } : undefined,
+      trump: state.trump,
+      contract: getCurrentContract(state) ? { ...getCurrentContract(state)! } : null,
+      bids: state.bids.map((bid) => ({ ...bid })),
+      currentTrick: cloneTrick(state.currentTrick),
+      completedTricks: state.completedTricks.map(cloneTrick),
+      totalScore: { ...state.totalScore },
+      trickPoints: { ...state.trickPoints },
+      roundScore: { ...state.roundScore },
+    },
+    publicAuctions: (options.publicAuctions ?? updateBotReviewPublicAuctions([], state)).map((auction) => ({
+      roundNumber: auction.roundNumber,
+      bids: auction.bids.map((bid) => ({ ...bid })),
+    })),
+    decisions: decisions.map(cloneScenario),
+    ...(humanComment ? { humanComment } : {}),
+  };
+}
+
+export function serializeBotReviewBundle(bundle: BotReviewBundleV2): string {
+  return JSON.stringify(bundle, null, 2);
 }
 
 function reviewKnowledge(state: GameState): BotReviewKnowledgeV1 | undefined {
