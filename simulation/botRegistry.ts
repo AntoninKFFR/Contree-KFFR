@@ -173,12 +173,13 @@ export const HUMAN_DOCTRINE_V2_1_STRATEGIES = [
 export const HUMAN_DOCTRINE_V3_STRATEGY = createHybridStrategy("human_doctrine_v3_conversation", "monte_carlo_v1", {
   id: "human_doctrine_v3_conversation_mc_v1",
   label: "Auction Doctrine V3 conversation + Monte Carlo V1",
-  status: "experimental",
+  status: "active",
 });
 
 export const ACTIVE_BOT_STRATEGIES: BotStrategyDefinition[] = [
   ...(Object.keys(BOT_PROFILES) as BotProfileId[]).map(activeDefinition),
   HUMAN_DOCTRINE_V1_STRATEGY,
+  HUMAN_DOCTRINE_V3_STRATEGY,
 ];
 
 export const LEGACY_BOT_STRATEGIES: BotStrategyDefinition[] = [
@@ -202,7 +203,6 @@ export const ALL_BOT_STRATEGIES = [
   ...ACTIVE_BOT_STRATEGIES,
   HUMAN_DOCTRINE_V2_COMM_STRATEGY,
   ...HUMAN_DOCTRINE_V2_1_STRATEGIES,
-  HUMAN_DOCTRINE_V3_STRATEGY,
   ...LEGACY_BOT_STRATEGIES,
 ];
 

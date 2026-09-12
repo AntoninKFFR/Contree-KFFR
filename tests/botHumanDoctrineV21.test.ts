@@ -115,10 +115,10 @@ describe("human doctrine V2.1 initiative", () => {
     expect(chooseHumanDoctrineV2Bid(changed, HUMAN_DOCTRINE_V2_1_BALANCED)).toEqual(chooseHumanDoctrineV2Bid(state, HUMAN_DOCTRINE_V2_1_BALANCED));
   });
 
-  it("registers all short variants as experimental MC V1 and leaves V1 official", () => {
+  it("registers all short variants as experimental MC V1 and leaves V3 official", () => {
     for (const id of ["human_doctrine_v2_1_conservative_mc_v1", "human_doctrine_v2_1_balanced_mc_v1", "human_doctrine_v2_1_aggressive_mc_v1"]) {
       expect(findBotStrategy(id)).toMatchObject({ status: "experimental", card: { kind: "monte-carlo-v1" } });
     }
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v1_mc_v1");
+    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_conversation_mc_v1");
   });
 });

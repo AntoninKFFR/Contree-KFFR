@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { captureBotReviewScenario, botReviewScenarioToGameState, isBotReviewModeEnabled, serializeBotReviewScenario } from "@/bots/botReview";
-import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
+import { chooseBotBidWithTrace, chooseBotCard } from "@/bots/simpleBot";
 import { chooseHumanDoctrineV2Bid } from "@/bots/strategy/humanDoctrineV2";
 import { chooseHumanDoctrineV3Bid } from "@/bots/strategy/humanDoctrineV3";
 import { cardId } from "@/engine/cards";
@@ -71,7 +71,7 @@ describe("human bot decision review", () => {
     expect(stateAfterDecision.hands[scenario.playerId].map(cardId)).not.toContain(cardId(chosenCard));
   });
 
-  it("reconstructs a Bot Lab position and reproduces the official V1 choice", () => {
+  it("reconstructs a Bot Lab position and reproduces the official Monte Carlo V1 card choice", () => {
     const state = playingState(8101);
     const chosenCard = chooseBotCard(state);
     const scenario = captureBotReviewScenario(state, {
@@ -89,19 +89,30 @@ describe("human bot decision review", () => {
     expect(chooseBotCard(reconstructed)).toEqual(chosenCard);
   });
 
-  it("captures bidding decisions and rejects a forged illegal chosen card", () => {
+  it("captures the official V3 bidding trace and rejects a forged illegal chosen card", () => {
     const bidding = createInitialGame(createSeededRandom(8102));
-    const chosenBid = chooseBotBid(bidding);
+    const { bid: chosenBid, biddingTrace } = chooseBotBidWithTrace(bidding);
     const bidScenario = captureBotReviewScenario(bidding, {
       decisionNumber: 1,
       elapsedMs: 0.1,
       chosenBid,
+      biddingTrace,
     });
     expect(botReviewScenarioToGameState(bidScenario)).toMatchObject({
       phase: "bidding",
       currentPlayerId: bidding.currentPlayerId,
     });
     expect(bidScenario.legalCards).toEqual([]);
+    expect(bidScenario.botProfile).toBe("human_doctrine_v3_conversation_mc_v1");
+    expect(bidScenario.decisionEngine).toBe("auction_doctrine_v3");
+    expect(bidScenario.trace.bidding).toMatchObject({
+      version: 3,
+      trumpFoundation: expect.any(String),
+      partnerFit: expect.any(String),
+      partnerSuitOverride: expect.any(String),
+      communicationIntent: expect.any(String),
+      reason: expect.any(String),
+    });
 
     const state = playingState(8103);
     const scenario = captureBotReviewScenario(state, {

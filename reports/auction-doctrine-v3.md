@@ -1,10 +1,10 @@
 # Auction Doctrine V3 — enchères conversationnelles
 
-## Décision
+## Décision produit du 12 septembre 2026
 
-**PROMOTION NO.** `human_doctrine_v3_conversation_mc_v1` reste une stratégie expérimentale. Le bot officiel reste **`human_doctrine_v1_mc_v1`**.
+**PROMOTION PRODUIT YES.** `human_doctrine_v3_conversation_mc_v1` devient le bot officiel pour poursuivre les tests humains en conditions réelles. Il utilise Auction Doctrine V3 pour les enchères et conserve strictement Monte Carlo V1 pour les cartes.
 
-V3 corrige les cas humains observés et obtient un niveau comparable à l'officiel, mais son avantage n'est pas démontré statistiquement : **303–297 sur 600 parties, 50,5 %, IC95 [46,50 % ; 54,50 %]**. Les résultats par seed vont de 44 % à 56 %. La finale 1 200 a donc été annulée.
+Cette promotion est un choix produit, pas une conclusion de supériorité statistique. V3 corrige les cas humains observés et obtient un niveau comparable à V1, mais son avantage n'est pas démontré : **303–297 sur 600 parties, 50,5 %, IC95 [46,50 % ; 54,50 %]**. Les résultats par seed vont de 44 % à 56 %. La finale 1 200 reste annulée.
 
 La comparaison directe V3 / V2.1 conservatrice a été interrompue volontairement à la demande de l'utilisateur pour économiser le temps de calcul et les crédits. Aucun résultat partiel n'a été écrit ni utilisé pour une conclusion statistique.
 
@@ -21,7 +21,7 @@ Les tests V3 transcrivent uniquement ces mains propres et les enchères publique
 
 ## Architecture V3
 
-V3 est une couche expérimentale séparée construite au-dessus des évaluations intrinsèques et de la classification de dépendance de V2.1 conservatrice. Elle ne modifie ni V2.1, ni les règles FFB, ni le moteur de cartes.
+V3 est une couche séparée construite au-dessus des évaluations intrinsèques et de la classification de dépendance de V2.1 conservatrice. Elle ne modifie ni V2.1, ni les règles FFB, ni le moteur de cartes.
 
 La décision est décomposée en concepts explicitement tracés :
 
@@ -162,11 +162,13 @@ Par conséquent :
 - aucune conclusion de supériorité ou de régression face à V2.1 n'est formulée ;
 - la décision de promotion repose sur les cas doctrinaux et les deux benchmarks complets contre V1.
 
-## Promotion et bot officiel
+## Conclusion statistique et promotion produit
 
 V3 satisfait les cas humains, la confidentialité et l'absence de perte majeure d'initiative. Elle reste toutefois seulement comparable au champion, sans avantage statistique convaincant ni cohérence suffisante entre seeds.
 
-**PROMOTION NO.** La finale 1 200 est annulée. `human_doctrine_v3_conversation_mc_v1` reste expérimentale et **`OFFICIAL_BOT_PROFILE_ID` reste `human_doctrine_v1_mc_v1`**.
+**PROMOTION STATISTIQUE NO.** La finale 1 200 reste annulée : les benchmarks ne démontrent pas que V3 est supérieure à V1.
+
+**PROMOTION PRODUIT YES.** La qualité des comportements humains corrigés motive néanmoins un déploiement volontaire. **`OFFICIAL_BOT_PROFILE_ID` devient `human_doctrine_v3_conversation_mc_v1`** afin de poursuivre la validation réelle via Bot Review. V1 reste enregistré et actif pour rollback et comparaison.
 
 ## Preuves
 

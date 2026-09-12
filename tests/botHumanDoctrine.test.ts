@@ -237,10 +237,10 @@ describe("human doctrine card-play diagnostics", () => {
 });
 
 describe("human doctrine isolation and anti-cheat", () => {
-  it("is the official profile after the FFB recalibration", () => {
+  it("keeps the former FFB champion active for rollback after the V3 product promotion", () => {
     const strategy = createHybridStrategy("human_doctrine_v1", "monte_carlo_v1", { id: "human_doctrine_v1_mc_v1", status: "active" });
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v1_mc_v1");
-    expect(findBotStrategy(OFFICIAL_BOT_PROFILE_ID)).toMatchObject({
+    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_conversation_mc_v1");
+    expect(findBotStrategy("human_doctrine_v1_mc_v1")).toMatchObject({
       status: "active",
       bidding: { kind: "human-doctrine-v1" },
       card: { kind: "monte-carlo-v1" },

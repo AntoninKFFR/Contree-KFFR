@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
+import { chooseBotBidWithTrace, chooseBotCard } from "@/bots/simpleBot";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { BotReviewPanel } from "@/components/BotReviewPanel";
 import { SoloBotHandsPanel } from "@/components/BotHandAnalysis";
@@ -126,13 +126,14 @@ export default function SoloPage() {
       const started = performance.now();
 
       if (currentState.phase === "bidding") {
-        const botBid = chooseBotBid(currentState);
+        const { bid: botBid, biddingTrace } = chooseBotBidWithTrace(currentState);
         const elapsedMs = performance.now() - started;
         if (BOT_REVIEW_MODE_ENABLED) {
           setLastBotReview(captureBotReviewScenario(currentState, {
             decisionNumber: botDecisionNumberRef.current,
             elapsedMs,
             chosenBid: botBid,
+            biddingTrace,
           }));
         }
         if (botBid.action === "bid") {

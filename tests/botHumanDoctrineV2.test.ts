@@ -210,13 +210,13 @@ describe("human doctrine V2 communicative bidding", () => {
     }));
   });
 
-  it("registers the communication variant as experimental with MC V1 while leaving V1 official", () => {
+  it("registers the communication variant as experimental with MC V1 while V3 is official", () => {
     expect(findBotStrategy("human_doctrine_v2_comm_mc_v1")).toMatchObject({
       status: "experimental",
       bidding: { kind: "human-doctrine-v2", options: { allow110: true, communication: true } },
       card: { kind: "monte-carlo-v1" },
     });
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v1_mc_v1");
+    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_conversation_mc_v1");
     expect(analyzeAuctionContext(stateWith({ hand: jackOnlyStrong })).publicBids).toEqual([]);
   });
 

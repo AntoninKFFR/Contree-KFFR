@@ -2,7 +2,7 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { captureBotReviewScenario, isBotReviewModeEnabled } from "@/bots/botReview";
-import { chooseBotCard } from "@/bots/simpleBot";
+import { chooseBotBidWithTrace, chooseBotCard } from "@/bots/simpleBot";
 import {
   SoloBotHandsPanel,
   sortCardsForAnalysis,
@@ -91,5 +91,33 @@ describe("solo bot hand analysis", () => {
       expect(markup).toContain(`data-card-id="${cardId(card)}"`);
     }
     expect(markup).toContain(`data-card-id="${cardId(chosenCard)}" data-chosen="true"`);
+  });
+
+  it("renders every available official V3 auction diagnostic", () => {
+    const state = createInitialGame(createSeededRandom(8203));
+    const { bid, biddingTrace } = chooseBotBidWithTrace(state);
+    const scenario = captureBotReviewScenario(state, {
+      decisionNumber: 2,
+      elapsedMs: 1,
+      chosenBid: bid,
+      biddingTrace,
+    });
+    const markup = renderToStaticMarkup(React.createElement(BotReviewPanel, {
+      onClose: () => undefined,
+      scenario,
+    }));
+
+    for (const label of [
+      "Fondation atout",
+      "Fit partenaire",
+      "Override",
+      "Palier minimal",
+      "Plafond intrinsèque",
+      "Plafond de rebid",
+      "Intention",
+      "Raison",
+    ]) {
+      expect(markup).toContain(label);
+    }
   });
 });

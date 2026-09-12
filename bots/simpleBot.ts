@@ -3,26 +3,32 @@ import { chooseMonteCarloCardToPlay, chooseMonteCarloV2CardToPlay } from "@/bots
 import { chooseMonteCarloV3CardToPlay } from "@/bots/strategy/monteCarloV3CardStrategy";
 import { chooseProfileBid } from "@/bots/strategy/biddingStrategy";
 import { chooseHumanDoctrineBid } from "@/bots/strategy/humanDoctrine";
+import { chooseHumanDoctrineV3Bid, type HumanDoctrineV3Trace } from "@/bots/strategy/humanDoctrineV3";
 import { chooseSimpleBid as chooseLegacyBid } from "@/bots/heuristicBot 2";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import { getCurrentContract } from "@/engine/game";
 import { isBotSeat, SOLO_SEAT_ASSIGNMENTS, type SeatAssignments } from "@/engine/seats";
-import type { Card, GameState } from "@/engine/types";
+import type { BidValue, Card, GameState, Suit } from "@/engine/types";
 
 export function chooseBotCard(state: GameState): Card {
-  if (OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v1_mc_v1" || OFFICIAL_BOT_PROFILE_ID === "hybrid_legacy_v1") return chooseMonteCarloCardToPlay(state);
+  if (
+    OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_conversation_mc_v1"
+    || OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v1_mc_v1"
+    || OFFICIAL_BOT_PROFILE_ID === "hybrid_legacy_v1"
+  ) return chooseMonteCarloCardToPlay(state);
   if (OFFICIAL_BOT_PROFILE_ID === "hybrid_legacy_v3") return chooseMonteCarloV3CardToPlay(state);
   return chooseMonteCarloV2CardToPlay(state);
 }
 
-export function chooseBotBid(state: GameState) {
-  const currentContract = getCurrentContract(state);
-  const decision = OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v1_mc_v1"
-    ? chooseHumanDoctrineBid(state)
-    : OFFICIAL_BOT_PROFILE_ID.startsWith("hybrid_legacy_")
-      ? chooseLegacyBid(state.hands[state.currentPlayerId])
-      : chooseProfileBid(state, getBotProfile(OFFICIAL_BOT_PROFILE_ID));
+type OfficialBotBid =
+  | { action: "pass" | "coinche" | "surcoinche" }
+  | { action: "bid"; value: BidValue; trump: Suit };
 
+function normalizeBotBid(
+  state: GameState,
+  decision: { action: string; value?: BidValue; trump?: Suit },
+): OfficialBotBid {
+  const currentContract = getCurrentContract(state);
   if (
     currentContract &&
     canSurcoinche(state.currentPlayerId, currentContract) &&
@@ -56,6 +62,26 @@ export function chooseBotBid(state: GameState) {
     value: decision.value,
     trump: decision.trump,
   } as const;
+}
+
+export function chooseBotBidWithTrace(state: GameState): {
+  bid: OfficialBotBid;
+  biddingTrace?: HumanDoctrineV3Trace;
+} {
+  if (OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_conversation_mc_v1") {
+    const decision = chooseHumanDoctrineV3Bid(state);
+    return { bid: normalizeBotBid(state, decision), biddingTrace: decision.trace };
+  }
+  const decision = OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v1_mc_v1"
+    ? chooseHumanDoctrineBid(state)
+    : OFFICIAL_BOT_PROFILE_ID.startsWith("hybrid_legacy_")
+      ? chooseLegacyBid(state.hands[state.currentPlayerId])
+      : chooseProfileBid(state, getBotProfile(OFFICIAL_BOT_PROFILE_ID));
+  return { bid: normalizeBotBid(state, decision) };
+}
+
+export function chooseBotBid(state: GameState): OfficialBotBid {
+  return chooseBotBidWithTrace(state).bid;
 }
 
 export function isBotPlayer(

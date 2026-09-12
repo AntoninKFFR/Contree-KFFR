@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
+import { chooseBotBid } from "@/bots/simpleBot";
 import {
   chooseHumanDoctrineV3Bid,
   classifyTrumpFoundation,
@@ -219,12 +220,22 @@ describe("Auction Doctrine V3 conversation", () => {
     expect(chooseHumanDoctrineV3Bid(changed)).toEqual(chooseHumanDoctrineV3Bid(first));
   });
 
-  it("registers V3 as experimental with Monte Carlo V1 and keeps V1 official", () => {
+  it("registers V3 as the active official strategy with Monte Carlo V1", () => {
     expect(findBotStrategy("human_doctrine_v3_conversation_mc_v1")).toMatchObject({
-      status: "experimental",
+      status: "active",
       bidding: { kind: "human-doctrine-v3" },
       card: { kind: "monte-carlo-v1" },
     });
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v1_mc_v1");
+    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_conversation_mc_v1");
+  });
+
+  it("routes the production web and server bot through Auction Doctrine V3", () => {
+    const state = stateWith(realCaseA);
+    const expected = chooseHumanDoctrineV3Bid(state);
+
+    expect(chooseBotBid(state)).toEqual({
+      action: expected.action,
+      ...(expected.action === "bid" ? { value: expected.value, trump: expected.trump } : {}),
+    });
   });
 });
