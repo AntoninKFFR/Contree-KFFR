@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { captureBotReviewScenario, botReviewScenarioToGameState, isBotReviewModeEnabled, serializeBotReviewScenario } from "@/bots/botReview";
 import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
 import { chooseHumanDoctrineV2Bid } from "@/bots/strategy/humanDoctrineV2";
+import { chooseHumanDoctrineV3Bid } from "@/bots/strategy/humanDoctrineV3";
 import { cardId } from "@/engine/cards";
 import { createInitialGame, makeBid, playCard, playableCardsForCurrentPlayer } from "@/engine/game";
 import { createSeededRandom } from "@/engine/random";
@@ -144,5 +145,32 @@ describe("human bot decision review", () => {
     });
     expect(json).not.toContain('"hands"');
     expect(chooseHumanDoctrineV2Bid(reconstructed)).toEqual(decision);
+  });
+
+  it("exports the V3 conversation trace without any hidden hand", () => {
+    const bidding = createInitialGame(createSeededRandom(8111), { scoringMode: "ffb", targetScore: 1000 });
+    const decision = chooseHumanDoctrineV3Bid(bidding);
+    const scenario = captureBotReviewScenario(bidding, {
+      decisionNumber: 4,
+      elapsedMs: 0.3,
+      chosenBid: decision.action === "bid"
+        ? { action: "bid", value: decision.value, trump: decision.trump }
+        : { action: "pass" },
+      botProfile: "human_doctrine_v3_conversation_mc_v1",
+      biddingTrace: decision.trace,
+    });
+    const json = serializeBotReviewScenario(scenario);
+
+    expect(scenario.decisionEngine).toBe("auction_doctrine_v3");
+    expect(scenario.trace.source).toBe("auction-doctrine-v3-conversation");
+    expect(scenario.trace.bidding).toMatchObject({
+      version: 3,
+      trumpFoundation: expect.any(String),
+      partnerFit: expect.any(String),
+      partnerSuitOverride: expect.any(String),
+      communicationIntent: expect.any(String),
+      reason: expect.any(String),
+    });
+    expect(json).not.toContain('"hands"');
   });
 });

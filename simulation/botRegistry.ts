@@ -4,6 +4,7 @@ import { chooseBiddingV2 } from "@/bots/strategy/biddingStrategyV2";
 import { chooseMonteCarloBid } from "@/bots/strategy/monteCarloBiddingStrategy";
 import { chooseHumanDoctrineBid, type HumanDoctrineOptions } from "@/bots/strategy/humanDoctrine";
 import { chooseHumanDoctrineV2Bid, type HumanDoctrineV2Options } from "@/bots/strategy/humanDoctrineV2";
+import { chooseHumanDoctrineV3Bid } from "@/bots/strategy/humanDoctrineV3";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { chooseMonteCarloCardToPlay, chooseMonteCarloV2CardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
 import { chooseMonteCarloV3Decision, V3_1_OPTIONS, type BotDecisionTraceV3, type MonteCarloV3Options } from "@/bots/strategy/monteCarloV3CardStrategy";
@@ -28,6 +29,7 @@ export type BotBiddingStrategyId =
   | "human_doctrine_v2_1_conservative"
   | "human_doctrine_v2_1_balanced"
   | "human_doctrine_v2_1_aggressive"
+  | "human_doctrine_v3_conversation"
   | "prudent"
   | "balanced"
   | "aggressive"
@@ -51,6 +53,7 @@ export type BiddingEngine =
   | { kind: "bidding-v2" }
   | { kind: "human-doctrine-v1"; options?: HumanDoctrineOptions }
   | { kind: "human-doctrine-v2"; options: HumanDoctrineV2Options }
+  | { kind: "human-doctrine-v3" }
   | { kind: "legacy" };
 
 export type CardEngine =
@@ -82,6 +85,7 @@ export const BIDDING_ENGINES: Record<BotBiddingStrategyId, { label: string; engi
   human_doctrine_v2_1_conservative: { label: "Human doctrine V2.1 selective probe conservative", engine: { kind: "human-doctrine-v2", options: { allow110: true, communication: true, selectiveProbePolicy: "selective-probe-conservative" } } },
   human_doctrine_v2_1_balanced: { label: "Human doctrine V2.1 selective probe balanced", engine: { kind: "human-doctrine-v2", options: { allow110: true, communication: true, selectiveProbePolicy: "selective-probe-balanced" } } },
   human_doctrine_v2_1_aggressive: { label: "Human doctrine V2.1 selective probe aggressive", engine: { kind: "human-doctrine-v2", options: { allow110: true, communication: true, selectiveProbePolicy: "selective-probe-aggressive" } } },
+  human_doctrine_v3_conversation: { label: "Auction Doctrine V3 conversation", engine: { kind: "human-doctrine-v3" } },
   prudent: { label: "Prudent bidding", engine: { kind: "heuristic", profile: "prudent" } },
   balanced: { label: "Balanced bidding", engine: { kind: "heuristic", profile: "balanced" } },
   aggressive: { label: "Aggressive bidding", engine: { kind: "heuristic", profile: "aggressive" } },
@@ -166,6 +170,12 @@ export const HUMAN_DOCTRINE_V2_1_STRATEGIES = [
   createHybridStrategy("human_doctrine_v2_1_aggressive", "monte_carlo_v1", { id: "human_doctrine_v2_1_aggressive_mc_v1", status: "experimental" }),
 ];
 
+export const HUMAN_DOCTRINE_V3_STRATEGY = createHybridStrategy("human_doctrine_v3_conversation", "monte_carlo_v1", {
+  id: "human_doctrine_v3_conversation_mc_v1",
+  label: "Auction Doctrine V3 conversation + Monte Carlo V1",
+  status: "experimental",
+});
+
 export const ACTIVE_BOT_STRATEGIES: BotStrategyDefinition[] = [
   ...(Object.keys(BOT_PROFILES) as BotProfileId[]).map(activeDefinition),
   HUMAN_DOCTRINE_V1_STRATEGY,
@@ -188,7 +198,13 @@ export const LEGACY_BOT_STRATEGIES: BotStrategyDefinition[] = [
   },
 ];
 
-export const ALL_BOT_STRATEGIES = [...ACTIVE_BOT_STRATEGIES, HUMAN_DOCTRINE_V2_COMM_STRATEGY, ...HUMAN_DOCTRINE_V2_1_STRATEGIES, ...LEGACY_BOT_STRATEGIES];
+export const ALL_BOT_STRATEGIES = [
+  ...ACTIVE_BOT_STRATEGIES,
+  HUMAN_DOCTRINE_V2_COMM_STRATEGY,
+  ...HUMAN_DOCTRINE_V2_1_STRATEGIES,
+  HUMAN_DOCTRINE_V3_STRATEGY,
+  ...LEGACY_BOT_STRATEGIES,
+];
 
 export function findBotStrategy(id: string): BotStrategyDefinition {
   const strategy = ALL_BOT_STRATEGIES.find((candidate) => candidate.id === id);
@@ -223,6 +239,9 @@ export function chooseStrategyBid(state: GameState, strategy: BotStrategyDefinit
   }
   if (strategy.bidding.kind === "human-doctrine-v2") {
     return chooseHumanDoctrineV2Bid(state, strategy.bidding.options);
+  }
+  if (strategy.bidding.kind === "human-doctrine-v3") {
+    return chooseHumanDoctrineV3Bid(state);
   }
   if (strategy.bidding.kind === "legacy-balanced-simple") {
     return chooseProfileBidFromHand(state.hands[state.currentPlayerId], getBotProfile("balanced"), null);

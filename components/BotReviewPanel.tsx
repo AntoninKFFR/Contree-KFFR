@@ -49,6 +49,10 @@ export function BotReviewPanel({ scenario, onClose }: BotReviewPanelProps) {
   const trick = scenario.currentTrick.cards.length > 0
     ? scenario.currentTrick.cards.map((played) => `P${played.playerId}: ${formatCard(played.card)}`).join(", ")
     : "Début de pli";
+  const biddingTrace = scenario.trace.bidding;
+  const v3Trace = biddingTrace && "version" in biddingTrace && biddingTrace.version === 3
+    ? biddingTrace
+    : null;
 
   return (
     <aside className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-stone-900 shadow-sm" aria-label="Analyse du dernier coup du bot">
@@ -99,6 +103,26 @@ export function BotReviewPanel({ scenario, onClose }: BotReviewPanelProps) {
         <dt className="font-semibold">Stratégie :</dt><dd>{scenario.decisionEngine}</dd>
         <dt className="font-semibold">Temps :</dt><dd>{scenario.elapsedMs.toFixed(2)} ms</dd>
       </dl>
+
+      {v3Trace ? (
+        <section className="mt-3 rounded-md border border-amber-300 bg-white/80 p-3">
+          <h2 className="text-sm font-bold">Conversation d’enchères V3</h2>
+          <dl className="mt-2 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1">
+            <dt className="font-semibold">Message partenaire :</dt>
+            <dd>{v3Trace.partnerMessage ? `${v3Trace.partnerMessage.value} ${SUIT_LABELS[v3Trace.partnerMessage.trump]}` : "Aucun"}</dd>
+            <dt className="font-semibold">Fit partenaire :</dt><dd>{v3Trace.partnerFit}</dd>
+            <dt className="font-semibold">Fondation atout :</dt><dd>{v3Trace.trumpFoundation}</dd>
+            <dt className="font-semibold">Couleur candidate :</dt><dd>{SUIT_LABELS[v3Trace.candidateSuit]}</dd>
+            <dt className="font-semibold">Couleur partenaire :</dt><dd>{v3Trace.partnerSuit ? SUIT_LABELS[v3Trace.partnerSuit] : "Aucune"}</dd>
+            <dt className="font-semibold">Override :</dt><dd>{v3Trace.partnerSuitOverride}</dd>
+            <dt className="font-semibold">Palier minimal :</dt><dd>{v3Trace.minimalUsefulBid ?? "Aucun"}</dd>
+            <dt className="font-semibold">Plafond intrinsèque :</dt><dd>{v3Trace.intrinsicCeiling ?? "Aucun"}</dd>
+            <dt className="font-semibold">Plafond de rebid :</dt><dd>{v3Trace.rebidCeiling ?? "Aucun"}</dd>
+            <dt className="font-semibold">Intention :</dt><dd>{v3Trace.communicationIntent}</dd>
+            <dt className="font-semibold">Raison :</dt><dd>{v3Trace.reason}</dd>
+          </dl>
+        </section>
+      ) : null}
 
       <label className="mt-3 block font-semibold" htmlFor="bot-review-comment">
         Pourquoi ce coup est mauvais ?

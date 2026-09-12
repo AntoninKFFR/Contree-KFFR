@@ -1,0 +1,129 @@
+{
+  "experiment": "Auction Doctrine V3 conversational bidding",
+  "generatedAt": "2026-09-12T00:50:22.147Z",
+  "settings": {
+    "scoringMode": "ffb",
+    "targetScore": 1000,
+    "games": 600,
+    "seeds": [
+      20280101,
+      20281101,
+      20282101,
+      20283101,
+      20284101,
+      20285101
+    ],
+    "pairedDeals": true,
+    "invertedSides": true,
+    "candidateCardEngine": "monte-carlo-v1",
+    "opponentCardEngine": "monte-carlo-v1"
+  },
+  "result": {
+    "candidate": {
+      "games": 600,
+      "wins": 303,
+      "losses": 297,
+      "winRate": 0.505,
+      "averageScore": 866.9666666666667,
+      "averageDifferential": 18.75,
+      "contractsTaken": 1403,
+      "contractsSucceeded": 1125,
+      "attackSuccessRate": 0.8018531717747683,
+      "defenseRounds": 2059,
+      "defensiveSets": 557,
+      "defenseSetRate": 0.2705196697425935,
+      "averageContract": 104.06985032074127,
+      "averageBidMs": 0.051646215680332175,
+      "p95BidMs": 0.09820000000763685,
+      "averageCardMs": 27.210716406700612,
+      "p95CardMs": 87.1476000000257,
+      "averageCpuMsPerGame": 2512.4583333333335,
+      "confidence95": {
+        "low": 0.46499366800117764,
+        "high": 0.5450063319988224
+      }
+    },
+    "opponent": {
+      "games": 600,
+      "wins": 297,
+      "losses": 303,
+      "winRate": 0.495,
+      "averageScore": 848.2166666666667,
+      "averageDifferential": -18.75,
+      "contractsTaken": 2059,
+      "contractsSucceeded": 1502,
+      "attackSuccessRate": 0.7294803302574066,
+      "defenseRounds": 1403,
+      "defensiveSets": 278,
+      "defenseSetRate": 0.19814682822523164,
+      "averageContract": 102.92374939290917,
+      "averageBidMs": 0.022911274456324914,
+      "p95BidMs": 0.044600000022910535,
+      "averageCardMs": 27.202953363300367,
+      "p95CardMs": 87.127400000114,
+      "averageCpuMsPerGame": 2512.5216666666665
+    },
+    "perSeed": [
+      {
+        "seed": 20280101,
+        "games": 100,
+        "wins": 50,
+        "losses": 50,
+        "winRate": 0.5
+      },
+      {
+        "seed": 20281101,
+        "games": 100,
+        "wins": 48,
+        "losses": 52,
+        "winRate": 0.48
+      },
+      {
+        "seed": 20282101,
+        "games": 100,
+        "wins": 49,
+        "losses": 51,
+        "winRate": 0.49
+      },
+      {
+        "seed": 20283101,
+        "games": 100,
+        "wins": 56,
+        "losses": 44,
+        "winRate": 0.56
+      },
+      {
+        "seed": 20284101,
+        "games": 100,
+        "wins": 56,
+        "losses": 44,
+        "winRate": 0.56
+      },
+      {
+        "seed": 20285101,
+        "games": 100,
+        "wins": 44,
+        "losses": 56,
+        "winRate": 0.44
+      }
+    ]
+  },
+  "conversationMetrics": {
+    "decisions": 9579,
+    "minimalOpening80Count": 1163,
+    "singleMajorOpening80Count": 1152,
+    "singleMajorImmediate100Prevented": 519,
+    "partnerMissingMajorFits": 1022,
+    "partnerFitRaises10": 369,
+    "partnerFitRaises20Plus": 76,
+    "partnerSuitOverrideAttempts": 3345,
+    "partnerSuitOverrideAllowed": 123,
+    "partnerSuitOverrideRejected": 3222,
+    "weakTrumpFoundationPasses": 2727,
+    "rebidsAfterPartnerSupport": 170,
+    "auctionsWithTwoOrMoreOwnTurns": 1589,
+    "averageFirstBid": 91.95668135095448,
+    "averageFinalBid": 95.1802179379715
+  },
+  "privacy": "Every decision and metric uses only the acting hand, public auction, public score and posterior results."
+}
