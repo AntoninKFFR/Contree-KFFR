@@ -12,7 +12,6 @@ import { ScoreBoard } from "@/components/ScoreBoard";
 import { applyGameAction, type GameAction } from "@/engine/actions";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import {
-  createInitialGame,
   getCurrentContract,
   playableCardsForCurrentPlayer,
 } from "@/engine/game";
@@ -35,30 +34,26 @@ import {
   type BotReviewScenarioV1,
   updateBotReviewPublicAuctions,
 } from "@/bots/botReview";
-import { PRODUCT_SCORING_MODE } from "@/lib/productGame";
 import {
   isSoloDesktopAnalysisLayout,
   soloContentClassName,
   soloGridClassName,
   soloMainClassName,
 } from "@/app/solo/soloAnalysis";
+import { createSoloGame } from "@/app/solo/soloGameInitialization";
 
-const initialRenderRandom = () => 0.42;
 const soloSeatAssignments = SOLO_SEAT_ASSIGNMENTS;
 const localHumanPlayerId = firstHumanSeat(soloSeatAssignments) ?? 0;
 
 export default function SoloPage() {
   const gameIdRef = useRef(crypto.randomUUID());
+  const hasInitializedRandomGameRef = useRef(false);
   const savedGameIdsRef = useRef(new Set<string>());
   const botDecisionNumberRef = useRef(0);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
-  const [gameState, setGameState] = useState<GameState>(() =>
-    createInitialGame(initialRenderRandom, {
-      scoringMode: PRODUCT_SCORING_MODE,
-    }),
-  );
+  const [gameState, setGameState] = useState<GameState | null>(null);
   const [lastBotReview, setLastBotReview] = useState<BotReviewScenarioV1 | null>(null);
   const [botReviewHistory, setBotReviewHistory] = useState<BotReviewScenarioV1[]>(createEmptyBotReviewHistory);
   const [botReviewPublicAuctions, setBotReviewPublicAuctions] = useState<BotReviewPublicAuctionV2[]>([]);
@@ -67,16 +62,16 @@ export default function SoloPage() {
   const [isAnalysisModeEnabled, setIsAnalysisModeEnabled] = useState(false);
 
   const humanCanPlay =
-    gameState.phase === "playing" &&
+    gameState?.phase === "playing" &&
     isHumanSeat(soloSeatAssignments, gameState.currentPlayerId);
   const humanCanBid =
-    gameState.phase === "bidding" &&
+    gameState?.phase === "bidding" &&
     isHumanSeat(soloSeatAssignments, gameState.currentPlayerId);
-  const currentContract = useMemo(() => getCurrentContract(gameState), [gameState]);
+  const currentContract = useMemo(() => gameState ? getCurrentContract(gameState) : null, [gameState]);
   const humanCanCoinche = humanCanBid && canCoinche(localHumanPlayerId, currentContract);
   const humanCanSurcoinche = humanCanBid && canSurcoinche(localHumanPlayerId, currentContract);
   const legalHumanCards = useMemo(() => {
-    if (!humanCanPlay) return [];
+    if (!humanCanPlay || !gameState) return [];
     return playableCardsForCurrentPlayer(gameState);
   }, [gameState, humanCanPlay]);
   const displayedBotReview = useMemo(
@@ -88,6 +83,15 @@ export default function SoloPage() {
     isAnalysisModeEnabled,
     isMobileLandscape,
   );
+
+  useEffect(() => {
+    if (hasInitializedRandomGameRef.current) {
+      return;
+    }
+
+    hasInitializedRandomGameRef.current = true;
+    setGameState(createSoloGame());
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -114,17 +118,21 @@ export default function SoloPage() {
   }, []);
 
   useEffect(() => {
-    if (gameState.phase === "playing") {
+    if (gameState?.phase === "playing") {
       setIsRightPanelOpen(false);
       return;
     }
 
-    if (gameState.phase === "finished" || gameState.phase === "game-over") {
+    if (gameState?.phase === "finished" || gameState?.phase === "game-over") {
       setIsRightPanelOpen(true);
     }
-  }, [gameState.phase]);
+  }, [gameState?.phase]);
 
   function dispatchGameAction(action: GameAction) {
+    if (!gameState) {
+      return;
+    }
+
     const nextState = applyGameAction(gameState, action);
     if (BOT_REVIEW_MODE_ENABLED && gameState.phase === "bidding") {
       setBotReviewPublicAuctions((auctions) => updateBotReviewPublicAuctions(auctions, nextState));
@@ -134,6 +142,7 @@ export default function SoloPage() {
 
   useEffect(() => {
     if (
+      !gameState ||
       (gameState.phase !== "playing" && gameState.phase !== "bidding") ||
       !isBotSeat(soloSeatAssignments, gameState.currentPlayerId)
     ) {
@@ -211,7 +220,7 @@ export default function SoloPage() {
   }, [gameState]);
 
   useEffect(() => {
-    if (gameState.phase !== "game-over" || savedGameIdsRef.current.has(gameIdRef.current)) {
+    if (!gameState || gameState.phase !== "game-over" || savedGameIdsRef.current.has(gameIdRef.current)) {
       return;
     }
 
@@ -277,15 +286,19 @@ export default function SoloPage() {
     setBotReviewPublicAuctions([]);
     setSelectedBotReviewId(null);
     setIsBotReviewOpen(false);
-    setGameState(
-      createInitialGame(Math.random, {
-        scoringMode: PRODUCT_SCORING_MODE,
-      }),
-    );
+    setGameState(createSoloGame());
   }
 
   function handleNextRound() {
     dispatchGameAction({ type: "start-next-round" });
+  }
+
+  if (!gameState) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-stone-100 text-sm text-stone-600">
+        Préparation de la partie…
+      </main>
+    );
   }
 
   if (isMobilePortrait) {
