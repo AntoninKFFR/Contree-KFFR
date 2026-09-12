@@ -27,8 +27,8 @@ export type BiddingContext = {
   opponentStrength: BidStrength | null;
 };
 
-function isBidAnnouncement(bid: Bid): bid is Extract<Bid, { action: "bid" }> {
-  return bid.action === "bid";
+function isBidAnnouncement(bid: Bid): bid is Extract<Bid, { action: "bid" }> & { trump: Suit } {
+  return bid.action === "bid" && Boolean(bid.trump);
 }
 
 export function bidStrengthFromValue(value: BidValue): BidStrength {
@@ -42,7 +42,7 @@ export function toBidAnnouncement(bid: Extract<Bid, { action: "bid" }>): BidAnno
     playerId: bid.playerId,
     teamId: playerTeam(bid.playerId),
     value: bid.value,
-    trump: bid.trump,
+    trump: bid.trump!,
     strength: bidStrengthFromValue(bid.value),
   };
 }

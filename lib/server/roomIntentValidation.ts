@@ -10,6 +10,12 @@ function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function validContractMode(value: unknown): boolean {
+  if (!record(value)) return false;
+  if (value.kind === "no-trump" || value.kind === "all-trump") return true;
+  return value.kind === "suit" && SUITS.has(String(value.suit));
+}
+
 export function parseRoomIntent(value: unknown): RoomIntent {
   if (!record(value) || typeof value.type !== "string") throw new MultiplayerError("Intention invalide.");
   if (value.type === "join-seat" && Number.isInteger(value.seatIndex) && typeof value.displayName === "string") return value as RoomIntent;
@@ -20,8 +26,9 @@ export function parseRoomIntent(value: unknown): RoomIntent {
   if (value.type === "game-action" && record(value.action)) {
     const action = value.action;
     if (action.type === "pass" || action.type === "coinche" || action.type === "surcoinche") return value as RoomIntent;
-    if (action.type === "capot" && SUITS.has(String(action.trump))) return value as RoomIntent;
-    if (action.type === "bid" && BIDS.has(Number(action.value)) && SUITS.has(String(action.trump))) return value as RoomIntent;
+    const hasMode = SUITS.has(String(action.trump)) || validContractMode(action.contractMode);
+    if (action.type === "capot" && hasMode) return value as RoomIntent;
+    if (action.type === "bid" && BIDS.has(Number(action.value)) && hasMode) return value as RoomIntent;
     if (action.type === "play-card" && record(action.card) && SUITS.has(String(action.card.suit)) && RANKS.has(String(action.card.rank))) return value as RoomIntent;
   }
   throw new MultiplayerError("Intention de jeu invalide.");

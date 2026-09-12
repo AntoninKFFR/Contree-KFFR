@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { CardView } from "@/components/CardView";
 import { PlayerPanel } from "@/components/PlayerPanel";
-import { SUIT_SYMBOLS } from "@/engine/cards";
+import { formatContractMode, resolveContractMode } from "@/engine/contractMode";
 import { playerName, teamName } from "@/engine/players";
 import type {
   Bid,
@@ -57,19 +57,19 @@ function formatBidLabel(bid: Bid): AnnouncementBubbleContent {
   }
 
   if (bid.action === "capot") {
-    return { label: `Capot ${SUIT_SYMBOLS[bid.trump]}`, tone: "accent" };
+    return { label: `Capot ${formatContractMode(resolveContractMode(bid)!)}`, tone: "accent" };
   }
 
   return {
-    label: `${bid.value} ${SUIT_SYMBOLS[bid.trump]}`,
+    label: `${bid.value} ${formatContractMode(resolveContractMode(bid)!)}`,
     tone: "accent",
   };
 }
 
 function formatFinalContract(contract: Contract): AnnouncementBubbleContent {
   const label = contract.kind === "capot"
-    ? `Capot ${SUIT_SYMBOLS[contract.trump]}`
-    : `${contract.value} ${SUIT_SYMBOLS[contract.trump]}`;
+    ? `Capot ${formatContractMode(resolveContractMode(contract)!)}`
+    : `${contract.value} ${formatContractMode(resolveContractMode(contract)!)}`;
   if (contract.status === "surcoinched") {
     return {
       label,
@@ -337,8 +337,8 @@ function TableStatusOverlay({
   const currentPlayer = playerName(state.currentPlayerId, state.playerNames);
   const contractText = state.contract
     ? state.contract.kind === "capot"
-      ? `Capot ${SUIT_SYMBOLS[state.contract.trump]}`
-      : `${state.contract.value} ${SUIT_SYMBOLS[state.contract.trump]}`
+      ? `Capot ${formatContractMode(resolveContractMode(state.contract)!)}`
+      : `${state.contract.value} ${formatContractMode(resolveContractMode(state.contract)!)}`
     : "Annonces";
 
   return (

@@ -21,7 +21,7 @@ import {
   isHumanSeat,
   SOLO_SEAT_ASSIGNMENTS,
 } from "@/engine/seats";
-import type { BidValue, Card, GameState, Suit } from "@/engine/types";
+import type { BidValue, Card, ContractMode, GameState } from "@/engine/types";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import { saveCompletedGame } from "@/lib/games";
 import { getSupabaseClient } from "@/lib/supabaseClient";
@@ -260,12 +260,12 @@ export default function SoloPage() {
     dispatchGameAction({ type: "play-card", playerId: localHumanPlayerId, card });
   }
 
-  function handleHumanBid(value: BidValue, trump: Suit) {
-    dispatchGameAction({ type: "bid", playerId: localHumanPlayerId, value, trump });
+  function handleHumanBid(value: BidValue, contractMode: ContractMode) {
+    dispatchGameAction({ type: "bid", playerId: localHumanPlayerId, value, contractMode });
   }
 
-  function handleHumanCapot(trump: Suit) {
-    dispatchGameAction({ type: "capot", playerId: localHumanPlayerId, trump });
+  function handleHumanCapot(contractMode: ContractMode) {
+    dispatchGameAction({ type: "capot", playerId: localHumanPlayerId, contractMode });
   }
 
   function handleHumanPass() {

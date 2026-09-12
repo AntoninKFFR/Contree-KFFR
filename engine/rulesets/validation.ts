@@ -82,8 +82,8 @@ export function validateRuleset(ruleset: GameRulesetSnapshot): void {
   if (ruleset.contractSuccess.announcementsCount && !ruleset.announcements.enabled) {
     throw new Error("Invalid ruleset: announcements cannot count when they are disabled.");
   }
-  if (ruleset.bidding.allowNoTrump || ruleset.bidding.allowAllTrump || ruleset.bidding.allowGenerale) {
-    throw new Error("Invalid ruleset: No Trump, All Trump and Generale are not implemented yet.");
+  if (ruleset.bidding.allowGenerale) {
+    throw new Error("Invalid ruleset: Generale is not implemented yet.");
   }
   nonNegativeInteger(ruleset.belote.points, "belote.points");
   nonNegativeInteger(ruleset.trickScoring.lastTrickBonus, "trickScoring.lastTrickBonus");

@@ -2,6 +2,8 @@ import { RANKS, sameCard } from "./cards";
 import { CONTREE_KFFR_RULESET } from "./rulesets/presets";
 import type { GameRulesetSnapshot } from "./rulesets/types";
 import type { Card, PlayedCard, PlayerId, Suit, TeamId, Trick } from "./types";
+import { isTrumpSuit, normalizeContractMode, usesTrumpRanking } from "./contractMode";
+import type { ContractModeInput } from "./contractMode";
 
 const NORMAL_POINTS: Record<Card["rank"], number> = {
   "7": 0,
@@ -55,21 +57,36 @@ export function nextPlayer(playerId: PlayerId): PlayerId {
   return ((playerId + 1) % 4) as PlayerId;
 }
 
-export function cardPoints(card: Card, trump: Suit): number {
-  return card.suit === trump ? TRUMP_POINTS[card.rank] : NORMAL_POINTS[card.rank];
+export function cardStrength(card: Card, mode: ContractModeInput): number {
+  return (usesTrumpRanking(card.suit, mode) ? TRUMP_STRENGTH : NORMAL_STRENGTH)[card.rank];
+}
+
+export function cardPoints(card: Card, mode: ContractModeInput): number {
+  return (usesTrumpRanking(card.suit, mode) ? TRUMP_POINTS : NORMAL_POINTS)[card.rank];
 }
 
 export function trickPoints(
   cards: PlayedCard[],
-  trump: Suit,
+  mode: ContractModeInput,
   isLastTrick: boolean,
   isCapot = false,
   rules: GameRulesetSnapshot["trickScoring"] = CONTREE_KFFR_RULESET.trickScoring,
 ): number {
-  const cardsPoints = cards.reduce((total, played) => total + cardPoints(played.card, trump), 0);
+  const cardsPoints = cards.reduce((total, played) => total + cardPoints(played.card, mode), 0);
   return isLastTrick
     ? cardsPoints + (isCapot ? rules.capotLastTrickBonus : rules.lastTrickBonus)
     : cardsPoints;
+}
+
+export function getRoundCardPointTotal(
+  mode: ContractModeInput,
+  rules: GameRulesetSnapshot["trickScoring"] = CONTREE_KFFR_RULESET.trickScoring,
+  isCapot = false,
+): number {
+  const cards = (["clubs", "diamonds", "hearts", "spades"] as Suit[]).flatMap((suit) =>
+    RANKS.map((rank) => ({ suit, rank } as Card)));
+  return cards.reduce((total, card) => total + cardPoints(card, mode), 0)
+    + (isCapot ? rules.capotLastTrickBonus : rules.lastTrickBonus);
 }
 
 function highestTrumpInTrick(trick: Trick, trump: Suit): Card | null {
@@ -151,7 +168,7 @@ export function getLegalCards(
   hand: Card[],
   trick: Trick,
   playerId: PlayerId,
-  trump: Suit,
+  modeInput: ContractModeInput,
   rules: CardPlayRules = CONTREE_KFFR_RULESET.cardPlay,
 ): Card[] {
   if (trick.cards.length === 0) {
@@ -160,11 +177,25 @@ export function getLegalCards(
 
   const requestedSuit = trick.cards[0].card.suit;
   const matchingSuit = hand.filter((card) => card.suit === requestedSuit);
+  const mode = normalizeContractMode(modeInput);
 
   if (matchingSuit.length > 0) {
-    return legalWhenFollowingSuit(hand, matchingSuit, trick, trump, rules);
+    if (!rules.mustFollowSuit) return hand;
+    if (mode.kind === "all-trump") {
+      if (!rules.mustRaiseAtTrump) return matchingSuit;
+      const currentBest = trick.cards
+        .map((played) => played.card)
+        .filter((card) => card.suit === requestedSuit)
+        .sort((a, b) => cardStrength(b, mode) - cardStrength(a, mode))[0] ?? null;
+      const higher = matchingSuit.filter((card) =>
+        !currentBest || cardStrength(card, mode) > cardStrength(currentBest, mode));
+      return higher.length > 0 ? higher : matchingSuit;
+    }
+    if (mode.kind === "no-trump") return matchingSuit;
+    return legalWhenFollowingSuit(hand, matchingSuit, trick, mode.suit, rules);
   }
-  return legalWhenVoid(hand, trick, playerId, trump, rules);
+  if (mode.kind !== "suit") return hand;
+  return legalWhenVoid(hand, trick, playerId, mode.suit, rules);
 }
 
 export function isLegalCard(
@@ -172,20 +203,20 @@ export function isLegalCard(
   trick: Trick,
   card: Card,
   playerId: PlayerId,
-  trump: Suit,
+  mode: ContractModeInput,
   rules: CardPlayRules = CONTREE_KFFR_RULESET.cardPlay,
 ): boolean {
-  return getLegalCards(hand, trick, playerId, trump, rules).some((legalCard) => sameCard(legalCard, card));
+  return getLegalCards(hand, trick, playerId, mode, rules).some((legalCard) => sameCard(legalCard, card));
 }
 
 export function compareCards(
   candidate: Card,
   currentWinner: Card,
   leadSuit: Suit,
-  trump: Suit,
+  mode: ContractModeInput,
 ): number {
-  const candidateIsTrump = candidate.suit === trump;
-  const winnerIsTrump = currentWinner.suit === trump;
+  const candidateIsTrump = isTrumpSuit(candidate.suit, mode);
+  const winnerIsTrump = isTrumpSuit(currentWinner.suit, mode);
 
   if (candidateIsTrump && !winnerIsTrump) return 1;
   if (!candidateIsTrump && winnerIsTrump) return -1;
@@ -195,11 +226,11 @@ export function compareCards(
     return -1;
   }
 
-  const strengths = candidateIsTrump ? TRUMP_STRENGTH : NORMAL_STRENGTH;
+  const strengths = usesTrumpRanking(candidate.suit, mode) ? TRUMP_STRENGTH : NORMAL_STRENGTH;
   return strengths[candidate.rank] - strengths[currentWinner.rank];
 }
 
-export function getTrickWinner(trick: Trick, trump: Suit): PlayerId {
+export function getTrickWinner(trick: Trick, mode: ContractModeInput): PlayerId {
   if (trick.cards.length === 0) {
     throw new Error("Cannot choose a winner for an empty trick.");
   }
@@ -208,7 +239,7 @@ export function getTrickWinner(trick: Trick, trump: Suit): PlayerId {
   let winner = trick.cards[0];
 
   for (const played of trick.cards.slice(1)) {
-    if (compareCards(played.card, winner.card, leadSuit, trump) > 0) {
+    if (compareCards(played.card, winner.card, leadSuit, mode) > 0) {
       winner = played;
     }
   }

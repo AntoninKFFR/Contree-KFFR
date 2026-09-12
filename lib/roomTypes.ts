@@ -1,4 +1,4 @@
-import type { BidValue, Card, ScoringMode, Suit } from "@/engine/types";
+import type { BidValue, Card, ContractMode, ScoringMode, Suit } from "@/engine/types";
 import type { PlayerGameView } from "@/engine/views";
 
 export type RoomStatus = "lobby" | "playing" | "finished" | "cancelled";
@@ -57,8 +57,8 @@ export type MultiplayerRoomView = {
 };
 
 export type RoomPlayerAction =
-  | { type: "bid"; value: BidValue; trump: Suit }
-  | { type: "capot"; trump: Suit }
+  | { type: "bid"; value: BidValue; trump?: Suit; contractMode?: ContractMode }
+  | { type: "capot"; trump?: Suit; contractMode?: ContractMode }
   | { type: "pass" }
   | { type: "coinche" }
   | { type: "surcoinche" }

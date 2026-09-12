@@ -13,7 +13,7 @@ import { canCoinche, canSurcoinche } from "@/engine/bidding";
 import { teamName } from "@/engine/players";
 import { getLegalCards } from "@/engine/rules";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
-import type { BidValue, Card, Suit } from "@/engine/types";
+import type { BidValue, Card, ContractMode } from "@/engine/types";
 import type { PlayerGameView } from "@/engine/views";
 import { PRESENCE_HEARTBEAT_INTERVAL_MS } from "@/lib/multiplayerPresence";
 import { getProfileUsername } from "@/lib/profiles";
@@ -582,12 +582,12 @@ export default function MultiplayerRoomPage() {
     void handleRoomPlayerAction({ type: "play-card", card });
   }
 
-  function handleBid(value: BidValue, trump: Suit) {
-    void handleRoomPlayerAction({ type: "bid", value, trump });
+  function handleBid(value: BidValue, contractMode: ContractMode) {
+    void handleRoomPlayerAction({ type: "bid", value, contractMode });
   }
 
-  function handleCapot(trump: Suit) {
-    void handleRoomPlayerAction({ type: "capot", trump });
+  function handleCapot(contractMode: ContractMode) {
+    void handleRoomPlayerAction({ type: "capot", contractMode });
   }
 
   function handlePass() {

@@ -222,7 +222,7 @@ function chooseMainBid(state: GameState, profile: BotProfile): BidDecision {
   );
 
   if (currentContract && currentContract.teamId === teamId && context.isSupportingPartner) {
-    const support = evaluateHandForTrump(hand, currentContract.trump);
+    const support = evaluateHandForTrump(hand, currentContract.trump!);
     const bestScore = withMainOpeningBonus(adjustedScore(best, profile), state, profile);
 
     // Quand le partenaire a deja choisi une couleur, on la respecte.
@@ -375,13 +375,13 @@ function chooseMainBid(state: GameState, profile: BotProfile): BidDecision {
 }
 
 function shouldCoinche(hand: Card[], profile: BotProfile, contract: Contract): boolean {
-  const defense = evaluateHandForTrump(hand, contract.trump);
+  const defense = evaluateHandForTrump(hand, contract.trump!);
   const defenseScore = adjustedScore(defense, profile);
   return defenseScore >= contract.value + profile.coincheMargin;
 }
 
 function shouldSurcoinche(hand: Card[], profile: BotProfile, contract: Contract): boolean {
-  const attack = evaluateHandForTrump(hand, contract.trump);
+  const attack = evaluateHandForTrump(hand, contract.trump!);
   const attackScore = adjustedScore(attack, profile);
   return attackScore >= contract.value + profile.surcoincheMargin;
 }
@@ -513,7 +513,7 @@ export function getPlausibleBidCandidates(
   );
 
   if (currentContract && currentContract.teamId === teamId) {
-    const support = evaluateHandForTrump(hand, currentContract.trump);
+    const support = evaluateHandForTrump(hand, currentContract.trump!);
     const partnerBid = lastTeamBid(
       state.bids.filter((bid) => bid.playerId !== playerId),
       teamId,
@@ -522,7 +522,7 @@ export function getPlausibleBidCandidates(
 
     addBidCandidatesForScore(
       decisions,
-      currentContract.trump,
+      currentContract.trump!,
       adjustedScore(support, profile) + supportBonus,
       currentContract,
       "Candidat Monte Carlo: soutenir la couleur du partenaire.",

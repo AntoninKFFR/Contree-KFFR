@@ -68,7 +68,7 @@ export function chooseBiddingV2(state: GameState): BidDecision {
   }
 
   if (currentContract?.teamId === teamId) {
-    const support = evaluateConservatively(hand, currentContract.trump);
+    const support = evaluateConservatively(hand, currentContract.trump!);
     const hasFit =
       support.trumpCount >= 3 &&
       (support.hasJackTrump || support.hasNineTrump || support.aceCount >= 1);

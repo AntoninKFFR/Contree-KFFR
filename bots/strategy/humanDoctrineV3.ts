@@ -341,7 +341,7 @@ export function chooseHumanDoctrineV3Bid(state: GameState): HumanDoctrineV3Decis
     trumpFoundation: foundation,
     auctionRole: context.auctionRole,
     partnerMessage: context.partnerBid
-      ? { value: context.partnerBid.value, trump: context.partnerBid.trump }
+      ? { value: context.partnerBid.value, trump: context.partnerBid.trump! }
       : null,
     partnerFit,
     dependency,
@@ -353,7 +353,7 @@ export function chooseHumanDoctrineV3Bid(state: GameState): HumanDoctrineV3Decis
     partnerSuit,
     partnerSuitOverride: override.status,
     ownPreviousMessage: ownPreviousMessage
-      ? { value: ownPreviousMessage.value, trump: ownPreviousMessage.trump }
+      ? { value: ownPreviousMessage.value, trump: ownPreviousMessage.trump! }
       : null,
     conversation,
     finalAction,

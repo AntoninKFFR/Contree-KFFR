@@ -2,6 +2,11 @@ import type { GameRulesetSnapshot } from "./rulesets/types";
 
 export type Suit = "clubs" | "diamonds" | "hearts" | "spades";
 
+export type ContractMode =
+  | { kind: "suit"; suit: Suit }
+  | { kind: "no-trump" }
+  | { kind: "all-trump" };
+
 export type Rank = "7" | "8" | "9" | "J" | "Q" | "K" | "10" | "A";
 
 export type TeamId = 0 | 1;
@@ -60,7 +65,15 @@ export type BeloteState = {
     teamId: TeamId;
     firstRank: "K" | "Q";
     completed: boolean;
+    suit?: Suit;
   } | null;
+  declarations?: Array<{
+    playerId: PlayerId;
+    teamId: TeamId;
+    firstRank: "K" | "Q";
+    completed: boolean;
+    suit: Suit;
+  }>;
   pointsByTeam: Record<TeamId, number>;
 };
 
@@ -83,12 +96,14 @@ export type Bid =
       playerId: PlayerId;
       action: "bid";
       value: BidValue;
-      trump: Suit;
+      trump?: Suit;
+      contractMode?: ContractMode;
     }
   | {
       playerId: PlayerId;
       action: "capot";
-      trump: Suit;
+      trump?: Suit;
+      contractMode?: ContractMode;
     }
   | {
       playerId: PlayerId;
@@ -102,7 +117,9 @@ export type Bid =
 type ContractBase = {
   playerId: PlayerId;
   teamId: TeamId;
-  trump: Suit;
+  /** Legacy mirror, present for suit contracts and absent for special modes. */
+  trump?: Suit;
+  contractMode?: ContractMode;
   status: ContractStatus;
   coinchedBy?: PlayerId;
   surcoinchedBy?: PlayerId;
@@ -152,6 +169,8 @@ export type GameState = {
   endReason?: GameEndReason | null;
   forfeitingTeam?: TeamId | null;
   trump: Suit | null;
+  /** Absent on historical states; resolve through the legacy trump field. */
+  contractMode?: ContractMode | null;
   hands: Record<PlayerId, Card[]>;
   currentPlayerId: PlayerId;
   currentTrick: Trick;

@@ -1,6 +1,7 @@
 import "server-only";
 import type { Card, GameState, PlayerId, Rank, Suit } from "@/engine/types";
 import { normalizeGameSettings } from "@/engine/rulesets/resolve";
+import { resolveContractMode } from "@/engine/contractMode";
 
 const SUITS = new Set<Suit>(["clubs", "diamonds", "hearts", "spades"]);
 const RANKS = new Set<Rank>(["7", "8", "9", "J", "Q", "K", "10", "A"]);
@@ -56,8 +57,14 @@ export function parseServerGameState(value: unknown): GameState {
     throw new Error("Stored game history is invalid.");
   }
   if (!object(value.settings)) throw new Error("Stored game settings are invalid.");
+  const state = value as GameState;
+  const contractMode = resolveContractMode(state);
   return {
-    ...(value as GameState),
+    ...state,
+    ...(contractMode ? { contractMode } : {}),
+    contract: state.contract && resolveContractMode(state.contract)
+      ? { ...state.contract, contractMode: resolveContractMode(state.contract)! }
+      : state.contract,
     settings: normalizeGameSettings(value.settings),
   };
 }

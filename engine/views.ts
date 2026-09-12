@@ -68,6 +68,7 @@ export function toPlayerGameView(
     endReason: state.endReason ?? null,
     forfeitingTeam: state.forfeitingTeam ?? null,
     trump: state.trump,
+    contractMode: state.contractMode,
     currentPlayerId: state.currentPlayerId,
     currentTrick: {
       ...state.currentTrick,
@@ -99,6 +100,7 @@ export function toPlayerGameView(
     belote: state.belote
       ? {
           declaration: state.belote.declaration ? { ...state.belote.declaration } : null,
+          declarations: state.belote.declarations?.map((declaration) => ({ ...declaration })),
           pointsByTeam: { ...state.belote.pointsByTeam },
         }
       : undefined,

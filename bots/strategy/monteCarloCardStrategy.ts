@@ -2,6 +2,7 @@ import { createDeck, sameCard } from "@/engine/cards";
 import { playableCardsForCurrentPlayer, playCard } from "@/engine/game";
 import { cardPoints, compareCards, getTrickWinner, playerTeam } from "@/engine/rules";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
+import { resolveContractMode } from "@/engine/contractMode";
 import type { Card, GameState, PlayerId, Suit, TeamId } from "@/engine/types";
 import { getBotProfile } from "@/bots/profiles";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
@@ -45,9 +46,11 @@ function hashVisibleState(state: GameState): number {
   const completedTricks = state.completedTricks
     .flatMap((trick) => trick.cards.map((played) => `${played.playerId}:${cardKey(played.card)}`))
     .join("|");
+  const mode = resolveContractMode(state);
   const text = [
     state.currentPlayerId,
-    state.trump,
+    mode?.kind,
+    mode?.kind === "suit" ? mode.suit : "",
     state.completedTricks.length,
     currentPlayerHand,
     currentTrick,

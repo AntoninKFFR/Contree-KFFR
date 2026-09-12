@@ -8,9 +8,10 @@ import type {
   CardAnnouncement,
   PlayerId,
   Rank,
-  Suit,
   TeamId,
 } from "./types";
+import { isTrumpSuit } from "./contractMode";
+import type { ContractModeInput } from "./contractMode";
 
 const SEQUENCE_RANKS: Rank[] = ["7", "8", "9", "10", "J", "Q", "K", "A"];
 const SQUARE_RANKS: Rank[] = ["Q", "K", "10", "A", "9", "J"];
@@ -92,16 +93,16 @@ function candidatesForHand(
   return candidates;
 }
 
-function selectionKey(selection: Candidate[], trump: Suit): string {
+function selectionKey(selection: Candidate[], mode: ContractModeInput): string {
   const ordered = selection
     .map((candidate) => candidate.announcement)
-    .sort((first, second) => compareAnnouncements(second, first, trump));
+    .sort((first, second) => compareAnnouncements(second, first, mode));
   return ordered.map((announcement) => [
     String(announcement.value).padStart(3, "0"),
     announcement.type === "square" ? 1 : 0,
     announcement.squareRank ? SQUARE_RANKS.indexOf(announcement.squareRank) + 1 : 0,
     announcement.highestRank ? SEQUENCE_RANKS.indexOf(announcement.highestRank) + 1 : 0,
-    announcement.suit === trump ? 1 : 0,
+    announcement.suit && isTrumpSuit(announcement.suit, mode) ? 1 : 0,
     announcement.suit ? SUITS.indexOf(announcement.suit) + 1 : 0,
   ].join(":")).join("|");
 }
@@ -109,7 +110,7 @@ function selectionKey(selection: Candidate[], trump: Suit): string {
 export function detectAnnouncements(
   hand: Card[],
   playerId: PlayerId,
-  trump: Suit,
+  mode: ContractModeInput,
   rules: AnnouncementRules = CONTREE_KFFR_RULESET.announcements,
 ): CardAnnouncement[] {
   const candidates = candidatesForHand(hand, playerId, rules);
@@ -120,7 +121,7 @@ export function detectAnnouncements(
   function visit(index: number, selected: Candidate[], used: Set<string>): void {
     if (index === candidates.length) {
       const points = selected.reduce((sum, candidate) => sum + candidate.announcement.value, 0);
-      const key = selectionKey(selected, trump);
+      const key = selectionKey(selected, mode);
       if (points > bestPoints || (points === bestPoints && key > bestKey)) {
         best = [...selected];
         bestPoints = points;
@@ -147,7 +148,7 @@ function squareRankStrength(rank: Rank | undefined): number {
 export function compareAnnouncements(
   first: CardAnnouncement,
   second: CardAnnouncement,
-  trump: Suit,
+  mode: ContractModeInput,
 ): number {
   if (first.value !== second.value) return first.value - second.value;
   if (first.type === "square" && second.type !== "square") return 1;
@@ -158,29 +159,29 @@ export function compareAnnouncements(
   const firstHigh = first.highestRank ? SEQUENCE_RANKS.indexOf(first.highestRank) : -1;
   const secondHigh = second.highestRank ? SEQUENCE_RANKS.indexOf(second.highestRank) : -1;
   if (firstHigh !== secondHigh) return firstHigh - secondHigh;
-  if (first.suit === trump && second.suit !== trump) return 1;
-  if (first.suit !== trump && second.suit === trump) return -1;
+  if (first.suit && isTrumpSuit(first.suit, mode) && (!second.suit || !isTrumpSuit(second.suit, mode))) return 1;
+  if (second.suit && isTrumpSuit(second.suit, mode) && (!first.suit || !isTrumpSuit(first.suit, mode))) return -1;
   return 0;
 }
 
-function bestForTeam(declarations: CardAnnouncement[], teamId: TeamId, trump: Suit) {
+function bestForTeam(declarations: CardAnnouncement[], teamId: TeamId, mode: ContractModeInput) {
   return declarations
     .filter((announcement) => announcement.teamId === teamId)
-    .sort((first, second) => compareAnnouncements(second, first, trump))[0] ?? null;
+    .sort((first, second) => compareAnnouncements(second, first, mode))[0] ?? null;
 }
 
 export function resolveAnnouncements(
   declarations: CardAnnouncement[],
   declaredPlayerIds: PlayerId[],
-  trump: Suit,
+  mode: ContractModeInput,
 ): AnnouncementState {
-  const team0 = bestForTeam(declarations, 0, trump);
-  const team1 = bestForTeam(declarations, 1, trump);
+  const team0 = bestForTeam(declarations, 0, mode);
+  const team1 = bestForTeam(declarations, 1, mode);
   let winningTeam: TeamId | null = null;
   if (team0 && !team1) winningTeam = 0;
   else if (team1 && !team0) winningTeam = 1;
   else if (team0 && team1) {
-    const comparison = compareAnnouncements(team0, team1, trump);
+    const comparison = compareAnnouncements(team0, team1, mode);
     if (comparison > 0) winningTeam = 0;
     if (comparison < 0) winningTeam = 1;
   }
@@ -197,14 +198,14 @@ export function declareAnnouncementsForPlayer(
   state: AnnouncementState | undefined,
   hand: Card[],
   playerId: PlayerId,
-  trump: Suit,
+  mode: ContractModeInput,
   rules: AnnouncementRules = CONTREE_KFFR_RULESET.announcements,
 ): AnnouncementState {
   const current = state ?? emptyAnnouncementState();
   if (!rules.enabled || current.declaredPlayerIds.includes(playerId)) return current;
-  const declarations = [...current.declarations, ...detectAnnouncements(hand, playerId, trump, rules)];
+  const declarations = [...current.declarations, ...detectAnnouncements(hand, playerId, mode, rules)];
   const declaredPlayerIds = [...current.declaredPlayerIds, playerId];
   return declaredPlayerIds.length === 4
-    ? resolveAnnouncements(declarations, declaredPlayerIds, trump)
+    ? resolveAnnouncements(declarations, declaredPlayerIds, mode)
     : { ...current, declarations, declaredPlayerIds };
 }

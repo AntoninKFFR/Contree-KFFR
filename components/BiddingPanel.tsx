@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { SUIT_LABELS, SUIT_SYMBOLS, SUITS } from "@/engine/cards";
 import { canBidCapot, getAvailableBidValues } from "@/engine/bidding";
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
-import type { BidValue, Contract, Suit } from "@/engine/types";
+import type { BidValue, Contract, ContractMode, Suit } from "@/engine/types";
 
 type BiddingPanelProps = {
   canBid: boolean;
@@ -13,8 +13,8 @@ type BiddingPanelProps = {
   currentContract: Contract | null;
   biddingRules?: GameRulesetSnapshot["bidding"];
   compact?: boolean;
-  onBid: (value: BidValue, trump: Suit) => void;
-  onCapot: (trump: Suit) => void;
+  onBid: (value: BidValue, contractMode: ContractMode) => void;
+  onCapot: (contractMode: ContractMode) => void;
   onCoinche: () => void;
   onPass: () => void;
   onSurcoinche: () => void;
@@ -38,7 +38,10 @@ export function BiddingPanel({
     [biddingRules, currentContract],
   );
   const [value, setValue] = useState<BidValue | "">(availableValues[0] ?? "");
-  const [trump, setTrump] = useState<Suit>("hearts");
+  const [modeValue, setModeValue] = useState<Suit | "no-trump" | "all-trump">("hearts");
+  const contractMode: ContractMode = modeValue === "no-trump" || modeValue === "all-trump"
+    ? { kind: modeValue }
+    : { kind: "suit", suit: modeValue };
 
   const canMakeBid = canBid && availableValues.length > 0;
   const canMakeCapot = canBid && canBidCapot(currentContract, biddingRules);
@@ -51,7 +54,7 @@ export function BiddingPanel({
 
   function handleBid() {
     if (!canMakeBid || value === "") return;
-    onBid(value, trump);
+    onBid(value, contractMode);
   }
 
   return (
@@ -118,14 +121,16 @@ export function BiddingPanel({
                 : "border border-stone-300"
             }`}
             disabled={!canMakeBid}
-            onChange={(event) => setTrump(event.target.value as Suit)}
-            value={trump}
+            onChange={(event) => setModeValue(event.target.value as typeof modeValue)}
+            value={modeValue}
           >
             {SUITS.map((suit) => (
               <option key={suit} value={suit}>
                 {SUIT_LABELS[suit]} {SUIT_SYMBOLS[suit]}
               </option>
             ))}
+            {biddingRules?.allowNoTrump ? <option value="no-trump">Sans Atout</option> : null}
+            {biddingRules?.allowAllTrump ? <option value="all-trump">Tout Atout</option> : null}
           </select>
         </label>
 
@@ -141,7 +146,7 @@ export function BiddingPanel({
           <button
             className="rounded-md border border-amber-300 px-2 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canMakeCapot}
-            onClick={() => onCapot(trump)}
+            onClick={() => onCapot(contractMode)}
             type="button"
           >
             Capot

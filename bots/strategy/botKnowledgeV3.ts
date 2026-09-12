@@ -105,7 +105,7 @@ function suitBeliefs(state: GameState): BotKnowledgeV3["suitBeliefs"] {
   ])) as BotKnowledgeV3["suitBeliefs"];
   let lastBid: Extract<GameState["bids"][number], { action: "bid" }> | null = null;
   for (const bid of state.bids) {
-    if (bid.action === "bid") {
+    if (bid.action === "bid" && bid.trump) {
       const belief = beliefs[bid.playerId][bid.trump];
       const strength = 0.35 + Math.max(0, bid.value - 80) / 100;
       belief.weight += strength;
@@ -115,17 +115,17 @@ function suitBeliefs(state: GameState): BotKnowledgeV3["suitBeliefs"] {
         belief.reasons.push("soutien du partenaire");
       }
       lastBid = bid;
-    } else if (bid.action === "coinche" && state.contract) {
+    } else if (bid.action === "coinche" && state.contract?.trump) {
       const belief = beliefs[bid.playerId][state.contract.trump];
       belief.weight += 0.25;
       belief.reasons.push("coinche défensif");
-    } else if (bid.action === "surcoinche" && state.contract) {
+    } else if (bid.action === "surcoinche" && state.contract?.trump) {
       const belief = beliefs[bid.playerId][state.contract.trump];
       belief.weight += 0.3;
       belief.reasons.push("surcoinche");
     }
   }
-  if (state.contract) {
+  if (state.contract?.trump) {
     beliefs[state.contract.playerId][state.contract.trump].weight += 0.25;
     beliefs[state.contract.playerId][state.contract.trump].reasons.push("preneur");
   }

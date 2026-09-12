@@ -1,4 +1,4 @@
-import { SUIT_LABELS, SUIT_SYMBOLS } from "@/engine/cards";
+import { formatContractMode, resolveContractMode } from "@/engine/contractMode";
 import { playerName, teamName } from "@/engine/players";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import type { ContractStatus, GameState } from "@/engine/types";
@@ -31,9 +31,9 @@ export function ScoreBoard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-stone-500">Atout</p>
-          {state.trump ? (
+          {resolveContractMode(state) ? (
             <p className="text-xl font-bold">
-              {SUIT_LABELS[state.trump]} {SUIT_SYMBOLS[state.trump]}
+              {formatContractMode(resolveContractMode(state)!)}
             </p>
           ) : (
             <p className="text-xl font-bold">A choisir</p>
@@ -83,8 +83,7 @@ export function ScoreBoard({
         {displayedContract ? (
           <p>
             {displayedContract.kind === "capot" ? "Capot" : displayedContract.value} a{" "}
-            {SUIT_LABELS[displayedContract.trump]}{" "}
-            {SUIT_SYMBOLS[displayedContract.trump]} par {nameFor(displayedContract.playerId)} -{" "}
+            {formatContractMode(resolveContractMode(displayedContract)!)} par {nameFor(displayedContract.playerId)} -{" "}
             {contractStatusLabel(displayedContract.status)}
           </p>
         ) : (
@@ -185,9 +184,9 @@ export function ScoreBoard({
                   {bid.action === "pass"
                     ? "passe"
                     : bid.action === "bid"
-                      ? `${bid.value} a ${SUIT_LABELS[bid.trump]} ${SUIT_SYMBOLS[bid.trump]}`
+                      ? `${bid.value} a ${formatContractMode(resolveContractMode(bid)!)}`
                       : bid.action === "capot"
-                        ? `capot a ${SUIT_LABELS[bid.trump]} ${SUIT_SYMBOLS[bid.trump]}`
+                        ? `capot a ${formatContractMode(resolveContractMode(bid)!)}`
                       : bid.action === "coinche"
                         ? "contre"
                         : "surcontre"}

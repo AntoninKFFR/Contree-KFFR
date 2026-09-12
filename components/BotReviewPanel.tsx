@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AnalysisCardList } from "@/components/BotHandAnalysis";
 import { formatCard, SUIT_LABELS } from "@/engine/cards";
+import { formatContractMode, resolveContractMode } from "@/engine/contractMode";
 import type { BotReviewBundleV2, BotReviewScenarioV1 } from "@/bots/botReview";
 import { serializeBotReviewBundle, serializeBotReviewScenario } from "@/bots/botReview";
 import type { HumanDoctrineV31Trace } from "@/bots/strategy/humanDoctrineV31";
@@ -18,7 +19,7 @@ function formatBid(scenario: BotReviewScenarioV1): string {
   const bid = scenario.chosenBid;
   if (!bid) return "—";
   if (bid.action !== "bid") return bid.action;
-  return `${bid.value} ${SUIT_LABELS[bid.trump]}`;
+  return `${bid.value} ${formatContractMode(resolveContractMode(bid)!)}`;
 }
 
 export function BotReviewPanel({ scenario, onClose, createFullBundle }: BotReviewPanelProps) {
@@ -69,7 +70,7 @@ export function BotReviewPanel({ scenario, onClose, createFullBundle }: BotRevie
 
   const chosen = scenario.chosenCard ? formatCard(scenario.chosenCard) : `Enchère : ${formatBid(scenario)}`;
   const contract = scenario.contract
-    ? `${scenario.contract.kind === "capot" ? "capot" : scenario.contract.value} ${SUIT_LABELS[scenario.contract.trump]} (${scenario.contract.status})`
+    ? `${scenario.contract.kind === "capot" ? "capot" : scenario.contract.value} ${formatContractMode(resolveContractMode(scenario.contract)!)} (${scenario.contract.status})`
     : "Aucun";
   const trick = scenario.currentTrick.cards.length > 0
     ? scenario.currentTrick.cards.map((played) => `P${played.playerId}: ${formatCard(played.card)}`).join(", ")
@@ -127,7 +128,7 @@ export function BotReviewPanel({ scenario, onClose, createFullBundle }: BotRevie
       <dl className="mt-3 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1">
         <dt className="font-semibold">Bot :</dt><dd>P{scenario.playerId} · {scenario.botProfile}</dd>
         <dt className="font-semibold">Carte choisie :</dt><dd>{chosen}</dd>
-        <dt className="font-semibold">Atout :</dt><dd>{scenario.trump ? SUIT_LABELS[scenario.trump] : "Aucun"}</dd>
+        <dt className="font-semibold">Atout :</dt><dd>{scenario.contractMode ? formatContractMode(scenario.contractMode) : scenario.trump ? SUIT_LABELS[scenario.trump] : "Aucun"}</dd>
         <dt className="font-semibold">Contrat :</dt><dd>{contract}</dd>
         <dt className="font-semibold">Pli :</dt><dd>{trick}</dd>
         <dt className="font-semibold">Stratégie :</dt><dd>{scenario.decisionEngine}</dd>
@@ -199,7 +200,7 @@ function decisionLabel(scenario: BotReviewScenarioV1): string {
   if (scenario.chosenCard) return formatCard(scenario.chosenCard);
   const bid = scenario.chosenBid;
   if (!bid) return "Décision inconnue";
-  if (bid.action === "bid") return `${bid.value}${SUIT_LABELS[bid.trump]}`;
+  if (bid.action === "bid") return `${bid.value} ${formatContractMode(resolveContractMode(bid)!)}`;
   if (bid.action === "coinche") return "Coinche";
   if (bid.action === "surcoinche") return "Surcoinche";
   return "Passe";

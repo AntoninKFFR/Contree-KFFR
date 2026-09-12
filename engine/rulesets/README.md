@@ -37,6 +37,18 @@ Les combinaisons `mustOvertrump=true` avec `mustTrumpWhenVoid=false` et `mustRai
 
 Les annonces et la Belote restent désactivables indépendamment du mode de score. Les modes `contract-only` n'intègrent volontairement aucun point annexe dans `roundScore`, même si ces points restent présents dans le résultat de la donne et peuvent participer à la qualification du contrat.
 
-Les flags Sans Atout, Tout Atout et Générale sont seulement représentés et désactivés dans le preset actuel. Leur gameplay n'est pas implémenté dans cette phase.
+## Modes de contrat
+
+Le moteur représente explicitement le contrat par un `ContractMode` discriminé : couleur (`{ kind: "suit", suit }`), Sans Atout ou Tout Atout. Les anciens objets portant seulement `trump: Suit` sont normalisés logiquement en contrat couleur, sans migration de base de données. Le preset `contree-kffr` conserve strictement `allowNoTrump=false` et `allowAllTrump=false`.
+
+- En **couleur**, l'ordre, les points, la coupe, la surcoupe et la montée restent inchangés.
+- En **Sans Atout**, les quatre couleurs emploient l'ordre et les valeurs hors-atout. Il faut fournir si `mustFollowSuit` l'exige; en chicane, la défausse est libre et les règles de coupe ne s'appliquent pas.
+- En **Tout Atout**, les quatre couleurs emploient l'ordre et les valeurs d'atout. La couleur demandée reste la seule famille qui puisse remporter le pli : il faut fournir et, si `mustRaiseAtTrump` est actif, monter dans cette couleur. En chicane, la défausse est libre; il n'existe aucun atout global.
+
+Les totaux de cartes sont dérivés du barème : 162 en couleur, 130 en Sans Atout et 258 en Tout Atout avec le bonus de dernier pli du preset. Le capot reste défini par huit plis et emploie le bonus de dernier pli capot configuré pour calculer le total du mode.
+
+La Belote/Rebelote est impossible en Sans Atout. En Tout Atout, `belote.allowInAllTrump` autorise séparément chaque paire Roi+Dame d'une couleur, donc plusieurs couleurs peuvent être comptées. Pour les annonces, aucune séquence n'a l'avantage « à l'atout » en Sans Atout; en Tout Atout toutes les couleurs sont équivalentes, donc aucune ne reçoit d'avantage de départage.
+
+Le flag Générale reste représenté mais non implémenté.
 
 Le multijoueur conserve ce même snapshot dans le `GameState` autoritaire déjà sérialisé dans `room_game_states.state`. Aucune colonne ni migration SQL supplémentaire n'est nécessaire pour cette phase.

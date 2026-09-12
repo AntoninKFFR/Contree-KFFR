@@ -1,12 +1,13 @@
 import { makeBid, playCard, startNextRound } from "./game";
-import type { BidValue, Card, GameState, PlayerId, Suit } from "./types";
+import type { BidValue, Card, ContractMode, GameState, PlayerId, Suit } from "./types";
 
 export type GameAction =
   | {
       type: "bid";
       playerId: PlayerId;
       value: BidValue;
-      trump: Suit;
+      trump?: Suit;
+      contractMode?: ContractMode;
     }
   | {
       type: "pass";
@@ -15,7 +16,8 @@ export type GameAction =
   | {
       type: "capot";
       playerId: PlayerId;
-      trump: Suit;
+      trump?: Suit;
+      contractMode?: ContractMode;
     }
   | {
       type: "coinche";
@@ -49,11 +51,12 @@ export function applyGameAction(
         action: "bid",
         value: action.value,
         trump: action.trump,
+        contractMode: action.contractMode,
       });
     case "pass":
       return makeBid(state, action.playerId, { action: "pass" });
     case "capot":
-      return makeBid(state, action.playerId, { action: "capot", trump: action.trump });
+      return makeBid(state, action.playerId, { action: "capot", trump: action.trump, contractMode: action.contractMode });
     case "coinche":
       return makeBid(state, action.playerId, { action: "coinche" });
     case "surcoinche":

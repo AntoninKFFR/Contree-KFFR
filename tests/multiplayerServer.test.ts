@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createInitialGame, playCard } from "@/engine/game";
 import { createGameSettings } from "@/engine/rulesets/resolve";
+import { CONTREE_KFFR_RULESET } from "@/engine/rulesets/presets";
 import type { Card, GameState } from "@/engine/types";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import {
@@ -79,6 +80,20 @@ describe("server-authoritative multiplayer", () => {
       action: { type: "capot", trump: "spades" },
     });
     expect(next.bids).toEqual([{ playerId: 0, action: "capot", trump: "spades" }]);
+  });
+
+  it("rejects a forged no-trump contract when the room rules disable it", () => {
+    expect(() => applyAuthorizedAction({ room, players: players(), state: createInitialGame(() => 0.1), userId: "host", expectedVersion: 8, action: { type: "bid", value: 80, contractMode: { kind: "no-trump" } } })).toThrow("not allowed");
+  });
+
+  it("accepts no-trump through the authoritative path when enabled", () => {
+    const special = createTestRuleset({ bidding: { ...CONTREE_KFFR_RULESET.bidding, allowNoTrump: true } });
+    const state = createInitialGame(() => 0.1, { ruleset: special });
+    expect(applyAuthorizedAction({ room, players: players(), state, userId: "host", expectedVersion: 8, action: { type: "bid", value: 80, contractMode: { kind: "no-trump" } } }).bids[0]).toMatchObject({ contractMode: { kind: "no-trump" } });
+  });
+
+  it("rejects a forged all-trump contract when the room rules disable it", () => {
+    expect(() => applyAuthorizedAction({ room, players: players(), state: createInitialGame(() => 0.1), userId: "host", expectedVersion: 8, action: { type: "bid", value: 80, contractMode: { kind: "all-trump" } } })).toThrow("not allowed");
   });
 
   it("rejects an action from a seated player outside their turn", () => {

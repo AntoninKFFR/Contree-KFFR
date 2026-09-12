@@ -1,5 +1,6 @@
 import { createDeck, SUITS } from "@/engine/cards";
 import { playerTeam } from "@/engine/rules";
+import { resolveContractMode, usesTrumpRanking } from "@/engine/contractMode";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import type { Card, GameState, PlayerId, Suit } from "@/engine/types";
 
@@ -31,8 +32,9 @@ function cardKey(card: Card): string {
   return `${card.rank}-${card.suit}`;
 }
 
-function sortCardsByMasterOrder(cards: Card[], suit: Suit, trump: Suit | null): Card[] {
-  const order = suit === trump ? TRUMP_MASTER_ORDER : NORMAL_MASTER_ORDER;
+function sortCardsByMasterOrder(cards: Card[], suit: Suit, state: GameState): Card[] {
+  const mode = resolveContractMode(state);
+  const order = mode && usesTrumpRanking(suit, mode) ? TRUMP_MASTER_ORDER : NORMAL_MASTER_ORDER;
   return [...cards].sort((first, second) => order.indexOf(first.rank) - order.indexOf(second.rank));
 }
 
@@ -102,7 +104,7 @@ export function getRemainingTrumps(state: GameState): Card[] {
   return sortCardsByMasterOrder(
     createDeck().filter((card) => card.suit === state.trump && !playedTrumpKeys.has(cardKey(card))),
     state.trump,
-    state.trump,
+    state,
   );
 }
 
@@ -114,25 +116,25 @@ export function getMasterCardsStillOutBySuit(state: GameState): Record<Suit, Car
       sortCardsByMasterOrder(
         createDeck().filter((card) => card.suit === "clubs" && !playedCardKeys.has(cardKey(card))),
         "clubs",
-        state.trump,
+        state,
       )[0] ?? null,
     diamonds:
       sortCardsByMasterOrder(
         createDeck().filter((card) => card.suit === "diamonds" && !playedCardKeys.has(cardKey(card))),
         "diamonds",
-        state.trump,
+        state,
       )[0] ?? null,
     hearts:
       sortCardsByMasterOrder(
         createDeck().filter((card) => card.suit === "hearts" && !playedCardKeys.has(cardKey(card))),
         "hearts",
-        state.trump,
+        state,
       )[0] ?? null,
     spades:
       sortCardsByMasterOrder(
         createDeck().filter((card) => card.suit === "spades" && !playedCardKeys.has(cardKey(card))),
         "spades",
-        state.trump,
+        state,
       )[0] ?? null,
   };
 }
@@ -144,22 +146,22 @@ export function getRemainingCardsBySuit(state: GameState): Record<Suit, Card[]> 
     clubs: sortCardsByMasterOrder(
       createDeck().filter((card) => card.suit === "clubs" && !playedCardKeys.has(cardKey(card))),
       "clubs",
-      state.trump,
+      state,
     ),
     diamonds: sortCardsByMasterOrder(
       createDeck().filter((card) => card.suit === "diamonds" && !playedCardKeys.has(cardKey(card))),
       "diamonds",
-      state.trump,
+      state,
     ),
     hearts: sortCardsByMasterOrder(
       createDeck().filter((card) => card.suit === "hearts" && !playedCardKeys.has(cardKey(card))),
       "hearts",
-      state.trump,
+      state,
     ),
     spades: sortCardsByMasterOrder(
       createDeck().filter((card) => card.suit === "spades" && !playedCardKeys.has(cardKey(card))),
       "spades",
-      state.trump,
+      state,
     ),
   };
 }

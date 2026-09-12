@@ -2,8 +2,18 @@ import type { Contract, GameSettings, RoundResult, TeamId } from "./types";
 import { CONTREE_KFFR_RULESET } from "./rulesets/presets";
 import { normalizeGameSettings, resolveGameRules } from "./rulesets/resolve";
 import type { GameRulesetSnapshot } from "./rulesets/types";
+import { resolveContractMode } from "./contractMode";
+import { getRoundCardPointTotal } from "./rules";
 
 const ZERO_POINTS: Record<TeamId, number> = { 0: 0, 1: 0 };
+
+function regulatoryCardBase(contract: Contract, rules: GameRulesetSnapshot, capot: boolean): number {
+  const mode = resolveContractMode(contract);
+  if (!mode || mode.kind === "suit") {
+    return capot ? rules.scoring.capotBasePoints : rules.scoring.failureBasePoints;
+  }
+  return Math.floor(getRoundCardPointTotal(mode, rules.trickScoring, capot) / 10) * 10;
+}
 
 export function contractMultiplier(
   contract: Contract,
@@ -88,9 +98,7 @@ function scoreFfb({
   totalPoints: Record<TeamId, number>;
 }): Record<TeamId, number> {
   const contractAmount = contract.value;
-  const regulatoryBase = contract.kind === "capot" || capotTeam !== null
-    ? rules.scoring.capotBasePoints
-    : rules.scoring.failureBasePoints;
+  const regulatoryBase = regulatoryCardBase(contract, rules, contract.kind === "capot" || capotTeam !== null);
   const takerBelote = belotePoints[takerTeam];
   const defenderBelote = belotePoints[defenderTeam];
   const takerRetained = takerBelote + announcementPoints[takerTeam];
@@ -144,6 +152,7 @@ function scoreContractOnly({
   defenderTeam,
   failureIsFixed,
   multiplier,
+  rules,
   takerTeam,
 }: {
   contract: Contract;
@@ -151,11 +160,16 @@ function scoreContractOnly({
   defenderTeam: TeamId;
   failureIsFixed: boolean;
   multiplier: number;
+  rules: GameRulesetSnapshot;
   takerTeam: TeamId;
 }): Record<TeamId, number> {
   const awarded = contractSucceeded
     ? contract.value
-    : failureIsFixed ? 160 : contract.value;
+    : failureIsFixed
+      ? resolveContractMode(contract)?.kind === "suit"
+        ? 160
+        : regulatoryCardBase(contract, rules, false)
+      : contract.value;
   const recipient = contractSucceeded ? takerTeam : defenderTeam;
   return { 0: 0, 1: 0, [recipient]: awarded * multiplier };
 }
@@ -184,12 +198,12 @@ function scorePointsOnly({
         [takerTeam]: totalPoints[takerTeam] + contract.value,
         [defenderTeam]: totalPoints[defenderTeam],
       }
-    : { 0: 0, 1: 0, [defenderTeam]: rules.scoring.failureBasePoints + contract.value };
+    : { 0: 0, 1: 0, [defenderTeam]: regulatoryCardBase(contract, rules, false) + contract.value };
   if (multiplier === 1) return normalFormula;
   if (rules.scoring.doubleAllPointsOnCoinche) return multiplyScore(normalFormula, multiplier);
   return contractSucceeded
     ? { ...normalFormula, [takerTeam]: totalPoints[takerTeam] + contract.value * multiplier }
-    : { ...normalFormula, [defenderTeam]: rules.scoring.failureBasePoints + contract.value * multiplier };
+    : { ...normalFormula, [defenderTeam]: regulatoryCardBase(contract, rules, false) + contract.value * multiplier };
 }
 
 export function scoreRound({
@@ -269,6 +283,7 @@ export function scoreRound({
           defenderTeam,
           failureIsFixed: rules.scoring.mode === "contract-only-160-failure",
           multiplier,
+          rules,
           takerTeam,
         })
       : scorePointsOnly({

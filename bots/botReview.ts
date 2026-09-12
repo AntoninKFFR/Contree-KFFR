@@ -12,6 +12,7 @@ import type {
   Card,
   CompletedTrick,
   Contract,
+  ContractMode,
   GameSettings,
   GameState,
   PlayerId,
@@ -19,6 +20,7 @@ import type {
   TeamId,
   Trick,
 } from "@/engine/types";
+import { resolveContractMode } from "@/engine/contractMode";
 
 export function isBotReviewModeEnabled(value = process.env.NEXT_PUBLIC_BOT_REVIEW_MODE): boolean {
   return value === "true";
@@ -28,7 +30,7 @@ export const BOT_REVIEW_MODE_ENABLED = isBotReviewModeEnabled();
 
 export type BotReviewBidDecision =
   | { action: "pass" | "coinche" | "surcoinche" }
-  | { action: "bid"; value: NonNullable<Extract<Bid, { action: "bid" }>["value"]>; trump: Suit };
+  | { action: "bid"; value: NonNullable<Extract<Bid, { action: "bid" }>["value"]>; trump?: Suit; contractMode?: ContractMode };
 
 export type BotReviewKnowledgeV1 = {
   voidSuitsByPlayer: Record<PlayerId, Suit[]>;
@@ -50,6 +52,7 @@ export type BotReviewScenarioV1 = {
   settings: GameSettings;
   ownHand: Card[];
   trump: Suit | null;
+  contractMode?: ContractMode | null;
   contract: Contract | null;
   bids: Bid[];
   currentTrick: Trick;
@@ -82,6 +85,7 @@ export type BotReviewCurrentStateV2 = {
   startingPlayerId: PlayerId;
   playerNames?: Record<PlayerId, string>;
   trump: Suit | null;
+  contractMode?: ContractMode | null;
   contract: Contract | null;
   bids: Bid[];
   currentTrick: Trick;
@@ -152,6 +156,10 @@ function cloneScenario(scenario: BotReviewScenarioV1): BotReviewScenarioV1 {
   };
 }
 
+function reviewContractMode(state: GameState): ContractMode | null {
+  return resolveContractMode(state) ?? resolveContractMode(getCurrentContract(state) ?? {});
+}
+
 export function appendBotReviewHistory(
   history: BotReviewScenarioV1[],
   scenario: BotReviewScenarioV1,
@@ -206,6 +214,7 @@ export function createBotReviewBundle(
       startingPlayerId: state.startingPlayerId,
       playerNames: state.playerNames ? { ...state.playerNames } : undefined,
       trump: state.trump,
+      contractMode: reviewContractMode(state),
       contract: getCurrentContract(state) ? { ...getCurrentContract(state)! } : null,
       bids: state.bids.map((bid) => ({ ...bid })),
       currentTrick: cloneTrick(state.currentTrick),
@@ -288,6 +297,7 @@ export function captureBotReviewScenario(
     settings: normalizeGameSettings(state.settings),
     ownHand: cloneCards(state.hands[playerId]),
     trump: state.trump,
+    contractMode: reviewContractMode(state),
     contract: getCurrentContract(state) ? { ...getCurrentContract(state)! } : null,
     bids: state.bids.map((bid) => ({ ...bid })),
     currentTrick: cloneTrick(state.currentTrick),

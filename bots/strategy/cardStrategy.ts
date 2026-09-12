@@ -1,5 +1,6 @@
 import { playableCardsForCurrentPlayer } from "@/engine/game";
-import { cardPoints, compareCards, getTrickWinner, playerTeam } from "@/engine/rules";
+import { resolveContractMode } from "@/engine/contractMode";
+import { cardPoints, cardStrength, compareCards, getTrickWinner, playerTeam } from "@/engine/rules";
 import type { Card, GameState, PlayerId, Suit, Trick } from "@/engine/types";
 import type { BotProfile } from "@/bots/profiles";
 import { buildTrickKnowledge, type TrickKnowledge } from "@/bots/strategy/trickKnowledge";
@@ -585,7 +586,8 @@ function chooseCardWhenFollowing({
 }
 
 export function chooseProfileCardToPlay(state: GameState, profile: BotProfile): Card {
-  if (state.phase !== "playing" || !state.trump) {
+  const mode = resolveContractMode(state);
+  if (state.phase !== "playing" || !mode) {
     throw new Error("Bot can only choose a card after trump is known.");
   }
 
@@ -595,13 +597,21 @@ export function chooseProfileCardToPlay(state: GameState, profile: BotProfile): 
     throw new Error("Bot has no playable card.");
   }
 
+  // Special contracts deliberately use a small, isolated legal baseline. The
+  // established suit-contract doctrine below remains unchanged.
+  if (mode.kind !== "suit") {
+    return [...playableCards].sort((first, second) =>
+      cardPoints(first, mode) - cardPoints(second, mode)
+      || cardStrength(first, mode) - cardStrength(second, mode))[0];
+  }
+
   const contractTeam = state.contract?.teamId ?? null;
   const knowledge = buildTrickKnowledge(state);
 
   if (state.currentTrick.cards.length === 0) {
     return chooseBestLead(
       playableCards,
-      state.trump,
+      mode.suit,
       state.currentPlayerId,
       profile,
       contractTeam === playerTeam(state.currentPlayerId),
@@ -616,7 +626,7 @@ export function chooseProfileCardToPlay(state: GameState, profile: BotProfile): 
     playableCards,
     profile,
     trick: state.currentTrick,
-    trump: state.trump,
+    trump: mode.suit,
     completedTrickCount: state.completedTricks.length,
     knowledge,
   });
