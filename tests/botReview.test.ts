@@ -20,7 +20,7 @@ import { createSeededRandom } from "@/engine/random";
 import { createGameSettings } from "@/engine/rulesets/resolve";
 import type { GameState, PlayerId } from "@/engine/types";
 import { toPlayerGameView } from "@/engine/views";
-import { rulesetWithAnnouncements } from "@/tests/helpers/rulesets";
+import { relaxedFollowSuitVariant, rulesetWithAnnouncements } from "@/tests/helpers/rulesets";
 
 function playingState(seed = 8100): GameState {
   let state = createInitialGame(createSeededRandom(seed));
@@ -339,6 +339,41 @@ describe("human bot decision review", () => {
       id: "contree-kffr",
       version: 1,
     });
+  });
+
+  it("serializes variant-aware legalCards, chosenCard and ruleset without changing V1", () => {
+    const chosenCard = { rank: "8" as const, suit: "diamonds" as const };
+    const state: GameState = {
+      ...playingState(8116),
+      settings: createGameSettings({ ruleset: relaxedFollowSuitVariant }),
+      currentPlayerId: 0,
+      currentTrick: {
+        leaderId: 1,
+        cards: [{ playerId: 1, card: { rank: "K", suit: "clubs" } }],
+      },
+      hands: {
+        0: [{ rank: "7", suit: "clubs" }, chosenCard],
+        1: [],
+        2: [],
+        3: [],
+      },
+    };
+    const scenario = captureBotReviewScenario(state, {
+      decisionNumber: 10,
+      elapsedMs: 0.1,
+      chosenCard,
+    });
+    const parsed = JSON.parse(serializeBotReviewScenario(scenario));
+
+    expect(scenario.version).toBe(1);
+    expect(scenario.legalCards).toContainEqual(chosenCard);
+    expect(parsed.chosenCard).toEqual(chosenCard);
+    expect(parsed.settings.ruleset).toMatchObject({
+      id: relaxedFollowSuitVariant.id,
+      cardPlay: { mustFollowSuit: false },
+    });
+    expect(botReviewScenarioToGameState(scenario).settings.ruleset?.id)
+      .toBe(relaxedFollowSuitVariant.id);
   });
 
   it("does not change multiplayer PlayerGameView hand isolation", () => {

@@ -8,7 +8,11 @@ import {
   requireLobbySeatChange, requireVersion, resetRoomPlayers, setLobbyReady, viewerSeatIndex,
 } from "@/lib/server/multiplayerGame";
 import { parseRoomIntent } from "@/lib/server/roomIntentValidation";
-import { createTestRuleset } from "@/tests/helpers/rulesets";
+import {
+  createTestRuleset,
+  mustTrumpBehindPartnerVariant,
+  relaxedFollowSuitVariant,
+} from "@/tests/helpers/rulesets";
 
 vi.mock("server-only", () => ({}));
 
@@ -101,6 +105,48 @@ describe("server-authoritative multiplayer", () => {
   it("rejects a card that violates follow-suit rules", () => {
     expect(() => applyAuthorizedAction({ room: { ...room, game_phase: "playing" }, players: players(), state: playingState(), userId: "host", expectedVersion: 8, action: { type: "play-card", card: card("7", "hearts") } }))
       .toThrow("not legal");
+  });
+
+  it("accepts through the server a discard made legal by the room snapshot", () => {
+    const state = {
+      ...playingState(),
+      settings: createGameSettings({ ruleset: relaxedFollowSuitVariant }),
+    };
+    const next = applyAuthorizedAction({
+      room: { ...room, game_phase: "playing" },
+      players: players(),
+      state,
+      userId: "host",
+      expectedVersion: 8,
+      action: { type: "play-card", card: card("7", "hearts") },
+    });
+
+    expect(next.hands[0]).toEqual([card("A", "clubs")]);
+    expect(next.settings.ruleset?.id).toBe(relaxedFollowSuitVariant.id);
+  });
+
+  it("rejects a forged discard when the snapshot requires trump behind the partner", () => {
+    const state: GameState = {
+      ...playingState(),
+      settings: createGameSettings({ ruleset: mustTrumpBehindPartnerVariant }),
+      hands: {
+        ...playingState().hands,
+        0: [card("7", "diamonds"), card("A", "hearts")],
+      },
+      currentTrick: {
+        leaderId: 2,
+        cards: [{ playerId: 2, card: card("A", "clubs") }],
+      },
+    };
+
+    expect(() => applyAuthorizedAction({
+      room: { ...room, game_phase: "playing" },
+      players: players(),
+      state,
+      userId: "host",
+      expectedVersion: 8,
+      action: { type: "play-card", card: card("7", "diamonds") },
+    })).toThrow("not legal");
   });
 
   it("uses the same no-card-announcement engine rules as solo play", () => {

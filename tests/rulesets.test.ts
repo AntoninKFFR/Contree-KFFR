@@ -93,7 +93,12 @@ describe("configurable game rulesets", () => {
     delete scoring.announcementsLostOnCapot;
     delete scoring.doubleAllPointsOnCoinche;
 
-    expect(parseServerGameState(phaseOne).settings.ruleset?.scoring).toMatchObject({
+    const parsedRules = parseServerGameState(phaseOne).settings.ruleset;
+    expect(parsedRules).toMatchObject({
+      version: 1,
+      cardPlay: CONTREE_KFFR_RULESET.cardPlay,
+    });
+    expect(parsedRules?.scoring).toMatchObject({
       announcementsLostOnFailure: true,
       announcementsLostOnCapot: true,
       doubleAllPointsOnCoinche: false,

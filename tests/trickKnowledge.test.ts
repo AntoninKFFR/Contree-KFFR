@@ -8,6 +8,8 @@ import {
   inferVoidSuitsByPlayer,
 } from "@/bots/strategy/trickKnowledge";
 import type { Card, GameState } from "@/engine/types";
+import { createGameSettings } from "@/engine/rulesets/resolve";
+import { relaxedFollowSuitVariant } from "@/tests/helpers/rulesets";
 
 function card(rank: Card["rank"], suit: Card["suit"]): Card {
   return { rank, suit };
@@ -91,6 +93,16 @@ describe("trick knowledge", () => {
       2: ["clubs", "hearts", "spades"],
       3: [],
     });
+  });
+
+  it("does not infer void suits from off-suit play when following is optional", () => {
+    const state = {
+      ...createState(),
+      settings: createGameSettings({ ruleset: relaxedFollowSuitVariant }),
+    };
+
+    expect(inferVoidSuitsByPlayer(state)).toEqual({ 0: [], 1: [], 2: [], 3: [] });
+    expect(buildTrickKnowledge(state).voidSuitsByPlayer).toEqual({ 0: [], 1: [], 2: [], 3: [] });
   });
 
   it("tracks played and remaining trumps", () => {

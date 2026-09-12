@@ -14,6 +14,17 @@
 - `belote.enabled`, `points`, `countsForContractSuccess` et `countsForContractFailure` pilotent respectivement la détection, la valeur, l'aide du preneur pour atteindre son contrat et l'aide de la défense dans la course aux points.
 - `mustReachBid` et `mustBeatDefense` sont deux conditions indépendantes.
 
+### Jeu de la carte
+
+- `mustFollowSuit` : avec un trèfle demandé et un trèfle en main, seuls les trèfles sont légaux. À `false`, toute la main est légale; cette permission prend donc le pas sur `mustRaiseAtTrump`.
+- `mustTrumpWhenVoid` : sans la couleur demandée mais avec de l'atout, le joueur doit couper. À `false`, il peut se défausser; s'il choisit volontairement l'atout et que `mustOvertrump` est actif, il doit néanmoins employer un atout supérieur lorsqu'il en possède un.
+- `allowDiscardWhenPartnerWinning` : sans la couleur demandée, un joueur dont le partenaire tient le pli peut se défausser. À `false`, `mustTrumpWhenVoid` l'oblige à jouer un atout, mais jamais à surcouper son partenaire.
+- `mustOvertrump` : lorsqu'une autre couleur était demandée et qu'un adversaire a déjà coupé, un atout supérieur disponible est obligatoire. À `false`, n'importe quel atout est légal si la coupe reste obligatoire.
+- `allowDiscardWhenCannotOvertrump` : face à la coupe adverse, si aucun atout supérieur n'existe, le joueur peut jeter n'importe quelle carte. À `false`, il doit fournir un atout inférieur. Cette option n'agit que lorsque `mustTrumpWhenVoid` et `mustOvertrump` sont actifs.
+- `mustRaiseAtTrump` : lorsque l'atout est directement demandé, un atout supérieur disponible est obligatoire. À `false`, tout atout de la main est légal.
+
+Les combinaisons `mustOvertrump=true` avec `mustTrumpWhenVoid=false` et `mustRaiseAtTrump=true` avec `mustFollowSuit=false` sont volontairement valides. Dans le premier cas, la coupe est facultative mais un atout volontaire doit surcouper si possible. Dans le second, la permission de ne pas fournir rend la montée facultative. Le validateur ne normalise donc aucun de ces couples silencieusement.
+
 ## Scoring
 
 - `ffb` conserve la formule actuelle de Contrée KFFR.

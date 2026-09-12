@@ -1,5 +1,6 @@
 import { createDeck, SUITS } from "@/engine/cards";
 import { playerTeam } from "@/engine/rules";
+import { resolveGameRules } from "@/engine/rulesets/resolve";
 import type { Card, GameState, PlayerId, Suit } from "@/engine/types";
 
 const NORMAL_MASTER_ORDER: Card["rank"][] = ["A", "10", "K", "Q", "J", "9", "8", "7"];
@@ -57,6 +58,11 @@ export function inferVoidSuitsByPlayer(state: GameState): Record<PlayerId, Suit[
     2: new Set<Suit>(),
     3: new Set<Suit>(),
   };
+
+  // Playing off-suit proves a void only in variants where following suit is mandatory.
+  if (!resolveGameRules(state.settings).cardPlay.mustFollowSuit) {
+    return { 0: [], 1: [], 2: [], 3: [] };
+  }
 
   const markVoidSuits = (cards: GameState["currentTrick"]["cards"]) => {
     if (cards.length < 2) return;

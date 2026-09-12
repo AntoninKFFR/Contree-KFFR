@@ -54,3 +54,33 @@ export const rulesetNoRounding = createTestRuleset({
   id: "test-no-rounding",
   scoring: { roundToTen: false },
 });
+
+export const freeDiscardVariant = createTestRuleset({
+  id: "test-free-discard",
+  cardPlay: { mustTrumpWhenVoid: false },
+});
+
+export const mustTrumpBehindPartnerVariant = createTestRuleset({
+  id: "test-must-trump-behind-partner",
+  cardPlay: { allowDiscardWhenPartnerWinning: false },
+});
+
+export const mustUndertrumpVariant = createTestRuleset({
+  id: "test-must-undertrump",
+  cardPlay: { allowDiscardWhenCannotOvertrump: false },
+});
+
+export const noOvertrumpVariant = createTestRuleset({
+  id: "test-no-overtrump",
+  cardPlay: { mustOvertrump: false },
+});
+
+export const noRaiseAtTrumpVariant = createTestRuleset({
+  id: "test-no-raise-at-trump",
+  cardPlay: { mustRaiseAtTrump: false },
+});
+
+export const relaxedFollowSuitVariant = createTestRuleset({
+  id: "test-relaxed-follow-suit",
+  cardPlay: { mustFollowSuit: false },
+});

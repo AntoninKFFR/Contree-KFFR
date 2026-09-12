@@ -7,6 +7,14 @@ import {
 } from "@/bots/strategy/monteCarloCardStrategy";
 import { chooseMonteCarloBid } from "@/bots/strategy/monteCarloBiddingStrategy";
 import type { Card, GameState } from "@/engine/types";
+import { playableCardsForCurrentPlayer } from "@/engine/game";
+import { createGameSettings } from "@/engine/rulesets/resolve";
+import {
+  freeDiscardVariant,
+  mustUndertrumpVariant,
+  noOvertrumpVariant,
+  relaxedFollowSuitVariant,
+} from "@/tests/helpers/rulesets";
 
 function card(rank: Card["rank"], suit: Card["suit"]): Card {
   return { rank, suit };
@@ -122,6 +130,39 @@ describe("monte carlo bot", () => {
     ]);
 
     expect(chooseBotCard(state)).toEqual(chooseMonteCarloCardToPlay(state));
+  });
+
+  it("never returns a card illegal under the current GameState ruleset", () => {
+    const base: GameState = {
+      ...stateForMonteCarlo([]),
+      currentPlayerId: 0,
+      hands: {
+        0: [
+          card("A", "hearts"), card("J", "hearts"), card("10", "hearts"),
+          card("7", "diamonds"), card("8", "diamonds"), card("9", "diamonds"), card("10", "diamonds"),
+        ],
+        1: [], 2: [], 3: [],
+      },
+      currentTrick: {
+        leaderId: 1,
+        cards: [
+          { playerId: 1, card: card("K", "clubs") },
+          { playerId: 2, card: card("7", "spades") },
+          { playerId: 3, card: card("9", "hearts") },
+        ],
+      },
+    };
+
+    for (const ruleset of [
+      freeDiscardVariant,
+      mustUndertrumpVariant,
+      noOvertrumpVariant,
+      relaxedFollowSuitVariant,
+    ]) {
+      const state = { ...base, settings: createGameSettings({ ruleset }) };
+      const choice = chooseMonteCarloCardToPlay(state, { totalBudget: 12 });
+      expect(playableCardsForCurrentPlayer(state)).toContainEqual(choice);
+    }
   });
 
   it("adds a safe master lead candidate in V2 when leading is ambiguous", () => {

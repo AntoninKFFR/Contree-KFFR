@@ -1,6 +1,7 @@
 import { createDeck, sameCard } from "@/engine/cards";
 import { playableCardsForCurrentPlayer, playCard } from "@/engine/game";
 import { cardPoints, compareCards, getTrickWinner, playerTeam } from "@/engine/rules";
+import { resolveGameRules } from "@/engine/rulesets/resolve";
 import type { Card, GameState, PlayerId, Suit, TeamId } from "@/engine/types";
 import { getBotProfile } from "@/bots/profiles";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
@@ -150,6 +151,9 @@ function addVoidSuitsFromTrick(
 
 function inferVoidSuits(state: GameState): Record<PlayerId, Set<Suit>> {
   const voidSuits = emptyVoidSuits();
+
+  // Off-suit cards do not reveal hand distribution when following suit is optional.
+  if (!resolveGameRules(state.settings).cardPlay.mustFollowSuit) return voidSuits;
 
   for (const trick of state.completedTricks) {
     addVoidSuitsFromTrick(voidSuits, trick);
