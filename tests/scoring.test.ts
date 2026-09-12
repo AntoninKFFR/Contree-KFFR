@@ -111,30 +111,6 @@ describe("canonical FFB scoring", () => {
 
   it.each([
     {
-      label: "taker announcements on normal success",
-      status: "normal" as const,
-      tricks: { 0: 92, 1: 70 }, announcements: { 0: 20, 1: 0 }, belote: { 0: 0, 1: 0 },
-      expected: { 0: 190, 1: 70 },
-    },
-    {
-      label: "defender announcements on normal success",
-      status: "normal" as const,
-      tricks: { 0: 92, 1: 70 }, announcements: { 0: 0, 1: 20 }, belote: { 0: 0, 1: 0 },
-      expected: { 0: 170, 1: 90 },
-    },
-    {
-      label: "transferred taker announcements on failure",
-      status: "normal" as const,
-      tricks: { 0: 70, 1: 92 }, announcements: { 0: 20, 1: 0 }, belote: { 0: 0, 1: 0 },
-      expected: { 0: 0, 1: 260 },
-    },
-    {
-      label: "coinched taker announcements",
-      status: "coinched" as const,
-      tricks: { 0: 92, 1: 70 }, announcements: { 0: 20, 1: 0 }, belote: { 0: 0, 1: 0 },
-      expected: { 0: 520, 1: 0 },
-    },
-    {
       label: "taker belote on normal success",
       status: "normal" as const,
       tricks: { 0: 92, 1: 70 }, announcements: { 0: 0, 1: 0 }, belote: { 0: 20, 1: 0 },
@@ -166,6 +142,21 @@ describe("canonical FFB scoring", () => {
       announcementPointsByTeam: announcements,
       belotePointsByTeam: belote,
     }).roundScore).toEqual(expected);
+  });
+
+  it("drops a 90 contract at 88 trick points even when a legacy tierce is supplied", () => {
+    const result = scoreRound({
+      contract: { ...baseContract, value: 90 },
+      settings: ffbSettings,
+      trickPointsByTeam: { 0: 88, 1: 74 },
+      announcementPointsByTeam: { 0: 20, 1: 0 },
+    });
+
+    expect(result.contractSucceeded).toBe(false);
+    expect(result.takerPoints).toBe(88);
+    expect(result.totalPointsByTeam).toEqual({ 0: 88, 1: 74 });
+    expect(result.announcementPointsByTeam).toEqual({ 0: 0, 1: 0 });
+    expect(result.roundScore).toEqual({ 0: 0, 1: 250 });
   });
 
   it.each([
@@ -219,7 +210,7 @@ describe("canonical FFB scoring", () => {
     expect(result.roundScore).toEqual(expected);
   });
 
-  it("transfers defender announcements to the taker on capot", () => {
+  it("ignores legacy defender announcements when the taker realizes a capot", () => {
     const result = scoreRound({
       contract: baseContract,
       settings: ffbSettings,
@@ -227,8 +218,8 @@ describe("canonical FFB scoring", () => {
       tricksWonByTeam: { 0: 8, 1: 0 },
       announcementPointsByTeam: { 0: 0, 1: 20 },
     });
-    expect(result.announcementPointsByTeam).toEqual({ 0: 20, 1: 0 });
-    expect(result.roundScore).toEqual({ 0: 350, 1: 0 });
+    expect(result.announcementPointsByTeam).toEqual({ 0: 0, 1: 0 });
+    expect(result.roundScore).toEqual({ 0: 330, 1: 0 });
   });
 
   it("rounds regulatory points to the nearest ten with five rounded upward", () => {

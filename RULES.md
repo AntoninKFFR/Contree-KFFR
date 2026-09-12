@@ -1,6 +1,6 @@
-# Règles de Coinche FFB implémentées
+# Règles de la Contrée classique implémentées
 
-Le mode `ffb` est le ruleset canonique et le mode par défaut. Il suit les règles officielles de la Fédération Française de Belote pour une partie à quatre joueurs, répartis en deux équipes fixes de deux joueurs face à face.
+Le mode interne `ffb` est le ruleset canonique et le mode par défaut. Le produit applique notre variante de Contrée classique à quatre joueurs, répartis en deux équipes fixes de deux joueurs face à face.
 
 Référence principale : [Règles officielles de la Belote Coinchée (FFB)](https://www.ffbelote.org/wp-content/uploads/2015/11/REGLES-DE-LA-BELOTE-COINCHEE.pdf).
 
@@ -43,21 +43,7 @@ Le joueur qui possède ensemble le Roi et la Dame d'atout déclare la belote en 
 
 Dans l'interface, ces déclarations sont enregistrées automatiquement au moment où les cartes sont jouées ; cela correspond au choix déterministe de toujours annoncer une combinaison valide.
 
-## Annonces de cartes
-
-Une carte ne peut compter que dans une seule annonce, hors belote/rebelote.
-
-- Tierce : trois cartes consécutives d'une couleur, 20 points.
-- Cinquante : quatre cartes consécutives d'une couleur, 50 points.
-- Cent : cinq cartes consécutives ou plus d'une couleur, 100 points.
-- Carré de Valets : 200 points.
-- Carré de 9 : 150 points.
-- Carré d'As, de 10, de Rois ou de Dames : 100 points.
-- Les carrés de 7 et de 8 ne valent rien.
-
-Les annonces sont déclarées au premier pli et résolues au début du deuxième. Une seule équipe les marque : celle qui possède la meilleure annonce. La comparaison se fait par valeur, puis par nature (un carré de 100 bat un cent), par hauteur, puis par présence à l'atout. Si les meilleures annonces restent strictement égales, aucune équipe ne marque d'annonce. L'équipe gagnante marque toutes ses annonces valides.
-
-Le moteur détecte automatiquement les combinaisons valides. Avant la résolution, la vue publique ne révèle que leur nature et leur valeur. Après résolution, seuls les détails des combinaisons gagnantes, qui doivent être montrées, deviennent publics.
+Notre variante ne compte aucune annonce de séquence ou de carré. Ces combinaisons ne sont ni détectées, ni déclarées, ni ajoutées aux points. Seule la Belote/Rebelote reste comptabilisée.
 
 ## Réussite du contrat
 
@@ -68,11 +54,11 @@ Pour une enchère numérique, les preneurs doivent remplir simultanément les de
 
 Ainsi, 81–81 et 80–82 font chuter un contrat à 80 ; 82–80 le réussit. Pour un capot demandé, les preneurs doivent gagner les huit plis.
 
-Les points utilisés pour cette vérification comprennent les plis, la belote et les annonces validées.
+Les points utilisés pour cette vérification comprennent uniquement les plis et la Belote/Rebelote éventuelle.
 
 ## Capot réalisé
 
-Quand une équipe gagne les huit plis, le dernier pli vaut 100 au lieu de 10 et le total des plis est 252. Les annonces adverses changent alors de camp. Cette règle s'applique que le capot ait été demandé ou non.
+Quand une équipe gagne les huit plis, le dernier pli vaut 100 au lieu de 10 et le total des plis est 252. Cette règle s'applique que le capot ait été demandé ou non.
 
 ## Marque FFB
 
@@ -85,13 +71,13 @@ Contrat normal réussi :
 
 Contrat coinché ou surcoinché réussi :
 
-- les preneurs marquent la base réglementaire (160, ou 250 si un capot est réalisé), leurs annonces, leur belote, les annonces adverses transférées en cas de capot et le montant du contrat ; l'ensemble est multiplié par 2 ou 4 ;
+- les preneurs marquent la base réglementaire (160, ou 250 si un capot est réalisé), leur belote éventuelle et le montant du contrat ; l'ensemble est multiplié par 2 ou 4 ;
 - la défense ne conserve que sa belote éventuelle.
 
 Contrat chuté :
 
 - les preneurs ne conservent que leur belote éventuelle ;
-- la défense marque 160 points de chute, le montant du contrat, sa belote et toutes les annonces validées des deux camps ; l'ensemble est multiplié par 2 ou 4 si le contrat était coinché ou surcoinché ;
+- la défense marque 160 points de chute, le montant du contrat et sa belote éventuelle ; l'ensemble est multiplié par 2 ou 4 si le contrat était coinché ou surcoinché ;
 - la base passe à 250 si la défense réalise un capot ou si le contrat demandé était un capot.
 
 ## Fin de partie

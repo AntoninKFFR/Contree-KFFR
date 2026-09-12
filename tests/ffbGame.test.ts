@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { playCard } from "@/engine/game";
-import { emptyAnnouncementState, emptyBeloteState } from "@/engine/announcements";
+import { emptyBeloteState } from "@/engine/belote";
 import type { Card, CompletedTrick, GameState, PlayerId, Rank, Suit } from "@/engine/types";
 
 function card(rank: Rank, suit: Suit): Card {
@@ -25,7 +25,7 @@ function playingState(overrides: Partial<GameState> = {}): GameState {
     contract: { kind: "points", playerId: 0, teamId: 0, value: 80, trump: "hearts", status: "normal" },
     result: null,
     trickPoints: { 0: 0, 1: 0 },
-    announcements: emptyAnnouncementState(),
+    announcements: { declarations: [], declaredPlayerIds: [], winningTeam: null, pointsByTeam: { 0: 0, 1: 0 } },
     belote: emptyBeloteState(),
     roundScore: { 0: 0, 1: 0 },
     message: "Test FFB",
@@ -38,24 +38,27 @@ function play(state: GameState, playerId: PlayerId, selected: Card): GameState {
 }
 
 describe("FFB game integration", () => {
-  it("declares melds during the first trick and resolves them on the first card of the second", () => {
-    let state = playingState({
-      hands: {
-        0: [card("7", "clubs"), card("8", "clubs"), card("9", "clubs")],
-        1: [card("7", "clubs"), card("Q", "spades"), card("K", "spades"), card("A", "spades")],
-        2: [card("8", "clubs"), card("8", "diamonds")],
-        3: [card("9", "clubs"), card("9", "diamonds")],
-      },
+  it.each([
+    {
+      label: "a tierce",
+      hand: [card("7", "clubs"), card("8", "clubs"), card("9", "clubs")],
+    },
+    {
+      label: "a square of jacks",
+      hand: [card("J", "clubs"), card("J", "diamonds"), card("J", "hearts"), card("J", "spades")],
+    },
+    {
+      label: "five consecutive cards",
+      hand: [card("7", "clubs"), card("8", "clubs"), card("9", "clubs"), card("10", "clubs"), card("J", "clubs")],
+    },
+  ])("does not detect or award $label", ({ hand }) => {
+    const state = play(playingState({
+      hands: { 0: hand, 1: [], 2: [], 3: [] },
+    }), 0, hand[0]);
+
+    expect(state.announcements).toEqual({
+      declarations: [], declaredPlayerIds: [], winningTeam: null, pointsByTeam: { 0: 0, 1: 0 },
     });
-    state = play(state, 0, card("7", "clubs"));
-    state = play(state, 1, card("7", "clubs"));
-    state = play(state, 2, card("8", "clubs"));
-    state = play(state, 3, card("9", "clubs"));
-    expect(state.announcements).toMatchObject({
-      declaredPlayerIds: [0, 1, 2, 3], winningTeam: null, pointsByTeam: { 0: 0, 1: 0 },
-    });
-    state = play(state, 3, card("9", "diamonds"));
-    expect(state.announcements).toMatchObject({ winningTeam: 1, pointsByTeam: { 0: 0, 1: 20 } });
   });
 
   it("tracks belote then rebelote as their cards are played", () => {

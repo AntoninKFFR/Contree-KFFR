@@ -7,13 +7,7 @@ import {
   shuffleDeck,
   sortHand,
 } from "./cards";
-import {
-  declareAnnouncementsForPlayer,
-  emptyAnnouncementState,
-  emptyBeloteState,
-  playBeloteCard,
-  resolveAnnouncements,
-} from "./announcements";
+import { emptyBeloteState, playBeloteCard } from "./belote";
 import { canBidCapot, canCoinche, canSurcoinche, isAllowedBidValue } from "./bidding";
 import { createRandomPlayerNames, playerName, teamName } from "./players";
 import {
@@ -54,6 +48,10 @@ function resolveSettings(settings: Partial<GameSettings>): GameSettings {
 
 function emptyScore(): Record<TeamId, number> {
   return { 0: 0, 1: 0 };
+}
+
+function emptyAnnouncementState(): NonNullable<GameState["announcements"]> {
+  return { declarations: [], declaredPlayerIds: [], winningTeam: null, pointsByTeam: emptyScore() };
 }
 
 function randomPlayer(random: () => number): PlayerId {
@@ -181,7 +179,6 @@ function reachesTargetOnlyThroughBelote(
     settings: state.settings,
     trickPointsByTeam: result.trickPointsByTeam,
     tricksWonByTeam,
-    announcementPointsByTeam: result.announcementPointsByTeam,
     belotePointsByTeam: { 0: 0, 1: 0 },
   });
   return state.totalScore[teamId] + withoutBelote.roundScore[teamId] < state.settings.targetScore;
@@ -481,21 +478,7 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     throw new Error(`The card ${formatCard(card)} is not legal for this trick.`);
   }
 
-  let announcements = state.settings.scoringMode === "ffb" && state.completedTricks.length === 0
-    ? declareAnnouncementsForPlayer(state.announcements, hand, playerId, state.trump)
-    : state.announcements ?? emptyAnnouncementState();
-  if (
-    state.settings.scoringMode === "ffb"
-    && state.completedTricks.length === 1
-    && state.currentTrick.cards.length === 0
-    && announcements.declaredPlayerIds.length === 4
-  ) {
-    announcements = resolveAnnouncements(
-      announcements.declarations,
-      announcements.declaredPlayerIds,
-      state.trump,
-    );
-  }
+  const announcements = emptyAnnouncementState();
   const belote = state.settings.scoringMode === "ffb"
     ? playBeloteCard(state.belote, hand, playerId, card, state.trump)
     : state.belote ?? emptyBeloteState();
@@ -554,7 +537,6 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
           settings: state.settings,
           trickPointsByTeam,
           tricksWonByTeam,
-          announcementPointsByTeam: announcements.pointsByTeam,
           belotePointsByTeam: belote.pointsByTeam,
         })
       : null;

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createInitialGame } from "@/engine/game";
+import { createInitialGame, playCard } from "@/engine/game";
 import type { Card, GameState } from "@/engine/types";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import {
@@ -99,6 +99,35 @@ describe("server-authoritative multiplayer", () => {
   it("rejects a card that violates follow-suit rules", () => {
     expect(() => applyAuthorizedAction({ room: { ...room, game_phase: "playing" }, players: players(), state: playingState(), userId: "host", expectedVersion: 8, action: { type: "play-card", card: card("7", "hearts") } }))
       .toThrow("not legal");
+  });
+
+  it("uses the same no-card-announcement engine rules as solo play", () => {
+    const state: GameState = {
+      ...playingState(),
+      announcements: {
+        declarations: [{
+          playerId: 0, teamId: 0, type: "tierce", value: 20, suit: "clubs", highestRank: "A",
+        }],
+        declaredPlayerIds: [0],
+        winningTeam: 0,
+        pointsByTeam: { 0: 20, 1: 0 },
+      },
+    };
+    const selected = card("A", "clubs");
+    const direct = playCard(state, 0, selected);
+    const multiplayer = applyAuthorizedAction({
+      room: { ...room, game_phase: "playing" },
+      players: players(),
+      state,
+      userId: "host",
+      expectedVersion: 8,
+      action: { type: "play-card", card: selected },
+    });
+
+    expect(multiplayer).toEqual(direct);
+    expect(multiplayer.announcements).toEqual({
+      declarations: [], declaredPlayerIds: [], winningTeam: null, pointsByTeam: { 0: 0, 1: 0 },
+    });
   });
 
   it("rejects stale expectedVersion values as conflicts", () => {

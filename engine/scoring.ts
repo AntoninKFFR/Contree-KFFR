@@ -18,16 +18,7 @@ function capotTeamFrom(tricksWonByTeam: Record<TeamId, number>): TeamId | null {
   return null;
 }
 
-function transferredAnnouncementPoints(
-  points: Record<TeamId, number>,
-  capotTeam: TeamId | null,
-): Record<TeamId, number> {
-  if (capotTeam === null) return { ...points };
-  return { 0: 0, 1: 0, [capotTeam]: points[0] + points[1] };
-}
-
 function scoreFfb({
-  announcementPoints,
   belotePoints,
   capotTeam,
   contract,
@@ -37,7 +28,6 @@ function scoreFfb({
   takerTeam,
   totalPoints,
 }: {
-  announcementPoints: Record<TeamId, number>;
   belotePoints: Record<TeamId, number>;
   capotTeam: TeamId | null;
   contract: Contract;
@@ -65,7 +55,6 @@ function scoreFfb({
       [takerTeam]: (
         regulatoryBase
         + contractAmount
-        + announcementPoints[takerTeam]
         + belotePoints[takerTeam]
       ) * multiplier,
       [defenderTeam]: belotePoints[defenderTeam],
@@ -78,8 +67,6 @@ function scoreFfb({
       [defenderTeam]: (
         regulatoryBase
         + contractAmount
-        + announcementPoints[0]
-        + announcementPoints[1]
         + belotePoints[defenderTeam]
       ) * multiplier,
     };
@@ -89,13 +76,13 @@ function scoreFfb({
 }
 
 export function scoreRound({
-  announcementPointsByTeam = ZERO_POINTS,
   belotePointsByTeam = ZERO_POINTS,
   contract,
   settings,
   trickPointsByTeam,
   tricksWonByTeam = ZERO_POINTS,
 }: {
+  /** Accepted only so historical callers remain readable; card-announcement points are ignored. */
   announcementPointsByTeam?: Record<TeamId, number>;
   belotePointsByTeam?: Record<TeamId, number>;
   contract: Contract;
@@ -106,10 +93,9 @@ export function scoreRound({
   const takerTeam = contract.teamId;
   const defenderTeam = takerTeam === 0 ? 1 : 0;
   const capotTeam = capotTeamFrom(tricksWonByTeam);
-  const scoringAnnouncements = transferredAnnouncementPoints(announcementPointsByTeam, capotTeam);
   const totalPointsByTeam: Record<TeamId, number> = {
-    0: trickPointsByTeam[0] + scoringAnnouncements[0] + belotePointsByTeam[0],
-    1: trickPointsByTeam[1] + scoringAnnouncements[1] + belotePointsByTeam[1],
+    0: trickPointsByTeam[0] + belotePointsByTeam[0],
+    1: trickPointsByTeam[1] + belotePointsByTeam[1],
   };
   const takerPoints = totalPointsByTeam[takerTeam];
   const defenderPoints = totalPointsByTeam[defenderTeam];
@@ -121,7 +107,6 @@ export function scoreRound({
 
   const roundScore: Record<TeamId, number> = settings.scoringMode === "ffb"
     ? scoreFfb({
-        announcementPoints: scoringAnnouncements,
         belotePoints: belotePointsByTeam,
         capotTeam,
         contract,
@@ -148,7 +133,7 @@ export function scoreRound({
     takerPoints,
     defenderPoints,
     trickPointsByTeam: { ...trickPointsByTeam },
-    announcementPointsByTeam: { ...scoringAnnouncements },
+    announcementPointsByTeam: { ...ZERO_POINTS },
     belotePointsByTeam: { ...belotePointsByTeam },
     totalPointsByTeam,
     capotTeam,
