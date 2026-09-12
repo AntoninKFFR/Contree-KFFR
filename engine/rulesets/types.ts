@@ -1,6 +1,10 @@
 export type RulesetId = "contree-kffr" | `legacy-${string}` | "custom" | (string & {});
 
-export type RulesetScoringMode = "ffb" | "contract-only" | "points-only";
+export type RulesetScoringMode =
+  | "ffb"
+  | "contract-only"
+  | "contract-only-160-failure"
+  | "points-only";
 
 export type GameRulesetSnapshot = {
   readonly id: RulesetId;
@@ -53,9 +57,15 @@ export type GameRulesetSnapshot = {
   readonly scoring: {
     readonly mode: RulesetScoringMode;
     readonly roundToTen: boolean;
+    /** Transfer the failed taker's announcement points to the defense. */
+    readonly announcementsLostOnFailure: boolean;
+    /** Transfer the non-capot team's announcement points to the capot team. */
+    readonly announcementsLostOnCapot: boolean;
     readonly failureBasePoints: number;
     readonly capotBasePoints: number;
     readonly coincheMultiplier: number;
     readonly surcoincheMultiplier: number;
+    /** Multiply both teams' complete round scores instead of the mode-specific contract formula. */
+    readonly doubleAllPointsOnCoinche: boolean;
   };
 };

@@ -17,8 +17,10 @@ import { chooseHumanDoctrineV3Bid } from "@/bots/strategy/humanDoctrineV3";
 import { cardId } from "@/engine/cards";
 import { createInitialGame, makeBid, playCard, playableCardsForCurrentPlayer } from "@/engine/game";
 import { createSeededRandom } from "@/engine/random";
+import { createGameSettings } from "@/engine/rulesets/resolve";
 import type { GameState, PlayerId } from "@/engine/types";
 import { toPlayerGameView } from "@/engine/views";
+import { rulesetWithAnnouncements } from "@/tests/helpers/rulesets";
 
 function playingState(seed = 8100): GameState {
   let state = createInitialGame(createSeededRandom(seed));
@@ -99,6 +101,23 @@ describe("human bot decision review", () => {
       );
     }
     expect(chooseBotCard(reconstructed)).toEqual(chosenCard);
+  });
+
+  it("keeps Monte Carlo V1 executable with announcements enabled in the GameState", () => {
+    let state = createInitialGame(
+      createSeededRandom(8106),
+      createGameSettings({ ruleset: rulesetWithAnnouncements }),
+    );
+    state = makeBid(state, state.currentPlayerId, { action: "bid", value: 80, trump: "hearts" });
+    for (let pass = 0; pass < 3; pass += 1) {
+      state = makeBid(state, state.currentPlayerId, { action: "pass" });
+    }
+
+    const chosenCard = chooseBotCard(state);
+    const next = playCard(state, state.currentPlayerId, chosenCard);
+
+    expect(next.settings.ruleset?.announcements.enabled).toBe(true);
+    expect(next.announcements?.declaredPlayerIds).toContain(state.currentPlayerId);
   });
 
   it("captures the official V3.1 bidding trace and rejects a forged illegal chosen card", () => {
@@ -282,6 +301,9 @@ describe("human bot decision review", () => {
       version: 2,
       type: "solo-analysis-bundle",
       gameId: "game-123",
+      rulesetId: "contree-kffr",
+      rulesetVersion: 1,
+      ruleset: { id: "contree-kffr", version: 1 },
       selectedDecisionId: cardScenario.decisionId,
       humanComment: "À revoir.",
     });
@@ -299,6 +321,24 @@ describe("human bot decision review", () => {
     expect(bundle.current.completedTricks).toEqual(state.completedTricks);
     expect(bundle.current.currentTrick).toEqual(state.currentTrick);
     expect(parsed).not.toHaveProperty("hands");
+  });
+
+  it("normalizes an old V1 scenario without a ruleset snapshot", () => {
+    const state = playingState(8115);
+    const scenario = captureBotReviewScenario(state, {
+      decisionNumber: 9,
+      elapsedMs: 0.2,
+      chosenCard: chooseBotCard(state),
+    });
+    const legacyScenario = {
+      ...scenario,
+      settings: { scoringMode: "ffb" as const, targetScore: 1000 },
+    };
+
+    expect(botReviewScenarioToGameState(legacyScenario).settings.ruleset).toMatchObject({
+      id: "contree-kffr",
+      version: 1,
+    });
   });
 
   it("does not change multiplayer PlayerGameView hand isolation", () => {

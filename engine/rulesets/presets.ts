@@ -45,10 +45,13 @@ const contreeKffrRuleset: GameRulesetSnapshot = {
   scoring: {
     mode: "ffb",
     roundToTen: true,
+    announcementsLostOnFailure: true,
+    announcementsLostOnCapot: true,
     failureBasePoints: 160,
     capotBasePoints: 250,
     coincheMultiplier: 2,
     surcoincheMultiplier: 4,
+    doubleAllPointsOnCoinche: false,
   },
 };
 

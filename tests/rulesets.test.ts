@@ -85,6 +85,21 @@ describe("configurable game rulesets", () => {
     expect(parsed.settings.ruleset?.game.targetScore).toBe(1000);
   });
 
+  it("fills Phase 2 scoring defaults in a stored Phase 1 ruleset snapshot", () => {
+    const phaseOne = JSON.parse(JSON.stringify(createInitialGame(() => 0.1))) as Record<string, unknown>;
+    const scoring = ((phaseOne.settings as Record<string, unknown>).ruleset as Record<string, unknown>)
+      .scoring as Record<string, unknown>;
+    delete scoring.announcementsLostOnFailure;
+    delete scoring.announcementsLostOnCapot;
+    delete scoring.doubleAllPointsOnCoinche;
+
+    expect(parseServerGameState(phaseOne).settings.ruleset?.scoring).toMatchObject({
+      announcementsLostOnFailure: true,
+      announcementsLostOnCapot: true,
+      doubleAllPointsOnCoinche: false,
+    });
+  });
+
   it("rejects incoherent or not-yet-implemented rulesets before game creation", () => {
     const invalidRange = customRuleset({
       bidding: { ...CONTREE_KFFR_RULESET.bidding, minBid: 170, maxBid: 160 },
@@ -99,11 +114,17 @@ describe("configurable game rulesets", () => {
     const incoherentAnnouncementFlags = customRuleset({
       announcements: { ...CONTREE_KFFR_RULESET.announcements, tierce: true },
     });
-    const prematureAnnouncements = customRuleset({
-      announcements: { ...CONTREE_KFFR_RULESET.announcements, enabled: true },
+    const announcementsCountWhileDisabled = customRuleset({
+      contractSuccess: { ...CONTREE_KFFR_RULESET.contractSuccess, announcementsCount: true },
     });
     const prematureNoTrump = customRuleset({
       bidding: { ...CONTREE_KFFR_RULESET.bidding, allowNoTrump: true },
+    });
+    const invalidCoincheMultiplier = customRuleset({
+      scoring: { ...CONTREE_KFFR_RULESET.scoring, coincheMultiplier: 0 },
+    });
+    const invalidSurcoincheMultiplier = customRuleset({
+      scoring: { ...CONTREE_KFFR_RULESET.scoring, coincheMultiplier: 3, surcoincheMultiplier: 2 },
     });
 
     expect(() => validateRuleset(invalidRange)).toThrow("minBid");
@@ -111,8 +132,10 @@ describe("configurable game rulesets", () => {
     expect(() => createInitialGame(() => 0.1, { ruleset: invalidTarget })).toThrow("targetScore");
     expect(() => createInitialGame(() => 0.1, { ruleset: invalidSurcoinche })).toThrow("requires coinche");
     expect(() => createInitialGame(() => 0.1, { ruleset: incoherentAnnouncementFlags })).toThrow("disabled announcements");
-    expect(() => createInitialGame(() => 0.1, { ruleset: prematureAnnouncements })).toThrow("not implemented");
+    expect(() => createInitialGame(() => 0.1, { ruleset: announcementsCountWhileDisabled })).toThrow("disabled");
     expect(() => createInitialGame(() => 0.1, { ruleset: prematureNoTrump })).toThrow("not implemented");
+    expect(() => createInitialGame(() => 0.1, { ruleset: invalidCoincheMultiplier })).toThrow("positive");
+    expect(() => createInitialGame(() => 0.1, { ruleset: invalidSurcoincheMultiplier })).toThrow("lower");
   });
 
   it("keeps bidding, card legality and scoring parity through explicit rules", () => {

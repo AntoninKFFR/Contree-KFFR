@@ -22,7 +22,7 @@ function rulesetScoringMode(scoringMode: ScoringMode): RulesetScoringMode {
 
 function legacyScoringMode(mode: RulesetScoringMode): ScoringMode {
   if (mode === "points-only") return "made-points";
-  if (mode === "contract-only") return "announced-points";
+  if (mode === "contract-only" || mode === "contract-only-160-failure") return "announced-points";
   return "ffb";
 }
 
@@ -45,10 +45,43 @@ function legacyRuleset(scoringMode: ScoringMode, targetScore: number): GameRules
   };
 }
 
+function migrateRulesetSnapshot(ruleset: GameRulesetSnapshot): GameRulesetSnapshot {
+  return {
+    ...cloneRulesetSnapshot(CONTREE_KFFR_RULESET),
+    ...ruleset,
+    game: { ...CONTREE_KFFR_RULESET.game, ...ruleset.game },
+    bidding: { ...CONTREE_KFFR_RULESET.bidding, ...ruleset.bidding },
+    cardPlay: { ...CONTREE_KFFR_RULESET.cardPlay, ...ruleset.cardPlay },
+    announcements: { ...CONTREE_KFFR_RULESET.announcements, ...ruleset.announcements },
+    belote: { ...CONTREE_KFFR_RULESET.belote, ...ruleset.belote },
+    contractSuccess: { ...CONTREE_KFFR_RULESET.contractSuccess, ...ruleset.contractSuccess },
+    trickScoring: { ...CONTREE_KFFR_RULESET.trickScoring, ...ruleset.trickScoring },
+    scoring: { ...CONTREE_KFFR_RULESET.scoring, ...ruleset.scoring },
+  };
+}
+
+function isCurrentFrozenSnapshot(ruleset: GameRulesetSnapshot): boolean {
+  return Object.isFrozen(ruleset)
+    && Object.isFrozen(ruleset.game)
+    && Object.isFrozen(ruleset.bidding)
+    && Object.isFrozen(ruleset.cardPlay)
+    && Object.isFrozen(ruleset.announcements)
+    && Object.isFrozen(ruleset.belote)
+    && Object.isFrozen(ruleset.contractSuccess)
+    && Object.isFrozen(ruleset.trickScoring)
+    && Object.isFrozen(ruleset.scoring)
+    && typeof ruleset.scoring.announcementsLostOnFailure === "boolean"
+    && typeof ruleset.scoring.announcementsLostOnCapot === "boolean"
+    && typeof ruleset.scoring.doubleAllPointsOnCoinche === "boolean";
+}
+
 export function resolveGameRules(settings?: Partial<GameSettings> | null): GameRulesetSnapshot {
   if (settings?.ruleset) {
-    validateRuleset(settings.ruleset);
-    return settings.ruleset;
+    if (isCurrentFrozenSnapshot(settings.ruleset)) {
+      validateRuleset(settings.ruleset);
+      return settings.ruleset;
+    }
+    return freezeRulesetSnapshot(migrateRulesetSnapshot(settings.ruleset));
   }
   const scoringMode = settings?.scoringMode ?? "ffb";
   const targetScore = settings?.targetScore ?? defaultTargetScore(scoringMode);
@@ -57,7 +90,7 @@ export function resolveGameRules(settings?: Partial<GameSettings> | null): GameR
 
 export function normalizeGameSettings(settings: Partial<GameSettings> = {}): NormalizedGameSettings {
   const sourceRules = settings.ruleset
-    ? cloneRulesetSnapshot(settings.ruleset)
+    ? migrateRulesetSnapshot(settings.ruleset)
     : legacyRuleset(
         settings.scoringMode ?? "ffb",
         settings.targetScore ?? defaultTargetScore(settings.scoringMode ?? "ffb"),

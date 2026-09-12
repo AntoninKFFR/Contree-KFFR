@@ -7,6 +7,7 @@ import {
   shuffleDeck,
   sortHand,
 } from "./cards";
+import { declareAnnouncementsForPlayer, emptyAnnouncementState } from "./announcements";
 import { emptyBeloteState, playBeloteCard } from "./belote";
 import { canBidCapot, canCoinche, canSurcoinche, isAllowedBidValue } from "./bidding";
 import { createRandomPlayerNames, playerName, teamName } from "./players";
@@ -36,10 +37,6 @@ type PlayerNames = Record<PlayerId, string>;
 
 function emptyScore(): Record<TeamId, number> {
   return { 0: 0, 1: 0 };
-}
-
-function emptyAnnouncementState(): NonNullable<GameState["announcements"]> {
-  return { declarations: [], declaredPlayerIds: [], winningTeam: null, pointsByTeam: emptyScore() };
 }
 
 function randomPlayer(random: () => number): PlayerId {
@@ -472,10 +469,20 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     throw new Error(`The card ${formatCard(card)} is not legal for this trick.`);
   }
 
-  const announcements = emptyAnnouncementState();
+  const announcements = !rules.announcements.enabled
+    ? emptyAnnouncementState()
+    : state.completedTricks.length === 0
+      ? declareAnnouncementsForPlayer(
+          state.announcements,
+          hand,
+          playerId,
+          state.trump,
+          rules.announcements,
+        )
+      : state.announcements ?? emptyAnnouncementState();
   const belote = rules.belote.enabled
     ? playBeloteCard(state.belote, hand, playerId, card, state.trump, rules.belote.points)
-    : state.belote ?? emptyBeloteState();
+    : emptyBeloteState();
 
   const nextHand = hand.filter((handCard) => !sameCard(handCard, card));
   const nextHands = {
@@ -532,6 +539,7 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
           rules,
           trickPointsByTeam,
           tricksWonByTeam,
+          announcementPointsByTeam: announcements.pointsByTeam,
           belotePointsByTeam: belote.pointsByTeam,
         })
       : null;

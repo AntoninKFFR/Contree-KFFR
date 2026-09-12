@@ -1,5 +1,6 @@
 import { SUIT_LABELS, SUIT_SYMBOLS } from "@/engine/cards";
 import { playerName, teamName } from "@/engine/players";
+import { resolveGameRules } from "@/engine/rulesets/resolve";
 import type { ContractStatus, GameState } from "@/engine/types";
 import type { PlayerGameView } from "@/engine/views";
 
@@ -23,6 +24,7 @@ export function ScoreBoard({
   const nameFor = (playerId: Parameters<typeof playerName>[0]) =>
     playerName(playerId, state.playerNames);
   const teamFor = (teamId: Parameters<typeof teamName>[0]) => teamName(teamId, state.playerNames);
+  const rules = resolveGameRules(state.settings);
 
   return (
     <aside className="hidden min-h-0 rounded-lg border border-stone-200 bg-white/95 p-3 text-sm shadow-sm lg:flex lg:flex-col lg:overflow-hidden">
@@ -99,17 +101,48 @@ export function ScoreBoard({
             Preneurs: {state.result.takerPoints}, defense: {state.result.defenderPoints}, x
             {state.result.multiplier}.
           </p>
-          {state.result.trickPointsByTeam && state.result.belotePointsByTeam ? (
+          {state.result.trickPointsByTeam ? (
+            rules.announcements.enabled ? (
+              <p>
+                Plis: {state.result.trickPointsByTeam[0]} - {state.result.trickPointsByTeam[1]};{" "}
+                annonces: {state.result.announcementPointsByTeam[0]} -{" "}
+                {state.result.announcementPointsByTeam[1]}
+                {rules.belote.enabled
+                  ? `; belote: ${state.result.belotePointsByTeam[0]} - ${state.result.belotePointsByTeam[1]}`
+                  : ""}.
+              </p>
+            ) : rules.belote.enabled ? (
+              <p>
+                Plis: {state.result.trickPointsByTeam[0]} - {state.result.trickPointsByTeam[1]};{" "}
+                belote: {state.result.belotePointsByTeam[0]} -{" "}
+                {state.result.belotePointsByTeam[1]}.
+              </p>
+            ) : (
+              <p>Plis: {state.result.trickPointsByTeam[0]} - {state.result.trickPointsByTeam[1]}.</p>
+            )
+          ) : null}
+        </div>
+      ) : null}
+
+      {rules.announcements.enabled && state.announcements?.declarations.length ? (
+        <div className="mt-2 rounded-md bg-amber-50 p-2 text-xs text-stone-700">
+          <p className="font-semibold">Annonces de cartes</p>
+          <p>
+            {state.announcements.declarations.map((announcement) =>
+              `${nameFor(announcement.playerId)}: ${announcementLabel(announcement.type)}`,
+            ).join(" · ")}
+          </p>
+          {state.announcements.declaredPlayerIds.length === 4 ? (
             <p>
-              Plis: {state.result.trickPointsByTeam[0]} - {state.result.trickPointsByTeam[1]};{" "}
-              belote: {state.result.belotePointsByTeam[0]} -{" "}
-              {state.result.belotePointsByTeam[1]}.
+              {state.announcements.winningTeam === null
+                ? "Égalité stricte : aucune équipe ne marque."
+                : `${teamFor(state.announcements.winningTeam)} marquent ${state.announcements.pointsByTeam[state.announcements.winningTeam]} points.`}
             </p>
           ) : null}
         </div>
       ) : null}
 
-      {state.belote?.declaration ? (
+      {rules.belote.enabled && state.belote?.declaration ? (
         <div className="mt-2 rounded-md bg-sky-50 p-2 text-xs text-stone-700">
           <p className="font-semibold">
             {state.belote.declaration.completed ? "Belote et rebelote" : "Belote"}
@@ -191,4 +224,11 @@ function contractStatusLabel(status: ContractStatus): string {
   if (status === "coinched") return "contré";
   if (status === "surcoinched") return "surcontré";
   return "normal";
+}
+
+function announcementLabel(type: "tierce" | "fifty" | "hundred" | "square"): string {
+  if (type === "tierce") return "tierce";
+  if (type === "fifty") return "cinquante";
+  if (type === "hundred") return "cent";
+  return "carré";
 }

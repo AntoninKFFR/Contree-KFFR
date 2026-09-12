@@ -35,7 +35,6 @@ export type PlayedCard = {
   card: Card;
 };
 
-// Legacy serialization fields retained for reading games created before card announcements were removed.
 export type AnnouncementType = "tierce" | "fifty" | "hundred" | "square";
 
 export type CardAnnouncement = {
@@ -121,7 +120,6 @@ export type RoundResult =
       takerPoints: number;
       defenderPoints: number;
       trickPointsByTeam: Record<TeamId, number>;
-      /** Legacy compatibility field. New round results always contain zeroes. */
       announcementPointsByTeam: Record<TeamId, number>;
       belotePointsByTeam: Record<TeamId, number>;
       totalPointsByTeam: Record<TeamId, number>;

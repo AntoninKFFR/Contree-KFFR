@@ -3,7 +3,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ScoreBoard } from "@/components/ScoreBoard";
 import { createInitialGame } from "@/engine/game";
+import { createGameSettings } from "@/engine/rulesets/resolve";
 import { scoreRound } from "@/engine/scoring";
+import { createTestRuleset } from "@/tests/helpers/rulesets";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -51,5 +53,40 @@ describe("ScoreBoard card-announcement removal", () => {
     expect(markup).not.toContain("Annonces de cartes");
     expect(markup).not.toContain("annonces:");
     expect(markup).not.toContain("tierce");
+  });
+
+  it("shows card announcements only when the authoritative ruleset enables them", () => {
+    vi.stubGlobal("React", React);
+    const rules = createTestRuleset({
+      announcements: { enabled: true, tierce: true },
+      belote: { enabled: false },
+    });
+    const initial = createInitialGame(() => 0.1, createGameSettings({ ruleset: rules }));
+    const state = {
+      ...initial,
+      announcements: {
+        declarations: [{
+          playerId: 0 as const,
+          teamId: 0 as const,
+          type: "tierce" as const,
+          value: 20 as const,
+          suit: "clubs" as const,
+          highestRank: "9" as const,
+        }],
+        declaredPlayerIds: [0 as const, 1 as const, 2 as const, 3 as const],
+        winningTeam: 0 as const,
+        pointsByTeam: { 0: 20, 1: 0 },
+      },
+      belote: {
+        declaration: { playerId: 0 as const, teamId: 0 as const, firstRank: "Q" as const, completed: true },
+        pointsByTeam: { 0: 20, 1: 0 },
+      },
+    };
+
+    const markup = renderToStaticMarkup(React.createElement(ScoreBoard, { state, showActions: false }));
+
+    expect(markup).toContain("Annonces de cartes");
+    expect(markup).toContain("tierce");
+    expect(markup).not.toContain("Belote et rebelote");
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createInitialGame, playCard } from "@/engine/game";
+import { createGameSettings } from "@/engine/rulesets/resolve";
 import type { Card, GameState } from "@/engine/types";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import {
@@ -7,6 +8,7 @@ import {
   requireLobbySeatChange, requireVersion, resetRoomPlayers, setLobbyReady, viewerSeatIndex,
 } from "@/lib/server/multiplayerGame";
 import { parseRoomIntent } from "@/lib/server/roomIntentValidation";
+import { createTestRuleset } from "@/tests/helpers/rulesets";
 
 vi.mock("server-only", () => ({}));
 
@@ -127,6 +129,32 @@ describe("server-authoritative multiplayer", () => {
     expect(multiplayer).toEqual(direct);
     expect(multiplayer.announcements).toEqual({
       declarations: [], declaredPlayerIds: [], winningTeam: null, pointsByTeam: { 0: 0, 1: 0 },
+    });
+  });
+
+  it("uses the GameState ruleset as the sole authority for multiplayer announcements", () => {
+    const rules = createTestRuleset({ announcements: { enabled: true, tierce: true } });
+    const state: GameState = {
+      ...playingState(),
+      settings: createGameSettings({ ruleset: rules }),
+      hands: {
+        ...playingState().hands,
+        0: [card("7", "clubs"), card("8", "clubs"), card("9", "clubs")],
+      },
+    };
+    const multiplayer = applyAuthorizedAction({
+      room: { ...room, game_phase: "playing" },
+      players: players(),
+      state,
+      userId: "host",
+      expectedVersion: 8,
+      action: { type: "play-card", card: card("7", "clubs") },
+    });
+
+    expect(multiplayer.settings.ruleset?.id).toBe(rules.id);
+    expect(multiplayer.announcements).toMatchObject({
+      declarations: [{ playerId: 0, teamId: 0, type: "tierce", value: 20 }],
+      declaredPlayerIds: [0],
     });
   });
 

@@ -5,6 +5,8 @@ import type { HumanDoctrineV3Trace } from "@/bots/strategy/humanDoctrineV3";
 import type { HumanDoctrineV31Trace } from "@/bots/strategy/humanDoctrineV31";
 import { cardId, createDeck } from "@/engine/cards";
 import { getCurrentContract, playableCardsForCurrentPlayer } from "@/engine/game";
+import { normalizeGameSettings, resolveGameRules } from "@/engine/rulesets/resolve";
+import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import type {
   Bid,
   Card,
@@ -100,6 +102,10 @@ export type BotReviewBundleV2 = {
   exportedAt: string;
   gameId: string;
   botProfile: string;
+  /** Optional so previously exported V2 JSON remains structurally compatible. */
+  rulesetId?: string;
+  rulesetVersion?: number;
+  ruleset?: GameRulesetSnapshot;
   selectedDecisionId: string | null;
   current: BotReviewCurrentStateV2;
   publicAuctions: BotReviewPublicAuctionV2[];
@@ -131,7 +137,7 @@ function cloneTrick<T extends Trick | CompletedTrick>(trick: T): T {
 function cloneScenario(scenario: BotReviewScenarioV1): BotReviewScenarioV1 {
   return {
     ...scenario,
-    settings: { ...scenario.settings },
+    settings: normalizeGameSettings(scenario.settings),
     ownHand: cloneCards(scenario.ownHand),
     contract: scenario.contract ? { ...scenario.contract } : null,
     bids: scenario.bids.map((bid) => ({ ...bid })),
@@ -183,12 +189,16 @@ export function createBotReviewBundle(
   },
 ): BotReviewBundleV2 {
   const humanComment = options.humanComment?.trim();
+  const ruleset = resolveGameRules(state.settings);
   return {
     version: 2,
     type: "solo-analysis-bundle",
     exportedAt: options.exportedAt ?? new Date().toISOString(),
     gameId: options.gameId,
     botProfile: options.botProfile ?? OFFICIAL_BOT_PROFILE_ID,
+    rulesetId: ruleset.id,
+    rulesetVersion: ruleset.version,
+    ruleset: normalizeGameSettings({ ruleset }).ruleset,
     selectedDecisionId: options.selectedDecisionId ?? null,
     current: {
       roundNumber: state.roundNumber,
@@ -275,7 +285,7 @@ export function captureBotReviewScenario(
     roundNumber: state.roundNumber,
     trickNumber,
     startingPlayerId: state.startingPlayerId,
-    settings: { ...state.settings },
+    settings: normalizeGameSettings(state.settings),
     ownHand: cloneCards(state.hands[playerId]),
     trump: state.trump,
     contract: getCurrentContract(state) ? { ...getCurrentContract(state)! } : null,
@@ -340,7 +350,7 @@ export function botReviewScenarioToGameState(scenario: BotReviewScenarioV1): Gam
   const hands: GameState["hands"] = { 0: [], 1: [], 2: [], 3: [] };
   hands[scenario.playerId] = cloneCards(scenario.ownHand);
   const state: GameState = {
-    settings: { ...scenario.settings },
+    settings: normalizeGameSettings(scenario.settings),
     phase: scenario.phase,
     roundNumber: scenario.roundNumber,
     startingPlayerId: scenario.startingPlayerId,
