@@ -27,7 +27,8 @@ export function getAvailableBidValues(
   }
 
   return BID_VALUES.filter((value) =>
-    isAllowedBidValue(value, rules) && (!currentContract || value > currentContract.value));
+    isAllowedBidValue(value, rules)
+      && (!currentContract || (currentContract.kind !== "capot" && currentContract.kind !== "generale" && value > currentContract.value)));
 }
 
 export function canBidCapot(
@@ -35,7 +36,24 @@ export function canBidCapot(
   rules: BiddingRules = CONTREE_KFFR_RULESET.bidding,
 ): boolean {
   return rules.allowCapot
-    && (!currentContract || (currentContract.status === "normal" && currentContract.kind !== "capot"));
+    && (!currentContract || (currentContract.status === "normal" && currentContract.kind !== "capot" && currentContract.kind !== "generale"));
+}
+
+export function canBidGenerale(
+  currentContract: Contract | null,
+  rules: BiddingRules = CONTREE_KFFR_RULESET.bidding,
+): boolean {
+  return rules.allowGenerale
+    && (!currentContract || (currentContract.status === "normal" && currentContract.kind !== "generale"));
+}
+
+export function canBidGeneraleMode(
+  mode: import("./types").ContractMode,
+  rules: BiddingRules,
+): boolean {
+  if (mode.kind === "no-trump") return rules.allowNoTrump && rules.generaleAllowNoTrump;
+  if (mode.kind === "all-trump") return rules.allowAllTrump && rules.generaleAllowAllTrump;
+  return true;
 }
 
 export function canCoinche(

@@ -1,4 +1,4 @@
-import type { Contract, GameSettings, RoundResult, TeamId } from "./types";
+import type { Contract, GameSettings, PlayerId, RoundResult, TeamId } from "./types";
 import { CONTREE_KFFR_RULESET } from "./rulesets/presets";
 import { normalizeGameSettings, resolveGameRules } from "./rulesets/resolve";
 import type { GameRulesetSnapshot } from "./rulesets/types";
@@ -72,6 +72,40 @@ function scoringAnnouncementPoints({
 
 function multiplyScore(points: Record<TeamId, number>, multiplier: number): Record<TeamId, number> {
   return { 0: points[0] * multiplier, 1: points[1] * multiplier };
+}
+
+function scoreGenerale({
+  announcementPoints,
+  belotePoints,
+  contract,
+  contractSucceeded,
+  defenderTeam,
+  multiplier,
+  rules,
+  takerTeam,
+}: {
+  announcementPoints: Record<TeamId, number>;
+  belotePoints: Record<TeamId, number>;
+  contract: Contract & { kind: "generale" };
+  contractSucceeded: boolean;
+  defenderTeam: TeamId;
+  multiplier: number;
+  rules: GameRulesetSnapshot;
+  takerTeam: TeamId;
+}): Record<TeamId, number> {
+  if (rules.scoring.mode === "contract-only" || rules.scoring.mode === "contract-only-160-failure") {
+    const recipient = contractSucceeded ? takerTeam : defenderTeam;
+    return { 0: 0, 1: 0, [recipient]: contract.value * multiplier };
+  }
+  const extras = {
+    0: announcementPoints[0] + belotePoints[0],
+    1: announcementPoints[1] + belotePoints[1],
+  };
+  const recipient = contractSucceeded ? takerTeam : defenderTeam;
+  const normal = { ...extras, [recipient]: extras[recipient] + contract.value };
+  if (multiplier === 1) return normal;
+  if (rules.scoring.doubleAllPointsOnCoinche) return multiplyScore(normal, multiplier);
+  return { ...extras, [recipient]: extras[recipient] + contract.value * multiplier };
 }
 
 function scoreFfb({
@@ -214,6 +248,7 @@ export function scoreRound({
   rules: explicitRules,
   trickPointsByTeam,
   tricksWonByTeam = ZERO_POINTS,
+  tricksWonByPlayer = { 0: 0, 1: 0, 2: 0, 3: 0 },
 }: {
   announcementPointsByTeam?: Record<TeamId, number>;
   belotePointsByTeam?: Record<TeamId, number>;
@@ -222,6 +257,7 @@ export function scoreRound({
   rules?: GameRulesetSnapshot;
   trickPointsByTeam: Record<TeamId, number>;
   tricksWonByTeam?: Record<TeamId, number>;
+  tricksWonByPlayer?: Record<PlayerId, number>;
 }): Extract<RoundResult, { kind: "played" }> {
   const rules = explicitRules ? resolveGameRules({ ruleset: explicitRules }) : resolveGameRules(settings);
   const takerTeam = contract.teamId;
@@ -243,8 +279,10 @@ export function scoreRound({
   contractPointsByTeam[defenderTeam] += rules.belote.countsForContractFailure
     ? awardedBelotePoints[defenderTeam]
     : 0;
-  const contractSucceeded = contract.kind === "capot"
-    ? capotTeam === takerTeam
+  const contractSucceeded = contract.kind === "generale"
+    ? tricksWonByPlayer[contract.playerId] === 8
+    : contract.kind === "capot"
+      ? capotTeam === takerTeam
     : (!rules.contractSuccess.mustReachBid || contractPointsByTeam[takerTeam] >= contract.value)
       && (!rules.contractSuccess.mustBeatDefense
         || contractPointsByTeam[takerTeam] > contractPointsByTeam[defenderTeam]);
@@ -263,7 +301,18 @@ export function scoreRound({
   const takerPoints = totalPointsByTeam[takerTeam];
   const defenderPoints = totalPointsByTeam[defenderTeam];
   const multiplier = contractMultiplier(contract, rules.scoring);
-  const rawRoundScore = rules.scoring.mode === "ffb"
+  const rawRoundScore = contract.kind === "generale"
+    ? scoreGenerale({
+        announcementPoints: awardedAnnouncementPoints,
+        belotePoints: awardedBelotePoints,
+        contract,
+        contractSucceeded,
+        defenderTeam,
+        multiplier,
+        rules,
+        takerTeam,
+      })
+    : rules.scoring.mode === "ffb"
     ? scoreFfb({
         announcementPoints: awardedAnnouncementPoints,
         belotePoints: awardedBelotePoints,
@@ -307,6 +356,7 @@ export function scoreRound({
     belotePointsByTeam: awardedBelotePoints,
     totalPointsByTeam,
     capotTeam,
+    tricksWonByPlayer: { ...tricksWonByPlayer },
     contractSucceeded,
     scoringMode: normalizeGameSettings({ ruleset: rules }).scoringMode,
     multiplier,

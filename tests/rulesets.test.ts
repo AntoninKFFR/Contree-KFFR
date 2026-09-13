@@ -122,8 +122,8 @@ describe("configurable game rulesets", () => {
     const announcementsCountWhileDisabled = customRuleset({
       contractSuccess: { ...CONTREE_KFFR_RULESET.contractSuccess, announcementsCount: true },
     });
-    const prematureGenerale = customRuleset({
-      bidding: { ...CONTREE_KFFR_RULESET.bidding, allowGenerale: true },
+    const incoherentGeneraleMode = customRuleset({
+      bidding: { ...CONTREE_KFFR_RULESET.bidding, generaleAllowNoTrump: true },
     });
     const invalidCoincheMultiplier = customRuleset({
       scoring: { ...CONTREE_KFFR_RULESET.scoring, coincheMultiplier: 0 },
@@ -138,7 +138,7 @@ describe("configurable game rulesets", () => {
     expect(() => createInitialGame(() => 0.1, { ruleset: invalidSurcoinche })).toThrow("requires coinche");
     expect(() => createInitialGame(() => 0.1, { ruleset: incoherentAnnouncementFlags })).toThrow("disabled announcements");
     expect(() => createInitialGame(() => 0.1, { ruleset: announcementsCountWhileDisabled })).toThrow("disabled");
-    expect(() => createInitialGame(() => 0.1, { ruleset: prematureGenerale })).toThrow("not implemented");
+    expect(() => createInitialGame(() => 0.1, { ruleset: incoherentGeneraleMode })).toThrow("require Generale");
     expect(() => createInitialGame(() => 0.1, { ruleset: invalidCoincheMultiplier })).toThrow("positive");
     expect(() => createInitialGame(() => 0.1, { ruleset: invalidSurcoincheMultiplier })).toThrow("lower");
   });

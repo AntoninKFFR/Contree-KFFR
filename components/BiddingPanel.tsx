@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { SUIT_LABELS, SUIT_SYMBOLS, SUITS } from "@/engine/cards";
-import { canBidCapot, getAvailableBidValues } from "@/engine/bidding";
+import { canBidCapot, canBidGenerale, canBidGeneraleMode, getAvailableBidValues } from "@/engine/bidding";
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import type { BidValue, Contract, ContractMode, Suit } from "@/engine/types";
 
@@ -15,6 +15,7 @@ type BiddingPanelProps = {
   compact?: boolean;
   onBid: (value: BidValue, contractMode: ContractMode) => void;
   onCapot: (contractMode: ContractMode) => void;
+  onGenerale: (contractMode: ContractMode) => void;
   onCoinche: () => void;
   onPass: () => void;
   onSurcoinche: () => void;
@@ -29,6 +30,7 @@ export function BiddingPanel({
   biddingRules,
   onBid,
   onCapot,
+  onGenerale,
   onCoinche,
   onPass,
   onSurcoinche,
@@ -45,6 +47,8 @@ export function BiddingPanel({
 
   const canMakeBid = canBid && availableValues.length > 0;
   const canMakeCapot = canBid && canBidCapot(currentContract, biddingRules);
+  const canMakeGenerale = Boolean(canBid && biddingRules && canBidGenerale(currentContract, biddingRules) && canBidGeneraleMode(contractMode, biddingRules));
+  const canChooseMode = canMakeBid || canMakeCapot || canMakeGenerale;
 
   useEffect(() => {
     if (value === "" || !availableValues.includes(value)) {
@@ -84,7 +88,9 @@ export function BiddingPanel({
         >
           {currentContract?.status === "coinched"
             ? "Contrat contré: tu peux seulement passer ou surcontrer."
-            : currentContract?.kind === "capot"
+            : currentContract?.kind === "generale"
+              ? "Une Générale est déjà annoncée. Tu peux seulement passer ou contrer."
+              : currentContract?.kind === "capot"
               ? "Un capot est déjà annoncé. Tu peux seulement passer ou contrer."
               : "Aucune enchère numérique supérieure. Le capot reste disponible."}
         </p>
@@ -120,7 +126,7 @@ export function BiddingPanel({
                 ? "border border-white/20 bg-white/90 text-stone-900"
                 : "border border-stone-300"
             }`}
-            disabled={!canMakeBid}
+            disabled={!canChooseMode}
             onChange={(event) => setModeValue(event.target.value as typeof modeValue)}
             value={modeValue}
           >
@@ -134,7 +140,7 @@ export function BiddingPanel({
           </select>
         </label>
 
-        <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-5">
+        <div className={`grid grid-cols-2 items-end gap-2 ${biddingRules?.allowGenerale ? "sm:grid-cols-6" : "sm:grid-cols-5"}`}>
           <button
             className="rounded-md bg-stone-900 px-2 py-2 text-xs font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canMakeBid}
@@ -151,6 +157,14 @@ export function BiddingPanel({
           >
             Capot
           </button>
+          {biddingRules?.allowGenerale ? <button
+            className="rounded-md border border-purple-300 px-2 py-2 text-xs font-semibold text-purple-800 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!canMakeGenerale}
+            onClick={() => onGenerale(contractMode)}
+            type="button"
+          >
+            Générale
+          </button> : null}
           <button
             className="rounded-md border border-red-300 px-2 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canCoinche}

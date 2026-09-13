@@ -72,7 +72,10 @@ function isCurrentFrozenSnapshot(ruleset: GameRulesetSnapshot): boolean {
     && Object.isFrozen(ruleset.scoring)
     && typeof ruleset.scoring.announcementsLostOnFailure === "boolean"
     && typeof ruleset.scoring.announcementsLostOnCapot === "boolean"
-    && typeof ruleset.scoring.doubleAllPointsOnCoinche === "boolean";
+    && typeof ruleset.scoring.doubleAllPointsOnCoinche === "boolean"
+    && typeof ruleset.bidding.generaleAllowNoTrump === "boolean"
+    && typeof ruleset.bidding.generaleAllowAllTrump === "boolean"
+    && typeof ruleset.scoring.generaleBasePoints === "number";
 }
 
 export function resolveGameRules(settings?: Partial<GameSettings> | null): GameRulesetSnapshot {

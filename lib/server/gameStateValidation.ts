@@ -2,6 +2,8 @@ import "server-only";
 import type { Card, GameState, PlayerId, Rank, Suit } from "@/engine/types";
 import { normalizeGameSettings } from "@/engine/rulesets/resolve";
 import { resolveContractMode } from "@/engine/contractMode";
+import { inactivePlayerIdForContract } from "@/engine/activePlayers";
+import { canBidGeneraleMode } from "@/engine/bidding";
 
 const SUITS = new Set<Suit>(["clubs", "diamonds", "hearts", "spades"]);
 const RANKS = new Set<Rank>(["7", "8", "9", "J", "Q", "K", "10", "A"]);
@@ -59,7 +61,7 @@ export function parseServerGameState(value: unknown): GameState {
   if (!object(value.settings)) throw new Error("Stored game settings are invalid.");
   const state = value as GameState;
   const contractMode = resolveContractMode(state);
-  return {
+  const normalized: GameState = {
     ...state,
     ...(contractMode ? { contractMode } : {}),
     contract: state.contract && resolveContractMode(state.contract)
@@ -67,4 +69,32 @@ export function parseServerGameState(value: unknown): GameState {
       : state.contract,
     settings: normalizeGameSettings(value.settings),
   };
+  const inactive = inactivePlayerIdForContract(normalized.contract);
+  if (normalized.contract?.kind === "generale") {
+    const rules = normalized.settings.ruleset!;
+    const mode = resolveContractMode(normalized.contract);
+    if (!playerId(normalized.contract.playerId) || !rules.bidding.allowGenerale || !mode || !canBidGeneraleMode(mode, rules.bidding)) {
+      throw new Error("Stored Generale is not allowed by its ruleset.");
+    }
+    if (normalized.contract.value !== rules.scoring.generaleBasePoints || normalized.bids.some((bid) => bid.action === "generale" && bid.value !== rules.scoring.generaleBasePoints)) {
+      throw new Error("Stored Generale value does not match its ruleset.");
+    }
+    if (inactive === null || normalized.hands[inactive].length !== 8) {
+      throw new Error("Stored Generale inactive hand is invalid.");
+    }
+    const tricks = [...normalized.completedTricks, normalized.currentTrick];
+    if (tricks.some((trick) => trick.leaderId === inactive || trick.cards.some((played) => played.playerId === inactive))) {
+      throw new Error("Stored Generale contains a card from the inactive partner.");
+    }
+    if (normalized.completedTricks.some((trick) => trick.winnerId === inactive) || normalized.completedTricks.length > 8) {
+      throw new Error("Stored Generale winner history is invalid.");
+    }
+    if (normalized.completedTricks.some((trick) => trick.cards.length !== 3) || normalized.currentTrick.cards.length > 3) {
+      throw new Error("Stored Generale trick size is invalid.");
+    }
+    if (normalized.phase === "playing" && normalized.currentPlayerId === inactive) {
+      throw new Error("Stored Generale waits on the inactive partner.");
+    }
+  }
+  return normalized;
 }

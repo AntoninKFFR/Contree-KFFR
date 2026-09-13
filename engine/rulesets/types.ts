@@ -18,6 +18,9 @@ export type GameRulesetSnapshot = {
     readonly bidStep: number;
     readonly allowCapot: boolean;
     readonly allowGenerale: boolean;
+    /** Générale special modes are opt-in, independently from ordinary SA/TA contracts. */
+    readonly generaleAllowNoTrump: boolean;
+    readonly generaleAllowAllTrump: boolean;
     readonly allowCoinche: boolean;
     readonly allowSurcoinche: boolean;
     readonly allowNoTrump: boolean;
@@ -63,6 +66,7 @@ export type GameRulesetSnapshot = {
     readonly announcementsLostOnCapot: boolean;
     readonly failureBasePoints: number;
     readonly capotBasePoints: number;
+    readonly generaleBasePoints: number;
     readonly coincheMultiplier: number;
     readonly surcoincheMultiplier: number;
     /** Multiply both teams' complete round scores instead of the mode-specific contract formula. */

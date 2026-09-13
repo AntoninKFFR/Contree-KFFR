@@ -2,7 +2,7 @@ import { chooseHumanDoctrineBid, HUMAN_DOCTRINE_DEFAULT_OPTIONS } from "@/bots/s
 import { chooseHumanDoctrineV2Bid } from "@/bots/strategy/humanDoctrineV2";
 import { cardId } from "@/engine/cards";
 import { playerTeam } from "@/engine/rules";
-import type { BidValue, GameState, TeamId } from "@/engine/types";
+import type { GameState, TeamId } from "@/engine/types";
 import { createHybridStrategy, findBotStrategy, type BotStrategyDefinition, type StrategyBid } from "@/simulation/botRegistry";
 import {
   normalizeStrategyBid,
@@ -51,7 +51,7 @@ type HighLeverageEvent = {
   v2: string;
   change: "v1-pass-v2-bid" | "trump" | "amount" | "other";
   finalContractTeam: TeamId | null;
-  finalContractValue: BidValue | 250 | null;
+  finalContractValue: number | null;
   decisionTeamTookContract: boolean;
   contractSucceeded: boolean | null;
   roundImpact: number;

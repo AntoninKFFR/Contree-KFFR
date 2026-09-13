@@ -97,7 +97,8 @@ describe("Auction Doctrine V3 conversation", () => {
   it.each([
     ["9", "probe-for-jack"],
     ["J", "probe-for-nine"],
-  ] as const)("detects a partner missing-major fit from %s of partner's suit", (rank) => {
+  ] as const)("detects a partner missing-major fit from %s of partner's suit", (rank, _intent) => {
+    void _intent;
     const hand = [
       c(rank, "spades"), c("A", "hearts"), c("K", "hearts"), c("Q", "hearts"),
       c("K", "diamonds"), c("Q", "diamonds"), c("8", "clubs"), c("7", "clubs"),

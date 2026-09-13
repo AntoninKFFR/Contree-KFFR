@@ -1,5 +1,6 @@
 import type { Card, CardAnnouncement, GameState, PlayerId, RoundResult, TeamId } from "./types";
 import { normalizeGameSettings } from "./rulesets/resolve";
+import { inactivePlayerId } from "./activePlayers";
 
 export type ServerGameState = GameState;
 
@@ -7,6 +8,7 @@ export type PlayerGameView = Omit<ServerGameState, "hands"> & {
   viewerPlayerId: PlayerId;
   hand: Card[];
   handCounts: Record<PlayerId, number>;
+  inactivePlayerId: PlayerId | null;
 };
 
 function handCountsFor(state: ServerGameState): Record<PlayerId, number> {
@@ -30,6 +32,7 @@ function cloneResult(result: RoundResult): RoundResult {
     announcementPointsByTeam: { ...result.announcementPointsByTeam },
     belotePointsByTeam: { ...result.belotePointsByTeam },
     totalPointsByTeam: { ...result.totalPointsByTeam },
+    tricksWonByPlayer: result.tricksWonByPlayer ? { ...result.tricksWonByPlayer } : undefined,
   };
 }
 
@@ -109,5 +112,6 @@ export function toPlayerGameView(
     viewerPlayerId,
     hand: state.hands[viewerPlayerId].map((card) => ({ ...card })),
     handCounts: handCountsFor(state),
+    inactivePlayerId: inactivePlayerId(state),
   };
 }

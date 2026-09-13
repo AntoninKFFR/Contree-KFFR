@@ -1,9 +1,10 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import React, { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { CardView } from "@/components/CardView";
 import { PlayerPanel } from "@/components/PlayerPanel";
-import { formatContractMode, resolveContractMode } from "@/engine/contractMode";
+import { formatContractLabel, formatContractMode, resolveContractMode } from "@/engine/contractMode";
+import { inactivePlayerId as inactivePlayerForState } from "@/engine/activePlayers";
 import { playerName, teamName } from "@/engine/players";
 import type {
   Bid,
@@ -24,6 +25,11 @@ import {
 } from "@/lib/trickPresentation";
 
 type GameTableState = GameState | PlayerGameView;
+
+export function inactivePlayerMessage(state: GameTableState): string | null {
+  const inactive = "inactivePlayerId" in state ? state.inactivePlayerId : inactivePlayerForState(state);
+  return inactive === null ? null : `${playerName(inactive, state.playerNames)} ne joue pas cette donne.`;
+}
 
 type GameTableProps = {
   state: GameTableState;
@@ -60,6 +66,10 @@ function formatBidLabel(bid: Bid): AnnouncementBubbleContent {
     return { label: `Capot ${formatContractMode(resolveContractMode(bid)!)}`, tone: "accent" };
   }
 
+  if (bid.action === "generale") {
+    return { label: `Générale ${formatContractMode(resolveContractMode(bid)!)}`, tone: "accent" };
+  }
+
   return {
     label: `${bid.value} ${formatContractMode(resolveContractMode(bid)!)}`,
     tone: "accent",
@@ -67,9 +77,7 @@ function formatBidLabel(bid: Bid): AnnouncementBubbleContent {
 }
 
 function formatFinalContract(contract: Contract): AnnouncementBubbleContent {
-  const label = contract.kind === "capot"
-    ? `Capot ${formatContractMode(resolveContractMode(contract)!)}`
-    : `${contract.value} ${formatContractMode(resolveContractMode(contract)!)}`;
+  const label = formatContractLabel(contract);
   if (contract.status === "surcoinched") {
     return {
       label,
@@ -97,8 +105,8 @@ function latestBidKey(roundNumber: number, bids: Bid[]): string | null {
 
   if (!latestBid) return null;
 
-  if (latestBid.action === "bid" || latestBid.action === "capot") {
-    const amount = latestBid.action === "capot" ? "capot" : latestBid.value;
+  if (latestBid.action === "bid" || latestBid.action === "capot" || latestBid.action === "generale") {
+    const amount = latestBid.action === "capot" ? "capot" : latestBid.action === "generale" ? "generale" : latestBid.value;
     return `${roundNumber}-${bids.length}-${latestBid.playerId}-${latestBid.action}-${amount}-${latestBid.trump}`;
   }
 
@@ -106,8 +114,8 @@ function latestBidKey(roundNumber: number, bids: Bid[]): string | null {
 }
 
 function bidKey(roundNumber: number, bidsLength: number, bid: Bid): string {
-  if (bid.action === "bid" || bid.action === "capot") {
-    const amount = bid.action === "capot" ? "capot" : bid.value;
+  if (bid.action === "bid" || bid.action === "capot" || bid.action === "generale") {
+    const amount = bid.action === "capot" ? "capot" : bid.action === "generale" ? "generale" : bid.value;
     return `${roundNumber}-${bidsLength}-${bid.playerId}-${bid.action}-${amount}-${bid.trump}`;
   }
 
@@ -117,7 +125,7 @@ function bidKey(roundNumber: number, bidsLength: number, bid: Bid): string {
 function dominantBidPlayerId(bids: Bid[]): PlayerId | null {
   for (let index = bids.length - 1; index >= 0; index -= 1) {
     const bid = bids[index];
-    if (bid.action === "bid" || bid.action === "capot") {
+    if (bid.action === "bid" || bid.action === "capot" || bid.action === "generale") {
       return bid.playerId;
     }
   }
@@ -335,11 +343,8 @@ function TableStatusOverlay({
   turnSecondsRemaining?: number | null;
 }) {
   const currentPlayer = playerName(state.currentPlayerId, state.playerNames);
-  const contractText = state.contract
-    ? state.contract.kind === "capot"
-      ? `Capot ${formatContractMode(resolveContractMode(state.contract)!)}`
-      : `${state.contract.value} ${formatContractMode(resolveContractMode(state.contract)!)}`
-    : "Annonces";
+  const contractText = state.contract ? formatContractLabel(state.contract) : "Annonces";
+  const inactiveMessage = inactivePlayerMessage(state);
 
   return (
     <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-lg border border-white/20 bg-black/25 px-2.5 py-1.5 text-white shadow-sm backdrop-blur-sm">
@@ -351,6 +356,7 @@ function TableStatusOverlay({
           ? ` · ${turnSecondsRemaining} s`
           : ""}
       </p>
+      {inactiveMessage ? <p className="text-[9px] text-white/70">{inactiveMessage}</p> : null}
     </div>
   );
 }
@@ -372,6 +378,7 @@ export function GameTable({
   const center = playedCardsToShow(state);
   const visualTrick = selectVisualTrick(center.cards, animatedCompletedTrick);
   const nameFor = (playerId: PlayerId) => playerName(playerId, state.playerNames);
+  const inactiveMessage = inactivePlayerMessage(state);
   const connectionFor = (playerId: PlayerId) => {
     const player = players?.find((candidate) => candidate.seat_index === playerId);
     return player?.kind === "human" ? player.is_connected : undefined;
@@ -490,6 +497,11 @@ export function GameTable({
       {showLiveScore ? <LiveScoreOverlay state={state} /> : null}
       {immersiveMobileLandscape ? (
         <TableStatusOverlay state={state} turnSecondsRemaining={turnSecondsRemaining} />
+      ) : null}
+      {!immersiveMobileLandscape && inactiveMessage ? (
+        <div className="pointer-events-none absolute left-2 top-2 z-10 rounded-md border border-white/20 bg-black/25 px-2 py-1 text-[9px] font-medium text-white/80 shadow-sm backdrop-blur-sm sm:left-3 sm:top-3">
+          {inactiveMessage}
+        </div>
       ) : null}
       {immersiveMobileLandscape && bottomOverlay ? (
         <div className="absolute inset-x-2 bottom-2 z-30">{bottomOverlay}</div>

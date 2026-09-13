@@ -6,7 +6,7 @@ export function rulesetDisplayName(ruleset: GameRulesetSnapshot): string {
 }
 
 export function RulesetSummary({ ruleset, compact = false }: { ruleset: GameRulesetSnapshot; compact?: boolean }) {
-  const contracts = ["Couleurs", ruleset.bidding.allowNoTrump && "SA", ruleset.bidding.allowAllTrump && "TA", ruleset.bidding.allowCapot && "Capot", ruleset.bidding.allowCoinche && "Coinche", ruleset.bidding.allowSurcoinche && "Surcoinche"].filter(Boolean);
+  const contracts = ["Couleurs", ruleset.bidding.allowNoTrump && "SA", ruleset.bidding.allowAllTrump && "TA", ruleset.bidding.allowCapot && "Capot", ruleset.bidding.allowGenerale && "Générale", ruleset.bidding.allowCoinche && "Coinche", ruleset.bidding.allowSurcoinche && "Surcoinche"].filter(Boolean);
   const announcements = ruleset.announcements.enabled
     ? [ruleset.announcements.tierce && "Tierce", ruleset.announcements.fifty && "Cinquante", ruleset.announcements.hundred && "Cent", ruleset.announcements.squares && "Carrés"].filter(Boolean)
     : ["Sans annonces"];

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AnalysisCardList } from "@/components/BotHandAnalysis";
 import { formatCard, SUIT_LABELS } from "@/engine/cards";
-import { formatContractMode, resolveContractMode } from "@/engine/contractMode";
+import { formatContractLabel, formatContractMode, resolveContractMode } from "@/engine/contractMode";
 import type { BotReviewBundleV2, BotReviewScenarioV1 } from "@/bots/botReview";
 import { serializeBotReviewBundle, serializeBotReviewScenario } from "@/bots/botReview";
 import type { HumanDoctrineV31Trace } from "@/bots/strategy/humanDoctrineV31";
@@ -70,7 +70,7 @@ export function BotReviewPanel({ scenario, onClose, createFullBundle }: BotRevie
 
   const chosen = scenario.chosenCard ? formatCard(scenario.chosenCard) : `Enchère : ${formatBid(scenario)}`;
   const contract = scenario.contract
-    ? `${scenario.contract.kind === "capot" ? "capot" : scenario.contract.value} ${formatContractMode(resolveContractMode(scenario.contract)!)} (${scenario.contract.status})`
+    ? `${formatContractLabel(scenario.contract)} (${scenario.contract.status})`
     : "Aucun";
   const trick = scenario.currentTrick.cards.length > 0
     ? scenario.currentTrick.cards.map((played) => `P${played.playerId}: ${formatCard(played.card)}`).join(", ")

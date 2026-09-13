@@ -7,6 +7,7 @@ import type { Card, GameState, PlayerId, Suit, TeamId } from "@/engine/types";
 import { getBotProfile } from "@/bots/profiles";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { buildTrickKnowledge, type TrickKnowledge } from "@/bots/strategy/trickKnowledge";
+import { inactivePlayerId } from "@/engine/activePlayers";
 
 const PLAYERS: PlayerId[] = [0, 1, 2, 3];
 const MONTE_CARLO_TOTAL_BUDGET = 80;
@@ -88,6 +89,7 @@ function knownCardsForCurrentPlayer(state: GameState): Card[] {
 }
 
 function publicRemainingCardCount(state: GameState, playerId: PlayerId): number {
+  if (playerId === inactivePlayerId(state)) return state.hands[playerId].length;
   const alreadyPlayedCurrentTrick = state.currentTrick.cards.some(
     (played) => played.playerId === playerId,
   );

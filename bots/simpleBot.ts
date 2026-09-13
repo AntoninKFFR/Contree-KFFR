@@ -6,7 +6,7 @@ import { chooseHumanDoctrineBid } from "@/bots/strategy/humanDoctrine";
 import { chooseHumanDoctrineV3Bid, type HumanDoctrineV3Trace } from "@/bots/strategy/humanDoctrineV3";
 import { chooseHumanDoctrineV31Bid } from "@/bots/strategy/humanDoctrineV31";
 import { chooseSimpleBid as chooseLegacyBid } from "@/bots/heuristicBot 2";
-import { canCoinche, canSurcoinche } from "@/engine/bidding";
+import { canBidGenerale, canCoinche, canSurcoinche } from "@/engine/bidding";
 import { getCurrentContract } from "@/engine/game";
 import { isBotSeat, SOLO_SEAT_ASSIGNMENTS, type SeatAssignments } from "@/engine/seats";
 import type { BidValue, Card, GameState, Suit } from "@/engine/types";
@@ -14,6 +14,7 @@ import type { ContractMode } from "@/engine/types";
 import { resolveContractMode } from "@/engine/contractMode";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import { evaluateAllTrumpHand, evaluateNoTrumpHand } from "@/bots/evaluation/contractModeEvaluation";
+import { evaluateGenerale } from "@/bots/evaluation/generaleEvaluation";
 
 export function chooseBotCard(state: GameState): Card {
   if (
@@ -28,11 +29,16 @@ export function chooseBotCard(state: GameState): Card {
 
 type OfficialBotBid =
   | { action: "pass" | "coinche" | "surcoinche" }
-  | { action: "bid"; value: BidValue; trump?: Suit; contractMode?: ContractMode };
+  | { action: "bid"; value: BidValue; trump?: Suit; contractMode?: ContractMode }
+  | { action: "generale"; contractMode: ContractMode };
 
 function chooseSpecialContractBid(state: GameState): OfficialBotBid | null {
   const rules = resolveGameRules(state.settings);
   const current = getCurrentContract(state);
+  const generale = rules.bidding.allowGenerale && canBidGenerale(current, rules.bidding)
+    ? evaluateGenerale(state.hands[state.currentPlayerId])
+    : null;
+  if (generale) return { action: "generale", contractMode: generale.contractMode };
   const currentMode = current ? resolveContractMode(current) : null;
   if (currentMode?.kind === "no-trump" || currentMode?.kind === "all-trump") return { action: "pass" };
   if (current?.status && current.status !== "normal") return null;
@@ -52,9 +58,10 @@ function normalizeBotBid(
   decision: { action: string; value?: BidValue; trump?: Suit; contractMode?: ContractMode },
 ): OfficialBotBid {
   const currentContract = getCurrentContract(state);
+  const biddingRules = resolveGameRules(state.settings).bidding;
   if (
     currentContract &&
-    canSurcoinche(state.currentPlayerId, currentContract) &&
+    canSurcoinche(state.currentPlayerId, currentContract, biddingRules) &&
     decision.action === "surcoinche"
   ) {
     return { action: "surcoinche" } as const;
@@ -62,7 +69,7 @@ function normalizeBotBid(
 
   if (
     currentContract &&
-    canCoinche(state.currentPlayerId, currentContract) &&
+    canCoinche(state.currentPlayerId, currentContract, biddingRules) &&
     decision.action === "coinche"
   ) {
     return { action: "coinche" } as const;

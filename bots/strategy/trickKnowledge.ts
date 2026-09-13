@@ -3,6 +3,7 @@ import { playerTeam } from "@/engine/rules";
 import { resolveContractMode, usesTrumpRanking } from "@/engine/contractMode";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import type { Card, GameState, PlayerId, Suit } from "@/engine/types";
+import { inactivePlayerId } from "@/engine/activePlayers";
 
 const NORMAL_MASTER_ORDER: Card["rank"][] = ["A", "10", "K", "Q", "J", "9", "8", "7"];
 const TRUMP_MASTER_ORDER: Card["rank"][] = ["J", "9", "A", "10", "K", "Q", "8", "7"];
@@ -19,6 +20,7 @@ export type CutRiskInfo = {
 };
 
 export type TrickKnowledge = {
+  inactivePlayerId: PlayerId | null;
   voidSuitsByPlayer: Record<PlayerId, Suit[]>;
   playedTrumps: Card[];
   remainingTrumps: Card[];
@@ -235,6 +237,7 @@ export function getWeakenedSuits(state: GameState): Suit[] {
 
 export function buildTrickKnowledge(state: GameState): TrickKnowledge {
   return {
+    inactivePlayerId: inactivePlayerId(state),
     voidSuitsByPlayer: inferVoidSuitsByPlayer(state),
     playedTrumps: getPlayedTrumps(state),
     remainingTrumps: getRemainingTrumps(state),

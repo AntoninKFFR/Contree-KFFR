@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
+import type { GameState } from "@/engine/types";
 export { scoringModeLabel } from "@/lib/productGame";
 
 export type GameRow = {
@@ -14,6 +15,8 @@ export type GameRow = {
   ruleset_id?: string | null;
   ruleset_version?: number | null;
   ruleset_snapshot?: GameRulesetSnapshot | null;
+  round_history?: GameState["roundHistory"];
+  player_names?: GameState["playerNames"];
 };
 
 export type UserStats = {
@@ -32,7 +35,7 @@ export type UserStats = {
 export async function getUserGames(supabase: SupabaseClient, userId: string) {
   return supabase
     .from("games")
-    .select("id, created_at, won, scoring_mode, player_score, bot_score, target_score, bot_summary, ruleset_id, ruleset_version, ruleset_snapshot")
+    .select("id, created_at, won, scoring_mode, player_score, bot_score, target_score, bot_summary, ruleset_id, ruleset_version, ruleset_snapshot, round_history, player_names")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 }

@@ -17,6 +17,8 @@ import { getSupabaseClient } from "@/lib/supabaseClient";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
 import { buildCustomRuleset, rulesetToCustomInput } from "@/engine/rulesets/custom";
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
+import { formatContractLabel } from "@/engine/contractMode";
+import type { GameState, PlayerId } from "@/engine/types";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
 type HistoryFilter = "all" | "solo" | "multiplayer";
@@ -139,6 +141,7 @@ function SoloHistoryItem({ game }: { game: GameRow }) {
         <p>Cible: {game.target_score ?? "-"}</p><p>Fin: score</p>
       </div>
       <HistoryRules id={game.ruleset_id} snapshot={game.ruleset_snapshot} />
+      <GeneraleHistory rounds={game.round_history} names={game.player_names} />
     </li>
   );
 }
@@ -157,8 +160,15 @@ function MultiplayerHistoryItem({ game }: { game: MultiplayerHistoryGame }) {
         <p>Manches: {game.round_count}</p>
       </div>
       <HistoryRules id={game.ruleset_id} snapshot={game.ruleset_snapshot} />
+      <GeneraleHistory rounds={game.round_history} names={Object.fromEntries(game.players.map((player) => [player.seat_index, player.display_name])) as Record<PlayerId, string>} />
     </li>
   );
+}
+
+function GeneraleHistory({ rounds, names }: { rounds?: GameState["roundHistory"]; names?: Partial<Record<PlayerId, string>> }) {
+  const generales = (rounds ?? []).filter((round) => round.result.kind === "played" && round.result.contract.kind === "generale");
+  if (!generales.length) return null;
+  return <div className="mt-2 rounded-md bg-purple-50 p-2 text-xs text-purple-950">{generales.map((round) => round.result.kind === "played" ? <p key={round.roundNumber}>{formatContractLabel(round.result.contract)} par {names?.[round.result.contract.playerId] ?? `Joueur ${round.result.contract.playerId + 1}`} · {round.result.contractSucceeded ? "réussie" : "chutée"}</p> : null)}</div>;
 }
 
 function HistoryRules({ id, snapshot }: { id?: string | null; snapshot?: GameRulesetSnapshot | null }) {

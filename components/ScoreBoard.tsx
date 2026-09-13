@@ -1,4 +1,5 @@
-import { formatContractMode, resolveContractMode } from "@/engine/contractMode";
+import React from "react";
+import { formatContractLabel, formatContractMode, resolveContractMode } from "@/engine/contractMode";
 import { playerName, teamName } from "@/engine/players";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import type { ContractStatus, GameState } from "@/engine/types";
@@ -82,8 +83,7 @@ export function ScoreBoard({
         <p className="font-semibold">Contrat</p>
         {displayedContract ? (
           <p>
-            {displayedContract.kind === "capot" ? "Capot" : displayedContract.value} a{" "}
-            {formatContractMode(resolveContractMode(displayedContract)!)} par {nameFor(displayedContract.playerId)} -{" "}
+            {formatContractLabel(displayedContract)} par {nameFor(displayedContract.playerId)} -{" "}
             {contractStatusLabel(displayedContract.status)}
           </p>
         ) : (
@@ -187,6 +187,8 @@ export function ScoreBoard({
                       ? `${bid.value} a ${formatContractMode(resolveContractMode(bid)!)}`
                       : bid.action === "capot"
                         ? `capot a ${formatContractMode(resolveContractMode(bid)!)}`
+                      : bid.action === "generale"
+                        ? `Générale a ${formatContractMode(resolveContractMode(bid)!)}`
                       : bid.action === "coinche"
                         ? "contre"
                         : "surcontre"}

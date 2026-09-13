@@ -1,5 +1,5 @@
 import { SUIT_LABELS, SUIT_SYMBOLS } from "./cards";
-import type { ContractMode, Suit } from "./types";
+import type { Contract, ContractMode, Suit } from "./types";
 
 export type ContractModeInput = ContractMode | Suit;
 
@@ -35,4 +35,9 @@ export function formatContractMode(mode: ContractModeInput): string {
   if (normalized.kind === "no-trump") return "Sans Atout";
   if (normalized.kind === "all-trump") return "Tout Atout";
   return `${SUIT_LABELS[normalized.suit]} ${SUIT_SYMBOLS[normalized.suit]}`;
+}
+
+export function formatContractLabel(contract: Contract): string {
+  const name = contract.kind === "generale" ? "Générale" : contract.kind === "capot" ? "Capot" : String(contract.value);
+  return `${name} ${formatContractMode(resolveContractMode(contract)!)}`;
 }

@@ -64,6 +64,7 @@ export type MultiplayerRoomView = {
 export type RoomPlayerAction =
   | { type: "bid"; value: BidValue; trump?: Suit; contractMode?: ContractMode }
   | { type: "capot"; trump?: Suit; contractMode?: ContractMode }
+  | { type: "generale"; trump?: Suit; contractMode?: ContractMode }
   | { type: "pass" }
   | { type: "coinche" }
   | { type: "surcoinche" }

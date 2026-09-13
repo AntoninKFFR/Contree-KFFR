@@ -104,6 +104,7 @@ function gameAction(action: RoomPlayerAction, playerId: PlayerId): GameAction {
   switch (action.type) {
     case "bid": return { type: "bid", playerId, value: action.value, trump: action.trump, contractMode: action.contractMode };
     case "capot": return { type: "capot", playerId, trump: action.trump, contractMode: action.contractMode };
+    case "generale": return { type: "generale", playerId, trump: action.trump, contractMode: action.contractMode };
     case "pass": return { type: "pass", playerId };
     case "coinche": return { type: "coinche", playerId };
     case "surcoinche": return { type: "surcoinche", playerId };
@@ -186,6 +187,8 @@ export function applyBotTurns(state: GameState, players: RoomPlayerRow[]): GameS
       const bid = chooseBotBid(next);
       const action: RoomPlayerAction = bid.action === "bid"
         ? { type: "bid", value: bid.value, trump: bid.trump, contractMode: bid.contractMode }
+        : bid.action === "generale"
+          ? { type: "generale", contractMode: bid.contractMode }
         : { type: bid.action };
       next = applyGameAction(next, gameAction(action, next.currentPlayerId));
     } else {

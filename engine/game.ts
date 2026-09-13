@@ -8,7 +8,8 @@ import {
 import { formatContractMode, legacyTrump, resolveContractMode } from "./contractMode";
 import { declareAnnouncementsForPlayer, emptyAnnouncementState } from "./announcements";
 import { emptyBeloteState, playBeloteCard } from "./belote";
-import { canBidCapot, canCoinche, canSurcoinche, isAllowedBidValue } from "./bidding";
+import { canBidCapot, canBidGenerale, canBidGeneraleMode, canCoinche, canSurcoinche, isAllowedBidValue } from "./bidding";
+import { inactivePlayerId, inactivePlayerIdForContract, nextActivePlayer, playersRequiredForTrick, tricksWonByPlayer } from "./activePlayers";
 import { createRandomPlayerNames, playerName, teamName } from "./players";
 import {
   getLegalCards,
@@ -265,6 +266,20 @@ function currentHighestBid(bids: Bid[]): Contract | null {
       };
     }
 
+    if (bid.action === "generale") {
+      const contractMode = resolveContractMode(bid);
+      if (!contractMode) continue;
+      contract = {
+        kind: "generale",
+        playerId: bid.playerId,
+        teamId: playerTeam(bid.playerId),
+        value: bid.value,
+        ...(legacyTrump(contractMode) ? { trump: legacyTrump(contractMode)! } : {}),
+        contractMode,
+        status: "normal",
+      };
+    }
+
     if (bid.action === "coinche" && contract) {
       contract = {
         ...contract,
@@ -287,7 +302,7 @@ function currentHighestBid(bids: Bid[]): Contract | null {
 }
 
 function isHigherBid(value: BidValue, currentContract: Contract | null): boolean {
-  return !currentContract || (currentContract.kind !== "capot" && value > currentContract.value);
+  return !currentContract || (currentContract.kind !== "capot" && currentContract.kind !== "generale" && value > currentContract.value);
 }
 
 function isAllPassWithoutContract(bids: Bid[]): boolean {
@@ -296,7 +311,7 @@ function isAllPassWithoutContract(bids: Bid[]): boolean {
 
 function hasThreePassesAfterLastContractAction(bids: Bid[]): boolean {
   const lastActionIndex = bids.findLastIndex(
-    (bid) => bid.action === "bid" || bid.action === "capot" || bid.action === "coinche",
+    (bid) => bid.action === "bid" || bid.action === "capot" || bid.action === "generale" || bid.action === "coinche",
   );
   if (lastActionIndex < 0) return false;
   const following = bids.slice(lastActionIndex + 1);
@@ -321,6 +336,20 @@ function finishBidding(state: GameState, bids: Bid[]): GameState {
     );
   }
 
+  const firstPlayer = contract.kind === "generale"
+    ? nextActivePlayer({ contract }, ((state.startingPlayerId + 3) % 4) as PlayerId)
+    : state.startingPlayerId;
+  const rules = resolveGameRules(state.settings);
+  const seatedPartner = inactivePlayerIdForContract(contract);
+  const initialAnnouncements = rules.announcements.enabled && seatedPartner !== null
+    ? declareAnnouncementsForPlayer(
+        emptyAnnouncementState(),
+        state.hands[seatedPartner],
+        seatedPartner,
+        contract.contractMode!,
+        rules.announcements,
+      )
+    : emptyAnnouncementState();
   return {
     ...state,
     phase: "playing",
@@ -329,14 +358,14 @@ function finishBidding(state: GameState, bids: Bid[]): GameState {
     trump: legacyTrump(contract.contractMode!),
     contractMode: contract.contractMode,
     hands: sortHandsForTrump(state.hands, legacyTrump(contract.contractMode!)),
-    currentPlayerId: state.startingPlayerId,
+    currentPlayerId: firstPlayer,
     currentTrick: {
-      leaderId: state.startingPlayerId,
+      leaderId: firstPlayer,
       cards: [],
     },
-    announcements: emptyAnnouncementState(),
+    announcements: initialAnnouncements,
     belote: emptyBeloteState(),
-    message: `${playerName(contract.playerId, state.playerNames)} prend ${contract.kind === "capot" ? "capot" : `a ${contract.value}`}. ${playerName(state.startingPlayerId, state.playerNames)} entame.`,
+    message: `${playerName(contract.playerId, state.playerNames)} prend ${contract.kind === "generale" ? "Générale" : contract.kind === "capot" ? "capot" : `a ${contract.value}`}. ${playerName(firstPlayer, state.playerNames)} entame.`,
   };
 }
 
@@ -359,6 +388,11 @@ export function makeBid(
         contractMode?: ContractMode;
       }
     | {
+        action: "generale";
+        trump?: Suit;
+        contractMode?: ContractMode;
+      }
+    | {
         action: "coinche";
       }
     | {
@@ -375,10 +409,10 @@ export function makeBid(
 
   const rules = resolveGameRules(state.settings);
   const currentContract = currentHighestBid(state.bids);
-  const bidMode = bid.action === "bid" || bid.action === "capot"
+  const bidMode = bid.action === "bid" || bid.action === "capot" || bid.action === "generale"
     ? resolveContractMode(bid)
     : null;
-  if ((bid.action === "bid" || bid.action === "capot") && !bidMode) {
+  if ((bid.action === "bid" || bid.action === "capot" || bid.action === "generale") && !bidMode) {
     throw new Error("A contract mode is required.");
   }
   if (bidMode?.kind === "no-trump" && !rules.bidding.allowNoTrump) {
@@ -388,7 +422,7 @@ export function makeBid(
     throw new Error("All-trump contracts are not allowed.");
   }
 
-  if ((bid.action === "bid" || bid.action === "capot") && currentContract && currentContract.status !== "normal") {
+  if ((bid.action === "bid" || bid.action === "capot" || bid.action === "generale") && currentContract && currentContract.status !== "normal") {
     throw new Error("A normal bid is not allowed after a contract has been countered.");
   }
 
@@ -404,6 +438,10 @@ export function makeBid(
     throw new Error("A capot bid is not allowed over the current contract.");
   }
 
+  if (bid.action === "generale" && (!canBidGenerale(currentContract, rules.bidding) || !canBidGeneraleMode(bidMode!, rules.bidding))) {
+    throw new Error("A Generale bid is not allowed over the current contract or in this mode.");
+  }
+
   if (bid.action === "coinche" && !canCoinche(playerId, currentContract, rules.bidding)) {
     throw new Error("This player cannot coinche the current contract.");
   }
@@ -412,13 +450,16 @@ export function makeBid(
     throw new Error("This player cannot surcoinche the current contract.");
   }
 
-  const normalizedBid: Bid = bid.action === "bid" || bid.action === "capot"
-    ? {
-        playerId,
-        ...bid,
-        ...(bid.contractMode || bidMode?.kind !== "suit" ? { contractMode: bidMode! } : {}),
-      }
-    : { playerId, ...bid };
+  const modeField = bidMode && ("contractMode" in bid && bid.contractMode || bidMode.kind !== "suit")
+    ? { contractMode: bidMode }
+    : {};
+  const normalizedBid: Bid = bid.action === "generale"
+    ? { playerId, ...bid, value: rules.scoring.generaleBasePoints, ...modeField }
+    : bid.action === "bid"
+      ? { playerId, ...bid, ...modeField }
+      : bid.action === "capot"
+        ? { playerId, ...bid, ...modeField }
+        : { playerId, ...bid };
   const nextBids: Bid[] = [...state.bids, normalizedBid];
 
   const next = nextPlayer(playerId);
@@ -442,6 +483,8 @@ export function makeBid(
           ? `${playerName(playerId, state.playerNames)} annonce ${bid.value} a ${formatContractMode(bidMode!)}. A ${playerName(next, state.playerNames)} de parler.`
           : bid.action === "capot"
             ? `${playerName(playerId, state.playerNames)} annonce capot a ${formatContractMode(bidMode!)}. A ${playerName(next, state.playerNames)} de parler.`
+            : bid.action === "generale"
+              ? `${playerName(playerId, state.playerNames)} annonce Générale a ${formatContractMode(bidMode!)}. A ${playerName(next, state.playerNames)} de parler.`
             : bid.action === "coinche"
               ? `${playerName(playerId, state.playerNames)} contre. A ${playerName(next, state.playerNames)} de parler.`
               : `${playerName(playerId, state.playerNames)} surcontre. A ${playerName(next, state.playerNames)} de parler.`,
@@ -456,6 +499,7 @@ export function playableCardsForCurrentPlayer(state: GameState): Card[] {
   if (state.phase !== "playing") {
     return [];
   }
+  if (state.currentPlayerId === inactivePlayerId(state)) return [];
 
   const mode = resolveContractMode(state);
   if (!mode) {
@@ -483,6 +527,10 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
 
   if (state.currentPlayerId !== playerId) {
     throw new Error(`It is player ${state.currentPlayerId}'s turn, not player ${playerId}'s turn.`);
+  }
+
+  if (playerId === inactivePlayerId(state)) {
+    throw new Error("The inactive partner cannot play during a Generale.");
   }
 
   const hand = state.hands[playerId];
@@ -528,8 +576,8 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     cards: [...state.currentTrick.cards, { playerId, card }],
   };
 
-  if (nextTrick.cards.length < 4) {
-    const next = nextPlayer(playerId);
+  if (nextTrick.cards.length < playersRequiredForTrick(state)) {
+    const next = nextActivePlayer(state, playerId);
     return {
       ...state,
       hands: nextHands,
@@ -543,7 +591,9 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
 
   const winnerId = getTrickWinner(nextTrick, mode);
   const winnerTeam = playerTeam(winnerId);
-  const isLastTrick = nextHands[0].length === 0;
+  const isLastTrick = state.contract.kind === "generale"
+    ? state.completedTricks.length === 7
+    : nextHands[0].length === 0;
   const isCapot = isLastTrick
     && rules.trickScoring.capotLastTrickBonus !== rules.trickScoring.lastTrickBonus
     && state.completedTricks.length === 7
@@ -565,6 +615,7 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     0: completedTricks.filter((trick) => playerTeam(trick.winnerId) === 0).length,
     1: completedTricks.filter((trick) => playerTeam(trick.winnerId) === 1).length,
   };
+  const playerTricks = tricksWonByPlayer(completedTricks);
   const result =
     isLastTrick
       ? scoreRound({
@@ -573,20 +624,22 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
           rules,
           trickPointsByTeam,
           tricksWonByTeam,
+          tricksWonByPlayer: playerTricks,
           announcementPointsByTeam: announcements.pointsByTeam,
           belotePointsByTeam: belote.pointsByTeam,
         })
       : null;
 
+  const nextLeader = nextActivePlayer(state, ((winnerId + 3) % 4) as PlayerId);
   const nextState: GameState = {
     ...state,
     phase: isLastTrick ? "finished" : "playing",
     hands: nextHands,
     announcements,
     belote,
-    currentPlayerId: winnerId,
+    currentPlayerId: nextLeader,
     currentTrick: {
-      leaderId: winnerId,
+      leaderId: nextLeader,
       cards: [],
     },
     completedTricks,

@@ -5,7 +5,7 @@ export const CUSTOM_RULESET_VERSION = 1;
 
 export type RulesetOverrides = {
   game?: Partial<GameRulesetSnapshot["game"]>;
-  bidding?: Partial<Omit<GameRulesetSnapshot["bidding"], "allowGenerale">>;
+  bidding?: Partial<GameRulesetSnapshot["bidding"]>;
   cardPlay?: Partial<GameRulesetSnapshot["cardPlay"]>;
   announcements?: Partial<GameRulesetSnapshot["announcements"]>;
   belote?: Partial<GameRulesetSnapshot["belote"]>;
@@ -19,13 +19,13 @@ type Mutable<T> = { -readonly [K in keyof T]: T[K] extends object ? Mutable<T[K]
 
 const ALLOWED = {
   game: ["targetScore"],
-  bidding: ["minBid", "maxBid", "bidStep", "allowCapot", "allowCoinche", "allowSurcoinche", "allowNoTrump", "allowAllTrump"],
+  bidding: ["minBid", "maxBid", "bidStep", "allowCapot", "allowGenerale", "generaleAllowNoTrump", "generaleAllowAllTrump", "allowCoinche", "allowSurcoinche", "allowNoTrump", "allowAllTrump"],
   cardPlay: ["mustFollowSuit", "mustTrumpWhenVoid", "mustOvertrump", "mustRaiseAtTrump", "allowDiscardWhenPartnerWinning", "allowDiscardWhenCannotOvertrump"],
   announcements: ["enabled", "tierce", "fifty", "hundred", "squares"],
   belote: ["enabled", "points", "countsForContractSuccess", "countsForContractFailure", "allowInAllTrump"],
   contractSuccess: ["mustReachBid", "mustBeatDefense", "announcementsCount"],
   trickScoring: ["lastTrickBonus", "capotLastTrickBonus"],
-  scoring: ["mode", "roundToTen", "announcementsLostOnFailure", "announcementsLostOnCapot", "failureBasePoints", "capotBasePoints", "coincheMultiplier", "surcoincheMultiplier", "doubleAllPointsOnCoinche"],
+  scoring: ["mode", "roundToTen", "announcementsLostOnFailure", "announcementsLostOnCapot", "failureBasePoints", "capotBasePoints", "generaleBasePoints", "coincheMultiplier", "surcoincheMultiplier", "doubleAllPointsOnCoinche"],
 } as const;
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -73,6 +73,9 @@ export function buildCustomRuleset(rawInput: unknown): GameRulesetSnapshot {
   };
   if (draft.game.targetScore < 100 || draft.game.targetScore > 100_000) throw new Error("Le score cible doit être compris entre 100 et 100 000.");
   if (!draft.bidding.allowCoinche) draft.bidding = { ...draft.bidding, allowSurcoinche: false };
+  if (!draft.bidding.allowGenerale) draft.bidding = { ...draft.bidding, generaleAllowNoTrump: false, generaleAllowAllTrump: false };
+  if (!draft.bidding.allowNoTrump) draft.bidding = { ...draft.bidding, generaleAllowNoTrump: false };
+  if (!draft.bidding.allowAllTrump) draft.bidding = { ...draft.bidding, generaleAllowAllTrump: false };
   if (!draft.announcements.enabled) {
     draft.announcements = { ...draft.announcements, tierce: false, fifty: false, hundred: false, squares: false };
     draft.contractSuccess = { ...draft.contractSuccess, announcementsCount: false };

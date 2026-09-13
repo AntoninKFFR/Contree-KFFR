@@ -12,6 +12,8 @@ type SavedGamePayload = {
   ruleset_id?: string;
   ruleset_version?: number;
   ruleset_snapshot?: GameState["settings"]["ruleset"];
+  round_history?: GameState["roundHistory"];
+  player_names?: GameState["playerNames"];
 };
 
 function botSummary(state: GameState) {
@@ -38,6 +40,8 @@ export function buildSavedGamePayload(
     target_score: state.settings.targetScore,
     bot_summary: botSummary(state),
     ...(state.settings.ruleset ? { ruleset_id: state.settings.ruleset.id, ruleset_version: state.settings.ruleset.version, ruleset_snapshot: state.settings.ruleset } : {}),
+    round_history: state.roundHistory,
+    player_names: state.playerNames,
   };
 }
 

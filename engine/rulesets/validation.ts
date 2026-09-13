@@ -41,6 +41,8 @@ export function validateRuleset(ruleset: GameRulesetSnapshot): void {
   for (const [label, value] of [
     ["bidding.allowCapot", ruleset.bidding.allowCapot],
     ["bidding.allowGenerale", ruleset.bidding.allowGenerale],
+    ["bidding.generaleAllowNoTrump", ruleset.bidding.generaleAllowNoTrump],
+    ["bidding.generaleAllowAllTrump", ruleset.bidding.generaleAllowAllTrump],
     ["bidding.allowCoinche", ruleset.bidding.allowCoinche],
     ["bidding.allowSurcoinche", ruleset.bidding.allowSurcoinche],
     ["bidding.allowNoTrump", ruleset.bidding.allowNoTrump],
@@ -82,14 +84,21 @@ export function validateRuleset(ruleset: GameRulesetSnapshot): void {
   if (ruleset.contractSuccess.announcementsCount && !ruleset.announcements.enabled) {
     throw new Error("Invalid ruleset: announcements cannot count when they are disabled.");
   }
-  if (ruleset.bidding.allowGenerale) {
-    throw new Error("Invalid ruleset: Generale is not implemented yet.");
+  if (!ruleset.bidding.allowGenerale && (ruleset.bidding.generaleAllowNoTrump || ruleset.bidding.generaleAllowAllTrump)) {
+    throw new Error("Invalid ruleset: Generale special modes require Generale.");
+  }
+  if (ruleset.bidding.generaleAllowNoTrump && !ruleset.bidding.allowNoTrump) {
+    throw new Error("Invalid ruleset: Generale no-trump requires no-trump contracts.");
+  }
+  if (ruleset.bidding.generaleAllowAllTrump && !ruleset.bidding.allowAllTrump) {
+    throw new Error("Invalid ruleset: Generale all-trump requires all-trump contracts.");
   }
   nonNegativeInteger(ruleset.belote.points, "belote.points");
   nonNegativeInteger(ruleset.trickScoring.lastTrickBonus, "trickScoring.lastTrickBonus");
   nonNegativeInteger(ruleset.trickScoring.capotLastTrickBonus, "trickScoring.capotLastTrickBonus");
   nonNegativeInteger(ruleset.scoring.failureBasePoints, "scoring.failureBasePoints");
   positiveInteger(ruleset.scoring.capotBasePoints, "scoring.capotBasePoints");
+  positiveInteger(ruleset.scoring.generaleBasePoints, "scoring.generaleBasePoints");
   positiveInteger(ruleset.scoring.coincheMultiplier, "scoring.coincheMultiplier");
   positiveInteger(ruleset.scoring.surcoincheMultiplier, "scoring.surcoincheMultiplier");
   if (ruleset.scoring.surcoincheMultiplier < ruleset.scoring.coincheMultiplier) {

@@ -31,7 +31,7 @@ export function parseRoomIntent(value: unknown): RoomIntent {
     const action = value.action;
     if (action.type === "pass" || action.type === "coinche" || action.type === "surcoinche") return value as RoomIntent;
     const hasMode = SUITS.has(String(action.trump)) || validContractMode(action.contractMode);
-    if (action.type === "capot" && hasMode) return value as RoomIntent;
+    if ((action.type === "capot" || action.type === "generale") && hasMode) return value as RoomIntent;
     if (action.type === "bid" && BIDS.has(Number(action.value)) && hasMode) return value as RoomIntent;
     if (action.type === "play-card" && record(action.card) && SUITS.has(String(action.card.suit)) && RANKS.has(String(action.card.rank))) return value as RoomIntent;
   }

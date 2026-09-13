@@ -20,6 +20,12 @@ export type GameAction =
       contractMode?: ContractMode;
     }
   | {
+      type: "generale";
+      playerId: PlayerId;
+      trump?: Suit;
+      contractMode?: ContractMode;
+    }
+  | {
       type: "coinche";
       playerId: PlayerId;
     }
@@ -57,6 +63,8 @@ export function applyGameAction(
       return makeBid(state, action.playerId, { action: "pass" });
     case "capot":
       return makeBid(state, action.playerId, { action: "capot", trump: action.trump, contractMode: action.contractMode });
+    case "generale":
+      return makeBid(state, action.playerId, { action: "generale", trump: action.trump, contractMode: action.contractMode });
     case "coinche":
       return makeBid(state, action.playerId, { action: "coinche" });
     case "surcoinche":

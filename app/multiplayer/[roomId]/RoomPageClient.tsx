@@ -622,6 +622,10 @@ export default function MultiplayerRoomPage() {
     void handleRoomPlayerAction({ type: "capot", contractMode });
   }
 
+  function handleGenerale(contractMode: ContractMode) {
+    void handleRoomPlayerAction({ type: "generale", contractMode });
+  }
+
   function handlePass() {
     void handleRoomPlayerAction({ type: "pass" });
   }
@@ -939,6 +943,7 @@ export default function MultiplayerRoomPage() {
                                 currentContract={currentContract}
                                 onBid={handleBid}
                                 onCapot={handleCapot}
+                                onGenerale={handleGenerale}
                                 onCoinche={handleCoinche}
                                 onPass={handlePass}
                                 onSurcoinche={handleSurcoinche}
@@ -974,6 +979,7 @@ export default function MultiplayerRoomPage() {
                       currentContract={currentContract}
                       onBid={handleBid}
                       onCapot={handleCapot}
+                      onGenerale={handleGenerale}
                       onCoinche={handleCoinche}
                       onPass={handlePass}
                       onSurcoinche={handleSurcoinche}

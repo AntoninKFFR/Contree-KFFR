@@ -19,6 +19,8 @@ export type MultiplayerArchiveGame = {
   ruleset_id?: string | null;
   ruleset_version?: number | null;
   ruleset_snapshot?: GameRulesetSnapshot | null;
+  round_history?: GameState["roundHistory"];
+  player_names?: GameState["playerNames"];
 };
 
 export type MultiplayerArchivePlayer = {
@@ -82,6 +84,8 @@ export function buildMultiplayerArchive(input: {
       ruleset_id: input.state.settings.ruleset?.id ?? input.room.ruleset_id ?? null,
       ruleset_version: input.state.settings.ruleset?.version ?? input.room.ruleset_version ?? null,
       ruleset_snapshot: input.state.settings.ruleset ?? input.room.ruleset_snapshot ?? null,
+      round_history: input.state.roundHistory,
+      player_names: input.state.playerNames,
     },
     players: input.players
       .filter((player): player is RoomPlayerRow & { kind: "human" | "bot" } => player.kind !== "empty")

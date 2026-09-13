@@ -49,10 +49,16 @@ Les totaux de cartes sont dérivés du barème : 162 en couleur, 130 en Sans Ato
 
 La Belote/Rebelote est impossible en Sans Atout. En Tout Atout, `belote.allowInAllTrump` autorise séparément chaque paire Roi+Dame d'une couleur, donc plusieurs couleurs peuvent être comptées. Pour les annonces, aucune séquence n'a l'avantage « à l'atout » en Sans Atout; en Tout Atout toutes les couleurs sont équivalentes, donc aucune ne reçoit d'avantage de départage.
 
-Le flag Générale reste représenté mais non implémenté.
+## Générale
+
+La Générale est un contrat distinct du Capot. Le joueur qui l'annonce doit gagner personnellement les huit plis; son partenaire, dérivé comme le siège opposé, conserve ses huit cartes privées mais ne reçoit aucun tour. Les plis contiennent donc trois cartes, sans changer le format des plis ordinaires. Si la partance ou un leader théorique est le partenaire assis, le moteur avance au prochain joueur actif dans l'ordre de jeu.
+
+`bidding.allowGenerale` contrôle l'enchère et reste `false` dans `CONTREE_KFFR_RULESET`. La valeur dédiée `scoring.generaleBasePoints` vaut 500 par défaut. Une réussite attribue cette valeur au camp preneur; une chute l'attribue à la défense, puis les multiplicateurs Coinche/Surcoinche s'appliquent. Les annonces et la Belote peuvent contribuer au score selon le ruleset, mais ne participent jamais à la réussite, qui dépend exclusivement des huit plis personnels. Le partenaire assis peut présenter ses annonces de cartes détectées avant le jeu, mais ne peut pas déclarer Belote/Rebelote puisqu'il ne joue aucune carte.
+
+Les Générales couleur sont disponibles quand le flag principal est actif. Sans Atout et Tout Atout restent explicitement séparés par `generaleAllowNoTrump` et `generaleAllowAllTrump`; activer SA/TA pour les contrats ordinaires ne les active donc pas automatiquement pour la Générale.
 
 Le solo conserve le DTO validé sous la clé locale versionnée `coinche:solo-rules:v1`. Cette préférence n'est lue qu'après hydratation; une valeur absente ou corrompue revient au preset Contrée KFFR. Une modification ne touche jamais la partie en cours et s'applique à une nouvelle partie.
 
 Le lobby multijoueur stocke `ruleset_id`, `ruleset_version` et `ruleset_snapshot` dans `rooms`. Seul l'hôte peut envoyer l'intention autoritaire `update-room-rules` avant le démarrage; la modification incrémente la version de room et réinitialise les confirmations « prêt ». Après démarrage, le snapshot est verrouillé et le `GameState` est créé depuis la valeur serveur. Les anciennes rooms sans snapshot sont normalisées depuis `scoring_mode` et `target_score`.
 
-Les historiques solo et multijoueur conservent les mêmes trois champs sans supprimer les anciennes colonnes. Voir aussi `docs/CUSTOM_GAMES.md`.
+Les historiques solo et multijoueur conservent les mêmes trois champs sans supprimer les anciennes colonnes. Ils sauvegardent aussi `round_history` et les noms figés afin de distinguer explicitement une Générale d'un Capot et d'afficher son annonceur. Voir aussi `docs/CUSTOM_GAMES.md`.

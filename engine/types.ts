@@ -107,6 +107,14 @@ export type Bid =
     }
   | {
       playerId: PlayerId;
+      action: "generale";
+      /** Ruleset value captured when the bid is accepted. */
+      value: number;
+      trump?: Suit;
+      contractMode?: ContractMode;
+    }
+  | {
+      playerId: PlayerId;
       action: "coinche";
     }
   | {
@@ -128,6 +136,7 @@ type ContractBase = {
 export type Contract = ContractBase & (
   | { kind?: "points"; value: BidValue }
   | { kind: "capot"; value: 250 }
+  | { kind: "generale"; value: number }
 );
 
 export type RoundResult =
@@ -141,6 +150,8 @@ export type RoundResult =
       belotePointsByTeam: Record<TeamId, number>;
       totalPointsByTeam: Record<TeamId, number>;
       capotTeam: TeamId | null;
+      /** Derived from completed tricks; optional only for historical snapshots. */
+      tricksWonByPlayer?: Record<PlayerId, number>;
       contractSucceeded: boolean;
       scoringMode: ScoringMode;
       multiplier: number;

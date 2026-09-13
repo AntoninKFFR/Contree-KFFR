@@ -21,6 +21,7 @@ import type {
   Trick,
 } from "@/engine/types";
 import { resolveContractMode } from "@/engine/contractMode";
+import { inactivePlayerId, tricksWonByPlayer } from "@/engine/activePlayers";
 
 export function isBotReviewModeEnabled(value = process.env.NEXT_PUBLIC_BOT_REVIEW_MODE): boolean {
   return value === "true";
@@ -30,7 +31,8 @@ export const BOT_REVIEW_MODE_ENABLED = isBotReviewModeEnabled();
 
 export type BotReviewBidDecision =
   | { action: "pass" | "coinche" | "surcoinche" }
-  | { action: "bid"; value: NonNullable<Extract<Bid, { action: "bid" }>["value"]>; trump?: Suit; contractMode?: ContractMode };
+  | { action: "bid"; value: NonNullable<Extract<Bid, { action: "bid" }>["value"]>; trump?: Suit; contractMode?: ContractMode }
+  | { action: "generale"; contractMode: ContractMode };
 
 export type BotReviewKnowledgeV1 = {
   voidSuitsByPlayer: Record<PlayerId, Suit[]>;
@@ -63,6 +65,8 @@ export type BotReviewScenarioV1 = {
   legalCards: Card[];
   chosenCard: Card | null;
   chosenBid: BotReviewBidDecision | null;
+  inactivePlayerId?: PlayerId | null;
+  tricksWonByPlayer?: Record<PlayerId, number>;
   decisionEngine: "legacy_heuristic" | "human_doctrine_v2_comm" | "auction_doctrine_v3" | "auction_doctrine_v3_1" | "montecarlo_v1";
   elapsedMs: number;
   trace: {
@@ -93,6 +97,8 @@ export type BotReviewCurrentStateV2 = {
   totalScore: Record<TeamId, number>;
   trickPoints: Record<TeamId, number>;
   roundScore: Record<TeamId, number>;
+  inactivePlayerId?: PlayerId | null;
+  tricksWonByPlayer?: Record<PlayerId, number>;
 };
 
 export type BotReviewPublicAuctionV2 = {
@@ -153,6 +159,7 @@ function cloneScenario(scenario: BotReviewScenarioV1): BotReviewScenarioV1 {
     legalCards: cloneCards(scenario.legalCards),
     chosenCard: scenario.chosenCard ? { ...scenario.chosenCard } : null,
     chosenBid: scenario.chosenBid ? { ...scenario.chosenBid } : null,
+    tricksWonByPlayer: scenario.tricksWonByPlayer ? { ...scenario.tricksWonByPlayer } : undefined,
   };
 }
 
@@ -222,6 +229,8 @@ export function createBotReviewBundle(
       totalScore: { ...state.totalScore },
       trickPoints: { ...state.trickPoints },
       roundScore: { ...state.roundScore },
+      inactivePlayerId: inactivePlayerId(state),
+      tricksWonByPlayer: tricksWonByPlayer(state.completedTricks),
     },
     publicAuctions: (options.publicAuctions ?? updateBotReviewPublicAuctions([], state)).map((auction) => ({
       roundNumber: auction.roundNumber,
@@ -308,6 +317,8 @@ export function captureBotReviewScenario(
     legalCards: isCardDecision ? cloneCards(playableCardsForCurrentPlayer(state)) : [],
     chosenCard: options.chosenCard ? { ...options.chosenCard } : null,
     chosenBid: options.chosenBid ? { ...options.chosenBid } : null,
+    inactivePlayerId: inactivePlayerId(state),
+    tricksWonByPlayer: tricksWonByPlayer(state.completedTricks),
     decisionEngine: isCardDecision
       ? "montecarlo_v1"
       : isV3Bidding

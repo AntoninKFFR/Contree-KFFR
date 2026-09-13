@@ -185,14 +185,14 @@ export default function SoloPage() {
           setLastBotReview(scenario);
           setBotReviewHistory((history) => appendBotReviewHistory(history, scenario));
         }
-        if (botBid.action === "bid") {
+        if (botBid.action === "bid" || botBid.action === "generale") {
           const nextState = applyGameAction(currentState, {
-              type: "bid",
+              type: botBid.action,
               playerId: currentState.currentPlayerId,
-              value: botBid.value,
-              trump: botBid.trump,
+              ...("value" in botBid ? { value: botBid.value } : {}),
+              ...("trump" in botBid ? { trump: botBid.trump } : {}),
               contractMode: botBid.contractMode,
-          });
+          } as GameAction);
           if (BOT_REVIEW_MODE_ENABLED) {
             setBotReviewPublicAuctions((auctions) => updateBotReviewPublicAuctions(auctions, nextState));
           }
@@ -276,6 +276,10 @@ export default function SoloPage() {
 
   function handleHumanCapot(contractMode: ContractMode) {
     dispatchGameAction({ type: "capot", playerId: localHumanPlayerId, contractMode });
+  }
+
+  function handleHumanGenerale(contractMode: ContractMode) {
+    dispatchGameAction({ type: "generale", playerId: localHumanPlayerId, contractMode });
   }
 
   function handleHumanPass() {
@@ -382,6 +386,7 @@ export default function SoloPage() {
                           currentContract={currentContract}
                           onBid={handleHumanBid}
                           onCapot={handleHumanCapot}
+                          onGenerale={handleHumanGenerale}
                           onCoinche={handleHumanCoinche}
                           onPass={handleHumanPass}
                           onSurcoinche={handleHumanSurcoinche}
@@ -459,6 +464,7 @@ export default function SoloPage() {
                 currentContract={currentContract}
                 onBid={handleHumanBid}
                 onCapot={handleHumanCapot}
+                onGenerale={handleHumanGenerale}
                 onCoinche={handleHumanCoinche}
                 onPass={handleHumanPass}
                 onSurcoinche={handleHumanSurcoinche}

@@ -200,12 +200,13 @@ export function declareAnnouncementsForPlayer(
   playerId: PlayerId,
   mode: ContractModeInput,
   rules: AnnouncementRules = CONTREE_KFFR_RULESET.announcements,
+  expectedPlayers = 4,
 ): AnnouncementState {
   const current = state ?? emptyAnnouncementState();
   if (!rules.enabled || current.declaredPlayerIds.includes(playerId)) return current;
   const declarations = [...current.declarations, ...detectAnnouncements(hand, playerId, mode, rules)];
   const declaredPlayerIds = [...current.declaredPlayerIds, playerId];
-  return declaredPlayerIds.length === 4
+  return declaredPlayerIds.length === expectedPlayers
     ? resolveAnnouncements(declarations, declaredPlayerIds, mode)
     : { ...current, declarations, declaredPlayerIds };
 }
