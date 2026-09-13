@@ -75,6 +75,57 @@ select {
   animation: coinche-bid-bubble-enter 160ms ease-out;
 }
 
+.coinche-turn-pulse {
+  box-shadow: 0 0 0 3px rgb(16 185 129 / 45%);
+}
+
+.coinche-high-contrast button,
+.coinche-high-contrast select,
+.coinche-high-contrast input {
+  border-width: 2px;
+}
+
+.coinche-high-contrast .coinche-turn-pulse {
+  outline: 3px double #111827;
+  outline-offset: 2px;
+}
+
+.coinche-text-large {
+  font-size: 112.5%;
+}
+
+.coinche-text-large .text-xs {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.coinche-text-large .text-sm {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.coinche-text-large .text-base {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.coinche-compact main {
+  --coinche-panel-padding: 0.5rem;
+}
+
+.coinche-compact .coinche-secondary-metadata {
+  display: none;
+}
+
+.coinche-reduced-motion *,
+.coinche-reduced-motion *::before,
+.coinche-reduced-motion *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .coinche-card-enter,
   .coinche-trick-collect,

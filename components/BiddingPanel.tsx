@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { SUIT_LABELS, SUIT_SYMBOLS, SUITS } from "@/engine/cards";
 import { canBidCapot, canBidGenerale, canBidGeneraleMode, getAvailableBidValues } from "@/engine/bidding";
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
@@ -35,6 +36,7 @@ export function BiddingPanel({
   onPass,
   onSurcoinche,
 }: BiddingPanelProps) {
+  const { preferences } = usePlayerPreferences();
   const availableValues = useMemo(
     () => getAvailableBidValues(currentContract, biddingRules),
     [biddingRules, currentContract],
@@ -59,6 +61,11 @@ export function BiddingPanel({
   function handleBid() {
     if (!canMakeBid || value === "") return;
     onBid(value, contractMode);
+  }
+
+  function confirmed(message: string, enabled: boolean, action: () => void) {
+    if (enabled && typeof window !== "undefined" && !window.confirm(message)) return;
+    action();
   }
 
   return (
@@ -160,7 +167,7 @@ export function BiddingPanel({
           {biddingRules?.allowGenerale ? <button
             className="rounded-md border border-purple-300 px-2 py-2 text-xs font-semibold text-purple-800 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canMakeGenerale}
-            onClick={() => onGenerale(contractMode)}
+            onClick={() => confirmed("Confirmer cette Générale ?", preferences.gameplay.confirmGenerale, () => onGenerale(contractMode))}
             type="button"
           >
             Générale
@@ -168,7 +175,7 @@ export function BiddingPanel({
           <button
             className="rounded-md border border-red-300 px-2 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canCoinche}
-            onClick={onCoinche}
+            onClick={() => confirmed("Confirmer la Coinche ?", preferences.gameplay.confirmCoinche, onCoinche)}
             type="button"
           >
             Contrer
@@ -176,7 +183,7 @@ export function BiddingPanel({
           <button
             className="rounded-md border border-emerald-300 px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canSurcoinche}
-            onClick={onSurcoinche}
+            onClick={() => confirmed("Confirmer la Surcoinche ?", preferences.gameplay.confirmSurcoinche, onSurcoinche)}
             type="button"
           >
             Surcontrer

@@ -11,8 +11,12 @@ import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { ScoreBoard } from "@/components/ScoreBoard";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
+import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
+import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { applyGameAction, type GameAction } from "@/engine/actions";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
+import { resolveContractMode } from "@/engine/contractMode";
+import { explainIllegalCard } from "@/engine/illegalCardExplanation";
 import {
   getCurrentContract,
   playableCardsForCurrentPlayer,
@@ -50,6 +54,9 @@ const soloSeatAssignments = SOLO_SEAT_ASSIGNMENTS;
 const localHumanPlayerId = firstHumanSeat(soloSeatAssignments) ?? 0;
 
 export default function SoloPage() {
+  const { preferences } = usePlayerPreferences();
+  const preferencesRef = useRef(preferences);
+  preferencesRef.current = preferences;
   const gameIdRef = useRef(crypto.randomUUID());
   const hasInitializedRandomGameRef = useRef(false);
   const savedGameIdsRef = useRef(new Set<string>());
@@ -67,6 +74,7 @@ export default function SoloPage() {
   const [rulesInput, setRulesInput] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
   const [rulesDraft, setRulesDraft] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const humanCanPlay =
     gameState?.phase === "playing" &&
@@ -76,6 +84,7 @@ export default function SoloPage() {
     isHumanSeat(soloSeatAssignments, gameState.currentPlayerId);
   const currentContract = useMemo(() => gameState ? getCurrentContract(gameState) : null, [gameState]);
   const gameRules = useMemo(() => gameState ? resolveGameRules(gameState.settings) : null, [gameState]);
+  const currentMode = useMemo(() => gameState ? resolveContractMode(gameState) : null, [gameState]);
   const humanCanCoinche = humanCanBid && canCoinche(localHumanPlayerId, currentContract, gameRules?.bidding);
   const humanCanSurcoinche = humanCanBid && canSurcoinche(localHumanPlayerId, currentContract, gameRules?.bidding);
   const legalHumanCards = useMemo(() => {
@@ -160,73 +169,37 @@ export default function SoloPage() {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
-      const currentState = gameState;
-      if (
-        (currentState.phase !== "playing" && currentState.phase !== "bidding") ||
-        !isBotSeat(soloSeatAssignments, currentState.currentPlayerId)
-      ) {
-        return;
-      }
-
-      botDecisionNumberRef.current += 1;
-      const started = performance.now();
-
-      if (currentState.phase === "bidding") {
-        const { bid: botBid, biddingTrace } = chooseBotBidWithTrace(currentState);
-        const elapsedMs = performance.now() - started;
-        if (BOT_REVIEW_MODE_ENABLED) {
-          const scenario = captureBotReviewScenario(currentState, {
-            decisionNumber: botDecisionNumberRef.current,
-            elapsedMs,
-            chosenBid: botBid,
-            biddingTrace,
-          });
-          setLastBotReview(scenario);
-          setBotReviewHistory((history) => appendBotReviewHistory(history, scenario));
-        }
-        if (botBid.action === "bid" || botBid.action === "generale") {
-          const nextState = applyGameAction(currentState, {
-              type: botBid.action,
-              playerId: currentState.currentPlayerId,
-              ...("value" in botBid ? { value: botBid.value } : {}),
-              ...("trump" in botBid ? { trump: botBid.trump } : {}),
-              contractMode: botBid.contractMode,
-          } as GameAction);
-          if (BOT_REVIEW_MODE_ENABLED) {
-            setBotReviewPublicAuctions((auctions) => updateBotReviewPublicAuctions(auctions, nextState));
-          }
-          setGameState(nextState);
-          return;
-        }
-        const nextState = applyGameAction(currentState, {
-            type: botBid.action,
-            playerId: currentState.currentPlayerId,
-        });
-        if (BOT_REVIEW_MODE_ENABLED) {
-          setBotReviewPublicAuctions((auctions) => updateBotReviewPublicAuctions(auctions, nextState));
-        }
-        setGameState(nextState);
-        return;
-      }
-
-      const botCard = chooseBotCard(currentState);
+    const currentState = gameState;
+    botDecisionNumberRef.current += 1;
+    const started = performance.now();
+    let nextState: GameState;
+    if (currentState.phase === "bidding") {
+      const { bid: botBid, biddingTrace } = chooseBotBidWithTrace(currentState);
       const elapsedMs = performance.now() - started;
       if (BOT_REVIEW_MODE_ENABLED) {
-        const scenario = captureBotReviewScenario(currentState, {
-          decisionNumber: botDecisionNumberRef.current,
-          elapsedMs,
-          chosenCard: botCard,
-        });
+        const scenario = captureBotReviewScenario(currentState, { decisionNumber: botDecisionNumberRef.current, elapsedMs, chosenBid: botBid, biddingTrace });
         setLastBotReview(scenario);
         setBotReviewHistory((history) => appendBotReviewHistory(history, scenario));
       }
-      setGameState(applyGameAction(currentState, {
-          type: "play-card",
-          playerId: currentState.currentPlayerId,
-          card: botCard,
-      }));
-    }, 650);
+      nextState = botBid.action === "bid" || botBid.action === "generale"
+        ? applyGameAction(currentState, { type: botBid.action, playerId: currentState.currentPlayerId, ...("value" in botBid ? { value: botBid.value } : {}), ...("trump" in botBid ? { trump: botBid.trump } : {}), contractMode: botBid.contractMode } as GameAction)
+        : applyGameAction(currentState, { type: botBid.action, playerId: currentState.currentPlayerId });
+      if (BOT_REVIEW_MODE_ENABLED) setBotReviewPublicAuctions((auctions) => updateBotReviewPublicAuctions(auctions, nextState));
+    } else {
+      const botCard = chooseBotCard(currentState);
+      const elapsedMs = performance.now() - started;
+      if (BOT_REVIEW_MODE_ENABLED) {
+        const scenario = captureBotReviewScenario(currentState, { decisionNumber: botDecisionNumberRef.current, elapsedMs, chosenCard: botCard });
+        setLastBotReview(scenario);
+        setBotReviewHistory((history) => appendBotReviewHistory(history, scenario));
+      }
+      nextState = applyGameAction(currentState, { type: "play-card", playerId: currentState.currentPlayerId, card: botCard });
+    }
+    const currentPreferences = preferencesRef.current;
+    const delayMs = currentState.phase === "bidding" ? currentPreferences.gameplay.biddingDelayMs : currentPreferences.gameplay.botDelayMs;
+    const timeoutId = window.setTimeout(() => {
+      setGameState((latest) => latest === currentState ? nextState : latest);
+    }, delayMs);
 
     return () => window.clearTimeout(timeoutId);
   }, [gameState]);
@@ -268,6 +241,11 @@ export default function SoloPage() {
 
   function handlePlayCard(card: Card) {
     dispatchGameAction({ type: "play-card", playerId: localHumanPlayerId, card });
+  }
+
+  function illegalCardMessage(card: Card): string {
+    if (!gameState || !currentMode || !gameRules) return "Cette carte n'est pas jouable.";
+    return explainIllegalCard({ hand: gameState.hands[localHumanPlayerId], trick: gameState.currentTrick, card, playerId: localHumanPlayerId, mode: currentMode, rules: gameRules.cardPlay }) ?? "Cette carte n'est pas jouable.";
   }
 
   function handleHumanBid(value: BidValue, contractMode: ContractMode) {
@@ -333,7 +311,7 @@ export default function SoloPage() {
   }
 
   if (isMobilePortrait) {
-    return <MobileLandscapeNotice />;
+    return <><MobileLandscapeNotice /><button className="fixed right-3 top-16 z-40 rounded-md border bg-white px-3 py-2 text-sm font-semibold shadow" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button>{isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}</>;
   }
 
   return (
@@ -347,7 +325,8 @@ export default function SoloPage() {
           <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
             <div className={`flex items-center justify-end lg:hidden ${isMobileLandscape ? "hidden" : ""}`} />
             <div className={`flex items-center justify-end ${isMobileLandscape ? "hidden" : ""}`}>
-              <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white" type="button" onClick={() => { setRulesDraft(rulesInput); setIsRulesOpen(true); }}>Règles</button>
+              <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white" type="button" onClick={() => setIsSettingsOpen(true)}>Paramètres</button>
+              <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white" type="button" onClick={() => { setRulesDraft(rulesInput); setIsRulesOpen(true); }}>Règles de la partie</button>
               {BOT_REVIEW_MODE_ENABLED ? (
                 <button
                   aria-pressed={isAnalysisModeEnabled}
@@ -371,6 +350,7 @@ export default function SoloPage() {
                 {isRightPanelOpen ? "Masquer infos" : "Afficher infos"}
               </button>
             </div>
+            {isMobileLandscape ? <button className="fixed right-1 top-[58px] z-40 rounded-md border border-white/40 bg-black/55 px-2 py-1 text-[10px] font-semibold text-white" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button> : null}
 
             <GameTable
               bottomOverlay={
@@ -397,7 +377,9 @@ export default function SoloPage() {
                           <HumanHand
                             canPlay={humanCanPlay}
                             cards={gameState.hands[localHumanPlayerId]}
+                            contractMode={currentMode}
                             embedded
+                            illegalCardMessage={illegalCardMessage}
                             legalCards={legalHumanCards}
                             onPlayCard={handlePlayCard}
                           />
@@ -407,7 +389,7 @@ export default function SoloPage() {
               }
               immersiveMobileLandscape={isMobileLandscape}
               state={gameState}
-              showLiveScore={isMobileLandscape || (!isRightPanelOpen && gameState.phase === "playing")}
+              showLiveScore={preferences.assistance.showLivePoints}
             />
 
             {BOT_REVIEW_MODE_ENABLED && isAnalysisModeEnabled && !isMobileLandscape ? (
@@ -500,6 +482,8 @@ export default function SoloPage() {
                 <HumanHand
                   canPlay={humanCanPlay}
                   cards={gameState.hands[localHumanPlayerId]}
+                  contractMode={currentMode}
+                  illegalCardMessage={illegalCardMessage}
                   legalCards={legalHumanCards}
                   onPlayCard={handlePlayCard}
                 />
@@ -517,6 +501,7 @@ export default function SoloPage() {
         </div>
       </div>
       {isRulesOpen ? <div aria-modal="true" role="dialog" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3"><section className="flex max-h-[94dvh] w-full max-w-3xl flex-col rounded-xl bg-[#f4f1e8] p-4 shadow-2xl"><div className="mb-3 flex items-center justify-between"><div><h2 className="text-xl font-bold">Règles de la prochaine partie</h2><p className="text-xs text-stone-600">La partie en cours reste inchangée.</p></div><button className="rounded border px-3 py-1" type="button" onClick={() => setIsRulesOpen(false)}>Fermer</button></div><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /><div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]"><RulesetSummary ruleset={buildCustomRuleset(rulesDraft)} compact /><button className="rounded-lg bg-emerald-800 px-4 py-3 font-bold text-white" type="button" onClick={applyRulesAndStartGame}>Appliquer et nouvelle partie</button></div></section></div> : null}
+      {isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}
     </main>
   );
 }

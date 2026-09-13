@@ -55,6 +55,12 @@ Le `GameState` complet est stocké dans `room_game_states`, une table sans permi
 pour `anon` ou `authenticated`. Le navigateur reçoit uniquement sa `PlayerGameView`; Realtime ne
 sert qu'à déclencher une nouvelle lecture authentifiée auprès de l'API Next.js.
 
+## Préférences joueur
+
+Les réglages de confort sont locaux à chaque navigateur et restent séparés des règles partagées de
+la partie. Leur architecture, leur stockage et leurs garanties d'isolation sont décrits dans
+[`docs/PLAYER_PREFERENCES.md`](docs/PLAYER_PREFERENCES.md).
+
 ## Lancer les tests
 
 ```bash

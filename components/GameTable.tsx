@@ -3,7 +3,9 @@
 import React, { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { CardView } from "@/components/CardView";
 import { PlayerPanel } from "@/components/PlayerPanel";
+import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { formatContractLabel, formatContractMode, resolveContractMode } from "@/engine/contractMode";
+import { getContractProgress, getPublicRoundPoints } from "@/engine/contractProgress";
 import { inactivePlayerId as inactivePlayerForState } from "@/engine/activePlayers";
 import { playerName, teamName } from "@/engine/players";
 import type {
@@ -15,11 +17,12 @@ import type {
   PlayerId,
 } from "@/engine/types";
 import type { PlayerGameView } from "@/engine/views";
+import { playPreferenceSound } from "@/lib/preferences/audio";
+import { getTrickPresentationPolicy, isPreferenceAnimationEnabled } from "@/lib/preferences/presentation";
 import type { RoomPlayerView } from "@/lib/roomTypes";
 import {
   observeCompletedTricks,
   selectVisualTrick,
-  TRICK_PRESENTATION_MS,
   type PresentedTrick,
   type TrickObservation,
 } from "@/lib/trickPresentation";
@@ -162,13 +165,14 @@ function PlayedCardSlot({
   playerId: PlayerId;
 }) {
   const played = playedCardForPlayer(cards, playerId);
+  const { effectiveReducedMotion, preferences } = usePlayerPreferences();
 
   return (
     <div className="flex h-full w-full items-center justify-center">
       {played ? (
         <CardView
           card={played.card}
-          className="coinche-card-enter"
+          className={isPreferenceAnimationEnabled(preferences, "card-play", effectiveReducedMotion) ? "coinche-card-enter" : ""}
           disabled
           muted={false}
           size="compact"
@@ -213,9 +217,13 @@ function TrickCenter({ cards, title }: { cards: PlayedCard[]; title: string }) {
 }
 
 function TrickCollectionAnimation({
+  animate,
+  durationMs,
   trick,
   winnerName,
 }: {
+  animate: boolean;
+  durationMs: number;
   trick: CompletedTrick;
   winnerName: string;
 }) {
@@ -224,13 +232,13 @@ function TrickCollectionAnimation({
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none absolute inset-0 z-20 coinche-trick-collect"
+      className={`pointer-events-none absolute inset-0 z-20 ${animate ? "coinche-trick-collect" : ""}`}
       role="status"
       style={
         {
           "--coinche-trick-collect-x": offset.x,
           "--coinche-trick-collect-y": offset.y,
-          animationDuration: `${TRICK_PRESENTATION_MS}ms`,
+          animationDuration: `${durationMs}ms`,
         } as React.CSSProperties
       }
     >
@@ -250,6 +258,8 @@ function AnnouncementBubble({
   className: string;
   isDominant: boolean;
 }) {
+  const { effectiveReducedMotion, preferences } = usePlayerPreferences();
+  const shouldAnimate = animate && isPreferenceAnimationEnabled(preferences, "bidding", effectiveReducedMotion);
   return (
     <div
       className={[
@@ -261,7 +271,7 @@ function AnnouncementBubble({
           ? "ring-1 ring-emerald-600/50"
           : "",
         className,
-        animate ? "coinche-bid-bubble-enter" : "",
+        shouldAnimate ? "coinche-bid-bubble-enter" : "",
       ].join(" ")}
     >
       <p
@@ -297,25 +307,21 @@ function bubblePositionClasses(playerId: PlayerId): string {
   }
 }
 
-function LiveScoreOverlay({ state }: { state: GameTableState }) {
+function RoundHelpOverlay({ state, showLiveScore }: { state: GameTableState; showLiveScore: boolean }) {
+  const { preferences } = usePlayerPreferences();
   const teamFor = (teamId: 0 | 1) => teamName(teamId, state.playerNames);
+  const livePoints = getPublicRoundPoints(state);
+  const progress = preferences.assistance.showContractProgress ? getContractProgress(state) : null;
 
   return (
-    <div className="pointer-events-none absolute right-3 top-3 z-10 hidden rounded-lg border border-white/35 bg-black/25 px-3 py-2 text-right text-white shadow-sm backdrop-blur-sm sm:block">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/70 sm:text-[10px]">
-        Scores
-      </p>
-      <div className="mt-1 space-y-1">
+    <div className="pointer-events-none absolute right-2 top-2 z-10 max-w-36 rounded-lg border border-white/35 bg-black/40 px-2 py-1.5 text-right text-white shadow-sm backdrop-blur-sm sm:right-3 sm:top-3 sm:max-w-52 sm:px-3 sm:py-2">
+      {showLiveScore ? <><p className="text-[8px] font-semibold uppercase tracking-[0.14em] text-white/70 sm:text-[10px]">Points en direct</p><div className="mt-1 space-y-1">
         <div className="flex items-center justify-end gap-2 sm:gap-3">
           <div>
             <p className="max-w-16 truncate text-[9px] text-white/70 sm:max-w-none sm:text-[10px]">
               {teamFor(0)}
             </p>
-            <p className="text-xs font-bold leading-none sm:text-sm">{state.totalScore[0]}</p>
-          </div>
-          <div className="min-w-7 rounded-md bg-white/12 px-1 py-1 text-center sm:min-w-8 sm:px-1.5">
-            <p className="text-[9px] font-semibold text-white/70">Manche</p>
-            <p className="text-xs font-bold leading-none">{state.trickPoints[0]}</p>
+            <p className="text-xs font-bold leading-none sm:text-sm">{livePoints[0]}</p>
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 sm:gap-3">
@@ -323,14 +329,11 @@ function LiveScoreOverlay({ state }: { state: GameTableState }) {
             <p className="max-w-16 truncate text-[9px] text-white/70 sm:max-w-none sm:text-[10px]">
               {teamFor(1)}
             </p>
-            <p className="text-xs font-bold leading-none sm:text-sm">{state.totalScore[1]}</p>
-          </div>
-          <div className="min-w-7 rounded-md bg-white/12 px-1 py-1 text-center sm:min-w-8 sm:px-1.5">
-            <p className="text-[9px] font-semibold text-white/70">Manche</p>
-            <p className="text-xs font-bold leading-none">{state.trickPoints[1]}</p>
+            <p className="text-xs font-bold leading-none sm:text-sm">{livePoints[1]}</p>
           </div>
         </div>
-      </div>
+      </div></> : null}
+      {progress ? <div className={showLiveScore ? "mt-1 border-t border-white/20 pt-1" : ""}><p className="text-[8px] font-semibold uppercase tracking-wide text-white/70 sm:text-[9px]">Progression</p><p className="text-[9px] font-semibold sm:text-[10px]">{progress.label}</p></div> : null}
     </div>
   );
 }
@@ -370,11 +373,15 @@ export function GameTable({
   showLiveScore = false,
   turnSecondsRemaining,
 }: GameTableProps) {
+  const { effectiveReducedMotion, preferences } = usePlayerPreferences();
   const observationRef = useRef<TrickObservation | null>(null);
+  const soundPreferencesRef = useRef(preferences);
+  const soundObservationRef = useRef<{ bids: number; plays: number; round: number; scope: string } | null>(null);
   const pendingTricksRef = useRef<PresentedTrick[]>([]);
   const [animatedCompletedTrick, setAnimatedCompletedTrick] = useState<PresentedTrick | null>(
     null,
   );
+  const [showLastTrick, setShowLastTrick] = useState(false);
   const center = playedCardsToShow(state);
   const visualTrick = selectVisualTrick(center.cards, animatedCompletedTrick);
   const nameFor = (playerId: PlayerId) => playerName(playerId, state.playerNames);
@@ -440,6 +447,24 @@ export function GameTable({
   const rightAnnouncement = announcementFor(1);
   const bottomAnnouncement = announcementFor(0);
   useEffect(() => {
+    soundPreferencesRef.current = preferences;
+  }, [preferences]);
+
+  useEffect(() => {
+    const next = {
+      bids: state.bids.length,
+      plays: state.completedTricks.reduce((total, trick) => total + trick.cards.length, 0) + state.currentTrick.cards.length,
+      round: state.roundNumber,
+      scope: presentationScope,
+    };
+    const previous = soundObservationRef.current;
+    soundObservationRef.current = next;
+    if (!previous || previous.round !== next.round || previous.scope !== next.scope) return;
+    if (next.bids > previous.bids) playPreferenceSound("bid", soundPreferencesRef.current);
+    if (next.plays > previous.plays) playPreferenceSound("card-play", soundPreferencesRef.current);
+  }, [presentationScope, state.bids.length, state.completedTricks, state.currentTrick.cards.length, state.roundNumber]);
+
+  useEffect(() => {
     const transition = observeCompletedTricks(observationRef.current, {
       completedTricks: state.completedTricks,
       roundNumber: state.roundNumber,
@@ -449,6 +474,7 @@ export function GameTable({
     if (transition.reset) {
       pendingTricksRef.current = [];
       setAnimatedCompletedTrick(null);
+      setShowLastTrick(false);
       return;
     }
     if (transition.additions.length === 0) return;
@@ -465,16 +491,26 @@ export function GameTable({
   }, [presentationScope, state.completedTricks, state.roundNumber]);
 
   useEffect(() => {
-    if (!animatedCompletedTrick) return;
+    const policy = getTrickPresentationPolicy(preferences);
+    if (!animatedCompletedTrick || !policy.autoCollect) return;
     const timeoutId = window.setTimeout(() => {
+      playPreferenceSound("trick-collect", preferences);
       setAnimatedCompletedTrick((current) => {
         if (current?.key !== animatedCompletedTrick.key) return current;
         return pendingTricksRef.current.shift() ?? null;
       });
-    }, TRICK_PRESENTATION_MS);
+    }, policy.delayMs);
 
     return () => window.clearTimeout(timeoutId);
-  }, [animatedCompletedTrick]);
+  }, [animatedCompletedTrick, preferences]);
+
+  const dismissPresentedTrick = () => {
+    playPreferenceSound("trick-collect", preferences);
+    setAnimatedCompletedTrick((current) => current ? pendingTricksRef.current.shift() ?? null : current);
+  };
+  const lastTrick = state.completedTricks.at(-1) ?? null;
+  const showRoundHelp = (showLiveScore && preferences.assistance.showLivePoints)
+    || (preferences.assistance.showContractProgress && state.contract !== null);
 
   return (
     <section
@@ -482,19 +518,26 @@ export function GameTable({
         "relative w-full max-w-full overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center text-stone-900 shadow-sm",
         immersiveMobileLandscape
           ? "min-h-0 flex-1 rounded-none border-x-0 border-y-0 shadow-none"
-          : "min-h-[190px] flex-none sm:min-h-[260px] lg:flex-1 lg:min-h-[320px]",
+          : preferences.visual.compactLayout
+            ? "min-h-[180px] flex-none sm:min-h-[230px] lg:flex-1 lg:min-h-[280px]"
+            : "min-h-[190px] flex-none sm:min-h-[260px] lg:flex-1 lg:min-h-[320px]",
       ].join(" ")}
       style={{ backgroundImage: `url(${TABLE_BACKGROUND_IMAGE})` }}
     >
       {animatedCompletedTrick ? (
         <TrickCollectionAnimation
+          animate={preferences.gameplay.autoCollectTricks && isPreferenceAnimationEnabled(preferences, "trick", effectiveReducedMotion)}
+          durationMs={preferences.gameplay.trickDisplayMs}
           trick={animatedCompletedTrick.trick}
           winnerName={nameFor(animatedCompletedTrick.trick.winnerId)}
         />
       ) : (
         <TrickCenter cards={visualTrick.cards} title={center.title} />
       )}
-      {showLiveScore ? <LiveScoreOverlay state={state} /> : null}
+      {showRoundHelp ? <RoundHelpOverlay showLiveScore={showLiveScore && preferences.assistance.showLivePoints} state={state} /> : null}
+      {animatedCompletedTrick && !preferences.gameplay.autoCollectTricks ? <button className="absolute bottom-2 left-1/2 z-40 -translate-x-1/2 rounded-md border-2 border-white bg-stone-900 px-4 py-2 text-xs font-bold text-white shadow-lg" onClick={dismissPresentedTrick} type="button">Continuer</button> : null}
+      {preferences.assistance.showLastTrick && lastTrick && !animatedCompletedTrick ? <button aria-expanded={showLastTrick} className="absolute bottom-2 left-2 z-20 rounded-md border border-white/40 bg-black/40 px-2 py-1 text-[10px] font-semibold text-white shadow" onClick={() => setShowLastTrick((visible) => !visible)} type="button">Dernier pli</button> : null}
+      {showLastTrick && lastTrick && !animatedCompletedTrick ? <div aria-label="Cartes du dernier pli" className="absolute inset-2 z-30 flex flex-col items-center justify-center rounded-lg border border-white/50 bg-emerald-950/90 p-3 text-white"><p className="mb-2 text-xs font-bold">Dernier pli · {nameFor(lastTrick.winnerId)}</p><div className="flex gap-1">{lastTrick.cards.map((played) => <CardView card={played.card} disabled key={`${played.playerId}-${played.card.rank}-${played.card.suit}`} muted={false} size="compact" />)}</div><button className="mt-2 rounded border border-white px-3 py-1 text-xs font-semibold" onClick={() => setShowLastTrick(false)} type="button">Fermer</button></div> : null}
       {immersiveMobileLandscape ? (
         <TableStatusOverlay state={state} turnSecondsRemaining={turnSecondsRemaining} />
       ) : null}

@@ -1,8 +1,6 @@
 import { cardId } from "@/engine/cards";
 import type { CompletedTrick, PlayedCard, PlayerId } from "@/engine/types";
 
-export const TRICK_PRESENTATION_MS = 1_000;
-
 export type PresentedTrick = {
   key: string;
   trick: CompletedTrick;

@@ -11,7 +11,11 @@ import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { ScoreBoard } from "@/components/ScoreBoard";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
+import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
+import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
+import { resolveContractMode } from "@/engine/contractMode";
+import { explainIllegalCard } from "@/engine/illegalCardExplanation";
 import { teamName } from "@/engine/players";
 import { getLegalCards } from "@/engine/rules";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
@@ -53,6 +57,7 @@ function statusLabel(status: MultiplayerRoomView["room"]["status"]): string {
 }
 
 export default function MultiplayerRoomPage() {
+  const { preferences } = usePlayerPreferences();
   const params = useParams();
   const roomId = roomIdFromParams(params.roomId);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +81,7 @@ export default function MultiplayerRoomPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [countdownNowMs, setCountdownNowMs] = useState<number | null>(null);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [rulesDraft, setRulesDraft] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
   const [isUpdatingRules, setIsUpdatingRules] = useState(false);
   const [rulesChangedNotice, setRulesChangedNotice] = useState(false);
@@ -159,6 +165,7 @@ export default function MultiplayerRoomPage() {
       playerView.currentPlayerId === currentSeat.seat_index,
   );
   const currentContract = playerView?.contract ?? null;
+  const currentMode = playerView ? resolveContractMode(playerView) : null;
   const gameRules = playerView ? resolveGameRules(playerView.settings) : null;
   const canBidCoinche = Boolean(
     currentSeat && canBid && canCoinche(currentSeat.seat_index, currentContract, gameRules?.bidding),
@@ -166,12 +173,12 @@ export default function MultiplayerRoomPage() {
   const canBidSurcoinche = Boolean(
     currentSeat && canBid && canSurcoinche(currentSeat.seat_index, currentContract, gameRules?.bidding),
   );
-  const legalCards = canPlayCard && playerView?.trump
+  const legalCards = canPlayCard && playerView && currentMode
     ? getLegalCards(
         playerView.hand,
         playerView.currentTrick,
         playerView.viewerPlayerId,
-        playerView.trump,
+        currentMode,
         gameRules?.cardPlay,
       )
     : [];
@@ -614,6 +621,11 @@ export default function MultiplayerRoomPage() {
     void handleRoomPlayerAction({ type: "play-card", card });
   }
 
+  function illegalCardMessage(card: Card): string {
+    if (!playerView || !currentMode || !gameRules) return "Cette carte n'est pas jouable.";
+    return explainIllegalCard({ hand: playerView.hand, trick: playerView.currentTrick, card, playerId: playerView.viewerPlayerId, mode: currentMode, rules: gameRules.cardPlay }) ?? "Cette carte n'est pas jouable.";
+  }
+
   function handleBid(value: BidValue, contractMode: ContractMode) {
     void handleRoomPlayerAction({ type: "bid", value, contractMode });
   }
@@ -699,7 +711,7 @@ export default function MultiplayerRoomPage() {
   const shouldLockPortrait = isMobilePortrait && displayedRoomStatus === "playing";
 
   if (shouldLockPortrait) {
-    return <MobileLandscapeNotice />;
+    return <><MobileLandscapeNotice /><button className="fixed right-3 top-16 z-40 rounded-md border bg-white px-3 py-2 text-sm font-semibold shadow" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button>{isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}</>;
   }
 
   return (
@@ -817,6 +829,7 @@ export default function MultiplayerRoomPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
+                      <button className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button>
                       <button
                         className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50"
                         onClick={() => loadRoom()}
@@ -890,6 +903,7 @@ export default function MultiplayerRoomPage() {
               >
                 <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
                   <div className={`flex justify-end ${isMobileLandscape ? "h-6 items-center pr-2" : ""}`}>
+                    <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-[10px] font-semibold text-stone-800 shadow-sm hover:bg-white sm:text-xs" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button>
                     <button
                       className="rounded-md border border-red-300 bg-white/90 px-2 py-1 text-[10px] font-semibold text-red-800 shadow-sm hover:bg-red-50 sm:text-xs"
                       onClick={() => setIsForfeitConfirmationOpen(true)}
@@ -954,7 +968,9 @@ export default function MultiplayerRoomPage() {
                                 <HumanHand
                                   canPlay={canPlayCard && !isPlayingCard}
                                   cards={playerView.hand}
+                                  contractMode={currentMode}
                                   embedded
+                                  illegalCardMessage={illegalCardMessage}
                                   legalCards={legalCards}
                                   onPlayCard={handlePlayCard}
                                 />
@@ -966,7 +982,7 @@ export default function MultiplayerRoomPage() {
                     players={roomWithPlayers.players}
                     presentationScope={roomId ?? "multiplayer"}
                     state={playerView}
-                    showLiveScore={isMobileLandscape || (!isRightPanelOpen && playerView.phase === "playing")}
+                    showLiveScore={preferences.assistance.showLivePoints}
                     turnSecondsRemaining={turnSecondsRemaining}
                   />
 
@@ -1004,6 +1020,8 @@ export default function MultiplayerRoomPage() {
                       <HumanHand
                         canPlay={canPlayCard && !isPlayingCard}
                         cards={playerView.hand}
+                        contractMode={currentMode}
+                        illegalCardMessage={illegalCardMessage}
                         legalCards={legalCards}
                         onPlayCard={handlePlayCard}
                       />
@@ -1066,6 +1084,7 @@ export default function MultiplayerRoomPage() {
           </section>
         </div>
       ) : null}
+      {isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}
     </main>
   );
 }

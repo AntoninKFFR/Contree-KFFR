@@ -3,9 +3,10 @@ import type { Card, CompletedTrick, PlayedCard, PlayerId } from "@/engine/types"
 import {
   observeCompletedTricks,
   selectVisualTrick,
-  TRICK_PRESENTATION_MS,
   type TrickObservation,
 } from "@/lib/trickPresentation";
+import { clonePlayerPreferences } from "@/lib/preferences/playerPreferences";
+import { getTrickPresentationPolicy } from "@/lib/preferences/presentation";
 
 const cards: Card[] = [
   { rank: "7", suit: "clubs" },
@@ -36,8 +37,8 @@ function observe(
 }
 
 describe("visual completed-trick transition", () => {
-  it("uses a 1000 ms client-only presentation window", () => {
-    expect(TRICK_PRESENTATION_MS).toBe(1_000);
+  it("uses the preference-controlled client-only presentation window", () => {
+    expect(getTrickPresentationPolicy(clonePlayerPreferences()).delayMs).toBe(1_200);
   });
 
   it("does not replay historical tricks on refresh or reconnection", () => {

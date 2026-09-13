@@ -1,12 +1,18 @@
+import { useEffect, useMemo, useState } from "react";
 import { CardView } from "@/components/CardView";
+import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { sameCard } from "@/engine/cards";
-import type { Card } from "@/engine/types";
+import type { Card, ContractMode } from "@/engine/types";
+import { sortHandForDisplay } from "@/lib/preferences/handSorting";
+import { isPreferenceAnimationEnabled } from "@/lib/preferences/presentation";
 
 type HumanHandProps = {
   cards: Card[];
   legalCards: Card[];
   canPlay: boolean;
   onPlayCard: (card: Card) => void;
+  contractMode?: ContractMode | null;
+  illegalCardMessage?: (card: Card) => string;
   embedded?: boolean;
 };
 
@@ -15,8 +21,17 @@ export function HumanHand({
   legalCards,
   canPlay,
   onPlayCard,
+  contractMode = null,
+  illegalCardMessage,
   embedded = false,
 }: HumanHandProps) {
+  const { effectiveReducedMotion, preferences } = usePlayerPreferences();
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const displayedCards = useMemo(
+    () => sortHandForDisplay(cards, preferences.cards, contractMode),
+    [cards, contractMode, preferences.cards],
+  );
+  useEffect(() => setFeedback(null), [canPlay, cards, legalCards]);
   return (
     <section
       className={
@@ -28,12 +43,12 @@ export function HumanHand({
       <div
         className={[
           "mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3",
-          embedded ? "mb-1" : "",
+          embedded || preferences.visual.compactLayout ? "mb-1" : "",
         ].join(" ")}
       >
         <h2 className={`text-sm font-semibold ${embedded ? "text-white" : ""}`}>Ta main</h2>
         <p className={`text-xs ${embedded ? "text-white/75" : "text-stone-600"}`}>
-          {canPlay ? "Choisis une carte autorisee." : "Les bots reflechissent..."}
+          {feedback ?? (canPlay ? "Choisis une carte autorisee." : "Les bots reflechissent...")}
         </p>
       </div>
       <div
@@ -42,18 +57,28 @@ export function HumanHand({
           embedded ? "min-h-0 flex-nowrap gap-1.5 pb-0 sm:flex-nowrap sm:overflow-x-auto" : "",
         ].join(" ")}
       >
-        {cards.map((card) => {
+        {displayedCards.map((card) => {
           const isPlayable = legalCards.some((legalCard) => sameCard(legalCard, card));
 
           return (
             <CardView
               card={card}
-              className="coinche-card-enter"
+              allowIllegalClick={!preferences.assistance.disableIllegalCardClicks}
+              className={isPreferenceAnimationEnabled(preferences, "deal", effectiveReducedMotion) ? "coinche-card-enter" : ""}
               disabled={!canPlay}
+              dimmed={!isPlayable && preferences.assistance.dimIllegalCards}
+              highlighted={isPlayable && canPlay && preferences.assistance.highlightLegalCards}
               isPlayable={isPlayable}
               key={`${card.rank}-${card.suit}`}
-              onClick={() => onPlayCard(card)}
-              size={embedded ? "compact" : "normal"}
+              onClick={() => {
+                if (isPlayable) {
+                  setFeedback(null);
+                  onPlayCard(card);
+                  return;
+                }
+                setFeedback(illegalCardMessage?.(card) ?? "Cette carte n'est pas jouable.");
+              }}
+              size={embedded && preferences.cards.cardSize === "medium" ? "compact" : preferences.cards.cardSize}
             />
           );
         })}

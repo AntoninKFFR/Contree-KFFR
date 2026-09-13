@@ -9,6 +9,7 @@ import { createMultiplayerRoom, findMultiplayerRoom } from "@/lib/multiplayerApi
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
+import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
 import { buildCustomRuleset, type CustomRulesetInput } from "@/engine/rulesets/custom";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
@@ -32,6 +33,7 @@ export default function MultiplayerPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [rules, setRules] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -129,9 +131,7 @@ export default function MultiplayerPage() {
     <main className="min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950">
       <div className="mx-auto flex max-w-4xl flex-col gap-4">
         <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
-            Multijoueur
-          </p>
+          <div className="flex items-start justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Multijoueur</p><button className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold" type="button" onClick={() => setIsSettingsOpen(true)}>Paramètres</button></div>
           <h1 className="mt-1 text-2xl font-bold">Tables</h1>
           <p className="mt-1 text-sm text-stone-600">
             Crée une table ou rejoins une table avec un code.
@@ -224,7 +224,8 @@ export default function MultiplayerPage() {
             </section>
           </div>
         ) : null}
-        {isRulesOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3" role="dialog" aria-modal="true"><section className="flex max-h-[94dvh] w-full max-w-3xl flex-col rounded-xl bg-[#f4f1e8] p-4"><div className="mb-2 flex justify-between"><h2 className="text-xl font-bold">Règles de la table</h2><button className="rounded border px-3" type="button" onClick={() => setIsRulesOpen(false)}>Fermer</button></div><RulesetConfigurator value={rules} onChange={setRules} /><button className="mt-3 rounded bg-emerald-800 px-4 py-2 font-bold text-white" type="button" onClick={() => setIsRulesOpen(false)}>Valider les règles</button></section></div> : null}
+        {isRulesOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3" role="dialog" aria-modal="true"><section className="flex max-h-[94dvh] w-full max-w-3xl flex-col rounded-xl bg-[#f4f1e8] p-4"><div className="mb-2 flex justify-between"><div><h2 className="text-xl font-bold">Règles de la table</h2><p className="text-xs text-stone-600">Partagées par tous les joueurs et appliquées par le moteur.</p></div><button className="rounded border px-3" type="button" onClick={() => setIsRulesOpen(false)}>Fermer</button></div><RulesetConfigurator value={rules} onChange={setRules} /><button className="mt-3 rounded bg-emerald-800 px-4 py-2 font-bold text-white" type="button" onClick={() => setIsRulesOpen(false)}>Valider les règles</button></section></div> : null}
+        {isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}
       </div>
     </main>
   );

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppDrawerNav } from "@/components/AppDrawerNav";
+import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,10 +19,12 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className="bg-[#f4f1e8] text-stone-950">
-        <div className="min-h-dvh">
-          <AppDrawerNav />
-          {children}
-        </div>
+        <PlayerPreferencesProvider>
+          <div className="min-h-dvh">
+            <AppDrawerNav />
+            {children}
+          </div>
+        </PlayerPreferencesProvider>
       </body>
     </html>
   );

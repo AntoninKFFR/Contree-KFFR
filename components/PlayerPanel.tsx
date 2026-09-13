@@ -1,4 +1,6 @@
+import React from "react";
 import type { PlayerId } from "@/engine/types";
+import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 
 type PlayerPanelProps = {
   playerId: PlayerId;
@@ -16,11 +18,15 @@ export function PlayerPanel({
   isConnected,
   isCurrent,
 }: PlayerPanelProps) {
+  const { effectiveReducedMotion, preferences } = usePlayerPreferences();
+  const highlight = isCurrent && preferences.assistance.showTurnIndicator;
   return (
     <div
+      aria-current={highlight ? "true" : undefined}
       className={[
         "flex h-10 w-20 items-center justify-center rounded-md border bg-white/95 px-2 text-center shadow-sm sm:h-12 sm:w-28 sm:px-3",
-        isCurrent ? "border-emerald-600" : "border-stone-200",
+        highlight ? "border-2 border-emerald-700 coinche-turn-pulse" : "border-stone-200",
+        highlight && !effectiveReducedMotion ? "transition-shadow" : "",
       ].join(" ")}
     >
       <div className="flex items-center justify-center gap-1.5 sm:gap-2">

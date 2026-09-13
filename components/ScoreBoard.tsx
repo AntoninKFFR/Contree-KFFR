@@ -4,6 +4,7 @@ import { playerName, teamName } from "@/engine/players";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import type { ContractStatus, GameState } from "@/engine/types";
 import type { PlayerGameView } from "@/engine/views";
+import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 
 type ScoreBoardState = GameState | PlayerGameView;
 
@@ -20,6 +21,7 @@ export function ScoreBoard({
   onNextRound,
   showActions = true,
 }: ScoreBoardProps) {
+  const { preferences } = usePlayerPreferences();
   const displayedContract = state.contract;
   const canStartNextRound = state.phase === "finished";
   const nameFor = (playerId: Parameters<typeof playerName>[0]) =>
@@ -28,7 +30,7 @@ export function ScoreBoard({
   const rules = resolveGameRules(state.settings);
 
   return (
-    <aside className="hidden min-h-0 rounded-lg border border-stone-200 bg-white/95 p-3 text-sm shadow-sm lg:flex lg:flex-col lg:overflow-hidden">
+    <aside className={`hidden min-h-0 rounded-lg border border-stone-200 bg-white/95 text-sm shadow-sm lg:flex lg:flex-col lg:overflow-hidden ${preferences.visual.compactLayout ? "p-2" : "p-3"}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-stone-500">Atout</p>
@@ -155,7 +157,7 @@ export function ScoreBoard({
       </p>
 
       <div className="mt-2 min-h-0 flex-1 space-y-2 overflow-hidden">
-        <details className="rounded-md bg-stone-100 p-2 text-xs text-stone-700" open>
+        <details className="coinche-secondary-metadata rounded-md bg-stone-100 p-2 text-xs text-stone-700" open>
           <summary className="cursor-pointer font-semibold">Historique</summary>
           {state.roundHistory.length === 0 ? (
             <p className="mt-1">Aucune manche terminee.</p>
@@ -172,7 +174,7 @@ export function ScoreBoard({
           )}
         </details>
 
-        <details className="rounded-md bg-stone-100 p-2 text-xs text-stone-700" open>
+        <details className="coinche-secondary-metadata rounded-md bg-stone-100 p-2 text-xs text-stone-700" open>
           <summary className="cursor-pointer font-semibold">Annonces</summary>
           {state.bids.length === 0 ? (
             <p className="mt-1">Aucune annonce.</p>
