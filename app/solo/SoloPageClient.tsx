@@ -11,6 +11,7 @@ import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { ScoreBoard } from "@/components/ScoreBoard";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
+import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { applyGameAction, type GameAction } from "@/engine/actions";
@@ -302,6 +303,8 @@ export default function SoloPage() {
     dispatchGameAction({ type: "start-next-round" });
   }
 
+  const rulesDialog = isRulesOpen ? <AccessibleDialog description="Partagées par les joueurs de la prochaine partie. La partie en cours reste inchangée." footer={<div className="grid gap-2 sm:grid-cols-[1fr_auto]"><RulesetSummary ruleset={buildCustomRuleset(rulesDraft)} compact /><button className="rounded-lg bg-emerald-800 px-4 py-3 font-bold text-white" type="button" onClick={applyRulesAndStartGame}>Appliquer et nouvelle partie</button></div>} onClose={() => setIsRulesOpen(false)} title="Règles de la prochaine partie"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null;
+
   if (!gameState) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-stone-100 text-sm text-stone-600">
@@ -311,7 +314,7 @@ export default function SoloPage() {
   }
 
   if (isMobilePortrait) {
-    return <><MobileLandscapeNotice /><button className="fixed right-3 top-16 z-40 rounded-md border bg-white px-3 py-2 text-sm font-semibold shadow" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button>{isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}</>;
+    return <><MobileLandscapeNotice /><div className="fixed right-3 top-16 z-40 flex gap-2"><button className="rounded-md border bg-white px-3 py-2 text-sm font-semibold shadow" onClick={() => { setRulesDraft(rulesInput); setIsRulesOpen(true); }} type="button">Règles</button><button className="rounded-md border bg-white px-3 py-2 text-sm font-semibold shadow" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button></div>{rulesDialog}{isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}</>;
   }
 
   return (
@@ -350,7 +353,7 @@ export default function SoloPage() {
                 {isRightPanelOpen ? "Masquer infos" : "Afficher infos"}
               </button>
             </div>
-            {isMobileLandscape ? <button className="fixed right-1 top-[58px] z-40 rounded-md border border-white/40 bg-black/55 px-2 py-1 text-[10px] font-semibold text-white" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button> : null}
+            {isMobileLandscape ? <div className="fixed right-1 top-[58px] z-40 flex gap-1"><button className="rounded-md border border-white/40 bg-black/55 px-2 py-1 text-[10px] font-semibold text-white" onClick={() => { setRulesDraft(rulesInput); setIsRulesOpen(true); }} type="button">Règles</button><button className="rounded-md border border-white/40 bg-black/55 px-2 py-1 text-[10px] font-semibold text-white" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button></div> : null}
 
             <GameTable
               bottomOverlay={
@@ -500,7 +503,7 @@ export default function SoloPage() {
           ) : null}
         </div>
       </div>
-      {isRulesOpen ? <div aria-modal="true" role="dialog" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3"><section className="flex max-h-[94dvh] w-full max-w-3xl flex-col rounded-xl bg-[#f4f1e8] p-4 shadow-2xl"><div className="mb-3 flex items-center justify-between"><div><h2 className="text-xl font-bold">Règles de la prochaine partie</h2><p className="text-xs text-stone-600">La partie en cours reste inchangée.</p></div><button className="rounded border px-3 py-1" type="button" onClick={() => setIsRulesOpen(false)}>Fermer</button></div><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /><div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]"><RulesetSummary ruleset={buildCustomRuleset(rulesDraft)} compact /><button className="rounded-lg bg-emerald-800 px-4 py-3 font-bold text-white" type="button" onClick={applyRulesAndStartGame}>Appliquer et nouvelle partie</button></div></section></div> : null}
+      {rulesDialog}
       {isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}
     </main>
   );

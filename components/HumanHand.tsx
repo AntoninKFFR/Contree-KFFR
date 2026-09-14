@@ -32,12 +32,17 @@ export function HumanHand({
     [cards, contractMode, preferences.cards],
   );
   useEffect(() => setFeedback(null), [canPlay, cards, legalCards]);
+  useEffect(() => {
+    if (!feedback) return;
+    const timeoutId = window.setTimeout(() => setFeedback(null), 2_800);
+    return () => window.clearTimeout(timeoutId);
+  }, [feedback]);
   return (
     <section
       className={
         embedded
           ? "rounded-xl border border-white/20 bg-black/20 p-2 text-white shadow-sm backdrop-blur-sm"
-          : "shrink-0 rounded-lg border border-stone-200 bg-white/90 p-2 shadow-sm"
+          : "relative shrink-0 rounded-lg border border-stone-200 bg-white/90 p-2 shadow-sm"
       }
     >
       <div
@@ -48,9 +53,10 @@ export function HumanHand({
       >
         <h2 className={`text-sm font-semibold ${embedded ? "text-white" : ""}`}>Ta main</h2>
         <p className={`text-xs ${embedded ? "text-white/75" : "text-stone-600"}`}>
-          {feedback ?? (canPlay ? "Choisis une carte autorisee." : "Les bots reflechissent...")}
+          {canPlay ? "Choisis une carte autorisée." : "Les bots réfléchissent…"}
         </p>
       </div>
+      {feedback ? <p aria-live="polite" className={`mb-2 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm ${embedded ? "border-amber-200/60 bg-stone-950/80 text-white" : "border-amber-300 bg-amber-50 text-amber-950"}`} role="status">{feedback}</p> : null}
       <div
         className={[
           "-mx-1 flex min-h-28 gap-2.5 overflow-x-auto px-1 pb-1 sm:mx-0 sm:min-h-24 sm:flex-wrap sm:justify-start sm:gap-2 sm:overflow-visible sm:px-0 sm:pb-0",

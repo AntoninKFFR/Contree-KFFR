@@ -11,6 +11,7 @@ import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { ScoreBoard } from "@/components/ScoreBoard";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
+import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
@@ -38,7 +39,6 @@ type LoadRoomOptions = {
   silent?: boolean;
 };
 
-const TABLE_BACKGROUND_IMAGE = "/TapisKFFR.png";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Action impossible pour le moment.";
@@ -862,7 +862,7 @@ export default function MultiplayerRoomPage() {
 
                 <section className="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-bold">Règles de la table</h2><p className="text-xs text-stone-600">Toute modification remet les joueurs en attente de confirmation.</p></div>{isHost ? <button className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold" type="button" onClick={() => { setRulesDraft(rulesetToCustomInput(lobbyRules)); setIsRulesOpen(true); }}>Modifier les règles</button> : null}</div>
-                  <RulesetSummary ruleset={lobbyRules} />
+                  <RulesetSummary ruleset={lobbyRules} showDifferences />
                   {rulesChangedNotice ? <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">Les règles ont changé. Les joueurs doivent se remettre prêts.</p> : null}
                 </section>
 
@@ -888,7 +888,7 @@ export default function MultiplayerRoomPage() {
                 />
               </>
             ) : null}
-            {isRulesOpen && displayedRoomStatus === "lobby" ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3" role="dialog" aria-modal="true"><section className="flex max-h-[94dvh] w-full max-w-3xl flex-col rounded-xl bg-[#f4f1e8] p-4"><div className="mb-2 flex justify-between"><div><h2 className="text-xl font-bold">Règles de la table</h2><p className="text-xs text-stone-600">Les joueurs devront se remettre prêts.</p></div><button className="rounded border px-3" type="button" onClick={() => setIsRulesOpen(false)}>Fermer</button></div><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /><button className="mt-3 rounded bg-emerald-800 px-4 py-2 font-bold text-white disabled:opacity-50" disabled={isUpdatingRules} type="button" onClick={() => void handleUpdateRules()}>{isUpdatingRules ? "Enregistrement…" : "Enregistrer les règles"}</button></section></div> : null}
+            {isRulesOpen && displayedRoomStatus === "lobby" ? <AccessibleDialog description="Partagées par toute la table. Les joueurs devront se remettre prêts." footer={<button className="w-full rounded bg-emerald-800 px-4 py-2 font-bold text-white disabled:opacity-50 sm:w-auto" disabled={isUpdatingRules} type="button" onClick={() => void handleUpdateRules()}>{isUpdatingRules ? "Enregistrement…" : "Enregistrer les règles"}</button>} onClose={() => setIsRulesOpen(false)} title="Règles de la table"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null}
 
             {displayedRoomStatus === "playing" && playerView ? (
               <div
@@ -1129,8 +1129,7 @@ function LobbyTable({
     <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
       <h2 className="text-lg font-bold">Places</h2>
       <div
-        className="relative mt-4 min-h-[360px] overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center p-4 shadow-sm"
-        style={{ backgroundImage: `url(${TABLE_BACKGROUND_IMAGE})` }}
+        className="coinche-game-table relative mt-4 min-h-[360px] overflow-hidden rounded-lg border border-emerald-900/20 bg-cover bg-center p-4 shadow-sm"
       >
         {players.map((player) => {
           const position = LOBBY_SEAT_POSITIONS[player.seat_index];

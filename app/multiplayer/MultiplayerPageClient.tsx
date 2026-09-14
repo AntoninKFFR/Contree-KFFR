@@ -9,6 +9,7 @@ import { createMultiplayerRoom, findMultiplayerRoom } from "@/lib/multiplayerApi
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
+import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
 import { buildCustomRuleset, type CustomRulesetInput } from "@/engine/rulesets/custom";
 
@@ -179,7 +180,7 @@ export default function MultiplayerPage() {
                   value={displayName}
                 />
 
-                <RulesetSummary ruleset={buildCustomRuleset(rules)} compact />
+                <RulesetSummary ruleset={buildCustomRuleset(rules)} compact showDifferences />
                 <button className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold" disabled={!canSubmit} type="button" onClick={() => setIsRulesOpen(true)}>Règles de la table</button>
 
                 <button
@@ -224,7 +225,7 @@ export default function MultiplayerPage() {
             </section>
           </div>
         ) : null}
-        {isRulesOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3" role="dialog" aria-modal="true"><section className="flex max-h-[94dvh] w-full max-w-3xl flex-col rounded-xl bg-[#f4f1e8] p-4"><div className="mb-2 flex justify-between"><div><h2 className="text-xl font-bold">Règles de la table</h2><p className="text-xs text-stone-600">Partagées par tous les joueurs et appliquées par le moteur.</p></div><button className="rounded border px-3" type="button" onClick={() => setIsRulesOpen(false)}>Fermer</button></div><RulesetConfigurator value={rules} onChange={setRules} /><button className="mt-3 rounded bg-emerald-800 px-4 py-2 font-bold text-white" type="button" onClick={() => setIsRulesOpen(false)}>Valider les règles</button></section></div> : null}
+        {isRulesOpen ? <AccessibleDialog description="Partagées par tous les joueurs et appliquées par le moteur." footer={<button className="w-full rounded bg-emerald-800 px-4 py-2 font-bold text-white sm:w-auto" type="button" onClick={() => setIsRulesOpen(false)}>Valider les règles</button>} onClose={() => setIsRulesOpen(false)} title="Règles de la table"><RulesetConfigurator value={rules} onChange={setRules} /></AccessibleDialog> : null}
         {isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}
       </div>
     </main>

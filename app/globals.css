@@ -21,6 +21,41 @@ select {
   font: inherit;
 }
 
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #047857;
+  outline-offset: 2px;
+}
+
+.coinche-game-table {
+  --coinche-table-color: #19734a;
+  background-color: var(--coinche-table-color);
+  background-image: url("/TapisKFFR.png");
+}
+
+.coinche-table-midnight-blue .coinche-game-table {
+  --coinche-table-color: #17345a;
+  background-image: linear-gradient(145deg, rgb(10 25 49 / 35%), rgb(28 61 94 / 75%));
+}
+
+.coinche-table-burgundy .coinche-game-table {
+  --coinche-table-color: #742f3b;
+  background-image: linear-gradient(145deg, rgb(74 19 32 / 35%), rgb(128 52 59 / 75%));
+}
+
+.coinche-table-dark-neutral .coinche-game-table {
+  --coinche-table-color: #343a3a;
+  background-image: linear-gradient(145deg, rgb(25 28 28 / 45%), rgb(65 70 68 / 75%));
+}
+
+.coinche-cards-modern .coinche-card {
+  border-radius: 0.75rem;
+  background: linear-gradient(145deg, #fff, #f2f4f3);
+  box-shadow: 0 8px 20px rgb(15 23 42 / 18%);
+}
+
 @keyframes coinche-card-enter {
   from {
     opacity: 0;
@@ -85,6 +120,17 @@ select {
   border-width: 2px;
 }
 
+.coinche-high-contrast .coinche-card {
+  border-color: currentColor;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #111827;
+}
+
+.coinche-high-contrast .coinche-dialog,
+.coinche-high-contrast .coinche-game-table,
+.coinche-high-contrast section {
+  border-color: #111827;
+}
+
 .coinche-high-contrast .coinche-turn-pulse {
   outline: 3px double #111827;
   outline-offset: 2px;
@@ -131,5 +177,17 @@ select {
   .coinche-trick-collect,
   .coinche-bid-bubble-enter {
     animation: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .coinche-card[data-card-size="large"] {
+    width: 5rem;
+    height: 7rem;
+    padding: 0.5rem;
+  }
+
+  .coinche-text-large .coinche-dialog {
+    font-size: 0.95rem;
   }
 }

@@ -13,7 +13,7 @@ export function sortHandForDisplay(
   mode: ContractMode | null = null,
 ): Card[] {
   const result = [...cards];
-  if (!preferences.autoSortHand || preferences.sortMode === "manual") return result;
+  if (!preferences.autoSortHand) return result;
   const effectiveMode: ContractMode = mode ?? { kind: "no-trump" };
   result.sort((first, second) => {
     const suitDifference = suitIndex(first.suit, preferences.suitOrder) - suitIndex(second.suit, preferences.suitOrder);

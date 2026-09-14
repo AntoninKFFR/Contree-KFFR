@@ -4,8 +4,25 @@ import React, { useEffect, useMemo, useState } from "react";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { SUIT_LABELS, SUIT_SYMBOLS, SUITS } from "@/engine/cards";
 import { canBidCapot, canBidGenerale, canBidGeneraleMode, getAvailableBidValues } from "@/engine/bidding";
+import { formatContractLabel, formatContractMode } from "@/engine/contractMode";
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import type { BidValue, Contract, ContractMode, Suit } from "@/engine/types";
+import type { PlayerPreferences } from "@/lib/preferences/playerPreferences";
+
+export type ConfirmableBidAction = "coinche" | "surcoinche" | "capot" | "generale";
+
+export function shouldConfirmBidAction(action: ConfirmableBidAction, preferences: PlayerPreferences): boolean {
+  return action === "coinche" ? preferences.gameplay.confirmCoinche
+    : action === "surcoinche" ? preferences.gameplay.confirmSurcoinche
+      : action === "capot" ? preferences.gameplay.confirmCapot
+        : preferences.gameplay.confirmGenerale;
+}
+
+export function bidConfirmationMessage(action: ConfirmableBidAction, contract: Contract | null, mode: ContractMode): string {
+  if (action === "coinche") return `Coincher ${contract ? formatContractLabel(contract) : "ce contrat"} ?`;
+  if (action === "surcoinche") return `Surcoincher ${contract ? formatContractLabel(contract) : "ce contrat"} ?`;
+  return `Annoncer ${action === "capot" ? "un Capot" : "une Générale"} ${formatContractMode(mode)} ?`;
+}
 
 type BiddingPanelProps = {
   canBid: boolean;
@@ -43,6 +60,7 @@ export function BiddingPanel({
   );
   const [value, setValue] = useState<BidValue | "">(availableValues[0] ?? "");
   const [modeValue, setModeValue] = useState<Suit | "no-trump" | "all-trump">("hearts");
+  const [pendingConfirmation, setPendingConfirmation] = useState<{ message: string; action: () => void } | null>(null);
   const contractMode: ContractMode = modeValue === "no-trump" || modeValue === "all-trump"
     ? { kind: modeValue }
     : { kind: "suit", suit: modeValue };
@@ -58,14 +76,23 @@ export function BiddingPanel({
     }
   }, [availableValues, value]);
 
+  useEffect(() => {
+    if (!pendingConfirmation) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPendingConfirmation(null);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [pendingConfirmation]);
+
   function handleBid() {
     if (!canMakeBid || value === "") return;
     onBid(value, contractMode);
   }
 
   function confirmed(message: string, enabled: boolean, action: () => void) {
-    if (enabled && typeof window !== "undefined" && !window.confirm(message)) return;
-    action();
+    if (!enabled) { action(); return; }
+    setPendingConfirmation({ message, action });
   }
 
   return (
@@ -86,6 +113,7 @@ export function BiddingPanel({
           </h2>
         </div>
       </div>
+      {pendingConfirmation ? <div aria-label="Confirmation d'enchère" aria-live="assertive" className={`mb-2 rounded-xl border p-3 shadow-sm ${compact ? "border-white/40 bg-stone-950/90 text-white" : "border-amber-300 bg-amber-50"}`} role="alertdialog"><p className="text-sm font-bold">{pendingConfirmation.message}</p><div className="mt-2 flex gap-2"><button autoFocus className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white" onClick={() => { const action = pendingConfirmation.action; setPendingConfirmation(null); action(); }} type="button">Confirmer</button><button className="rounded-lg border bg-white px-3 py-2 text-xs font-bold text-stone-800" onClick={() => setPendingConfirmation(null)} type="button">Annuler</button></div></div> : null}
 
       {canBid && availableValues.length === 0 ? (
         <p
@@ -159,7 +187,7 @@ export function BiddingPanel({
           <button
             className="rounded-md border border-amber-300 px-2 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canMakeCapot}
-            onClick={() => onCapot(contractMode)}
+            onClick={() => confirmed(bidConfirmationMessage("capot", currentContract, contractMode), shouldConfirmBidAction("capot", preferences), () => onCapot(contractMode))}
             type="button"
           >
             Capot
@@ -167,7 +195,7 @@ export function BiddingPanel({
           {biddingRules?.allowGenerale ? <button
             className="rounded-md border border-purple-300 px-2 py-2 text-xs font-semibold text-purple-800 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canMakeGenerale}
-            onClick={() => confirmed("Confirmer cette Générale ?", preferences.gameplay.confirmGenerale, () => onGenerale(contractMode))}
+            onClick={() => confirmed(bidConfirmationMessage("generale", currentContract, contractMode), shouldConfirmBidAction("generale", preferences), () => onGenerale(contractMode))}
             type="button"
           >
             Générale
@@ -175,7 +203,7 @@ export function BiddingPanel({
           <button
             className="rounded-md border border-red-300 px-2 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canCoinche}
-            onClick={() => confirmed("Confirmer la Coinche ?", preferences.gameplay.confirmCoinche, onCoinche)}
+            onClick={() => confirmed(bidConfirmationMessage("coinche", currentContract, contractMode), shouldConfirmBidAction("coinche", preferences), onCoinche)}
             type="button"
           >
             Contrer
@@ -183,7 +211,7 @@ export function BiddingPanel({
           <button
             className="rounded-md border border-emerald-300 px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canSurcoinche}
-            onClick={() => confirmed("Confirmer la Surcoinche ?", preferences.gameplay.confirmSurcoinche, onSurcoinche)}
+            onClick={() => confirmed(bidConfirmationMessage("surcoinche", currentContract, contractMode), shouldConfirmBidAction("surcoinche", preferences), onSurcoinche)}
             type="button"
           >
             Surcontrer

@@ -39,7 +39,7 @@ export function CardView({
   const symbolClasses = size === "compact" || size === "small" ? "text-xl sm:text-2xl" : size === "large" ? "text-5xl sm:text-4xl" : "text-4xl sm:text-3xl";
   const clickDisabled = disabled || (!isPlayable && !allowIllegalClick);
   const classes = [
-    "relative flex touch-manipulation items-center justify-center rounded-md border bg-white text-center shadow-sm transition-all duration-200 ease-out",
+    "coinche-card relative flex touch-manipulation items-center justify-center rounded-md border bg-white text-center shadow-sm transition-all duration-200 ease-out focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-amber-300",
     sizeClasses,
     isRed ? "border-red-200 text-red-700" : "border-stone-300 text-stone-900",
     onClick && !clickDisabled

@@ -50,8 +50,6 @@ type AnnouncementBubbleContent = {
   tone: "neutral" | "accent";
 };
 
-const TABLE_BACKGROUND_IMAGE = "/TapisKFFR.png";
-
 function formatBidLabel(bid: Bid): AnnouncementBubbleContent {
   if (bid.action === "pass") {
     return { label: "Passe", tone: "neutral" };
@@ -333,7 +331,7 @@ function RoundHelpOverlay({ state, showLiveScore }: { state: GameTableState; sho
           </div>
         </div>
       </div></> : null}
-      {progress ? <div className={showLiveScore ? "mt-1 border-t border-white/20 pt-1" : ""}><p className="text-[8px] font-semibold uppercase tracking-wide text-white/70 sm:text-[9px]">Progression</p><p className="text-[9px] font-semibold sm:text-[10px]">{progress.label}</p></div> : null}
+      {progress ? <div className={showLiveScore ? "mt-1 border-t border-white/20 pt-1" : ""}><p className="text-[8px] font-semibold uppercase tracking-wide text-white/70 sm:text-[9px]">Progression du contrat</p><p className="text-xs font-bold sm:text-sm">{progress.takerPoints} / {progress.target}</p><p className="text-[9px] sm:text-[10px]">{progress.pointsNeeded === 0 ? "Objectif atteint provisoirement" : `${progress.pointsNeeded} ${progress.target === 8 ? "plis" : "points"} manquants`}</p>{progress.mustBeatDefense ? <p className="mt-0.5 text-[8px] text-white/75 sm:text-[9px]">Il faut aussi battre la défense.</p> : null}</div> : null}
     </div>
   );
 }
@@ -515,14 +513,13 @@ export function GameTable({
   return (
     <section
       className={[
-        "relative w-full max-w-full overflow-hidden rounded-lg border border-emerald-900/20 bg-emerald-700 bg-cover bg-center text-stone-900 shadow-sm",
+        "coinche-game-table relative w-full max-w-full overflow-hidden rounded-lg border border-emerald-900/20 bg-cover bg-center text-stone-900 shadow-sm",
         immersiveMobileLandscape
           ? "min-h-0 flex-1 rounded-none border-x-0 border-y-0 shadow-none"
           : preferences.visual.compactLayout
             ? "min-h-[180px] flex-none sm:min-h-[230px] lg:flex-1 lg:min-h-[280px]"
             : "min-h-[190px] flex-none sm:min-h-[260px] lg:flex-1 lg:min-h-[320px]",
       ].join(" ")}
-      style={{ backgroundImage: `url(${TABLE_BACKGROUND_IMAGE})` }}
     >
       {animatedCompletedTrick ? (
         <TrickCollectionAnimation
@@ -535,9 +532,9 @@ export function GameTable({
         <TrickCenter cards={visualTrick.cards} title={center.title} />
       )}
       {showRoundHelp ? <RoundHelpOverlay showLiveScore={showLiveScore && preferences.assistance.showLivePoints} state={state} /> : null}
-      {animatedCompletedTrick && !preferences.gameplay.autoCollectTricks ? <button className="absolute bottom-2 left-1/2 z-40 -translate-x-1/2 rounded-md border-2 border-white bg-stone-900 px-4 py-2 text-xs font-bold text-white shadow-lg" onClick={dismissPresentedTrick} type="button">Continuer</button> : null}
+      {animatedCompletedTrick && !preferences.gameplay.autoCollectTricks ? <button className="absolute bottom-2 left-1/2 z-40 -translate-x-1/2 rounded-xl border-2 border-white bg-emerald-950 px-5 py-2.5 text-xs font-bold text-white shadow-xl" onClick={dismissPresentedTrick} type="button"><span className="block">Ramasser le pli</span><span className="block text-[10px] font-normal text-white/80">{nameFor(animatedCompletedTrick.trick.winnerId)} gagne · {animatedCompletedTrick.trick.points} pts</span></button> : null}
       {preferences.assistance.showLastTrick && lastTrick && !animatedCompletedTrick ? <button aria-expanded={showLastTrick} className="absolute bottom-2 left-2 z-20 rounded-md border border-white/40 bg-black/40 px-2 py-1 text-[10px] font-semibold text-white shadow" onClick={() => setShowLastTrick((visible) => !visible)} type="button">Dernier pli</button> : null}
-      {showLastTrick && lastTrick && !animatedCompletedTrick ? <div aria-label="Cartes du dernier pli" className="absolute inset-2 z-30 flex flex-col items-center justify-center rounded-lg border border-white/50 bg-emerald-950/90 p-3 text-white"><p className="mb-2 text-xs font-bold">Dernier pli · {nameFor(lastTrick.winnerId)}</p><div className="flex gap-1">{lastTrick.cards.map((played) => <CardView card={played.card} disabled key={`${played.playerId}-${played.card.rank}-${played.card.suit}`} muted={false} size="compact" />)}</div><button className="mt-2 rounded border border-white px-3 py-1 text-xs font-semibold" onClick={() => setShowLastTrick(false)} type="button">Fermer</button></div> : null}
+      {showLastTrick && lastTrick && !animatedCompletedTrick ? <div aria-label="Cartes du dernier pli" className="absolute inset-2 z-30 flex flex-col items-center justify-center overflow-y-auto rounded-xl border border-white/60 bg-stone-950/95 p-3 text-white shadow-2xl"><p className="text-sm font-bold">Dernier pli</p><p className="mb-2 text-xs text-white/75">{nameFor(lastTrick.winnerId)} gagne · {lastTrick.points} points</p><ol className="flex max-w-full gap-1.5 overflow-x-auto px-1">{lastTrick.cards.map((played, index) => <li className="flex shrink-0 flex-col items-center gap-1" key={`${played.playerId}-${played.card.rank}-${played.card.suit}`}><span className="text-[9px] text-white/80">{index + 1}. {nameFor(played.playerId)}</span><CardView card={played.card} disabled muted={false} size="compact" /></li>)}</ol><button className="mt-2 rounded-lg border border-white px-3 py-1 text-xs font-semibold" onClick={() => setShowLastTrick(false)} type="button">Fermer</button></div> : null}
       {immersiveMobileLandscape ? (
         <TableStatusOverlay state={state} turnSecondsRemaining={turnSecondsRemaining} />
       ) : null}

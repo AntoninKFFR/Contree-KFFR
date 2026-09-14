@@ -1,113 +1,107 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { SUIT_LABELS, SUIT_SYMBOLS } from "@/engine/cards";
-import { moveSuit } from "@/lib/preferences/handSorting";
 import { playPreferenceSound } from "@/lib/preferences/audio";
-import type { GameSpeed, PlayerPreferences } from "@/lib/preferences/playerPreferences";
+import { moveSuit } from "@/lib/preferences/handSorting";
+import { DEFAULT_PLAYER_PREFERENCES, withCustomTiming, type PlayerPreferences, type PresetGameSpeed } from "@/lib/preferences/playerPreferences";
 import { usePlayerPreferences } from "./PlayerPreferencesProvider";
 
-type ToggleProps = {
-  checked: boolean;
-  description: string;
-  disabled?: boolean;
-  label: string;
-  onChange: (checked: boolean) => void;
-};
+const SECTIONS = [
+  { id: "game", label: "Jeu", keywords: "vitesse délai temps bot enchère pli ramassage confirmation coinche surcoinche capot générale" },
+  { id: "help", label: "Aides", keywords: "carte jouable interdite score contrat dernier pli tour" },
+  { id: "cards", label: "Cartes", keywords: "carte tri couleur taille style classique moderne" },
+  { id: "display", label: "Affichage", keywords: "interface tapis thème animation distribution enchère pli" },
+  { id: "sound", label: "Son", keywords: "son audio volume tester carte enchère interface" },
+  { id: "accessibility", label: "Accessibilité", keywords: "accessibilité mouvement contraste texte taille" },
+] as const;
+type SectionId = typeof SECTIONS[number]["id"];
 
-function Toggle({ checked, description, disabled = false, label, onChange }: ToggleProps) {
-  return (
-    <label className={`flex items-start justify-between gap-4 rounded-md border p-3 ${disabled ? "opacity-55" : "bg-white"}`}>
-      <span><span className="block text-sm font-semibold">{label}</span><span className="mt-0.5 block text-xs text-stone-600">{description}</span></span>
-      <input aria-label={label} checked={checked} className="mt-1 h-5 w-5 shrink-0 accent-emerald-700" disabled={disabled} onChange={(event) => onChange(event.target.checked)} type="checkbox" />
-    </label>
-  );
+function Toggle({ checked, description, disabled = false, disabledReason, label, onChange }: { checked: boolean; description: string; disabled?: boolean; disabledReason?: string; label: string; onChange: (checked: boolean) => void }) {
+  return <label className={`flex items-start justify-between gap-4 rounded-xl border p-3 ${disabled ? "border-stone-200 bg-stone-100 text-stone-500" : "border-stone-200 bg-white shadow-sm"}`}><span><span className="block text-sm font-semibold">{label}</span><span className="mt-0.5 block text-xs text-stone-600">{disabled && disabledReason ? disabledReason : description}</span></span><input aria-label={label} checked={checked} className="mt-1 h-5 w-5 shrink-0 accent-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" disabled={disabled} onChange={(event) => onChange(event.target.checked)} type="checkbox" /></label>;
 }
 
-function Section({ children, title }: { children: React.ReactNode; title: string }) {
-  return <section aria-labelledby={`settings-${title}`} className="space-y-2"><h3 className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-900" id={`settings-${title}`}>{title}</h3>{children}</section>;
+function Field({ children, description, label }: { children: React.ReactNode; description?: string; label: string }) {
+  return <label className="block rounded-xl border border-stone-200 bg-white p-3 text-sm font-semibold shadow-sm">{label}{description ? <span className="mt-0.5 block text-xs font-normal text-stone-600">{description}</span> : null}{children}</label>;
+}
+
+export function formatPreferenceDuration(value: number): string {
+  return value < 1_000 ? `${value} ms` : `${(value / 1_000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} s`;
+}
+
+function TimingField({ label, max, step, value, onChange }: { label: string; max: number; step: number; value: number; onChange: (value: number) => void }) {
+  return <Field label={label}><div className="mt-2 flex items-center gap-3"><input aria-label={label} className="min-w-0 flex-1 accent-emerald-700" max={max} min={0} onChange={(event) => onChange(Number(event.target.value))} step={step} type="range" value={value} /><output className="w-16 text-right font-mono text-xs text-emerald-900">{formatPreferenceDuration(value)}</output></div></Field>;
+}
+
+function ScopeNotice() {
+  return <div className="grid gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs sm:grid-cols-2"><div><strong className="block text-emerald-950">MES PARAMÈTRES</strong><span>Personnels, locaux et enregistrés automatiquement.</span></div><div className="border-t border-emerald-200 pt-2 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0"><strong className="block text-stone-700">RÈGLES DE LA PARTIE</strong><span>Partagées et appliquées par le moteur. Elles ne changent pas ici.</span></div></div>;
 }
 
 export function PlayerSettingsPanel() {
   const { preferences, reset, setGameSpeed, setPreferences } = usePlayerPreferences();
+  const [active, setActive] = useState<SectionId>("game");
+  const [query, setQuery] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
-  const update = <K extends keyof PlayerPreferences>(section: K, patch: Partial<PlayerPreferences[K]>) => {
-    playPreferenceSound("ui", preferences);
-    setPreferences((current) => ({
-      ...current,
-      [section]: { ...(current[section] as object), ...patch },
-    } as PlayerPreferences));
+  const update = <K extends keyof PlayerPreferences>(section: K, patch: Partial<PlayerPreferences[K]>, sound = true) => {
+    if (sound) playPreferenceSound("ui", preferences);
+    setPreferences((current) => ({ ...current, [section]: { ...(current[section] as object), ...patch } } as PlayerPreferences));
   };
-  const gameSpeedLabels: Record<GameSpeed, string> = { slow: "Lente", normal: "Normale", fast: "Rapide", instant: "Instantanée" };
+  const visibleSections = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase("fr");
+    return needle ? SECTIONS.filter((section) => `${section.label} ${section.keywords}`.toLocaleLowerCase("fr").includes(needle)) : [...SECTIONS];
+  }, [query]);
+  const selected = visibleSections.some((section) => section.id === active) ? active : visibleSections[0]?.id;
+  const isCustom = JSON.stringify(preferences) !== JSON.stringify(DEFAULT_PLAYER_PREFERENCES);
+  const timing = (key: "botDelayMs" | "trickDisplayMs" | "biddingDelayMs", value: number) => setPreferences((current) => withCustomTiming(current, key, value));
+  const speedLabels: Record<PresetGameSpeed | "custom", string> = { slow: "Lente", normal: "Normale", fast: "Rapide", instant: "Instantanée", custom: "Personnalisée" };
 
-  return (
-    <div className="space-y-6 overflow-y-auto pr-1">
-      <Section title="JEU">
-        <label className="block rounded-md border bg-white p-3 text-sm font-semibold">Vitesse de jeu
-          <span className="mt-0.5 block text-xs font-normal text-stone-600">Règle uniquement le rythme visuel des bots, enchères et plis.</span>
-          <select aria-label="Vitesse de jeu" className="mt-2 w-full rounded-md border border-stone-300 px-3 py-2" onChange={(event) => { playPreferenceSound("ui", preferences); setGameSpeed(event.target.value as GameSpeed); }} value={preferences.gameplay.gameSpeed}>{Object.entries(gameSpeedLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-        </label>
-        <Toggle checked={preferences.gameplay.autoCollectTricks} description={`Après ${preferences.gameplay.trickDisplayMs} ms. Sinon, utilise le bouton Continuer.`} label="Ramasser les plis automatiquement" onChange={(checked) => update("gameplay", { autoCollectTricks: checked })} />
-        <Toggle checked={preferences.gameplay.confirmCoinche} description="Demander une confirmation avant de contrer." label="Confirmer la Coinche" onChange={(checked) => update("gameplay", { confirmCoinche: checked })} />
-        <Toggle checked={preferences.gameplay.confirmSurcoinche} description="Demander une confirmation avant de surcontrer." label="Confirmer la Surcoinche" onChange={(checked) => update("gameplay", { confirmSurcoinche: checked })} />
-        <Toggle checked={preferences.gameplay.confirmGenerale} description="Demander une confirmation avant une Générale." label="Confirmer la Générale" onChange={(checked) => update("gameplay", { confirmGenerale: checked })} />
-      </Section>
-
-      <Section title="AIDES">
-        <Toggle checked={preferences.assistance.highlightLegalCards} description="Ajoute une bordure et une légère élévation sans modifier les couleurs des cartes." label="Mettre en évidence les cartes jouables" onChange={(checked) => update("assistance", { highlightLegalCards: checked })} />
-        <Toggle checked={preferences.assistance.dimIllegalCards} description="Réduit légèrement l'opacité des cartes interdites." label="Atténuer les cartes interdites" onChange={(checked) => update("assistance", { dimIllegalCards: checked })} />
-        <Toggle checked={preferences.assistance.disableIllegalCardClicks} description="Désactive leur clic. Si désactivé, un clic explique la règle applicable." label="Bloquer les cartes non jouables" onChange={(checked) => update("assistance", { disableIllegalCardClicks: checked })} />
-        <Toggle checked={preferences.assistance.showLivePoints} description="Affiche uniquement les points déjà publics pendant la donne." label="Afficher les points pendant la donne" onChange={(checked) => update("assistance", { showLivePoints: checked })} />
-        <Toggle checked={preferences.assistance.showContractProgress} description="Affiche l'avancement selon les règles de réussite de la table." label="Afficher la progression du contrat" onChange={(checked) => update("assistance", { showContractProgress: checked })} />
-        <Toggle checked={preferences.assistance.showLastTrick} description="Permet de revoir les cartes déjà jouées du pli précédent." label="Afficher le dernier pli" onChange={(checked) => update("assistance", { showLastTrick: checked })} />
-        <Toggle checked={preferences.assistance.showTurnIndicator} description="Renforce la bordure du joueur qui doit agir." label="Mettre en évidence le joueur qui doit jouer" onChange={(checked) => update("assistance", { showTurnIndicator: checked })} />
-      </Section>
-
-      <Section title="CARTES">
-        <Toggle checked={preferences.cards.autoSortHand} description="Réordonne seulement l'affichage, jamais les cartes du moteur." label="Ranger automatiquement les cartes" onChange={(checked) => update("cards", { autoSortHand: checked })} />
-        <label className="block rounded-md border bg-white p-3 text-sm font-semibold">Mode de tri
-          <select aria-label="Mode de tri des cartes" className="mt-2 w-full rounded-md border border-stone-300 px-3 py-2" onChange={(event) => update("cards", { sortMode: event.target.value as PlayerPreferences["cards"]["sortMode"] })} value={preferences.cards.sortMode}><option value="suit-rank">Par couleur puis valeur</option><option value="rank-suit">Par valeur puis couleur</option><option value="manual">Manuel</option></select>
-        </label>
-        <fieldset className="rounded-md border bg-white p-3"><legend className="px-1 text-sm font-semibold">Ordre des couleurs</legend><div className="mt-1 grid gap-2 sm:grid-cols-2">{preferences.cards.suitOrder.map((suit, index) => <div className="flex items-center justify-between rounded border px-3 py-2" key={suit}><span className="font-semibold">{SUIT_SYMBOLS[suit]} {SUIT_LABELS[suit]}</span><span className="flex gap-1"><button aria-label={`Monter ${SUIT_LABELS[suit]}`} className="rounded border px-2 disabled:opacity-30" disabled={index === 0} onClick={() => update("cards", { suitOrder: moveSuit(preferences.cards.suitOrder, suit, -1) })} type="button">↑</button><button aria-label={`Descendre ${SUIT_LABELS[suit]}`} className="rounded border px-2 disabled:opacity-30" disabled={index === preferences.cards.suitOrder.length - 1} onClick={() => update("cards", { suitOrder: moveSuit(preferences.cards.suitOrder, suit, 1) })} type="button">↓</button></span></div>)}</div></fieldset>
-        <label className="block rounded-md border bg-white p-3 text-sm font-semibold">Taille des cartes<select aria-label="Taille des cartes" className="mt-2 w-full rounded-md border border-stone-300 px-3 py-2" onChange={(event) => update("cards", { cardSize: event.target.value as PlayerPreferences["cards"]["cardSize"] })} value={preferences.cards.cardSize}><option value="small">Petite</option><option value="medium">Normale</option><option value="large">Grande</option></select></label>
-      </Section>
-
-      <Section title="AFFICHAGE">
-        <Toggle checked={preferences.visual.compactLayout} description="Réduit les espaces et métadonnées secondaires sans masquer le jeu." label="Interface compacte" onChange={(checked) => update("visual", { compactLayout: checked })} />
-        <Toggle checked={preferences.visual.animations} description="Interrupteur principal de toutes les animations." label="Animations" onChange={(checked) => update("visual", { animations: checked })} />
-        <Toggle checked={preferences.visual.dealAnimation} description="Anime l'apparition de la main." disabled={!preferences.visual.animations} label="Distribution des cartes" onChange={(checked) => update("visual", { dealAnimation: checked })} />
-        <Toggle checked={preferences.visual.cardPlayAnimation} description="Anime les cartes posées sur la table." disabled={!preferences.visual.animations} label="Cartes jouées" onChange={(checked) => update("visual", { cardPlayAnimation: checked })} />
-        <Toggle checked={preferences.visual.trickAnimation} description="Anime le ramassage des plis à 3 ou 4 cartes." disabled={!preferences.visual.animations} label="Ramassage du pli" onChange={(checked) => update("visual", { trickAnimation: checked })} />
-        <Toggle checked={preferences.visual.biddingAnimation} description="Anime les bulles d'enchères." disabled={!preferences.visual.animations} label="Enchères" onChange={(checked) => update("visual", { biddingAnimation: checked })} />
-      </Section>
-
-      <Section title="SON">
-        <Toggle checked={preferences.audio.enabled} description="Active les retours audio locaux. Aucun son n'est envoyé aux autres joueurs." label="Sons" onChange={(checked) => update("audio", { enabled: checked })} />
-        <label className="block rounded-md border bg-white p-3 text-sm font-semibold">Volume général : {Math.round(preferences.audio.volume * 100)} %<input aria-label="Volume général" className="mt-2 w-full accent-emerald-700" disabled={!preferences.audio.enabled} max={100} min={0} onChange={(event) => update("audio", { volume: Number(event.target.value) / 100 })} type="range" value={Math.round(preferences.audio.volume * 100)} /></label>
-        <Toggle checked={preferences.audio.cardSounds} description="Jouer une carte et ramasser un pli." disabled={!preferences.audio.enabled} label="Sons des cartes" onChange={(checked) => update("audio", { cardSounds: checked })} />
-        <Toggle checked={preferences.audio.biddingSounds} description="Enchères, Coinche, Surcoinche, Capot et Générale." disabled={!preferences.audio.enabled} label="Sons des enchères" onChange={(checked) => update("audio", { biddingSounds: checked })} />
-        <Toggle checked={preferences.audio.uiSounds} description="Boutons et confirmations de l'interface." disabled={!preferences.audio.enabled} label="Sons de l'interface" onChange={(checked) => update("audio", { uiSounds: checked })} />
-      </Section>
-
-      <Section title="ACCESSIBILITÉ">
-        <Toggle checked={preferences.visual.reducedMotion} description="Réduit les mouvements. Le réglage système du navigateur est toujours respecté." label="Réduire les animations" onChange={(checked) => update("visual", { reducedMotion: checked })} />
-        <Toggle checked={preferences.visual.highContrast} description="Renforce aussi les bordures et les repères, pas seulement les couleurs." label="Contraste renforcé" onChange={(checked) => update("visual", { highContrast: checked })} />
-        <label className="block rounded-md border bg-white p-3 text-sm font-semibold">Taille du texte<select aria-label="Taille du texte" className="mt-2 w-full rounded-md border border-stone-300 px-3 py-2" onChange={(event) => update("visual", { textSize: event.target.value as "normal" | "large" })} value={preferences.visual.textSize}><option value="normal">Normale</option><option value="large">Grande</option></select></label>
-      </Section>
-
-      <div className="rounded-md border border-amber-200 bg-amber-50 p-3"><p className="text-xs text-stone-700">Cette action ne modifie jamais les règles de la partie.</p>{confirmReset ? <div className="mt-2 flex flex-wrap gap-2"><button className="rounded bg-red-700 px-3 py-2 text-sm font-semibold text-white" onClick={() => { playPreferenceSound("ui", preferences); reset(); setConfirmReset(false); }} type="button">Confirmer la réinitialisation</button><button className="rounded border px-3 py-2 text-sm font-semibold" onClick={() => setConfirmReset(false)} type="button">Annuler</button></div> : <button className="mt-2 rounded border border-red-300 bg-white px-3 py-2 text-sm font-semibold text-red-800" onClick={() => setConfirmReset(true)} type="button">Réinitialiser les paramètres</button>}</div>
+  return <div className="flex h-full min-h-0 flex-col">
+    <div className="shrink-0 space-y-3 border-b border-stone-200 bg-white/60 px-4 py-3 sm:px-6"><ScopeNotice /><div className="flex flex-wrap items-center gap-2"><input aria-label="Rechercher un paramètre" className="min-w-48 flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm" onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un paramètre" type="search" value={query} /><span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-stone-600 shadow-sm">{isCustom ? "Personnalisé" : "Réglages par défaut"}</span><span className="text-xs text-emerald-800">Enregistré automatiquement</span></div></div>
+    <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-[210px_minmax(0,1fr)]">
+      <nav aria-label="Sections des paramètres" className="flex shrink-0 gap-1 overflow-x-auto border-b border-stone-200 bg-stone-100 p-2 md:flex-col md:overflow-visible md:border-b-0 md:border-r md:p-4">{visibleSections.map((section) => <button aria-current={selected === section.id ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm font-semibold ${selected === section.id ? "bg-emerald-800 text-white shadow" : "bg-white text-stone-700 hover:bg-stone-50"}`} key={section.id} onClick={() => setActive(section.id)} type="button">{section.label.toLocaleUpperCase("fr")}</button>)}</nav>
+      <div className="min-h-0 overflow-y-auto p-4 sm:p-6">
+        {!selected ? <p className="rounded-lg border bg-white p-4 text-sm">Aucun paramètre ne correspond à « {query} ».</p> : null}
+        {selected === "game" ? <GameSettings preferences={preferences} setGameSpeed={setGameSpeed} timing={timing} update={update} speedLabels={speedLabels} /> : null}
+        {selected === "help" ? <HelpSettings preferences={preferences} update={update} /> : null}
+        {selected === "cards" ? <CardSettings preferences={preferences} update={update} /> : null}
+        {selected === "display" ? <DisplaySettings preferences={preferences} update={update} /> : null}
+        {selected === "sound" ? <SoundSettings preferences={preferences} update={update} /> : null}
+        {selected === "accessibility" ? <AccessibilitySettings preferences={preferences} update={update} /> : null}
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-3"><p className="text-sm font-bold">Réinitialiser mes paramètres</p><p className="text-xs text-stone-700">Les règles des parties ne seront pas modifiées.</p>{confirmReset ? <div className="mt-2 flex gap-2"><button className="rounded-lg bg-red-700 px-3 py-2 text-sm font-semibold text-white" onClick={() => { reset(); setConfirmReset(false); }} type="button">Confirmer</button><button className="rounded-lg border bg-white px-3 py-2 text-sm font-semibold" onClick={() => setConfirmReset(false)} type="button">Annuler</button></div> : <button className="mt-2 rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-semibold text-red-800" onClick={() => setConfirmReset(true)} type="button">Réinitialiser mes paramètres</button>}</div>
+      </div>
     </div>
-  );
+  </div>;
+}
+
+type Update = <K extends keyof PlayerPreferences>(section: K, patch: Partial<PlayerPreferences[K]>, sound?: boolean) => void;
+function GameSettings({ preferences, setGameSpeed, speedLabels, timing, update }: { preferences: PlayerPreferences; setGameSpeed: (speed: PresetGameSpeed) => void; speedLabels: Record<PresetGameSpeed | "custom", string>; timing: (key: "botDelayMs" | "trickDisplayMs" | "biddingDelayMs", value: number) => void; update: Update }) {
+  return <section aria-labelledby="settings-game" className="space-y-3"><h3 className="text-lg font-bold" id="settings-game">Jeu</h3><Field description="Règle uniquement le rythme visuel. Le moteur calcule toujours immédiatement." label="Vitesse de jeu"><select aria-label="Vitesse de jeu" className="mt-2 w-full rounded-lg border border-stone-300 px-3 py-2" onChange={(event) => { if (event.target.value !== "custom") setGameSpeed(event.target.value as PresetGameSpeed); }} value={preferences.gameplay.gameSpeed}>{Object.entries(speedLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Toggle checked={preferences.gameplay.autoCollectTricks} description={`Ramasse après ${formatPreferenceDuration(preferences.gameplay.trickDisplayMs)}. Sinon, un bouton indique qui a gagné.`} label="Ramasser les plis automatiquement" onChange={(v) => update("gameplay", { autoCollectTricks: v })} /><div className="grid gap-2 sm:grid-cols-2"><Toggle checked={preferences.gameplay.confirmCoinche} description="Demander avant de contrer." label="Confirmer la Coinche" onChange={(v) => update("gameplay", { confirmCoinche: v })} /><Toggle checked={preferences.gameplay.confirmSurcoinche} description="Demander avant de surcontrer." label="Confirmer la Surcoinche" onChange={(v) => update("gameplay", { confirmSurcoinche: v })} /><Toggle checked={preferences.gameplay.confirmCapot} description="Demander avant d'annoncer un Capot." label="Confirmer le Capot" onChange={(v) => update("gameplay", { confirmCapot: v })} /><Toggle checked={preferences.gameplay.confirmGenerale} description="Demander avant d'annoncer une Générale." label="Confirmer la Générale" onChange={(v) => update("gameplay", { confirmGenerale: v })} /></div><details className="rounded-xl border border-stone-300 bg-stone-50 p-3"><summary className="cursor-pointer font-bold">Réglages avancés <span className="font-normal text-stone-500">· délais précis</span></summary><div className="mt-3 grid gap-2"><TimingField label="Temps de réflexion visuel des bots" max={2000} onChange={(v) => timing("botDelayMs", v)} step={50} value={preferences.gameplay.botDelayMs} /><TimingField label="Durée d'affichage d'un pli" max={3000} onChange={(v) => timing("trickDisplayMs", v)} step={50} value={preferences.gameplay.trickDisplayMs} /><TimingField label="Délai entre enchères" max={1500} onChange={(v) => timing("biddingDelayMs", v)} step={50} value={preferences.gameplay.biddingDelayMs} /></div></details></section>;
+}
+
+function HelpSettings({ preferences, update }: { preferences: PlayerPreferences; update: Update }) {
+  const rows: [keyof PlayerPreferences["assistance"], string, string][] = [["highlightLegalCards","Mettre en évidence les cartes jouables","Ajoute un léger lift et un contour sans altérer les couleurs."],["dimIllegalCards","Atténuer les cartes interdites","Réduit leur présence sans masquer leur couleur."],["disableIllegalCardClicks","Bloquer les cartes non jouables","Si désactivé, un clic affiche brièvement la règle applicable."],["showLivePoints","Afficher les points pendant la donne","Uniquement les points déjà publics."],["showContractProgress","Afficher la progression du contrat","Objectif et points manquants, sans prédiction."],["showLastTrick","Afficher le dernier pli","Cartes, ordre, gagnant et points publics."],["showTurnIndicator","Mettre en évidence le joueur actif","Renforce son contour et son statut."]];
+  return <section aria-labelledby="settings-help" className="space-y-2"><h3 className="text-lg font-bold" id="settings-help">Aides</h3>{rows.map(([key,label,description]) => <Toggle checked={preferences.assistance[key]} description={description} key={key} label={label} onChange={(v) => update("assistance", { [key]: v })} />)}</section>;
+}
+
+function CardSettings({ preferences, update }: { preferences: PlayerPreferences; update: Update }) {
+  return <section aria-labelledby="settings-cards" className="space-y-3"><h3 className="text-lg font-bold" id="settings-cards">Cartes</h3><Toggle checked={preferences.cards.autoSortHand} description="Réordonne uniquement l'affichage, jamais la main du moteur." label="Ranger automatiquement les cartes" onChange={(v) => update("cards", { autoSortHand: v })} /><Field label="Mode de tri"><select aria-label="Mode de tri des cartes" className="mt-2 w-full rounded-lg border px-3 py-2" disabled={!preferences.cards.autoSortHand} onChange={(event) => update("cards", { sortMode: event.target.value as PlayerPreferences["cards"]["sortMode"] })} value={preferences.cards.sortMode}><option value="suit-rank">Par couleur puis valeur</option><option value="rank-suit">Par valeur puis couleur</option></select></Field><fieldset className="rounded-xl border bg-white p-3 shadow-sm"><legend className="px-1 text-sm font-semibold">Ordre des couleurs</legend><p className="mb-2 text-center text-xl" aria-live="polite">{preferences.cards.suitOrder.map((suit) => SUIT_SYMBOLS[suit]).join(" → ")}</p><div className="grid gap-2 sm:grid-cols-2">{preferences.cards.suitOrder.map((suit, index) => <div className="flex items-center justify-between rounded-lg border px-3 py-2" key={suit}><span className="font-semibold">{SUIT_SYMBOLS[suit]} {SUIT_LABELS[suit]}</span><span className="flex gap-1"><button aria-label={`Monter ${SUIT_LABELS[suit]}`} className="rounded border px-2 py-1 disabled:opacity-30" disabled={index === 0} onClick={() => update("cards", { suitOrder: moveSuit(preferences.cards.suitOrder, suit, -1) })} type="button">↑</button><button aria-label={`Descendre ${SUIT_LABELS[suit]}`} className="rounded border px-2 py-1 disabled:opacity-30" disabled={index === 3} onClick={() => update("cards", { suitOrder: moveSuit(preferences.cards.suitOrder, suit, 1) })} type="button">↓</button></span></div>)}</div></fieldset><div className="grid gap-2 sm:grid-cols-2"><Field label="Taille des cartes"><select aria-label="Taille des cartes" className="mt-2 w-full rounded-lg border px-3 py-2" onChange={(event) => update("cards", { cardSize: event.target.value as PlayerPreferences["cards"]["cardSize"] })} value={preferences.cards.cardSize}><option value="small">Petite</option><option value="medium">Normale</option><option value="large">Grande</option></select></Field><Field label="Style des cartes"><select aria-label="Style des cartes" className="mt-2 w-full rounded-lg border px-3 py-2" onChange={(event) => update("cards", { cardStyle: event.target.value as PlayerPreferences["cards"]["cardStyle"] })} value={preferences.cards.cardStyle}><option value="classic">Classique</option><option value="modern">Moderne</option></select></Field></div></section>;
+}
+
+function DisplaySettings({ preferences, update }: { preferences: PlayerPreferences; update: Update }) {
+  const animations: [keyof PlayerPreferences["visual"], string][] = [["dealAnimation","Distribution des cartes"],["cardPlayAnimation","Cartes jouées"],["trickAnimation","Ramassage du pli"],["biddingAnimation","Enchères"]];
+  return <section aria-labelledby="settings-display" className="space-y-2"><h3 className="text-lg font-bold" id="settings-display">Affichage</h3><Field description="Palette interne de la table, sans ressource téléchargée." label="Tapis de jeu"><select aria-label="Tapis de jeu" className="mt-2 w-full rounded-lg border px-3 py-2" onChange={(event) => update("visual", { tableTheme: event.target.value as PlayerPreferences["visual"]["tableTheme"] })} value={preferences.visual.tableTheme}><option value="classic-green">Vert classique</option><option value="midnight-blue">Bleu nuit</option><option value="burgundy">Bordeaux</option><option value="dark-neutral">Neutre sombre</option></select></Field><Toggle checked={preferences.visual.compactLayout} description="Réduit les espaces et métadonnées secondaires." label="Interface compacte" onChange={(v) => update("visual", { compactLayout: v })} /><Toggle checked={preferences.visual.animations} description="Interrupteur principal de toutes les animations." label="Animations" onChange={(v) => update("visual", { animations: v })} />{animations.map(([key,label]) => <Toggle checked={preferences.visual[key] as boolean} description={`Animation : ${label.toLocaleLowerCase("fr")}.`} disabled={!preferences.visual.animations} disabledReason="Active d'abord les animations." key={key} label={label} onChange={(v) => update("visual", { [key]: v })} />)}</section>;
+}
+
+function SoundSettings({ preferences, update }: { preferences: PlayerPreferences; update: Update }) {
+  const sounds: [keyof PlayerPreferences["audio"], string, string][] = [["cardSounds","Sons des cartes","Jouer une carte et ramasser un pli."],["biddingSounds","Sons des enchères","Enchères, Coinche, Surcoinche, Capot et Générale."],["uiSounds","Sons de l'interface","Boutons et confirmations."]];
+  return <section aria-labelledby="settings-sound" className="space-y-2"><h3 className="text-lg font-bold" id="settings-sound">Son</h3><Toggle checked={preferences.audio.enabled} description="Retours locaux uniquement ; ils ne bloquent jamais le jeu." label="Sons" onChange={(v) => update("audio", { enabled: v }, false)} /><Field label={`Volume général : ${Math.round(preferences.audio.volume * 100)} %`}><input aria-label="Volume général" className="mt-2 w-full accent-emerald-700" disabled={!preferences.audio.enabled} max={100} min={0} onChange={(event) => update("audio", { volume: Number(event.target.value) / 100 }, false)} type="range" value={Math.round(preferences.audio.volume * 100)} /></Field>{sounds.map(([key,label,description]) => <Toggle checked={preferences.audio[key] as boolean} description={description} disabled={!preferences.audio.enabled} disabledReason="Active d'abord les sons." key={key} label={label} onChange={(v) => update("audio", { [key]: v })} />)}<button className="w-full rounded-lg border border-emerald-700 bg-white px-3 py-2 text-sm font-bold text-emerald-900 disabled:opacity-50" disabled={!preferences.audio.enabled || preferences.audio.volume === 0} onClick={() => playPreferenceSound("ui", preferences)} type="button">Tester le son</button></section>;
+}
+
+function AccessibilitySettings({ preferences, update }: { preferences: PlayerPreferences; update: Update }) {
+  return <section aria-labelledby="settings-accessibility" className="space-y-2"><h3 className="text-lg font-bold" id="settings-accessibility">Accessibilité</h3><Toggle checked={preferences.visual.reducedMotion} description="Le réglage système du navigateur reste toujours prioritaire." label="Réduire les animations" onChange={(v) => update("visual", { reducedMotion: v })} /><Toggle checked={preferences.visual.highContrast} description="Renforce cartes, boutons, table, modales, toggles et focus." label="Contraste renforcé" onChange={(v) => update("visual", { highContrast: v })} /><Field label="Taille du texte"><select aria-label="Taille du texte" className="mt-2 w-full rounded-lg border px-3 py-2" onChange={(event) => update("visual", { textSize: event.target.value as "normal" | "large" })} value={preferences.visual.textSize}><option value="normal">Normale</option><option value="large">Grande</option></select></Field></section>;
 }
 
 export function PlayerSettingsDialog({ onClose }: { onClose: () => void }) {
-  const { preferences } = usePlayerPreferences();
-  return (
-    <div aria-modal="true" className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-3" role="dialog">
-      <section className="flex max-h-[94dvh] w-full max-w-3xl flex-col rounded-xl bg-[#f4f1e8] p-4 shadow-2xl">
-        <div className="mb-3 flex items-start justify-between gap-3"><div><h2 className="text-xl font-bold">Paramètres</h2><p className="text-xs text-stone-600">Uniquement mon interface. Les règles de la partie restent partagées et inchangées.</p></div><button className="rounded border px-3 py-1" onClick={() => { playPreferenceSound("ui", preferences); onClose(); }} type="button">Fermer</button></div>
-        <PlayerSettingsPanel />
-      </section>
-    </div>
-  );
+  return <AccessibleDialog description="Ces réglages ne changent que ton interface." onClose={onClose} title="Paramètres"><PlayerSettingsPanel /></AccessibleDialog>;
 }

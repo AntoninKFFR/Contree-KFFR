@@ -21,3 +21,9 @@ Une variante personnalisée peut activer `allowGenerale`. Contrairement au Capot
 La valeur par défaut est 500 points via `generaleBasePoints`. En réussite elle revient au camp preneur; en chute elle revient à la défense. Coinche et Surcoinche utilisent les multiplicateurs configurés. Annonces et Belote peuvent ajouter des points selon les options, mais ne sauvent jamais une Générale à sept plis personnels. Le partenaire assis ne peut pas déclarer Belote puisqu'il ne joue pas ses Roi/Dame.
 
 La Générale couleur est prise en charge. Les modes Générale Sans Atout et Tout Atout sont des options explicites distinctes : ils ne deviennent pas disponibles par simple activation des contrats SA/TA ordinaires. Le preset Contrée KFFR laisse toute Générale désactivée, donc son comportement reste strictement inchangé.
+
+## Expérience du configurateur
+
+Le configurateur sépare explicitement les **règles de la partie**, partagées, de **mes paramètres**, locaux au navigateur. Ses huit sections (Partie, Contrats, Annonces, Belote, Jeu de la carte, Réussite du contrat, Score et Avancé) utilisent une navigation latérale sur desktop et compacte sur mobile. Une option dépendante reste désactivée avec une raison lisible, par exemple l'activation préalable de Coinche, des annonces, de la Belote ou de Tout Atout.
+
+Le résumé regroupe Contrats, Annonces, Carte et Score pour permettre un contrôle rapide dans le lobby. Pour une variante, **Différences avec Contrée KFFR** est calculé par un helper central et ne montre que des écarts factuels. **Revenir à Contrée KFFR** demande une confirmation légère lorsque la variante est personnalisée et ne touche jamais aux préférences du joueur.

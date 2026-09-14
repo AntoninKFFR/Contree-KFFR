@@ -29,6 +29,7 @@ export type ContractProgress = {
   target: number;
   pointsNeeded: number;
   label: string;
+  mustBeatDefense: boolean;
 };
 
 export function getContractProgress(state: PublicGameState): ContractProgress | null {
@@ -45,6 +46,7 @@ export function getContractProgress(state: PublicGameState): ContractProgress | 
       target: 8,
       pointsNeeded: Math.max(0, 8 - personalTricks),
       label: `${personalTricks} / 8 plis personnels`,
+      mustBeatDefense: false,
     };
   }
   if (contract.kind === "capot") {
@@ -56,6 +58,7 @@ export function getContractProgress(state: PublicGameState): ContractProgress | 
       target: 8,
       pointsNeeded: Math.max(0, 8 - teamTricks),
       label: `${teamTricks} / 8 plis`,
+      mustBeatDefense: false,
     };
   }
 
@@ -83,6 +86,7 @@ export function getContractProgress(state: PublicGameState): ContractProgress | 
     label: pointsNeeded === 0
       ? `${takerPoints} pts · objectif atteint provisoirement`
       : `${takerPoints} pts · ${pointsNeeded} pts manquants`,
+    mustBeatDefense: rules.contractSuccess.mustBeatDefense,
   };
 }
 

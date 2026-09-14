@@ -8,7 +8,7 @@ import {
   resetPlayerPreferences,
   savePlayerPreferences,
   withGameSpeed,
-  type GameSpeed,
+  type PresetGameSpeed,
   type PlayerPreferences,
 } from "@/lib/preferences/playerPreferences";
 
@@ -16,7 +16,7 @@ type PreferencesContextValue = {
   preferences: PlayerPreferences;
   effectiveReducedMotion: boolean;
   setPreferences: (update: PlayerPreferences | ((current: PlayerPreferences) => PlayerPreferences)) => void;
-  setGameSpeed: (speed: GameSpeed) => void;
+  setGameSpeed: (speed: PresetGameSpeed) => void;
   reset: () => void;
 };
 
@@ -73,17 +73,19 @@ export function PlayerPreferencesProvider({ children, initialPreferences }: { ch
       "coinche-high-contrast": preferences.visual.highContrast,
       "coinche-text-large": preferences.visual.textSize === "large",
       "coinche-reduced-motion": effectiveReducedMotion,
+      "coinche-cards-modern": preferences.cards.cardStyle === "modern",
+      [`coinche-table-${preferences.visual.tableTheme}`]: true,
     };
     for (const [className, enabled] of Object.entries(classNames)) {
       document.body.classList.toggle(className, enabled);
     }
     return () => Object.keys(classNames).forEach((className) => document.body.classList.remove(className));
-  }, [effectiveReducedMotion, preferences.visual.compactLayout, preferences.visual.highContrast, preferences.visual.textSize]);
+  }, [effectiveReducedMotion, preferences.cards.cardStyle, preferences.visual.compactLayout, preferences.visual.highContrast, preferences.visual.tableTheme, preferences.visual.textSize]);
 
   const setPreferences = useCallback<PreferencesContextValue["setPreferences"]>((update) => {
     setPreferencesState((current) => clonePlayerPreferences(typeof update === "function" ? update(current) : update));
   }, []);
-  const setGameSpeed = useCallback((speed: GameSpeed) => {
+  const setGameSpeed = useCallback((speed: PresetGameSpeed) => {
     setPreferencesState((current) => withGameSpeed(current, speed));
   }, []);
   const reset = useCallback(() => {

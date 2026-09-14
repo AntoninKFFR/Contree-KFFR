@@ -15,7 +15,7 @@ L'abstraction `PreferenceStorage` garde la lecture et l'écriture indépendantes
 
 ## Jeu et vitesse
 
-Les quatre vitesses utilisent le mapping central `GAME_SPEED_PRESETS` :
+Les quatre presets utilisent le mapping central `GAME_SPEED_PRESETS` :
 
 | Vitesse | Bot | Pli terminé | Enchère bot |
 | --- | ---: | ---: | ---: |
@@ -23,6 +23,8 @@ Les quatre vitesses utilisent le mapping central `GAME_SPEED_PRESETS` :
 | Normale | 700 ms | 1200 ms | 500 ms |
 | Rapide | 300 ms | 650 ms | 250 ms |
 | Instantanée | 0 ms | 0 ms | 0 ms |
+
+Le mode **Personnalisée** apparaît dès que l'un des trois délais fins est modifié : réflexion visuelle des bots (0–2000 ms), affichage du pli (0–3000 ms) ou délai entre enchères (0–1500 ms). Un preset n'est jamais affiché si les valeurs persistées ne lui correspondent pas.
 
 Ces délais sont uniquement visuels. En solo, la décision du bot est calculée immédiatement puis appliquée après le délai choisi. Les simulations et le moteur ne connaissent pas ces délais. En multijoueur, les timers et les bots autoritaires du serveur ne lisent jamais les préférences d'un client.
 
@@ -36,12 +38,18 @@ Le score en direct utilise uniquement les plis terminés, les annonces devenues 
 
 ## Cartes et affichage
 
-Le tri est une copie de présentation : il ne modifie ni les objets `Card`, ni leur identité dans le moteur. Les modes disponibles sont couleur/valeur, valeur/couleur et manuel. L'ordre des quatre couleurs est configurable avec des contrôles haut/bas. Les contrats couleur, Sans Atout et Tout Atout passent tous leur mode explicite au tri.
+Le tri est une copie de présentation : il ne modifie ni les objets `Card`, ni leur identité dans le moteur. Les modes disponibles sont couleur/valeur et valeur/couleur. L'ancien choix « Manuel », qui ne proposait pas de réorganisation persistante réelle, est normalisé vers couleur/valeur et n'est plus exposé. Désactiver le tri automatique conserve l'ordre reçu. L'ordre des quatre couleurs est configurable avec des contrôles haut/bas et un aperçu visuel. Les contrats couleur, Sans Atout et Tout Atout passent tous leur mode explicite au tri.
 
-Trois tailles de cartes et une interface compacte sont disponibles. Les animations ont un interrupteur global et des sous-options pour la distribution, les cartes jouées, les plis et les enchères. Le réglage **Réduire les animations** et `prefers-reduced-motion` du navigateur ont toujours priorité.
+Trois tailles de cartes, deux styles CSS (**Classique** et **Moderne**) et quatre palettes de tapis centralisées sont disponibles. La grande taille est limitée de façon responsive sur les petits écrans. Les animations ont un interrupteur global et des sous-options effectives pour la distribution, les cartes jouées, les plis et les enchères. Le réglage **Réduire les animations** et `prefers-reduced-motion` du navigateur ont toujours priorité.
 
 ## Son et accessibilité
 
-Le son est désactivé par défaut. Les retours de carte, pli, enchère et interface sont générés localement avec Web Audio, sans ressource tierce. Les refus d'autoplay sont silencieusement ignorés. Le volume et les familles de sons se règlent séparément.
+Le son est désactivé par défaut. Les retours de carte, pli, enchère et interface sont générés localement avec Web Audio, sans ressource tierce. Le contexte audio est réutilisé et repris au besoin ; les refus d'autoplay et contextes suspendus sont silencieusement ignorés. Le volume et les familles de sons se règlent séparément, avec un bouton **Tester le son** qui emprunte le même pipeline.
 
 Le contraste renforcé ajoute des bordures et contours plus marqués, sans reposer uniquement sur une couleur. Une taille de texte agrandie est également disponible. **Réinitialiser les paramètres** restaure seulement `DEFAULT_PLAYER_PREFERENCES` et ne touche jamais aux règles de la partie.
+
+## Navigation et accessibilité
+
+Le panneau utilise les mêmes six sections en solo et en multijoueur. Une navigation latérale occupe l'espace disponible sur desktop ; sur mobile, les sections deviennent une barre compacte horizontale afin d'éviter le mur de réglages. La recherche ouvre directement la section pertinente. Les réglages avancés de rythme restent repliables.
+
+La modale possède un en-tête fixe, ferme avec Échap ou le fond, bloque le scroll de la page, garde le focus dans le dialogue et le restitue au déclencheur. Il n'existe pas de faux bouton de sauvegarde : chaque changement est persisté immédiatement. Les confirmations Coinche, Surcoinche, Capot et Générale sont des popovers accessibles avec **Annuler** / **Confirmer** ; si leur préférence est désactivée, l'action reste immédiate.

@@ -3,9 +3,12 @@ import type { Suit } from "@/engine/types";
 export const PLAYER_PREFERENCES_VERSION = 1 as const;
 export const PLAYER_PREFERENCES_STORAGE_KEY = "coinche:player-preferences:v1";
 
-export type GameSpeed = "slow" | "normal" | "fast" | "instant";
-export type HandSortMode = "suit-rank" | "rank-suit" | "manual";
+export type PresetGameSpeed = "slow" | "normal" | "fast" | "instant";
+export type GameSpeed = PresetGameSpeed | "custom";
+export type HandSortMode = "suit-rank" | "rank-suit";
 export type PlayerCardSize = "small" | "medium" | "large";
+export type PlayerCardStyle = "classic" | "modern";
+export type TableTheme = "classic-green" | "midnight-blue" | "burgundy" | "dark-neutral";
 
 export type PlayerPreferences = {
   version: typeof PLAYER_PREFERENCES_VERSION;
@@ -18,6 +21,7 @@ export type PlayerPreferences = {
     confirmCoinche: boolean;
     confirmSurcoinche: boolean;
     confirmGenerale: boolean;
+    confirmCapot: boolean;
   };
   assistance: {
     highlightLegalCards: boolean;
@@ -33,6 +37,7 @@ export type PlayerPreferences = {
     sortMode: HandSortMode;
     suitOrder: Suit[];
     cardSize: PlayerCardSize;
+    cardStyle: PlayerCardStyle;
   };
   visual: {
     animations: boolean;
@@ -44,6 +49,7 @@ export type PlayerPreferences = {
     compactLayout: boolean;
     highContrast: boolean;
     textSize: "normal" | "large";
+    tableTheme: TableTheme;
   };
   audio: {
     enabled: boolean;
@@ -59,7 +65,7 @@ export type GameSpeedDelays = Pick<
   "botDelayMs" | "trickDisplayMs" | "biddingDelayMs"
 >;
 
-export const GAME_SPEED_PRESETS: Readonly<Record<GameSpeed, Readonly<GameSpeedDelays>>> = {
+export const GAME_SPEED_PRESETS: Readonly<Record<PresetGameSpeed, Readonly<GameSpeedDelays>>> = {
   slow: { botDelayMs: 1_200, trickDisplayMs: 1_800, biddingDelayMs: 800 },
   normal: { botDelayMs: 700, trickDisplayMs: 1_200, biddingDelayMs: 500 },
   fast: { botDelayMs: 300, trickDisplayMs: 650, biddingDelayMs: 250 },
@@ -75,6 +81,7 @@ const BASE_DEFAULTS: PlayerPreferences = {
     confirmCoinche: true,
     confirmSurcoinche: true,
     confirmGenerale: true,
+    confirmCapot: true,
   },
   assistance: {
     highlightLegalCards: true,
@@ -90,6 +97,7 @@ const BASE_DEFAULTS: PlayerPreferences = {
     sortMode: "suit-rank",
     suitOrder: ["clubs", "diamonds", "hearts", "spades"],
     cardSize: "medium",
+    cardStyle: "classic",
   },
   visual: {
     animations: true,
@@ -101,6 +109,7 @@ const BASE_DEFAULTS: PlayerPreferences = {
     compactLayout: false,
     highContrast: false,
     textSize: "normal",
+    tableTheme: "classic-green",
   },
   audio: {
     enabled: false,
@@ -143,10 +152,10 @@ function enumValue<T extends string>(source: Record<string, unknown>, key: strin
   return typeof source[key] === "string" && values.includes(source[key] as T) ? source[key] as T : fallback;
 }
 
-function delayValue(source: Record<string, unknown>, key: string, fallback: number): number {
+function delayValue(source: Record<string, unknown>, key: string, fallback: number, max: number): number {
   const value = source[key];
   return typeof value === "number" && Number.isFinite(value)
-    ? Math.min(5_000, Math.max(0, Math.round(value)))
+    ? Math.min(max, Math.max(0, Math.round(value)))
     : fallback;
 }
 
@@ -172,20 +181,27 @@ export function normalizePlayerPreferences(value: unknown): PlayerPreferences {
   const cards = isRecord(value.cards) ? value.cards : {};
   const visual = isRecord(value.visual) ? value.visual : {};
   const audio = isRecord(value.audio) ? value.audio : {};
-  const gameSpeed = enumValue(gameplay, "gameSpeed", ["slow", "normal", "fast", "instant"], "normal");
-  const speed = GAME_SPEED_PRESETS[gameSpeed];
+  const gameSpeed = enumValue(gameplay, "gameSpeed", ["slow", "normal", "fast", "instant", "custom"], "normal");
+  const speed = gameSpeed === "custom" ? GAME_SPEED_PRESETS.normal : GAME_SPEED_PRESETS[gameSpeed];
+  const botDelayMs = delayValue(gameplay, "botDelayMs", speed.botDelayMs, 2_000);
+  const trickDisplayMs = delayValue(gameplay, "trickDisplayMs", speed.trickDisplayMs, 3_000);
+  const biddingDelayMs = delayValue(gameplay, "biddingDelayMs", speed.biddingDelayMs, 1_500);
+  const normalizedSpeed: GameSpeed = gameSpeed === "custom" || botDelayMs !== speed.botDelayMs || trickDisplayMs !== speed.trickDisplayMs || biddingDelayMs !== speed.biddingDelayMs
+    ? "custom"
+    : gameSpeed;
 
   return {
     version: PLAYER_PREFERENCES_VERSION,
     gameplay: {
-      gameSpeed,
-      botDelayMs: delayValue(gameplay, "botDelayMs", speed.botDelayMs),
-      trickDisplayMs: delayValue(gameplay, "trickDisplayMs", speed.trickDisplayMs),
-      biddingDelayMs: delayValue(gameplay, "biddingDelayMs", speed.biddingDelayMs),
+      gameSpeed: normalizedSpeed,
+      botDelayMs,
+      trickDisplayMs,
+      biddingDelayMs,
       autoCollectTricks: booleanValue(gameplay, "autoCollectTricks", true),
       confirmCoinche: booleanValue(gameplay, "confirmCoinche", true),
       confirmSurcoinche: booleanValue(gameplay, "confirmSurcoinche", true),
       confirmGenerale: booleanValue(gameplay, "confirmGenerale", true),
+      confirmCapot: booleanValue(gameplay, "confirmCapot", true),
     },
     assistance: {
       highlightLegalCards: booleanValue(assistance, "highlightLegalCards", true),
@@ -198,9 +214,10 @@ export function normalizePlayerPreferences(value: unknown): PlayerPreferences {
     },
     cards: {
       autoSortHand: booleanValue(cards, "autoSortHand", true),
-      sortMode: enumValue(cards, "sortMode", ["suit-rank", "rank-suit", "manual"], "suit-rank"),
+      sortMode: enumValue(cards, "sortMode", ["suit-rank", "rank-suit"], "suit-rank"),
       suitOrder: suitOrderValue(cards.suitOrder),
       cardSize: enumValue(cards, "cardSize", ["small", "medium", "large"], "medium"),
+      cardStyle: enumValue(cards, "cardStyle", ["classic", "modern"], "classic"),
     },
     visual: {
       animations: booleanValue(visual, "animations", true),
@@ -212,6 +229,7 @@ export function normalizePlayerPreferences(value: unknown): PlayerPreferences {
       compactLayout: booleanValue(visual, "compactLayout", false),
       highContrast: booleanValue(visual, "highContrast", false),
       textSize: enumValue(visual, "textSize", ["normal", "large"], "normal"),
+      tableTheme: enumValue(visual, "tableTheme", ["classic-green", "midnight-blue", "burgundy", "dark-neutral"], "classic-green"),
     },
     audio: {
       enabled: booleanValue(audio, "enabled", false),
@@ -234,10 +252,30 @@ export function validatePlayerPreferences(value: unknown): value is PlayerPrefer
   return JSON.stringify(canonical(normalized)) === JSON.stringify(canonical(value));
 }
 
-export function withGameSpeed(preferences: PlayerPreferences, gameSpeed: GameSpeed): PlayerPreferences {
+export function withGameSpeed(preferences: PlayerPreferences, gameSpeed: PresetGameSpeed): PlayerPreferences {
   return {
     ...clonePlayerPreferences(preferences),
     gameplay: { ...preferences.gameplay, gameSpeed, ...GAME_SPEED_PRESETS[gameSpeed] },
+  };
+}
+
+export function withCustomTiming(
+  preferences: PlayerPreferences,
+  timing: keyof GameSpeedDelays,
+  value: number,
+): PlayerPreferences {
+  const limits: Record<keyof GameSpeedDelays, number> = {
+    botDelayMs: 2_000,
+    trickDisplayMs: 3_000,
+    biddingDelayMs: 1_500,
+  };
+  return {
+    ...clonePlayerPreferences(preferences),
+    gameplay: {
+      ...preferences.gameplay,
+      gameSpeed: "custom",
+      [timing]: Math.min(limits[timing], Math.max(0, Math.round(value))),
+    },
   };
 }
 
