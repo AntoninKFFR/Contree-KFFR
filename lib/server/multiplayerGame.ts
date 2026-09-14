@@ -9,6 +9,7 @@ import { buildCustomRuleset, type CustomRulesetInput } from "@/engine/rulesets/c
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import { isPlayerConnected } from "@/lib/multiplayerPresence";
 import { isTurnDeadlineExpired } from "@/lib/multiplayerTurnTimer";
+import type { MultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 
 export class MultiplayerError extends Error {
   constructor(message: string, readonly status = 400, readonly code = "invalid_action") {
@@ -122,6 +123,20 @@ export function prepareRoomRulesUpdate(input: { room: RoomRow; players: RoomPlay
     ruleset: buildCustomRuleset(input.rules),
     players: input.players.map((player) => ({ ...player, is_ready: player.kind === "bot" })),
   };
+}
+
+export function prepareRoomPresentationUpdate(input: {
+  room: RoomRow;
+  players: RoomPlayerRow[];
+  userId: string;
+  settings: MultiplayerTablePreferences;
+}): MultiplayerTablePreferences {
+  humanSeat(input.players, input.userId);
+  requireHost(input.room, input.userId);
+  if (input.room.status === "cancelled") {
+    throw new MultiplayerError("Cette table est annulée.", 409, "room_cancelled");
+  }
+  return { ...input.settings };
 }
 
 function gameAction(action: RoomPlayerAction, playerId: PlayerId): GameAction {

@@ -71,16 +71,16 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       pages[0].on("request", (request) => {
         if (request.method() === "POST" && new URL(request.url()).pathname === `/api/multiplayer/rooms/${roomId}`) playerOneRoomPosts += 1;
       });
-      await setLocalPreferences(pages[0], { speed: "fast", cardSize: "large", theme: "midnight-blue" });
-      await setLocalPreferences(pages[1], { speed: "slow", cardSize: "small", theme: "classic-green" });
+      await setLocalPreferences(pages[0], { cardSize: "large", theme: "midnight-blue" });
+      await setLocalPreferences(pages[1], { cardSize: "small", theme: "classic-green" });
       expect(playerOneRoomPosts).toBe(0);
       expect((await roomView(pages[0], roomId)).room.state_version).toBe(beforePreferences);
       const preferenceValues = await Promise.all(pages.slice(0, 2).map((page) => page.evaluate(() => {
         const raw = localStorage.getItem("coinche:player-preferences:v1");
         const value = JSON.parse(raw ?? "null") as { gameplay?: { gameSpeed?: string }; cards?: { cardSize?: string }; visual?: { tableTheme?: string } };
-        return [value.gameplay?.gameSpeed, value.cards?.cardSize, value.visual?.tableTheme];
+        return [value.cards?.cardSize, value.visual?.tableTheme];
       })));
-      expect(preferenceValues).toEqual([["fast", "large", "midnight-blue"], ["slow", "small", "classic-green"]]);
+      expect(preferenceValues).toEqual([["large", "midnight-blue"], ["small", "classic-green"]]);
 
       for (const page of pages) {
         await page.getByRole("button", { name: "Prêt", exact: true }).click();

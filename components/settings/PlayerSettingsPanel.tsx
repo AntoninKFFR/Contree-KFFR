@@ -1,11 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { SUIT_LABELS, SUIT_SYMBOLS } from "@/engine/cards";
 import { playPreferenceSound } from "@/lib/preferences/audio";
 import { moveSuit } from "@/lib/preferences/handSorting";
 import { DEFAULT_PLAYER_PREFERENCES, withCustomTiming, type PlayerPreferences, type PresetGameSpeed } from "@/lib/preferences/playerPreferences";
+import {
+  normalizeMultiplayerTablePreferences,
+  withMultiplayerTableSpeed,
+  withMultiplayerTableTrickDisplay,
+  type MultiplayerTablePreferences,
+} from "@/lib/multiplayerTablePreferences";
 import { usePlayerPreferences } from "./PlayerPreferencesProvider";
 
 const SECTIONS = [
@@ -34,11 +40,24 @@ function TimingField({ label, max, step, value, onChange }: { label: string; max
   return <Field label={label}><div className="mt-2 flex items-center gap-3"><input aria-label={label} className="min-w-0 flex-1 accent-emerald-700" max={max} min={0} onChange={(event) => onChange(Number(event.target.value))} step={step} type="range" value={value} /><output className="w-16 text-right font-mono text-xs text-emerald-900">{formatPreferenceDuration(value)}</output></div></Field>;
 }
 
-function ScopeNotice() {
-  return <div className="grid gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs sm:grid-cols-2"><div><strong className="block text-emerald-950">MES PARAMÈTRES</strong><span>Personnels, locaux et enregistrés automatiquement.</span></div><div className="border-t border-emerald-200 pt-2 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0"><strong className="block text-stone-700">RÈGLES DE LA PARTIE</strong><span>Partagées et appliquées par le moteur. Elles ne changent pas ici.</span></div></div>;
+export type PlayerSettingsContext =
+  | { mode: "solo" }
+  | {
+      mode: "multiplayer";
+      isHost: boolean;
+      tablePreferences?: MultiplayerTablePreferences;
+      isSavingTablePreferences?: boolean;
+      onTablePreferencesChange?: (settings: MultiplayerTablePreferences) => void;
+    };
+
+const SOLO_SETTINGS_CONTEXT: PlayerSettingsContext = { mode: "solo" };
+
+function ScopeNotice({ context }: { context: PlayerSettingsContext }) {
+  const multiplayer = context.mode === "multiplayer";
+  return <div className="grid gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs sm:grid-cols-2"><div><strong className="block text-emerald-950">{multiplayer ? "MES PRÉFÉRENCES" : "MES PARAMÈTRES"}</strong><span>{multiplayer ? "Personnelles, locales et enregistrées automatiquement." : "Personnels, locaux et enregistrés automatiquement."}</span></div><div className="border-t border-emerald-200 pt-2 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0"><strong className="block text-stone-700">{multiplayer ? "RYTHME DE LA TABLE" : "RÈGLES DE LA PARTIE"}</strong><span>{multiplayer ? "Partagé par tous les joueurs et défini par l’hôte." : "Partagées et appliquées par le moteur. Elles ne changent pas ici."}</span></div></div>;
 }
 
-export function PlayerSettingsPanel() {
+export function PlayerSettingsPanel({ context = SOLO_SETTINGS_CONTEXT }: { context?: PlayerSettingsContext }) {
   const { preferences, reset, setGameSpeed, setPreferences } = usePlayerPreferences();
   const [active, setActive] = useState<SectionId>("game");
   const [query, setQuery] = useState("");
@@ -57,12 +76,12 @@ export function PlayerSettingsPanel() {
   const speedLabels: Record<PresetGameSpeed | "custom", string> = { slow: "Lente", normal: "Normale", fast: "Rapide", instant: "Instantanée", custom: "Personnalisée" };
 
   return <div className="flex h-full min-h-0 flex-col">
-    <div className="shrink-0 space-y-3 border-b border-stone-200 bg-white/60 px-4 py-3 sm:px-6"><ScopeNotice /><div className="flex flex-wrap items-center gap-2"><input aria-label="Rechercher un paramètre" className="min-w-48 flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm" onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un paramètre" type="search" value={query} /><span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-stone-600 shadow-sm">{isCustom ? "Personnalisé" : "Réglages par défaut"}</span><span className="text-xs text-emerald-800">Enregistré automatiquement</span></div></div>
+    <div className="shrink-0 space-y-3 border-b border-stone-200 bg-white/60 px-4 py-3 sm:px-6"><ScopeNotice context={context} /><div className="flex flex-wrap items-center gap-2"><input aria-label="Rechercher un paramètre" className="min-w-48 flex-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm" onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un paramètre" type="search" value={query} /><span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-stone-600 shadow-sm">{isCustom ? "Personnalisé" : "Réglages par défaut"}</span><span className="text-xs text-emerald-800">Enregistré automatiquement</span></div></div>
     <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-[210px_minmax(0,1fr)]">
       <nav aria-label="Sections des paramètres" className="flex shrink-0 gap-1 overflow-x-auto border-b border-stone-200 bg-stone-100 p-2 md:flex-col md:overflow-visible md:border-b-0 md:border-r md:p-4">{visibleSections.map((section) => <button aria-current={selected === section.id ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm font-semibold ${selected === section.id ? "bg-emerald-800 text-white shadow" : "bg-white text-stone-700 hover:bg-stone-50"}`} key={section.id} onClick={() => setActive(section.id)} type="button">{section.label.toLocaleUpperCase("fr")}</button>)}</nav>
       <div className="min-h-0 overflow-y-auto p-4 sm:p-6">
         {!selected ? <p className="rounded-lg border bg-white p-4 text-sm">Aucun paramètre ne correspond à « {query} ».</p> : null}
-        {selected === "game" ? <GameSettings preferences={preferences} setGameSpeed={setGameSpeed} timing={timing} update={update} speedLabels={speedLabels} /> : null}
+        {selected === "game" ? <GameSettings context={context} preferences={preferences} setGameSpeed={setGameSpeed} timing={timing} update={update} speedLabels={speedLabels} /> : null}
         {selected === "help" ? <HelpSettings preferences={preferences} update={update} /> : null}
         {selected === "cards" ? <CardSettings preferences={preferences} update={update} /> : null}
         {selected === "display" ? <DisplaySettings preferences={preferences} update={update} /> : null}
@@ -75,8 +94,20 @@ export function PlayerSettingsPanel() {
 }
 
 type Update = <K extends keyof PlayerPreferences>(section: K, patch: Partial<PlayerPreferences[K]>, sound?: boolean) => void;
-function GameSettings({ preferences, setGameSpeed, speedLabels, timing, update }: { preferences: PlayerPreferences; setGameSpeed: (speed: PresetGameSpeed) => void; speedLabels: Record<PresetGameSpeed | "custom", string>; timing: (key: "botDelayMs" | "trickDisplayMs" | "biddingDelayMs", value: number) => void; update: Update }) {
-  return <section aria-labelledby="settings-game" className="space-y-3"><h3 className="text-lg font-bold" id="settings-game">Jeu</h3><Field description="Règle uniquement le rythme visuel. Le moteur calcule toujours immédiatement." label="Vitesse de jeu"><select aria-label="Vitesse de jeu" className="mt-2 w-full rounded-lg border border-stone-300 px-3 py-2" onChange={(event) => { if (event.target.value !== "custom") setGameSpeed(event.target.value as PresetGameSpeed); }} value={preferences.gameplay.gameSpeed}>{Object.entries(speedLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Toggle checked={preferences.gameplay.autoCollectTricks} description={`Ramasse après ${formatPreferenceDuration(preferences.gameplay.trickDisplayMs)}. Sinon, un bouton indique qui a gagné.`} label="Ramasser les plis automatiquement" onChange={(v) => update("gameplay", { autoCollectTricks: v })} /><div className="grid gap-2 sm:grid-cols-2"><Toggle checked={preferences.gameplay.confirmCoinche} description="Demander avant de contrer." label="Confirmer la Coinche" onChange={(v) => update("gameplay", { confirmCoinche: v })} /><Toggle checked={preferences.gameplay.confirmSurcoinche} description="Demander avant de surcontrer." label="Confirmer la Surcoinche" onChange={(v) => update("gameplay", { confirmSurcoinche: v })} /><Toggle checked={preferences.gameplay.confirmCapot} description="Demander avant d'annoncer un Capot." label="Confirmer le Capot" onChange={(v) => update("gameplay", { confirmCapot: v })} /><Toggle checked={preferences.gameplay.confirmGenerale} description="Demander avant d'annoncer une Générale." label="Confirmer la Générale" onChange={(v) => update("gameplay", { confirmGenerale: v })} /></div><details className="rounded-xl border border-stone-300 bg-stone-50 p-3"><summary className="cursor-pointer font-bold">Réglages avancés <span className="font-normal text-stone-500">· délais précis</span></summary><div className="mt-3 grid gap-2"><TimingField label="Temps de réflexion visuel des bots" max={2000} onChange={(v) => timing("botDelayMs", v)} step={50} value={preferences.gameplay.botDelayMs} /><TimingField label="Durée d'affichage d'un pli" max={3000} onChange={(v) => timing("trickDisplayMs", v)} step={50} value={preferences.gameplay.trickDisplayMs} /><TimingField label="Délai entre enchères" max={1500} onChange={(v) => timing("biddingDelayMs", v)} step={50} value={preferences.gameplay.biddingDelayMs} /></div></details></section>;
+function GameSettings({ context, preferences, setGameSpeed, speedLabels, timing, update }: { context: PlayerSettingsContext; preferences: PlayerPreferences; setGameSpeed: (speed: PresetGameSpeed) => void; speedLabels: Record<PresetGameSpeed | "custom", string>; timing: (key: "botDelayMs" | "trickDisplayMs" | "biddingDelayMs", value: number) => void; update: Update }) {
+  return <section aria-labelledby="settings-game" className="space-y-3"><h3 className="text-lg font-bold" id="settings-game">Jeu</h3>{context.mode === "solo" ? <><Field description="Règle uniquement le rythme visuel. Le moteur calcule toujours immédiatement." label="Vitesse de jeu"><select aria-label="Vitesse de jeu" className="mt-2 w-full rounded-lg border border-stone-300 px-3 py-2" onChange={(event) => { if (event.target.value !== "custom") setGameSpeed(event.target.value as PresetGameSpeed); }} value={preferences.gameplay.gameSpeed}>{Object.entries(speedLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Toggle checked={preferences.gameplay.autoCollectTricks} description={`Ramasse après ${formatPreferenceDuration(preferences.gameplay.trickDisplayMs)}. Sinon, un bouton indique qui a gagné.`} label="Ramasser les plis automatiquement" onChange={(v) => update("gameplay", { autoCollectTricks: v })} /></> : <TablePacingSettings context={context} speedLabels={speedLabels} />}<div className="grid gap-2 sm:grid-cols-2"><Toggle checked={preferences.gameplay.confirmCoinche} description="Demander avant de contrer." label="Confirmer la Coinche" onChange={(v) => update("gameplay", { confirmCoinche: v })} /><Toggle checked={preferences.gameplay.confirmSurcoinche} description="Demander avant de surcontrer." label="Confirmer la Surcoinche" onChange={(v) => update("gameplay", { confirmSurcoinche: v })} /><Toggle checked={preferences.gameplay.confirmCapot} description="Demander avant d'annoncer un Capot." label="Confirmer le Capot" onChange={(v) => update("gameplay", { confirmCapot: v })} /><Toggle checked={preferences.gameplay.confirmGenerale} description="Demander avant d'annoncer une Générale." label="Confirmer la Générale" onChange={(v) => update("gameplay", { confirmGenerale: v })} /></div>{context.mode === "solo" ? <details className="rounded-xl border border-stone-300 bg-stone-50 p-3"><summary className="cursor-pointer font-bold">Réglages avancés <span className="font-normal text-stone-500">· délais précis</span></summary><div className="mt-3 grid gap-2"><TimingField label="Temps de réflexion visuel des bots" max={2000} onChange={(v) => timing("botDelayMs", v)} step={50} value={preferences.gameplay.botDelayMs} /><TimingField label="Durée d'affichage d'un pli" max={3000} onChange={(v) => timing("trickDisplayMs", v)} step={50} value={preferences.gameplay.trickDisplayMs} /><TimingField label="Délai entre enchères" max={1500} onChange={(v) => timing("biddingDelayMs", v)} step={50} value={preferences.gameplay.biddingDelayMs} /></div></details> : null}</section>;
+}
+
+function TablePacingSettings({ context, speedLabels }: { context: Extract<PlayerSettingsContext, { mode: "multiplayer" }>; speedLabels: Record<PresetGameSpeed | "custom", string> }) {
+  const sourceSettings = context.tablePreferences;
+  const settings = normalizeMultiplayerTablePreferences(sourceSettings);
+  const [draft, setDraft] = useState(settings);
+  useEffect(() => setDraft(normalizeMultiplayerTablePreferences(sourceSettings)), [sourceSettings]);
+  if (!context.isHost || !context.onTablePreferencesChange) {
+    return <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm"><strong>Rythme de la table : {speedLabels[settings.gameSpeed]}</strong><span className="block text-xs text-stone-600">{context.tablePreferences ? "Défini par l’hôte et appliqué à tous les joueurs." : "Il sera défini par l’hôte une fois dans la table."}</span></div>;
+  }
+  const changed = JSON.stringify(draft) !== JSON.stringify(settings);
+  return <div className="space-y-3 rounded-xl border border-sky-200 bg-sky-50 p-3"><div><h4 className="font-bold">Rythme de la table</h4><p className="text-xs text-stone-600">Ces réglages sont partagés avec tous les joueurs.</p></div><Field description="Règle la présentation commune des plis." label="Vitesse de jeu"><select aria-label="Vitesse de jeu de la table" className="mt-2 w-full rounded-lg border border-stone-300 px-3 py-2" onChange={(event) => { if (event.target.value !== "custom") setDraft((current) => withMultiplayerTableSpeed(current, event.target.value as PresetGameSpeed)); }} value={draft.gameSpeed}>{Object.entries(speedLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Toggle checked={draft.autoCollectTricks} description={`Ramasse après ${formatPreferenceDuration(draft.trickDisplayMs)}. Sinon, chaque joueur voit le bouton de ramassage.`} label="Ramassage automatique des plis" onChange={(autoCollectTricks) => setDraft((current) => ({ ...current, autoCollectTricks }))} /><details className="rounded-xl border border-stone-300 bg-white p-3"><summary className="cursor-pointer font-bold">Réglages avancés <span className="font-normal text-stone-500">· délai réellement appliqué</span></summary><div className="mt-3"><TimingField label="Durée d'affichage d'un pli" max={3000} onChange={(value) => setDraft((current) => withMultiplayerTableTrickDisplay(current, value))} step={50} value={draft.trickDisplayMs} /></div></details><button className="w-full rounded-lg bg-emerald-800 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50" disabled={!changed || context.isSavingTablePreferences} onClick={() => context.onTablePreferencesChange?.(draft)} type="button">{context.isSavingTablePreferences ? "Application…" : "Appliquer à la table"}</button></div>;
 }
 
 function HelpSettings({ preferences, update }: { preferences: PlayerPreferences; update: Update }) {
@@ -102,6 +133,7 @@ function AccessibilitySettings({ preferences, update }: { preferences: PlayerPre
   return <section aria-labelledby="settings-accessibility" className="space-y-2"><h3 className="text-lg font-bold" id="settings-accessibility">Accessibilité</h3><Toggle checked={preferences.visual.reducedMotion} description="Le réglage système du navigateur reste toujours prioritaire." label="Réduire les animations" onChange={(v) => update("visual", { reducedMotion: v })} /><Toggle checked={preferences.visual.highContrast} description="Renforce cartes, boutons, table, modales, toggles et focus." label="Contraste renforcé" onChange={(v) => update("visual", { highContrast: v })} /><Field label="Taille du texte"><select aria-label="Taille du texte" className="mt-2 w-full rounded-lg border px-3 py-2" onChange={(event) => update("visual", { textSize: event.target.value as "normal" | "large" })} value={preferences.visual.textSize}><option value="normal">Normale</option><option value="large">Grande</option></select></Field></section>;
 }
 
-export function PlayerSettingsDialog({ onClose }: { onClose: () => void }) {
-  return <AccessibleDialog description="Ces réglages ne changent que ton interface." onClose={onClose} title="Paramètres"><PlayerSettingsPanel /></AccessibleDialog>;
+export function PlayerSettingsDialog({ context = SOLO_SETTINGS_CONTEXT, onClose }: { context?: PlayerSettingsContext; onClose: () => void }) {
+  const multiplayer = context.mode === "multiplayer";
+  return <AccessibleDialog description={multiplayer ? "Tes préférences restent locales ; le rythme de la table est partagé." : "Ces réglages ne changent que ton interface."} onClose={onClose} title={multiplayer ? "Préférences" : "Paramètres"}><PlayerSettingsPanel context={context} /></AccessibleDialog>;
 }

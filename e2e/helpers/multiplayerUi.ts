@@ -27,17 +27,16 @@ export async function joinRoomThroughUi(page: Page, code: string, displayName: s
 
 export async function setLocalPreferences(
   page: Page,
-  values: { speed: "fast" | "slow"; cardSize: "large" | "small"; theme: "midnight-blue" | "classic-green" },
+  values: { cardSize: "large" | "small"; theme: "midnight-blue" | "classic-green" },
 ): Promise<void> {
-  await page.getByRole("button", { name: "Paramètres" }).click();
-  const dialog = page.getByRole("dialog", { name: "Paramètres" });
+  await page.getByRole("button", { name: "Préférences" }).click();
+  const dialog = page.getByRole("dialog", { name: "Préférences" });
   await expect(dialog).toBeVisible();
-  await dialog.getByLabel("Vitesse de jeu").selectOption(values.speed);
   await dialog.getByRole("button", { name: "CARTES" }).click();
   await dialog.getByLabel("Taille des cartes").selectOption(values.cardSize);
   await dialog.getByRole("button", { name: "AFFICHAGE" }).click();
   await dialog.getByLabel("Tapis de jeu").selectOption(values.theme);
-  await dialog.getByRole("button", { name: "Fermer Paramètres" }).click();
+  await dialog.getByRole("button", { name: "Fermer Préférences" }).click();
   await expect(dialog).toBeHidden();
 }
 

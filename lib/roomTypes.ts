@@ -2,6 +2,7 @@ import type { BidValue, Card, ContractMode, ScoringMode, Suit } from "@/engine/t
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import type { CustomRulesetInput } from "@/engine/rulesets/custom";
 import type { PlayerGameView } from "@/engine/views";
+import type { MultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 
 export type RoomStatus = "lobby" | "playing" | "finished" | "cancelled";
 export type SeatKind = "human" | "bot" | "empty";
@@ -18,6 +19,7 @@ export type RoomRow = {
   ruleset_id?: string | null;
   ruleset_version?: number | null;
   ruleset_snapshot?: GameRulesetSnapshot | null;
+  presentation_settings?: MultiplayerTablePreferences | null;
   game_phase: GamePhase | null;
   state_version: number;
   turn_deadline_at: string | null;
@@ -80,6 +82,7 @@ export type RoomIntent =
   | { type: "claim-host" }
   | { type: "transfer-host"; targetSeatIndex: RoomPlayerRow["seat_index"] }
   | { type: "update-room-rules"; rules: CustomRulesetInput }
+  | { type: "update-room-presentation"; settings: MultiplayerTablePreferences }
   | { type: "enable-bot-takeover"; seatIndex: RoomPlayerRow["seat_index"] }
   | { type: "game-action"; action: RoomPlayerAction }
   | { type: "next-round" }

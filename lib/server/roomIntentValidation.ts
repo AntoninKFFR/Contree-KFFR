@@ -2,6 +2,7 @@ import "server-only";
 import type { RoomIntent } from "@/lib/roomTypes";
 import { MultiplayerError } from "./multiplayerGame";
 import { parseCustomRulesetInput } from "@/engine/rulesets/custom";
+import { isMultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 
 const SUITS = new Set(["clubs", "diamonds", "hearts", "spades"]);
 const RANKS = new Set(["7", "8", "9", "J", "Q", "K", "10", "A"]);
@@ -29,6 +30,9 @@ export function parseRoomIntent(value: unknown): RoomIntent {
   if (value.type === "set-ready" && typeof value.ready === "boolean") return value as RoomIntent;
   if (value.type === "update-room-rules") {
     return { type: "update-room-rules", rules: parseCustomRulesetInput(value.rules) };
+  }
+  if (value.type === "update-room-presentation" && isMultiplayerTablePreferences(value.settings)) {
+    return { type: "update-room-presentation", settings: { ...value.settings } };
   }
   if (value.type === "game-action" && record(value.action)) {
     const action = value.action;

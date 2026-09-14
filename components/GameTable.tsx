@@ -42,6 +42,7 @@ type GameTableProps = {
   presentationScope?: string;
   showLiveScore?: boolean;
   turnSecondsRemaining?: number | null;
+  trickPresentationPolicy?: { autoCollect: boolean; delayMs: number };
 };
 
 type AnnouncementBubbleContent = {
@@ -370,6 +371,7 @@ export function GameTable({
   presentationScope = "game",
   showLiveScore = false,
   turnSecondsRemaining,
+  trickPresentationPolicy,
 }: GameTableProps) {
   const { effectiveReducedMotion, preferences } = usePlayerPreferences();
   const observationRef = useRef<TrickObservation | null>(null);
@@ -444,6 +446,7 @@ export function GameTable({
   const leftAnnouncement = announcementFor(3);
   const rightAnnouncement = announcementFor(1);
   const bottomAnnouncement = announcementFor(0);
+  const effectiveTrickPresentationPolicy = trickPresentationPolicy ?? getTrickPresentationPolicy(preferences);
   useEffect(() => {
     soundPreferencesRef.current = preferences;
   }, [preferences]);
@@ -489,18 +492,17 @@ export function GameTable({
   }, [presentationScope, state.completedTricks, state.roundNumber]);
 
   useEffect(() => {
-    const policy = getTrickPresentationPolicy(preferences);
-    if (!animatedCompletedTrick || !policy.autoCollect) return;
+    if (!animatedCompletedTrick || !effectiveTrickPresentationPolicy.autoCollect) return;
     const timeoutId = window.setTimeout(() => {
       playPreferenceSound("trick-collect", preferences);
       setAnimatedCompletedTrick((current) => {
         if (current?.key !== animatedCompletedTrick.key) return current;
         return pendingTricksRef.current.shift() ?? null;
       });
-    }, policy.delayMs);
+    }, effectiveTrickPresentationPolicy.delayMs);
 
     return () => window.clearTimeout(timeoutId);
-  }, [animatedCompletedTrick, preferences]);
+  }, [animatedCompletedTrick, effectiveTrickPresentationPolicy.autoCollect, effectiveTrickPresentationPolicy.delayMs, preferences]);
 
   const dismissPresentedTrick = () => {
     playPreferenceSound("trick-collect", preferences);
@@ -523,8 +525,8 @@ export function GameTable({
     >
       {animatedCompletedTrick ? (
         <TrickCollectionAnimation
-          animate={preferences.gameplay.autoCollectTricks && isPreferenceAnimationEnabled(preferences, "trick", effectiveReducedMotion)}
-          durationMs={preferences.gameplay.trickDisplayMs}
+          animate={effectiveTrickPresentationPolicy.autoCollect && isPreferenceAnimationEnabled(preferences, "trick", effectiveReducedMotion)}
+          durationMs={effectiveTrickPresentationPolicy.delayMs}
           trick={animatedCompletedTrick.trick}
           winnerName={nameFor(animatedCompletedTrick.trick.winnerId)}
         />
@@ -532,7 +534,7 @@ export function GameTable({
         <TrickCenter cards={visualTrick.cards} title={center.title} />
       )}
       {showRoundHelp ? <RoundHelpOverlay showLiveScore={showLiveScore && preferences.assistance.showLivePoints} state={state} /> : null}
-      {animatedCompletedTrick && !preferences.gameplay.autoCollectTricks ? <button className="absolute bottom-2 left-1/2 z-40 -translate-x-1/2 rounded-xl border-2 border-white bg-emerald-950 px-5 py-2.5 text-xs font-bold text-white shadow-xl" onClick={dismissPresentedTrick} type="button"><span className="block">Ramasser le pli</span><span className="block text-[10px] font-normal text-white/80">{nameFor(animatedCompletedTrick.trick.winnerId)} gagne · {animatedCompletedTrick.trick.points} pts</span></button> : null}
+      {animatedCompletedTrick && !effectiveTrickPresentationPolicy.autoCollect ? <button className="absolute bottom-2 left-1/2 z-40 -translate-x-1/2 rounded-xl border-2 border-white bg-emerald-950 px-5 py-2.5 text-xs font-bold text-white shadow-xl" onClick={dismissPresentedTrick} type="button"><span className="block">Ramasser le pli</span><span className="block text-[10px] font-normal text-white/80">{nameFor(animatedCompletedTrick.trick.winnerId)} gagne · {animatedCompletedTrick.trick.points} pts</span></button> : null}
       {preferences.assistance.showLastTrick && lastTrick && !animatedCompletedTrick ? <button aria-expanded={showLastTrick} className="absolute bottom-2 left-2 z-20 rounded-md border border-white/40 bg-black/40 px-2 py-1 text-[10px] font-semibold text-white shadow" onClick={() => setShowLastTrick((visible) => !visible)} type="button">Dernier pli</button> : null}
       {showLastTrick && lastTrick && !animatedCompletedTrick ? <div aria-label="Cartes du dernier pli" className="absolute inset-2 z-30 flex flex-col items-center justify-center overflow-y-auto rounded-xl border border-white/60 bg-stone-950/95 p-3 text-white shadow-2xl"><p className="text-sm font-bold">Dernier pli</p><p className="mb-2 text-xs text-white/75">{nameFor(lastTrick.winnerId)} gagne · {lastTrick.points} points</p><ol className="flex max-w-full gap-1.5 overflow-x-auto px-1">{lastTrick.cards.map((played, index) => <li className="flex shrink-0 flex-col items-center gap-1" key={`${played.playerId}-${played.card.rank}-${played.card.suit}`}><span className="text-[9px] text-white/80">{index + 1}. {nameFor(played.playerId)}</span><CardView card={played.card} disabled muted={false} size="compact" /></li>)}</ol><button className="mt-2 rounded-lg border border-white px-3 py-1 text-xs font-semibold" onClick={() => setShowLastTrick(false)} type="button">Fermer</button></div> : null}
       {immersiveMobileLandscape ? (

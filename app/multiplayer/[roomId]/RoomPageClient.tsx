@@ -33,6 +33,7 @@ import { subscribeToRoomRealtime } from "@/lib/roomRealtime";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { MULTIPLAYER_TICK_INTERVAL_MS } from "@/lib/multiplayerTurnTimer";
 import { scoringModeLabel } from "@/lib/productGame";
+import { normalizeMultiplayerTablePreferences, type MultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable" | "missing";
 
@@ -87,6 +88,7 @@ export default function MultiplayerRoomPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [rulesDraft, setRulesDraft] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
   const [isUpdatingRules, setIsUpdatingRules] = useState(false);
+  const [isUpdatingTablePreferences, setIsUpdatingTablePreferences] = useState(false);
   const [rulesChangedNotice, setRulesChangedNotice] = useState(false);
   const previousRulesKeyRef = useRef<string | null>(null);
   const previousPhaseRef = useRef<PlayerGameView["phase"] | null>(null);
@@ -101,6 +103,18 @@ export default function MultiplayerRoomPage() {
   }, [roomWithPlayers]);
 
   const isHost = roomWithPlayers?.isHost ?? false;
+  const storedTablePreferences = roomWithPlayers?.room.presentation_settings;
+  const storedTableSpeed = storedTablePreferences?.gameSpeed;
+  const storedAutoCollectTricks = storedTablePreferences?.autoCollectTricks;
+  const storedTrickDisplayMs = storedTablePreferences?.trickDisplayMs;
+  const tablePreferences = useMemo(
+    () => normalizeMultiplayerTablePreferences({
+      gameSpeed: storedTableSpeed,
+      autoCollectTricks: storedAutoCollectTricks,
+      trickDisplayMs: storedTrickDisplayMs,
+    }),
+    [storedAutoCollectTricks, storedTableSpeed, storedTrickDisplayMs],
+  );
   const lobbyRules = useMemo(() => roomWithPlayers ? resolveRoomRules(roomWithPlayers.room) : CONTREE_KFFR_RULESET, [roomWithPlayers]);
   useEffect(() => {
     if (!roomWithPlayers || roomWithPlayers.room.status !== "lobby") return;
@@ -516,6 +530,25 @@ export default function MultiplayerRoomPage() {
     }
   }
 
+  async function handleUpdateTablePreferences(settings: MultiplayerTablePreferences) {
+    if (!roomWithPlayers || !session || !isHost || isUpdatingTablePreferences) return;
+    setIsUpdatingTablePreferences(true);
+    setError(null);
+    try {
+      const nextRoom = await sendRoomIntent(
+        roomWithPlayers.room.id,
+        roomWithPlayers.room.state_version,
+        { type: "update-room-presentation", settings },
+        session,
+      );
+      setRoomWithPlayers(nextRoom);
+    } catch (preferencesError) {
+      setError(errorMessage(preferencesError));
+    } finally {
+      setIsUpdatingTablePreferences(false);
+    }
+  }
+
   async function handleEnableBotTakeover(seatIndex: RoomPlayerRow["seat_index"]) {
     if (!roomWithPlayers || !session || !isHost || takeoverSeatInFlight !== null) return;
 
@@ -706,7 +739,7 @@ export default function MultiplayerRoomPage() {
   const shouldLockPortrait = isMobilePortrait && displayedRoomStatus === "playing";
 
   if (shouldLockPortrait) {
-    return <><MobileLandscapeNotice /><button className="fixed right-3 top-16 z-40 rounded-md border bg-white px-3 py-2 text-sm font-semibold shadow" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button>{isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}</>;
+    return <><MobileLandscapeNotice /><button className="fixed right-3 top-16 z-40 rounded-md border bg-white px-3 py-2 text-sm font-semibold shadow" onClick={() => setIsSettingsOpen(true)} type="button">Préférences</button>{isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost, tablePreferences, isSavingTablePreferences: isUpdatingTablePreferences, onTablePreferencesChange: handleUpdateTablePreferences }} onClose={() => setIsSettingsOpen(false)} /> : null}</>;
   }
 
   return (
@@ -811,7 +844,7 @@ export default function MultiplayerRoomPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <button className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button>
+                      <button className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50" onClick={() => setIsSettingsOpen(true)} type="button">Préférences</button>
                       <button
                         className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50"
                         onClick={() => loadRoom()}
@@ -896,7 +929,7 @@ export default function MultiplayerRoomPage() {
               >
                 <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
                   <div className={`flex justify-end ${isMobileLandscape ? "h-6 items-center pr-2" : ""}`}>
-                    <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-[10px] font-semibold text-stone-800 shadow-sm hover:bg-white sm:text-xs" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button>
+                    <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-[10px] font-semibold text-stone-800 shadow-sm hover:bg-white sm:text-xs" onClick={() => setIsSettingsOpen(true)} type="button">Préférences</button>
                     {isHost && hostTransferCandidates.length > 0 ? <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-[10px] font-semibold text-stone-800 shadow-sm hover:bg-white sm:text-xs" onClick={() => { setHostTransferSeat(null); setIsHostTransferOpen(true); }} type="button">Transférer l&apos;hôte</button> : null}
                     <button
                       className="rounded-md border border-red-300 bg-white/90 px-2 py-1 text-[10px] font-semibold text-red-800 shadow-sm hover:bg-red-50 sm:text-xs"
@@ -977,6 +1010,7 @@ export default function MultiplayerRoomPage() {
                     presentationScope={roomId ?? "multiplayer"}
                     state={playerView}
                     showLiveScore={preferences.assistance.showLivePoints}
+                    trickPresentationPolicy={{ autoCollect: tablePreferences.autoCollectTricks, delayMs: tablePreferences.trickDisplayMs }}
                     turnSecondsRemaining={turnSecondsRemaining}
                   />
 
@@ -1078,7 +1112,7 @@ export default function MultiplayerRoomPage() {
           </section>
         </div>
       ) : null}
-      {isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}
+      {isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost, tablePreferences, isSavingTablePreferences: isUpdatingTablePreferences, onTablePreferencesChange: handleUpdateTablePreferences }} onClose={() => setIsSettingsOpen(false)} /> : null}
     </main>
   );
 }

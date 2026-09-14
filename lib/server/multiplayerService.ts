@@ -21,12 +21,13 @@ import {
   applyAuthorizedAction, applyBotTurns, applyTimedOutTurnIfExpired, enableBotTakeover,
   forfeitRoom, humanSeat, joinLobbySeat, leaveLobbySeat, MultiplayerError, requireHost,
   prepareRematchPlayers, requireLobbySeatChange, requireVersion, resetRoomPlayers, setLobbyReady,
-  hostTransferTargetUserId, prepareRoomRulesUpdate,
+  hostTransferTargetUserId, prepareRoomPresentationUpdate, prepareRoomRulesUpdate,
   viewerSeatIndex,
 } from "./multiplayerGame";
 import { getSupabaseAdmin } from "./supabaseAdmin";
+import { normalizeMultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 
-const ROOM_COLUMNS = "id,code,status,host_user_id,active_game_id,scoring_mode,target_score,ruleset_id,ruleset_version,ruleset_snapshot,game_phase,state_version,turn_deadline_at,created_at,updated_at,started_at,finished_at";
+const ROOM_COLUMNS = "id,code,status,host_user_id,active_game_id,scoring_mode,target_score,ruleset_id,ruleset_version,ruleset_snapshot,presentation_settings,game_phase,state_version,turn_deadline_at,created_at,updated_at,started_at,finished_at";
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function cleanName(value: unknown): string {
@@ -79,7 +80,7 @@ export async function roomView(
   void _hostUserId;
   void _activeGameId;
   return {
-    room: publicRoom,
+    room: { ...publicRoom, presentation_settings: normalizeMultiplayerTablePreferences(publicRoom.presentation_settings) },
     players: projectRoomPlayers(result.players, nowMs, result.room.host_user_id),
     isHost: result.room.host_user_id === userId,
     canClaimHost: canClaimRoomHost(result.room, result.players, userId, nowMs),
@@ -418,6 +419,16 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
     });
     if (error) throw error;
     if (!updated) throw new MultiplayerError("La table a changé ou les règles sont verrouillées. Recharge puis réessaie.", 409, "version_conflict");
+  } else if (intent.type === "update-room-presentation") {
+    const settings = prepareRoomPresentationUpdate({ ...current, userId, settings: intent.settings });
+    const { data: updated, error } = await getSupabaseAdmin().rpc("update_room_presentation", {
+      p_room_id: roomId,
+      p_actor_user_id: userId,
+      p_expected_version: current.room.state_version,
+      p_settings: settings,
+    });
+    if (error) throw error;
+    if (!updated) throw new MultiplayerError("La table a changé. Recharge puis réessaie.", 409, "version_conflict");
   } else if (intent.type === "game-action") {
     const state = applyAuthorizedAction({ ...current, state: await serverState(roomId), userId, expectedVersion, action: intent.action });
     await commit(current.room, state, state.phase === "game-over" ? "finished" : "playing", null, current.players);
