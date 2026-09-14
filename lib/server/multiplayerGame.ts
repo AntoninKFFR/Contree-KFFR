@@ -90,6 +90,30 @@ export function requireHost(room: RoomRow, userId: string): void {
   }
 }
 
+export function hostTransferTargetUserId(input: {
+  room: RoomRow;
+  players: RoomPlayerRow[];
+  actorUserId: string;
+  targetSeatIndex: RoomPlayerRow["seat_index"];
+  nowMs: number;
+}): string {
+  requireHost(input.room, input.actorUserId);
+  if (input.room.status === "cancelled") {
+    throw new MultiplayerError("Cette table est annulée.", 409, "room_cancelled");
+  }
+  const target = input.players.find((player) => player.seat_index === input.targetSeatIndex);
+  if (!target || target.kind !== "human" || !target.user_id) {
+    throw new MultiplayerError("Le nouvel hôte doit être un joueur humain présent.", 409, "invalid_host_target");
+  }
+  if (target.user_id === input.actorUserId) {
+    throw new MultiplayerError("Tu es déjà l'hôte de cette table.", 409, "already_host");
+  }
+  if (!isPlayerConnected(target, input.nowMs)) {
+    throw new MultiplayerError("Le nouvel hôte doit être connecté.", 409, "host_target_offline");
+  }
+  return target.user_id;
+}
+
 export function prepareRoomRulesUpdate(input: { room: RoomRow; players: RoomPlayerRow[]; userId: string; rules: CustomRulesetInput }): { ruleset: GameRulesetSnapshot; players: RoomPlayerRow[] } {
   humanSeat(input.players, input.userId);
   requireHost(input.room, input.userId);

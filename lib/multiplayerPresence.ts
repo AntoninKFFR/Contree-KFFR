@@ -46,7 +46,11 @@ export function isPlayerConnected(
   return Number.isFinite(lastSeenMs) && lastSeenMs >= nowMs - timeoutMs;
 }
 
-export function projectRoomPlayers(players: RoomPlayerRow[], nowMs: number): RoomPlayerView[] {
+export function projectRoomPlayers(
+  players: RoomPlayerRow[],
+  nowMs: number,
+  hostUserId: string | null = null,
+): RoomPlayerView[] {
   return players.map((player) => ({
     seat_index: player.seat_index,
     kind: player.kind,
@@ -54,5 +58,6 @@ export function projectRoomPlayers(players: RoomPlayerRow[], nowMs: number): Roo
     is_ready: player.is_ready,
     is_connected: isPlayerConnected(player, nowMs),
     bot_takeover: player.bot_takeover,
+    is_host: player.kind === "human" && player.user_id === hostUserId,
   }));
 }

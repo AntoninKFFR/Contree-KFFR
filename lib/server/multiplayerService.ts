@@ -10,7 +10,7 @@ import type {
   MultiplayerRoomView, RoomIntent, RoomPlayerRow, RoomRow, RoomWithPlayers,
 } from "@/lib/roomTypes";
 import { buildMultiplayerArchive } from "@/lib/multiplayerHistory";
-import { canClaimRoomHost, nextHostUserId } from "@/lib/multiplayerHost";
+import { canClaimRoomHost, disconnectedHostSuccessor, nextHostUserId } from "@/lib/multiplayerHost";
 import { isTurnDeadlineExpired, turnDeadlineForState } from "@/lib/multiplayerTurnTimer";
 import {
   PRESENCE_OFFLINE_TIMEOUT_MS, PresenceMembershipError, projectRoomPlayers,
@@ -21,7 +21,7 @@ import {
   applyAuthorizedAction, applyBotTurns, applyTimedOutTurnIfExpired, enableBotTakeover,
   forfeitRoom, humanSeat, joinLobbySeat, leaveLobbySeat, MultiplayerError, requireHost,
   prepareRematchPlayers, requireLobbySeatChange, requireVersion, resetRoomPlayers, setLobbyReady,
-  prepareRoomRulesUpdate,
+  hostTransferTargetUserId, prepareRoomRulesUpdate,
   viewerSeatIndex,
 } from "./multiplayerGame";
 import { getSupabaseAdmin } from "./supabaseAdmin";
@@ -80,7 +80,7 @@ export async function roomView(
   void _activeGameId;
   return {
     room: publicRoom,
-    players: projectRoomPlayers(result.players, nowMs),
+    players: projectRoomPlayers(result.players, nowMs, result.room.host_user_id),
     isHost: result.room.host_user_id === userId,
     canClaimHost: canClaimRoomHost(result.room, result.players, userId, nowMs),
     viewerSeatIndex: seatIndex,
@@ -102,6 +102,7 @@ export async function heartbeatRoomPresence(
           is_connected: write.isConnected,
           bot_takeover: write.botTakeover,
           last_seen_at: write.lastSeenAt,
+          updated_at: write.lastSeenAt,
         })
         .eq("room_id", write.roomId)
         .eq("user_id", write.userId)
@@ -117,6 +118,9 @@ export async function heartbeatRoomPresence(
     }
     throw error;
   }
+  const current = await roomAndPlayers(roomId);
+  const successor = disconnectedHostSuccessor(current.room, current.players, now.getTime());
+  if (successor) await claimHost(roomId, successor, now.getTime());
   return roomView(roomId, userId, now.getTime());
 }
 
@@ -184,19 +188,32 @@ async function commitLobbySeatMove(input: {
   }
 }
 
-async function claimHost(roomId: string, userId: string, nowMs: number): Promise<void> {
+async function claimHost(roomId: string, userId: string, nowMs: number): Promise<boolean> {
   const { data, error } = await getSupabaseAdmin().rpc("claim_room_host", {
     p_room_id: roomId,
     p_claimant_user_id: userId,
     p_offline_before: new Date(nowMs - PRESENCE_OFFLINE_TIMEOUT_MS).toISOString(),
   });
   if (error) throw error;
+  return data === true;
+}
+
+async function transferHost(input: {
+  room: RoomRow;
+  actorUserId: string;
+  targetUserId: string;
+  nowMs: number;
+}): Promise<void> {
+  const { data, error } = await getSupabaseAdmin().rpc("transfer_room_host", {
+    p_room_id: input.room.id,
+    p_actor_user_id: input.actorUserId,
+    p_target_user_id: input.targetUserId,
+    p_expected_version: input.room.state_version,
+    p_online_after: new Date(input.nowMs - PRESENCE_OFFLINE_TIMEOUT_MS).toISOString(),
+  });
+  if (error) throw error;
   if (data !== true) {
-    throw new MultiplayerError(
-      "Le rôle d'hôte n'est plus récupérable. Recharge la table.",
-      409,
-      "host_claim_conflict",
-    );
+    throw new MultiplayerError("Le transfert d'hôte n'est plus possible.", 409, "host_transfer_conflict");
   }
 }
 
@@ -357,7 +374,21 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
         "host_not_claimable",
       );
     }
-    await claimHost(roomId, userId, nowMs);
+    if (!await claimHost(roomId, userId, nowMs)) {
+      throw new MultiplayerError(
+        "Le rôle d'hôte n'est plus récupérable.",
+        409,
+        "host_claim_conflict",
+      );
+    }
+  } else if (intent.type === "transfer-host") {
+    const targetUserId = hostTransferTargetUserId({
+      ...current,
+      actorUserId: userId,
+      targetSeatIndex: intent.targetSeatIndex,
+      nowMs,
+    });
+    await transferHost({ room: current.room, actorUserId: userId, targetUserId, nowMs });
   } else if (intent.type === "forfeit-game") {
     const result = forfeitRoom({
       ...current, state: await serverState(roomId), userId, nowMs,

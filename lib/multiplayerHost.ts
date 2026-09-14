@@ -39,3 +39,12 @@ export function canClaimRoomHost(
   );
   return !currentHost || !isPlayerConnected(currentHost, nowMs);
 }
+
+export function disconnectedHostSuccessor(
+  room: RoomRow,
+  players: RoomPlayerRow[],
+  nowMs: number,
+): string | null {
+  const successor = nextHostUserId(players, room.host_user_id, nowMs);
+  return successor && canClaimRoomHost(room, players, successor, nowMs) ? successor : null;
+}

@@ -43,5 +43,8 @@ export function apiFailure(error: unknown, context: ErrorContext) {
     : authenticationError
       ? "Authentication required."
       : "Erreur serveur.";
-  return NextResponse.json({ error: message }, { status });
+  return NextResponse.json({
+    error: message,
+    code: error instanceof MultiplayerError ? error.code : authenticationError ? "authentication_required" : "server_error",
+  }, { status });
 }

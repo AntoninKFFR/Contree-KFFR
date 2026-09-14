@@ -27,8 +27,9 @@ import type { BidValue, Card, ContractMode } from "@/engine/types";
 import type { PlayerGameView } from "@/engine/views";
 import { PRESENCE_HEARTBEAT_INTERVAL_MS } from "@/lib/multiplayerPresence";
 import { getProfileUsername } from "@/lib/profiles";
-import { fetchRoomView, sendPresenceHeartbeat, sendRoomIntent, sendRoomTick } from "@/lib/multiplayerApi";
+import { fetchRoomView, sendPresenceHeartbeat, sendRoomIntent, sendRoomIntentWithLobbyRetry, sendRoomTick } from "@/lib/multiplayerApi";
 import type { RoomPlayerAction, RoomPlayerRow, RoomPlayerView, MultiplayerRoomView } from "@/lib/roomTypes";
+import { subscribeToRoomRealtime } from "@/lib/roomRealtime";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { MULTIPLAYER_TICK_INTERVAL_MS } from "@/lib/multiplayerTurnTimer";
 import { scoringModeLabel } from "@/lib/productGame";
@@ -66,7 +67,9 @@ export default function MultiplayerRoomPage() {
   const [isPlayingCard, setIsPlayingCard] = useState(false);
   const [isForfeiting, setIsForfeiting] = useState(false);
   const [isForfeitConfirmationOpen, setIsForfeitConfirmationOpen] = useState(false);
-  const [isClaimingHost, setIsClaimingHost] = useState(false);
+  const [isHostTransferOpen, setIsHostTransferOpen] = useState(false);
+  const [hostTransferSeat, setHostTransferSeat] = useState<RoomPlayerRow["seat_index"] | null>(null);
+  const [isTransferringHost, setIsTransferringHost] = useState(false);
   const [takeoverSeatInFlight, setTakeoverSeatInFlight] = useState<RoomPlayerRow["seat_index"] | null>(null);
   const [isStartingNextRound, setIsStartingNextRound] = useState(false);
   const [isResettingRoom, setIsResettingRoom] = useState(false);
@@ -110,6 +113,14 @@ export default function MultiplayerRoomPage() {
         (player) => player.kind === "human" && !player.is_connected && !player.bot_takeover,
       )
     : [];
+  const hostTransferCandidates = roomWithPlayers && roomWithPlayers.room.status !== "cancelled" && isHost
+    ? roomWithPlayers.players.filter(
+        (player) => player.kind === "human" && !player.is_host && player.is_connected,
+      )
+    : [];
+  const selectedHostTransferPlayer = hostTransferCandidates.find(
+    (player) => player.seat_index === hostTransferSeat,
+  ) ?? null;
   const canStartGame = Boolean(
     roomWithPlayers &&
       roomWithPlayers.room.status === "lobby" &&
@@ -299,25 +310,7 @@ export default function MultiplayerRoomPage() {
 
     if (!supabase || !roomId) return;
 
-    const channel = supabase
-      .channel(`room-lobby:${roomId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          filter: `id=eq.${roomId}`,
-          schema: "public",
-          table: "rooms",
-        },
-        () => {
-          void loadRoom({ silent: true });
-        },
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
+    return subscribeToRoomRealtime(supabase, roomId, () => loadRoom({ silent: true }));
   }, [loadRoom, roomId]);
 
   useEffect(() => {
@@ -418,7 +411,7 @@ export default function MultiplayerRoomPage() {
     setError(null);
 
     try {
-      const nextRoom = await sendRoomIntent(
+      const nextRoom = await sendRoomIntentWithLobbyRetry(
         roomWithPlayers.room.id,
         roomWithPlayers.room.state_version,
         { type: "set-ready", ready: !currentSeat.is_ready },
@@ -442,7 +435,7 @@ export default function MultiplayerRoomPage() {
     setError(null);
 
     try {
-      const nextRoom = await sendRoomIntent(
+      const nextRoom = await sendRoomIntentWithLobbyRetry(
         roomWithPlayers.room.id,
         roomWithPlayers.room.state_version,
         { type: "join-seat", displayName: localDisplayName, seatIndex },
@@ -467,7 +460,7 @@ export default function MultiplayerRoomPage() {
     setError(null);
 
     try {
-      const nextRoom = await sendRoomIntent(
+      const nextRoom = await sendRoomIntentWithLobbyRetry(
         roomWithPlayers.room.id,
         roomWithPlayers.room.state_version,
         { type: "leave-seat" },
@@ -513,7 +506,7 @@ export default function MultiplayerRoomPage() {
     setIsUpdatingRules(true);
     setError(null);
     try {
-      const nextRoom = await sendRoomIntent(roomWithPlayers.room.id, roomWithPlayers.room.state_version, { type: "update-room-rules", rules: rulesDraft }, session);
+      const nextRoom = await sendRoomIntentWithLobbyRetry(roomWithPlayers.room.id, roomWithPlayers.room.state_version, { type: "update-room-rules", rules: rulesDraft }, session);
       setRoomWithPlayers(nextRoom);
       setIsRulesOpen(false);
     } catch (rulesError) {
@@ -544,23 +537,25 @@ export default function MultiplayerRoomPage() {
     }
   }
 
-  async function handleClaimHost() {
-    if (!roomWithPlayers || !session || !roomWithPlayers.canClaimHost || isClaimingHost) return;
-    setIsClaimingHost(true);
+  async function handleTransferHost() {
+    if (!roomWithPlayers || !session || !isHost || hostTransferSeat === null || isTransferringHost) return;
+    setIsTransferringHost(true);
     setError(null);
     try {
       const nextRoom = await sendRoomIntent(
         roomWithPlayers.room.id,
         roomWithPlayers.room.state_version,
-        { type: "claim-host" },
+        { type: "transfer-host", targetSeatIndex: hostTransferSeat },
         session,
       );
       setRoomWithPlayers(nextRoom);
       setPageState("ready");
-    } catch (claimError) {
-      setError(errorMessage(claimError));
+      setIsHostTransferOpen(false);
+      setHostTransferSeat(null);
+    } catch (transferError) {
+      setError(errorMessage(transferError));
     } finally {
-      setIsClaimingHost(false);
+      setIsTransferringHost(false);
     }
   }
 
@@ -757,19 +752,6 @@ export default function MultiplayerRoomPage() {
           </p>
         ) : null}
 
-        {pageState === "ready" && roomWithPlayers?.canClaimHost ? (
-          <div className="flex justify-end">
-            <button
-              className="rounded-md border border-emerald-700 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={isClaimingHost}
-              onClick={() => void handleClaimHost()}
-              type="button"
-            >
-              {isClaimingHost ? "Attribution…" : "Devenir hôte"}
-            </button>
-          </div>
-        ) : null}
-
         {pageState === "ready" && roomWithPlayers ? (
           <>
             {displayedRoomStatus === "finished" && gameState ? (
@@ -846,14 +828,24 @@ export default function MultiplayerRoomPage() {
                         {currentSeat?.is_ready ? "Pas prêt" : "Prêt"}
                       </button>
                       {isHost ? (
-                        <button
-                          className="rounded-md bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
-                          disabled={!canStartGame || isStartingGame}
-                          onClick={handleStartGame}
-                          type="button"
-                        >
-                          Lancer la partie
-                        </button>
+                        <>
+                          <button
+                            className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={hostTransferCandidates.length === 0}
+                            onClick={() => { setHostTransferSeat(null); setIsHostTransferOpen(true); }}
+                            type="button"
+                          >
+                            Transférer l&apos;hôte
+                          </button>
+                          <button
+                            className="rounded-md bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={!canStartGame || isStartingGame}
+                            onClick={handleStartGame}
+                            type="button"
+                          >
+                            Lancer la partie
+                          </button>
+                        </>
                       ) : null}
                     </div>
                   </div>
@@ -889,6 +881,7 @@ export default function MultiplayerRoomPage() {
               </>
             ) : null}
             {isRulesOpen && displayedRoomStatus === "lobby" ? <AccessibleDialog description="Partagées par toute la table. Les joueurs devront se remettre prêts." footer={<button className="w-full rounded bg-emerald-800 px-4 py-2 font-bold text-white disabled:opacity-50 sm:w-auto" disabled={isUpdatingRules} type="button" onClick={() => void handleUpdateRules()}>{isUpdatingRules ? "Enregistrement…" : "Enregistrer les règles"}</button>} onClose={() => setIsRulesOpen(false)} title="Règles de la table"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null}
+            {isHostTransferOpen && isHost ? <AccessibleDialog description="Choisis un joueur humain connecté. Le transfert prend effet immédiatement." footer={<button className="w-full rounded bg-emerald-800 px-4 py-2 font-bold text-white disabled:opacity-50 sm:w-auto" disabled={!selectedHostTransferPlayer || isTransferringHost} type="button" onClick={() => void handleTransferHost()}>{isTransferringHost ? "Transfert…" : selectedHostTransferPlayer ? `Transférer le rôle d'hôte à ${selectedHostTransferPlayer.display_name} ?` : "Choisir un joueur"}</button>} onClose={() => { if (!isTransferringHost) setIsHostTransferOpen(false); }} title="Transférer l'hôte" width="medium"><div className="grid gap-2 overflow-y-auto p-4 sm:p-6">{hostTransferCandidates.map((player) => <button aria-pressed={hostTransferSeat === player.seat_index} className={`rounded-lg border px-4 py-3 text-left font-semibold ${hostTransferSeat === player.seat_index ? "border-emerald-700 bg-emerald-50" : "border-stone-300 bg-white hover:bg-stone-50"}`} key={player.seat_index} onClick={() => setHostTransferSeat(player.seat_index)} type="button">{player.display_name}</button>)}</div></AccessibleDialog> : null}
 
             {displayedRoomStatus === "playing" && playerView ? (
               <div
@@ -904,6 +897,7 @@ export default function MultiplayerRoomPage() {
                 <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
                   <div className={`flex justify-end ${isMobileLandscape ? "h-6 items-center pr-2" : ""}`}>
                     <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-[10px] font-semibold text-stone-800 shadow-sm hover:bg-white sm:text-xs" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button>
+                    {isHost && hostTransferCandidates.length > 0 ? <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-[10px] font-semibold text-stone-800 shadow-sm hover:bg-white sm:text-xs" onClick={() => { setHostTransferSeat(null); setIsHostTransferOpen(true); }} type="button">Transférer l&apos;hôte</button> : null}
                     <button
                       className="rounded-md border border-red-300 bg-white/90 px-2 py-1 text-[10px] font-semibold text-red-800 shadow-sm hover:bg-red-50 sm:text-xs"
                       onClick={() => setIsForfeitConfirmationOpen(true)}
@@ -1253,6 +1247,7 @@ function SeatCard({
         {isEmpty ? "Place libre" : player.display_name}
         {isCurrentUser ? " (Toi)" : ""}
       </span>
+      {player.is_host ? <span className="mt-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">Hôte</span> : null}
       {!isEmpty ? (
         player.kind === "human" ? (
           <span className="mt-1 flex items-center gap-1 text-xs font-semibold text-stone-600">

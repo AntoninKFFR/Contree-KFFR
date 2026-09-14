@@ -50,7 +50,7 @@ export type RoomWithPlayers = { room: RoomRow; players: RoomPlayerRow[] };
 export type RoomPlayerView = Pick<
   RoomPlayerRow,
   "seat_index" | "kind" | "display_name" | "is_ready" | "is_connected" | "bot_takeover"
->;
+> & { is_host: boolean };
 
 export type MultiplayerRoomView = {
   room: Omit<RoomRow, "host_user_id" | "active_game_id">;
@@ -78,6 +78,7 @@ export type RoomIntent =
   | { type: "rematch" }
   | { type: "forfeit-game" }
   | { type: "claim-host" }
+  | { type: "transfer-host"; targetSeatIndex: RoomPlayerRow["seat_index"] }
   | { type: "update-room-rules"; rules: CustomRulesetInput }
   | { type: "enable-bot-takeover"; seatIndex: RoomPlayerRow["seat_index"] }
   | { type: "game-action"; action: RoomPlayerAction }
