@@ -15,7 +15,7 @@ const hand: Card[] = [
 ];
 
 describe("local hand presentation", () => {
-  it("sorts by suit then rank", () => expect(sortHandForDisplay(hand, clonePlayerPreferences().cards).map((card) => `${card.suit}-${card.rank}`)).toEqual(["clubs-A", "clubs-10", "hearts-J", "spades-7"]));
+  it("sorts by suit then rank", () => expect(sortHandForDisplay(hand, clonePlayerPreferences().cards).map((card) => `${card.suit}-${card.rank}`)).toEqual(["clubs-A", "clubs-10", "spades-7", "hearts-J"]));
   it("sorts by rank then suit", () => { const preferences = clonePlayerPreferences(); preferences.cards.sortMode = "rank-suit"; expect(sortHandForDisplay(hand, preferences.cards).map((card) => card.rank)).toEqual(["A", "10", "J", "7"]); });
   it("preserves the dealt order when automatic sorting is off", () => { const preferences = clonePlayerPreferences(); preferences.cards.autoSortHand = false; expect(sortHandForDisplay(hand, preferences.cards)).toEqual(hand); });
   it("respects a custom suit order", () => { const preferences = clonePlayerPreferences(); preferences.cards.suitOrder = ["spades", "hearts", "diamonds", "clubs"]; expect(sortHandForDisplay(hand, preferences.cards)[0].suit).toBe("spades"); });

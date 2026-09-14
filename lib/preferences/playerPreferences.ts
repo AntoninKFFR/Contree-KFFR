@@ -95,7 +95,7 @@ const BASE_DEFAULTS: PlayerPreferences = {
   cards: {
     autoSortHand: true,
     sortMode: "suit-rank",
-    suitOrder: ["clubs", "diamonds", "hearts", "spades"],
+    suitOrder: ["clubs", "diamonds", "spades", "hearts"],
     cardSize: "medium",
     cardStyle: "classic",
   },
@@ -167,9 +167,9 @@ function volumeValue(value: unknown, fallback: number): number {
 
 function suitOrderValue(value: unknown): Suit[] {
   const valid = ["clubs", "diamonds", "hearts", "spades"] satisfies Suit[];
-  if (!Array.isArray(value) || value.length !== valid.length) return [...valid];
+  if (!Array.isArray(value) || value.length !== valid.length) return [...BASE_DEFAULTS.cards.suitOrder];
   const order = value.filter((suit): suit is Suit => typeof suit === "string" && valid.includes(suit as Suit));
-  return new Set(order).size === valid.length ? order : [...valid];
+  return new Set(order).size === valid.length ? order : [...BASE_DEFAULTS.cards.suitOrder];
 }
 
 export function normalizePlayerPreferences(value: unknown): PlayerPreferences {
