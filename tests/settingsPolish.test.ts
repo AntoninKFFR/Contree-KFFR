@@ -1,7 +1,7 @@
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { bidConfirmationMessage, shouldConfirmBidAction } from "@/components/BiddingPanel";
+import { bidConfirmationMessage, restoreBidConfirmationFocus, shouldConfirmBidAction } from "@/components/BiddingPanel";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
@@ -83,6 +83,13 @@ describe("clear bid confirmations", () => {
     expect(bidConfirmationMessage("coinche", contract, mode)).toContain("110");
     expect(bidConfirmationMessage("coinche", contract, mode)).toContain("♥");
     expect(bidConfirmationMessage("generale", contract, mode)).toContain("Générale");
+  });
+  it("restores focus to the action that opened a dismissed confirmation", () => {
+    const focus = vi.fn();
+    restoreBidConfirmationFocus({ disabled: false, focus, isConnected: true });
+    expect(focus).toHaveBeenCalledOnce();
+    restoreBidConfirmationFocus({ disabled: true, focus, isConnected: true });
+    expect(focus).toHaveBeenCalledOnce();
   });
 });
 

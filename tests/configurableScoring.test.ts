@@ -130,6 +130,20 @@ describe("configurable contract qualification", () => {
     expect(result(strict, input).contractSucceeded).toBe(false);
     expect(result(rulesetContractCanLosePointsRace, input).contractSucceeded).toBe(true);
   });
+
+  it.each([
+    [true, true, false, false],
+    [true, false, true, false],
+    [false, true, false, true],
+    [false, false, true, true],
+  ] as const)(
+    "covers mustReachBid=%s × mustBeatDefense=%s",
+    (mustReachBid, mustBeatDefense, winsAt80To82, winsAt75To70) => {
+      const rules = createTestRuleset({ contractSuccess: { mustReachBid, mustBeatDefense } });
+      expect(result(rules, { tricks: { 0: 80, 1: 82 } }).contractSucceeded).toBe(winsAt80To82);
+      expect(result(rules, { tricks: { 0: 75, 1: 70 } }).contractSucceeded).toBe(winsAt75To70);
+    },
+  );
 });
 
 describe("configurable scoring formulas", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { SUIT_LABELS, SUIT_SYMBOLS, SUITS } from "@/engine/cards";
 import { canBidCapot, canBidGenerale, canBidGeneraleMode, getAvailableBidValues } from "@/engine/bidding";
@@ -22,6 +22,12 @@ export function bidConfirmationMessage(action: ConfirmableBidAction, contract: C
   if (action === "coinche") return `Coincher ${contract ? formatContractLabel(contract) : "ce contrat"} ?`;
   if (action === "surcoinche") return `Surcoincher ${contract ? formatContractLabel(contract) : "ce contrat"} ?`;
   return `Annoncer ${action === "capot" ? "un Capot" : "une Générale"} ${formatContractMode(mode)} ?`;
+}
+
+type BidConfirmationFocusTarget = Pick<HTMLButtonElement, "disabled" | "focus" | "isConnected">;
+
+export function restoreBidConfirmationFocus(trigger: BidConfirmationFocusTarget | null): void {
+  if (trigger?.isConnected && !trigger.disabled) trigger.focus();
 }
 
 type BiddingPanelProps = {
@@ -61,6 +67,7 @@ export function BiddingPanel({
   const [value, setValue] = useState<BidValue | "">(availableValues[0] ?? "");
   const [modeValue, setModeValue] = useState<Suit | "no-trump" | "all-trump">("hearts");
   const [pendingConfirmation, setPendingConfirmation] = useState<{ message: string; action: () => void } | null>(null);
+  const confirmationTriggerRef = useRef<HTMLButtonElement | null>(null);
   const contractMode: ContractMode = modeValue === "no-trump" || modeValue === "all-trump"
     ? { kind: modeValue }
     : { kind: "suit", suit: modeValue };
@@ -76,22 +83,31 @@ export function BiddingPanel({
     }
   }, [availableValues, value]);
 
+  const dismissConfirmation = useCallback((action?: () => void) => {
+    const trigger = confirmationTriggerRef.current;
+    confirmationTriggerRef.current = null;
+    setPendingConfirmation(null);
+    action?.();
+    requestAnimationFrame(() => restoreBidConfirmationFocus(trigger));
+  }, []);
+
   useEffect(() => {
     if (!pendingConfirmation) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setPendingConfirmation(null);
+      if (event.key === "Escape") dismissConfirmation();
     };
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [pendingConfirmation]);
+  }, [dismissConfirmation, pendingConfirmation]);
 
   function handleBid() {
     if (!canMakeBid || value === "") return;
     onBid(value, contractMode);
   }
 
-  function confirmed(message: string, enabled: boolean, action: () => void) {
+  function confirmed(message: string, enabled: boolean, action: () => void, trigger: HTMLButtonElement) {
     if (!enabled) { action(); return; }
+    confirmationTriggerRef.current = trigger;
     setPendingConfirmation({ message, action });
   }
 
@@ -113,7 +129,7 @@ export function BiddingPanel({
           </h2>
         </div>
       </div>
-      {pendingConfirmation ? <div aria-label="Confirmation d'enchère" aria-live="assertive" className={`mb-2 rounded-xl border p-3 shadow-sm ${compact ? "border-white/40 bg-stone-950/90 text-white" : "border-amber-300 bg-amber-50"}`} role="alertdialog"><p className="text-sm font-bold">{pendingConfirmation.message}</p><div className="mt-2 flex gap-2"><button autoFocus className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white" onClick={() => { const action = pendingConfirmation.action; setPendingConfirmation(null); action(); }} type="button">Confirmer</button><button className="rounded-lg border bg-white px-3 py-2 text-xs font-bold text-stone-800" onClick={() => setPendingConfirmation(null)} type="button">Annuler</button></div></div> : null}
+      {pendingConfirmation ? <div aria-label="Confirmation d'enchère" aria-live="assertive" className={`mb-2 rounded-xl border p-3 shadow-sm ${compact ? "border-white/40 bg-stone-950/90 text-white" : "border-amber-300 bg-amber-50"}`} role="alertdialog"><p className="text-sm font-bold">{pendingConfirmation.message}</p><div className="mt-2 flex gap-2"><button autoFocus className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white" onClick={() => dismissConfirmation(pendingConfirmation.action)} type="button">Confirmer</button><button className="rounded-lg border bg-white px-3 py-2 text-xs font-bold text-stone-800" onClick={() => dismissConfirmation()} type="button">Annuler</button></div></div> : null}
 
       {canBid && availableValues.length === 0 ? (
         <p
@@ -187,7 +203,7 @@ export function BiddingPanel({
           <button
             className="rounded-md border border-amber-300 px-2 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canMakeCapot}
-            onClick={() => confirmed(bidConfirmationMessage("capot", currentContract, contractMode), shouldConfirmBidAction("capot", preferences), () => onCapot(contractMode))}
+            onClick={(event) => confirmed(bidConfirmationMessage("capot", currentContract, contractMode), shouldConfirmBidAction("capot", preferences), () => onCapot(contractMode), event.currentTarget)}
             type="button"
           >
             Capot
@@ -195,7 +211,7 @@ export function BiddingPanel({
           {biddingRules?.allowGenerale ? <button
             className="rounded-md border border-purple-300 px-2 py-2 text-xs font-semibold text-purple-800 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canMakeGenerale}
-            onClick={() => confirmed(bidConfirmationMessage("generale", currentContract, contractMode), shouldConfirmBidAction("generale", preferences), () => onGenerale(contractMode))}
+            onClick={(event) => confirmed(bidConfirmationMessage("generale", currentContract, contractMode), shouldConfirmBidAction("generale", preferences), () => onGenerale(contractMode), event.currentTarget)}
             type="button"
           >
             Générale
@@ -203,7 +219,7 @@ export function BiddingPanel({
           <button
             className="rounded-md border border-red-300 px-2 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canCoinche}
-            onClick={() => confirmed(bidConfirmationMessage("coinche", currentContract, contractMode), shouldConfirmBidAction("coinche", preferences), onCoinche)}
+            onClick={(event) => confirmed(bidConfirmationMessage("coinche", currentContract, contractMode), shouldConfirmBidAction("coinche", preferences), onCoinche, event.currentTarget)}
             type="button"
           >
             Contrer
@@ -211,7 +227,7 @@ export function BiddingPanel({
           <button
             className="rounded-md border border-emerald-300 px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canSurcoinche}
-            onClick={() => confirmed(bidConfirmationMessage("surcoinche", currentContract, contractMode), shouldConfirmBidAction("surcoinche", preferences), onSurcoinche)}
+            onClick={(event) => confirmed(bidConfirmationMessage("surcoinche", currentContract, contractMode), shouldConfirmBidAction("surcoinche", preferences), onSurcoinche, event.currentTarget)}
             type="button"
           >
             Surcontrer

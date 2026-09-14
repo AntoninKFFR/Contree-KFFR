@@ -8,6 +8,7 @@ import { getContractProgress, getPublicRoundPoints } from "@/engine/contractProg
 import { createInitialGame, playCard } from "@/engine/game";
 import { explainIllegalCard } from "@/engine/illegalCardExplanation";
 import { CONTREE_KFFR_RULESET } from "@/engine/rulesets/presets";
+import { scoreRound } from "@/engine/scoring";
 import type { Card, CompletedTrick, Contract, GameState, PlayerId, Trick } from "@/engine/types";
 import { toPlayerGameView } from "@/engine/views";
 import { clonePlayerPreferences } from "@/lib/preferences/playerPreferences";
@@ -60,6 +61,19 @@ describe("public live score and contract progress", () => {
   it("computes point-contract progress", () => { const state = playingState(); state.trickPoints = { 0: 74, 1: 54 }; expect(getContractProgress(state)).toMatchObject({ takerPoints: 74, defenderPoints: 54, pointsNeeded: 26 }); });
   it("uses the defense race when the rules require it", () => { const rules = createTestRuleset({ contractSuccess: { mustReachBid: false, mustBeatDefense: true } }); const state = playingState(rules); state.trickPoints = { 0: 70, 1: 75 }; expect(getContractProgress(state)).toMatchObject({ takerPoints: 70, defenderPoints: 75, pointsNeeded: 6 }); });
   it("counts only eligible public announcements and Belote", () => { const rules = createTestRuleset({ announcements: { enabled: true }, belote: { enabled: true, countsForContractSuccess: true }, contractSuccess: { announcementsCount: true } }); const state = playingState(rules); state.trickPoints = { 0: 60, 1: 40 }; state.announcements = { declarations: [], declaredPlayerIds: [0, 1, 2, 3], winningTeam: 0, pointsByTeam: { 0: 20, 1: 0 } }; state.belote = { declaration: null, pointsByTeam: { 0: 20, 1: 0 } }; expect(getContractProgress(state)).toMatchObject({ takerPoints: 100, pointsNeeded: 0 }); });
+  it.each([
+    [true, true, 100, 102],
+    [true, false, 100, 102],
+    [false, true, 75, 70],
+    [false, false, 75, 90],
+  ] as const)("matches final scoring for mustReachBid=%s × mustBeatDefense=%s", (mustReachBid, mustBeatDefense, taker, defender) => {
+    const rules = createTestRuleset({ contractSuccess: { mustReachBid, mustBeatDefense } });
+    const state = playingState(rules);
+    state.trickPoints = { 0: taker, 1: defender };
+    const progress = getContractProgress(state)!;
+    const scored = scoreRound({ contract: state.contract!, settings: state.settings, rules, trickPointsByTeam: state.trickPoints });
+    expect(progress.pointsNeeded === 0).toBe(scored.contractSucceeded);
+  });
 });
 
 describe("animations and three-card tricks", () => {
