@@ -515,6 +515,10 @@ export function playableCardsForCurrentPlayer(state: GameState): Card[] {
   );
 }
 
+export function isRequestedCapotAlreadyFailed(state: GameState, winnerId: PlayerId): boolean {
+  return state.contract?.kind === "capot" && playerTeam(winnerId) !== state.contract.teamId;
+}
+
 export function playCard(state: GameState, playerId: PlayerId, card: Card): GameState {
   if (state.phase === "finished" || state.phase === "game-over") {
     return state;
@@ -591,9 +595,11 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
 
   const winnerId = getTrickWinner(nextTrick, mode);
   const winnerTeam = playerTeam(winnerId);
+  const requestedCapotFailed = isRequestedCapotAlreadyFailed(state, winnerId);
   const isLastTrick = state.contract.kind === "generale"
     ? state.completedTricks.length === 7
     : nextHands[0].length === 0;
+  const roundEndsAfterTrick = isLastTrick || requestedCapotFailed;
   const isCapot = isLastTrick
     && rules.trickScoring.capotLastTrickBonus !== rules.trickScoring.lastTrickBonus
     && state.completedTricks.length === 7
@@ -617,7 +623,7 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
   };
   const playerTricks = tricksWonByPlayer(completedTricks);
   const result =
-    isLastTrick
+    roundEndsAfterTrick
       ? scoreRound({
           contract: state.contract,
           settings: state.settings,
@@ -631,9 +637,14 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
       : null;
 
   const nextLeader = nextActivePlayer(state, ((winnerId + 3) % 4) as PlayerId);
+  const roundEndMessage = requestedCapotFailed
+    ? `Capot chute. ${playerName(winnerId, state.playerNames)} remporte un pli pour la défense.`
+    : result?.kind === "played" && result.contractSucceeded
+      ? `Contrat reussi. ${playerName(winnerId, state.playerNames)} gagne le dernier pli.`
+      : `Contrat chute. ${playerName(winnerId, state.playerNames)} gagne le dernier pli.`;
   const nextState: GameState = {
     ...state,
-    phase: isLastTrick ? "finished" : "playing",
+    phase: roundEndsAfterTrick ? "finished" : "playing",
     hands: nextHands,
     announcements,
     belote,
@@ -646,25 +657,16 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     trickPoints: trickPointsByTeam,
     result: result ?? state.result,
     roundScore: result?.kind === "played" ? result.roundScore : state.roundScore,
-    message:
-      isLastTrick
-        ? result?.kind === "played" && result.contractSucceeded
-          ? `Contrat reussi. ${playerName(winnerId, state.playerNames)} gagne le dernier pli.`
-          : `Contrat chute. ${playerName(winnerId, state.playerNames)} gagne le dernier pli.`
-        : `${playerName(winnerId, state.playerNames)} remporte le pli et rejoue.`,
+    message: roundEndsAfterTrick
+      ? roundEndMessage
+      : `${playerName(winnerId, state.playerNames)} remporte le pli et rejoue.`,
   };
 
-  if (!isLastTrick || !result) {
+  if (!roundEndsAfterTrick || !result) {
     return nextState;
   }
 
-  return finishRound(
-    nextState,
-    result,
-    result.contractSucceeded
-      ? `Contrat reussi. ${playerName(winnerId, state.playerNames)} gagne le dernier pli.`
-      : `Contrat chute. ${playerName(winnerId, state.playerNames)} gagne le dernier pli.`,
-  );
+  return finishRound(nextState, result, roundEndMessage);
 }
 
 export function resetGame(random = Math.random): GameState {
