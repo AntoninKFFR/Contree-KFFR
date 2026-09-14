@@ -67,7 +67,7 @@ Statuts : ✅ couvert par un test automatisé ou une vérification reproductible
 | KFFR et parties déterministes | Donne jouable jusqu'à une fin valide avec invariants de cartes et score | ✅ | `engineRulesAudit.test.ts`, `ffbGame.test.ts`, `game.test.ts` | — |
 | Annonces, SA, TA, Générale, règles carte custom | Même moteur, actions légales et fin de donne valide sur scénarios ciblés | ✅ | `contractModes.test.ts`, `generale.test.ts`, `configurableCardPlay.test.ts`, `configurableScoring.test.ts` | — |
 | Contract-only / points-only / Coinche / Surcoinche | Résultat final conforme sans benchmark de force | ✅ | `configurableScoring.test.ts`, `scoring.test.ts` | — |
-| Parcours UI solo complet au navigateur | Création et démarrage utilisables aux viewports cibles | ⚠️ | Tests de rendu `rulesetUi.test.ts`, `settingsPolish.test.ts` | Smoke manuel Phase 9 consigné ci-dessous |
+| Parcours UI solo complet au navigateur | Création et démarrage utilisables aux viewports cibles | ✅ | Tests de rendu `rulesetUi.test.ts`, `settingsPolish.test.ts` | `e2e/smoke.spec.ts` exécuté en Chromium local |
 
 ## H. Multijoueur
 
@@ -78,7 +78,7 @@ Statuts : ✅ couvert par un test automatisé ou une vérification reproductible
 | Refresh / reconnexion / takeover | Vue reconstruite, présentation non rejouée, identité gardée et takeover host-only | ✅ | `presence.test.ts`, `trickPresentation.test.ts`, `multiplayerServer.test.ts`, `forfeitHost.test.ts` | — |
 | Timer bidding / carte / Générale / course humaine | Deadline absolue, action légale, nouvelle deadline, ancien tick/CAS rejeté | ✅ | `turnTimer.test.ts`, `generaleMultiplayer.test.ts` | — |
 | Deux actions même `state_version` | Une seule écriture ; stale action/refetch sans double carte/score | ✅ | `multiplayerServer.test.ts`, `turnTimer.test.ts`, `atomicSeatMove.test.ts`, `atomicRoomRules.test.ts` | — |
-| Cycle réel à quatre navigateurs contre Supabase | Même cycle vérifié avec quatre sessions réseau simultanées | ⚠️ | Les transitions serveur et migrations sont automatisées, pas l'orchestration multi-navigateur | Non ajouté (pas de comptes/session de test à fabriquer) |
+| Cycle réel à quatre navigateurs contre Supabase | Même cycle vérifié avec quatre sessions réseau simultanées | ⚠️ | `e2e/multiplayer.spec.ts` implémente quatre BrowserContext, room/join/seats/ready/rules/start/bids/pli/reconnect | Test implémenté mais réellement skipped le 14/09/2026 : les 8 variables de credentials sont absentes |
 
 ## I. Sécurité
 
@@ -87,6 +87,7 @@ Statuts : ✅ couvert par un test automatisé ou une vérification reproductible
 | Membre, siège, tour et carte forgés | Non-membre, autre siège, hors-tour, carte absente/illégale refusés côté serveur | ✅ | `multiplayerServer.test.ts`, `views.test.ts` | — |
 | Règles/start/takeover non-host ou après start | Refus avant écriture | ✅ | `multiplayerServer.test.ts`, `forfeitHost.test.ts`, `atomicRoomRules.test.ts` | — |
 | Confidentialité des mains | Player view = propre main + compteurs + public ; aucune main adverse, y compris Bot Review et history | ✅ | `views.test.ts`, `botReview.test.ts`, `multiplayerHistory.test.ts`, `biddingStrategyV2.test.ts` | — |
+| Confidentialité sur vraies réponses HTTP | Deux clients inspectent les payloads room ; `hands`, identifiants internes ou plusieurs mains font échouer le test | ⚠️ | Moniteur réseau dans `e2e/helpers/room.ts` | Implémenté, non exécuté sans les quatre comptes |
 | État authoritative chargé depuis la base | Deck complet unique, cartes/plis formés, scores finis, contrat/règles/tour cohérents | ✅ | `rulesets.test.ts`, `generaleMultiplayer.test.ts` | `gameStateValidation.test.ts` |
 
 ## J. Historique
@@ -113,7 +114,7 @@ Statuts : ✅ couvert par un test automatisé ou une vérification reproductible
 | Navigation/settings/règles responsive | Navigation mobile/desktop, dialogues labellisés, contrôles accessibles | ✅ | `settingsPolish.test.ts`, `rulesetUi.test.ts` | — |
 | 375×667, 390×844, landscape, 768, 1366×768, 1920×1080 | Pas d'overflow bloquant, commandes atteignables, dialogues scrollables | ⚠️ | Aucun test visuel pixel/viewport automatisé | Smoke manuel Phase 9 consigné ci-dessous |
 | Tab/focus/Escape/trap/restore, reduced motion, contraste, grand texte | Clavier et préférences d'accessibilité utilisables | ⚠️ | Réduced motion et sémantique statique testés dans `playerPreferencesGame.test.ts` / `settingsPolish.test.ts` | Smoke manuel Phase 9 consigné ci-dessous |
-| Console React | Pas d'hydration, duplicate key, nesting ou erreur aria sur pages smokées | ⚠️ | Build/rendus SSR couvrent une partie | Smoke manuel Phase 9 consigné ci-dessous |
+| Console React | Pas d'hydration, duplicate key, nesting ou erreur aria sur pages smokées | ✅ | Build/rendus SSR + `e2e/smoke.spec.ts` avec collecte `console.error`/`pageerror` | Smoke Playwright local exécuté |
 
 ## M. Legacy compatibility
 
@@ -127,15 +128,25 @@ Statuts : ✅ couvert par un test automatisé ou une vérification reproductible
 
 | Vérification | Résultat |
 |---|---|
-| Suite complète | ✅ `npm test` — 63 fichiers, 745 tests ; aucune commande de benchmark/tournoi lancée séparément (les suites historiques incluses par `npm test` restent vertes) |
+| Suite complète | ✅ `npm test` — 64 fichiers, 751 tests ; aucune commande de benchmark/tournoi lancée séparément (les suites historiques incluses par `npm test` restent vertes) |
 | Supabase remote | ✅ `supabase migration list` — les 12 migrations locales et distantes correspondent, dont custom rules, atomic room rules et Générale history |
 | Lint | ✅ `npm run lint` |
 | Build production | ✅ `npm run build` — 11 pages générées, routes statiques et dynamiques compilées |
 | Smoke local responsive/accessibilité/console | ✅ build production local : `/`, `/solo`, `/multiplayer`, `/history`, `/profile`, `/rules` aux 6 viewports demandés, 36 contrôles sans overflow horizontal ; solo playing vérifié en paysage ; focus trap avant/arrière, Escape et restore focus vérifiés ; 0 warning/erreur console |
 | Smoke Vercel/prod | ⚠️ aucune URL de déploiement déclarée dans le dépôt ; ne bloque pas la livraison selon le cahier des charges |
 
+## Vérifications E2E Phase 10
+
+| Vérification | Résultat réel |
+|---|---|
+| Playwright | ✅ `@playwright/test` est une devDependency explicite ; Chromium installé localement |
+| Smoke public local | ✅ `npm run test:e2e` — 4 tests publics passés, vrai serveur HTTP local et vrai Chromium |
+| Quatre comptes / quatre contextes | ⚠️ suite implémentée et listée ; `npm run test:e2e:multiplayer` = 1 skipped, car aucun des huit credentials n'est présent |
+| Preview / production | ⚠️ non exécuté : `E2E_BASE_URL` absent ; aucune URL distante n'est codée en dur |
+| CI | ✅ workflow public non-auth ajouté, sans secret ; exécution GitHub à confirmer après push |
+
 ## Risques résiduels explicites
 
-- ⚠️ L'orchestration réseau réelle de quatre navigateurs et les courses de transport ne sont pas reproduites de bout en bout ; les frontières serveur, RPC atomiques, versions CAS, timers, historique et vues privées sont cependant testés séparément.
-- ⚠️ Les interactions clavier/focus et tous les viewports ne disposent pas d'un navigateur automatisé permanent ; elles restent des smokes manuels, contrairement aux règles moteur et serveur qui sont des gates automatiques.
+- ⚠️ L'orchestration quatre navigateurs est maintenant codée, mais ne peut pas devenir ✅ avant une exécution réelle avec les quatre comptes E2E. Les credentials étaient absents lors de cette phase et aucun compte production n'a été créé.
+- ⚠️ Le smoke distant reste non exécuté tant que `E2E_BASE_URL` n'est pas fourni. Le même projet Playwright est prêt pour preview/staging/prod sans modification de code.
 - Aucun scénario critique moteur, autorité serveur, confidentialité, score ou compatibilité legacy n'est marqué ❌.

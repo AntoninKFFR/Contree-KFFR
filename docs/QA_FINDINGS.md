@@ -15,3 +15,10 @@ Aucun changement de stratégie n'a été apporté à Human Doctrine V3.1 ou Mont
 - Reproduction : au clavier, activer Capot, puis fermer avec `Escape` ; avant correction, le bouton Capot ne récupérait pas le focus.
 - Fix : mémorisation du bouton déclencheur et restitution différée du focus s'il est encore connecté et activé. Le même chemin de fermeture est utilisé par `Escape`, Annuler et Confirmer.
 - Test ajouté : `settingsPolish.test.ts` vérifie la restitution et évite de cibler un contrôle devenu désactivé. Le comportement a aussi été vérifié dans le navigateur sur le build de production local.
+
+## Redaction incomplète des erreurs serveur
+
+- Gravité : haute pour l'observabilité. Le filtre de logs multijoueur masquait déjà les headers d'autorisation, API keys et états privés, mais pas les libellés explicites `password`, `access_token`, `service_role_key` ni un JWT nu.
+- Reproduction : passer un message d'erreur contenant l'un de ces libellés au sanitizer utilisé par `apiFailure` ; avant correction, le texte pouvait être envoyé tel quel à `console.error`.
+- Fix : sanitizer exporté et centralisé couvrant passwords, access tokens, service keys, JWT, mains et états privés, tout en conservant les messages non sensibles tronqués à 2 000 caractères.
+- Tests ajoutés : `tests/apiErrorSanitization.test.ts`, exécutés en rouge puis en vert. Les valeurs de test sont des placeholders, jamais des credentials.

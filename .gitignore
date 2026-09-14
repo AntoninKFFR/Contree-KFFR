@@ -12,3 +12,6 @@ yarn-error.log*
 pnpm-debug.log*
 tsconfig.tsbuildinfo
 supabase/.temp/
+playwright-report/
+test-results/
+.playwright/

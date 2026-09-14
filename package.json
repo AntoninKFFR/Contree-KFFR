@@ -28,7 +28,11 @@
     "benchmark:ffb-recalibration": "vite-node --config vitest.config.ts scripts/recalibrateBotsFfb.ts",
     "benchmark:ffb-merge": "vite-node --config vitest.config.ts scripts/mergeFfbScreening.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:multiplayer": "playwright test --project=multiplayer",
+    "test:e2e:smoke": "playwright test --project=smoke"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.3",
@@ -39,6 +43,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "3.3.1",
+    "@playwright/test": "^1.63.0",
     "@types/node": "22.14.0",
     "@types/react": "19.0.12",
     "@types/react-dom": "19.0.4",

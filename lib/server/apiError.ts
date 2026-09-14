@@ -14,9 +14,9 @@ type DatabaseError = {
   hint?: unknown;
 };
 
-function safeText(value: unknown): string | undefined {
+export function sanitizeApiErrorText(value: unknown): string | undefined {
   if (typeof value !== "string" || value.length === 0) return undefined;
-  if (/sb_secret_|authorization|api[_-]?key|["'](?:hands|state|server_state)["']\s*:/i.test(value)) {
+  if (/sb_secret_|authorization|api[_-]?key|password|access[_-]?token|service[_-]?(?:role[_-]?)?key|eyJ[A-Za-z0-9_-]{10,}\.|["'](?:hands|state|server_state)["']\s*:/i.test(value)) {
     return "[redacted]";
   }
   return value.slice(0, 2_000);
@@ -31,10 +31,10 @@ export function apiFailure(error: unknown, context: ErrorContext) {
     console.error("[multiplayer-api] request failed", {
       route: context.route,
       action: context.action,
-      code: safeText(databaseError.code),
-      message: safeText(databaseError.message) ?? (error instanceof Error ? error.message : "Unknown error"),
-      details: safeText(databaseError.details),
-      hint: safeText(databaseError.hint),
+      code: sanitizeApiErrorText(databaseError.code),
+      message: sanitizeApiErrorText(databaseError.message) ?? sanitizeApiErrorText(error instanceof Error ? error.message : "Unknown error"),
+      details: sanitizeApiErrorText(databaseError.details),
+      hint: sanitizeApiErrorText(databaseError.hint),
     });
   }
 

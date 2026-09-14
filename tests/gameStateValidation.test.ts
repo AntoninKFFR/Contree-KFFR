@@ -41,7 +41,7 @@ describe("authoritative stored GameState validation", () => {
     const forged = clone(state);
     forged.contract = { ...forged.contract!, trump: undefined, contractMode: { kind: "no-trump" } };
     forged.contractMode = { kind: "no-trump" };
-    forged.trump = undefined;
+    forged.trump = null;
     expect(() => parseServerGameState(forged)).toThrow(/contract mode/i);
   });
 
