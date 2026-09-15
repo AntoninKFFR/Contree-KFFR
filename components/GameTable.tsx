@@ -340,7 +340,7 @@ function RoundHelpOverlay({ state, showLiveScore }: { state: GameTableState; sho
           </div>
         </div>
       </div></> : null}
-      {progress ? <div className={showLiveScore ? "mt-1 border-t border-white/20 pt-1" : ""}><p className="text-[8px] font-semibold uppercase tracking-wide text-white/70 sm:text-[9px]">Progression du contrat</p><p className="text-xs font-bold sm:text-sm">{progress.takerPoints} / {progress.target}</p><p className="text-[9px] sm:text-[10px]">{progress.pointsNeeded === 0 ? "Objectif atteint provisoirement" : `${progress.pointsNeeded} ${progress.target === 8 ? "plis" : "points"} manquants`}</p>{progress.mustBeatDefense ? <p className="mt-0.5 text-[8px] text-white/75 sm:text-[9px]">Il faut aussi battre la défense.</p> : null}</div> : null}
+      {progress ? <div className={showLiveScore ? "mt-1 border-t border-white/20 pt-1" : ""}><p className="text-[8px] font-semibold uppercase tracking-wide text-white/70 sm:text-[9px]">Progression du contrat</p><p className="text-xs font-bold sm:text-sm">{progress.takerPoints} / {progress.target}</p></div> : null}
     </div>
   );
 }
@@ -348,13 +348,10 @@ function RoundHelpOverlay({ state, showLiveScore }: { state: GameTableState; sho
 function GameHud({
   bottomPlayerId,
   state,
-  turnSecondsRemaining,
 }: {
   state: GameTableState;
   bottomPlayerId: PlayerId;
-  turnSecondsRemaining?: number | null;
 }) {
-  const currentPlayer = playerName(state.currentPlayerId, state.playerNames);
   const contractText = state.contract
     ? `${formatContractLabel(state.contract)}${state.contract.status === "coinched" ? " · Coinché" : state.contract.status === "surcoinched" ? " · Surcoinché" : ""}`
     : "Annonces";
@@ -365,9 +362,6 @@ function GameHud({
   return (
     <div className="coinche-table-hud pointer-events-none absolute left-2 top-2 z-10 rounded-xl border border-white/10 bg-[#07150f]/70 px-2.5 py-2 text-white shadow-lg backdrop-blur-md sm:left-4 sm:top-4 sm:px-3">
       <div className="flex items-center gap-2 text-[10px] font-black sm:text-xs"><span>Nous {state.totalScore[us]}</span><span className="text-white/35">—</span><span>Eux {state.totalScore[them]}</span><span className="ml-1 max-w-28 truncate text-[8px] font-semibold uppercase tracking-[0.12em] text-[#e8d8ad]/75 sm:max-w-40 sm:text-[9px]">{contractText}</span></div>
-      <p className="mt-0.5 text-[9px] font-semibold text-white/65 sm:text-[10px]">
-        Tour · {currentPlayer}{turnSecondsRemaining !== null && turnSecondsRemaining !== undefined ? ` · ${turnSecondsRemaining} s` : ""}
-      </p>
       {inactiveMessage ? <p className="text-[9px] text-white/70">{inactiveMessage}</p> : null}
     </div>
   );
@@ -381,7 +375,6 @@ export function GameTable({
   minimalHud = false,
   presentationScope = "game",
   showLiveScore = false,
-  turnSecondsRemaining,
   trickPresentationPolicy,
 }: GameTableProps) {
   const { effectiveReducedMotion, preferences } = usePlayerPreferences();
@@ -552,7 +545,7 @@ export function GameTable({
       {animatedCompletedTrick && !effectiveTrickPresentationPolicy.autoCollect ? <button className="absolute bottom-2 left-1/2 z-40 -translate-x-1/2 rounded-xl border-2 border-white bg-emerald-950 px-5 py-2.5 text-xs font-bold text-white shadow-xl" onClick={dismissPresentedTrick} type="button"><span className="block">Ramasser le pli</span><span className="block text-[10px] font-normal text-white/80">{nameFor(animatedCompletedTrick.trick.winnerId)} gagne · {animatedCompletedTrick.trick.points} pts</span></button> : null}
       {preferences.assistance.showLastTrick && lastTrick && !animatedCompletedTrick ? <button aria-expanded={showLastTrick} className="absolute bottom-2 left-2 z-20 rounded-md border border-white/40 bg-black/40 px-2 py-1 text-[10px] font-semibold text-white shadow" onClick={() => setShowLastTrick((visible) => !visible)} type="button">Dernier pli</button> : null}
       {showLastTrick && lastTrick && !animatedCompletedTrick ? <div aria-label="Cartes du dernier pli" className="absolute inset-2 z-30 flex flex-col items-center justify-center overflow-y-auto rounded-xl border border-white/60 bg-stone-950/95 p-3 text-white shadow-2xl"><p className="text-sm font-bold">Dernier pli</p><p className="mb-2 text-xs text-white/75">{nameFor(lastTrick.winnerId)} gagne · {lastTrick.points} points</p><ol className="flex max-w-full gap-1.5 overflow-x-auto px-1">{lastTrick.cards.map((played, index) => <li className="flex shrink-0 flex-col items-center gap-1" key={`${played.playerId}-${played.card.rank}-${played.card.suit}`}><span className="text-[9px] text-white/80">{index + 1}. {nameFor(played.playerId)}</span><CardView card={played.card} disabled muted={false} size="compact" /></li>)}</ol><button className="mt-2 rounded-lg border border-white px-3 py-1 text-xs font-semibold" onClick={() => setShowLastTrick(false)} type="button">Fermer</button></div> : null}
-      <GameHud bottomPlayerId={seats.bottom} state={state} turnSecondsRemaining={turnSecondsRemaining} />
+      <GameHud bottomPlayerId={seats.bottom} state={state} />
       {!immersiveMobileLandscape && inactiveMessage && !minimalHud ? (
         <div className="pointer-events-none absolute left-2 top-2 z-10 rounded-md border border-white/20 bg-black/25 px-2 py-1 text-[9px] font-medium text-white/80 shadow-sm backdrop-blur-sm sm:left-3 sm:top-3">
           {inactiveMessage}

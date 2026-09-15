@@ -19,7 +19,6 @@ export function PlayerPanel({
   isBotTakeover = false,
   isConnected,
   isCurrent,
-  cardsRemaining,
   isHost = false,
 }: PlayerPanelProps) {
   const { effectiveReducedMotion, preferences } = usePlayerPreferences();
@@ -35,9 +34,10 @@ export function PlayerPanel({
     >
       <div className="flex items-center justify-center gap-1.5 sm:gap-2">
         <div className="min-w-0">
-          <p className="max-w-[58px] truncate text-[11px] font-bold sm:max-w-24 sm:text-sm">
-            {name}
-          </p>
+          <div className="flex items-center justify-center gap-1">
+            <p className="max-w-[58px] truncate text-[11px] font-bold sm:max-w-24 sm:text-sm">{name}</p>
+            {isHost ? <span className="rounded-full border border-[#d8c48f]/35 bg-[#d8c48f]/10 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wide text-[#f0dfb1] sm:text-[8px]">Hôte</span> : null}
+          </div>
           {isConnected !== undefined ? (
             <p className="flex items-center justify-center gap-1 text-[8px] font-semibold text-white/55 sm:text-[9px]">
               <span
@@ -47,7 +47,6 @@ export function PlayerPanel({
               {isBotTakeover ? "Bot temporaire" : isConnected ? "En ligne" : "Hors ligne"}
             </p>
           ) : null}
-          {cardsRemaining !== undefined ? <p className="text-[8px] font-semibold text-white/45 sm:text-[9px]">{cardsRemaining} carte{cardsRemaining > 1 ? "s" : ""}{isHost ? " · Hôte" : ""}</p> : null}
         </div>
         {hasStartingPlayer ? (
           <span className="rounded border border-[#d8c48f]/50 px-1 py-0 text-[10px] font-bold text-[#f0dfb1]">

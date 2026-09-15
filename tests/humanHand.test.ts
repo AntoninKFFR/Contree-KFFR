@@ -46,6 +46,7 @@ describe("rules-aware human hand", () => {
     const relaxed = render(relaxedFollowSuitVariant.cardPlay);
 
     expect(classic).toMatch(/aria-label="Jouer 8 ♦"[^>]*disabled/);
+    expect(classic).not.toContain("Choisis une carte autorisée");
     expect(relaxed).not.toMatch(/aria-label="Jouer 8 ♦"[^>]*disabled/);
   });
 });

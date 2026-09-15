@@ -6,7 +6,7 @@ import { GameTable, tableSeatsFor } from "@/components/GameTable";
 import { GameTopBar } from "@/components/GameTopBar";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
-import { createInitialGame } from "@/engine/game";
+import { createInitialGame, makeBid } from "@/engine/game";
 import { scoreRound } from "@/engine/scoring";
 import { toPlayerGameView } from "@/engine/views";
 import { clonePlayerPreferences } from "@/lib/preferences/playerPreferences";
@@ -87,7 +87,7 @@ describe("premium gameplay shell", () => {
     expect(markup).not.toContain("<select");
   });
 
-  it("always retains score, contract, players, turn and card counts in minimal mode", () => {
+  it("keeps essential score and contract data while hiding redundant turn and card counts", () => {
     const state = createInitialGame(() => 0.1);
     const players: RoomPlayerView[] = [0, 1, 2, 3].map((seat) => ({
       seat_index: seat as 0 | 1 | 2 | 3,
@@ -97,10 +97,26 @@ describe("premium gameplay shell", () => {
     const markup = withPreferences(React.createElement(GameTable, {
       state, players, minimalHud: true, showLiveScore: true,
     }));
-    expect(markup).toContain("Tour ·");
     expect(markup).toContain("Annonces");
-    expect(markup).toContain("8 cartes · Hôte");
+    expect(markup).toContain("Hôte");
+    expect(markup).toContain("En ligne");
+    expect(markup).not.toContain("Tour ·");
+    expect(markup).not.toMatch(/\d+ cartes?/);
     expect(markup).not.toContain("Points en direct");
+  });
+
+  it("keeps only the contract-progress title and primary value", () => {
+    let state = createInitialGame(() => 0.1);
+    state = makeBid(state, state.currentPlayerId, { action: "bid", value: 110, trump: "hearts" });
+    for (let index = 0; index < 3; index += 1) state = makeBid(state, state.currentPlayerId, { action: "pass" });
+    state = { ...state, trickPoints: { 0: 67, 1: 95 } };
+    const markup = withPreferences(React.createElement(GameTable, { state, showLiveScore: true }));
+    expect(markup).toContain("Progression du contrat");
+    expect(markup).toMatch(/67\s*\/\s*110/);
+    expect(markup).not.toContain("points manquants");
+    expect(markup).not.toContain("plis manquants");
+    expect(markup).not.toContain("Objectif atteint provisoirement");
+    expect(markup).not.toContain("battre la défense");
   });
 
   it("rotates multiplayer seats so the viewer is always at the bottom", () => {
