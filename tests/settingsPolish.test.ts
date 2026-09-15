@@ -22,6 +22,8 @@ describe("premium settings navigation", () => {
     expect(markup).toContain("Rechercher un paramètre");
     expect(markup).toContain("coinche-settings-panel");
     expect(markup).toContain("peer-checked:bg-emerald-700");
+    expect(markup).toContain("overflow-y-auto");
+    expect(markup).toContain("text-stone-900");
   });
 
   it("shows precise timing sliders and human durations", () => {
@@ -34,12 +36,14 @@ describe("premium settings navigation", () => {
     expect(formatPreferenceDuration(1200)).toBe("1,2 s");
   });
 
-  it("uses a labelled modal and communicates automatic persistence", () => {
+  it("uses a labelled, compact modal without redundant header copy", () => {
     const markup = renderToStaticMarkup(React.createElement(PlayerPreferencesProvider, null, React.createElement(PlayerSettingsDialog, { onClose: noop })));
     expect(markup).toContain('role="dialog"');
     expect(markup).toContain('aria-modal="true"');
-    expect(markup).toContain("Ces réglages ne changent que ton interface");
-    expect(markup).toContain("Enregistré automatiquement");
+    expect(markup).not.toContain("Ces réglages ne changent que ton interface");
+    expect(markup).not.toContain("Enregistré automatiquement");
+    expect(markup).not.toContain("MES PARAMÈTRES");
+    expect(markup).not.toContain('aria-label="Fermer Paramètres"');
   });
 });
 

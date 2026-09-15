@@ -5,7 +5,7 @@ import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { SUIT_LABELS, SUIT_SYMBOLS } from "@/engine/cards";
 import { playPreferenceSound } from "@/lib/preferences/audio";
 import { moveSuit } from "@/lib/preferences/handSorting";
-import { DEFAULT_PLAYER_PREFERENCES, withCustomTiming, type PlayerPreferences, type PresetGameSpeed } from "@/lib/preferences/playerPreferences";
+import { withCustomTiming, type PlayerPreferences, type PresetGameSpeed } from "@/lib/preferences/playerPreferences";
 import {
   normalizeMultiplayerTablePreferences,
   withMultiplayerTableSpeed,
@@ -52,11 +52,6 @@ export type PlayerSettingsContext =
 
 const SOLO_SETTINGS_CONTEXT: PlayerSettingsContext = { mode: "solo" };
 
-function ScopeNotice({ context }: { context: PlayerSettingsContext }) {
-  const multiplayer = context.mode === "multiplayer";
-  return <div className="grid gap-2 rounded-2xl border border-emerald-900/10 bg-gradient-to-br from-[#e5eee5] to-[#f3efe2] p-3.5 text-xs shadow-inner sm:grid-cols-2"><div><strong className="block tracking-wide text-emerald-950">{multiplayer ? "MES PRÉFÉRENCES" : "MES PARAMÈTRES"}</strong><span className="mt-0.5 block text-stone-700">{multiplayer ? "Personnelles, locales et enregistrées automatiquement." : "Personnels, locaux et enregistrés automatiquement."}</span></div><div className="border-t border-emerald-900/10 pt-2 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0"><strong className="block tracking-wide text-stone-700">{multiplayer ? "RYTHME DE LA TABLE" : "RÈGLES DE LA PARTIE"}</strong><span className="mt-0.5 block text-stone-600">{multiplayer ? "Partagé par tous les joueurs et défini par l’hôte." : "Partagées et appliquées par le moteur. Elles ne changent pas ici."}</span></div></div>;
-}
-
 export function PlayerSettingsPanel({ context = SOLO_SETTINGS_CONTEXT }: { context?: PlayerSettingsContext }) {
   const { preferences, reset, setGameSpeed, setPreferences } = usePlayerPreferences();
   const [active, setActive] = useState<SectionId>("game");
@@ -71,15 +66,14 @@ export function PlayerSettingsPanel({ context = SOLO_SETTINGS_CONTEXT }: { conte
     return needle ? SECTIONS.filter((section) => `${section.label} ${section.keywords}`.toLocaleLowerCase("fr").includes(needle)) : [...SECTIONS];
   }, [query]);
   const selected = visibleSections.some((section) => section.id === active) ? active : visibleSections[0]?.id;
-  const isCustom = JSON.stringify(preferences) !== JSON.stringify(DEFAULT_PLAYER_PREFERENCES);
   const timing = (key: "botDelayMs" | "trickDisplayMs" | "biddingDelayMs", value: number) => setPreferences((current) => withCustomTiming(current, key, value));
   const speedLabels: Record<PresetGameSpeed | "custom", string> = { slow: "Lente", normal: "Normale", fast: "Rapide", instant: "Instantanée", custom: "Personnalisée" };
 
-  return <div className="coinche-settings-panel flex h-full min-h-0 flex-col bg-[#eeeade]">
-    <div className="shrink-0 space-y-3 border-b border-stone-300/70 bg-[#f6f2e8] px-4 py-3 sm:px-6"><ScopeNotice context={context} /><div className="flex flex-wrap items-center gap-2"><input aria-label="Rechercher un paramètre" className="min-w-48 flex-1 rounded-xl border border-stone-300/80 bg-[#fffdf7] px-3 py-2.5 text-sm shadow-inner outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15" onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un paramètre" type="search" value={query} /><span className="rounded-full border border-stone-300/70 bg-[#fffdf7] px-2.5 py-1 text-xs font-bold text-stone-600">{isCustom ? "Personnalisé" : "Réglages par défaut"}</span><span className="text-xs font-semibold text-emerald-800">Enregistré automatiquement</span></div></div>
-    <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-[210px_minmax(0,1fr)]">
-      <nav aria-label="Sections des paramètres" className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-stone-300/70 bg-[#e5e3d9] p-2 md:flex-col md:overflow-visible md:border-b-0 md:border-r md:p-4">{visibleSections.map((section) => <button aria-current={selected === section.id ? "page" : undefined} className={`whitespace-nowrap rounded-xl border px-3 py-2.5 text-left text-sm font-bold transition ${selected === section.id ? "border-emerald-950 bg-[#123c2b] text-[#f6edda] shadow-md" : "border-transparent bg-transparent text-stone-700 hover:border-stone-300 hover:bg-[#f5f1e7]"}`} key={section.id} onClick={() => setActive(section.id)} type="button">{section.label.toLocaleUpperCase("fr")}</button>)}</nav>
-      <div className="min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgb(255_255_255_/_55%),transparent_45%)] p-4 sm:p-6">
+  return <div className="coinche-settings-panel flex h-full min-h-0 flex-1 flex-col bg-[#eeeade] text-stone-900">
+    <div className="shrink-0 border-b border-stone-300/70 bg-[#f6f2e8] px-4 py-2.5 sm:px-6"><input aria-label="Rechercher un paramètre" className="w-full rounded-xl border border-stone-300/80 bg-[#fffdf7] px-3 py-2.5 text-sm text-stone-900 shadow-inner outline-none placeholder:text-stone-500 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15" onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un paramètre" type="search" value={query} /></div>
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:grid md:grid-cols-[210px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
+      <nav aria-label="Sections des paramètres" className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-stone-300/70 bg-[#e5e3d9] p-2 md:flex-col md:overflow-x-hidden md:overflow-y-auto md:overscroll-contain md:border-b-0 md:border-r md:p-4">{visibleSections.map((section) => <button aria-current={selected === section.id ? "page" : undefined} className={`whitespace-nowrap rounded-xl border px-3 py-2.5 text-left text-sm font-bold transition ${selected === section.id ? "border-emerald-950 bg-[#123c2b] text-[#f6edda] shadow-md" : "border-transparent bg-transparent text-stone-700 hover:border-stone-300 hover:bg-[#f5f1e7]"}`} key={section.id} onClick={() => setActive(section.id)} type="button">{section.label.toLocaleUpperCase("fr")}</button>)}</nav>
+      <div className="min-h-0 min-w-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_top_right,rgb(255_255_255_/_55%),transparent_45%)] p-4 [scrollbar-gutter:stable] sm:p-6">
         {!selected ? <p className="rounded-lg border bg-white p-4 text-sm">Aucun paramètre ne correspond à « {query} ».</p> : null}
         {selected === "game" ? <GameSettings context={context} preferences={preferences} setGameSpeed={setGameSpeed} timing={timing} update={update} speedLabels={speedLabels} /> : null}
         {selected === "help" ? <HelpSettings preferences={preferences} update={update} /> : null}
@@ -135,5 +129,5 @@ function AccessibilitySettings({ preferences, update }: { preferences: PlayerPre
 
 export function PlayerSettingsDialog({ context = SOLO_SETTINGS_CONTEXT, onClose }: { context?: PlayerSettingsContext; onClose: () => void }) {
   const multiplayer = context.mode === "multiplayer";
-  return <AccessibleDialog description={multiplayer ? "Tes préférences restent locales ; le rythme de la table est partagé." : "Ces réglages ne changent que ton interface."} onClose={onClose} title={multiplayer ? "Préférences" : "Paramètres"}><PlayerSettingsPanel context={context} /></AccessibleDialog>;
+  return <AccessibleDialog onClose={onClose} showCloseButton={false} title={multiplayer ? "Préférences" : "Paramètres"}><PlayerSettingsPanel context={context} /></AccessibleDialog>;
 }
