@@ -44,5 +44,7 @@ describe("shared close button", () => {
       expect(markup).toContain("<svg");
       expect(markup).not.toContain(">×<");
     }
+    expect(gameDrawer).toContain("coinche-theme-toggle");
+    expect(appDrawer).toContain("coinche-theme-toggle");
   });
 });

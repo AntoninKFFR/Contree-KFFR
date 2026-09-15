@@ -129,9 +129,17 @@ test.describe("@smoke public production readiness", () => {
   test("@smoke global light theme is immediate, persistent and responsive", async ({ page }) => {
     await page.goto("/multiplayer");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    const navigationToggle = page.getByRole("switch", { name: "Activer le thème clair" });
+    await expect(navigationToggle).toBeVisible();
+    await navigationToggle.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await page.getByRole("button", { name: "Préférences", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Préférences" });
     await dialog.getByRole("button", { name: "AFFICHAGE", exact: true }).click();
+    await expect(dialog.getByRole("button", { name: "Clair", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await dialog.getByRole("button", { name: "Sombre", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(page.getByRole("switch", { name: "Activer le thème clair" })).toBeVisible();
     await dialog.getByRole("button", { name: "Clair", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await expect(dialog.locator(".coinche-settings-panel")).toHaveCSS("background-color", "rgb(238, 234, 222)");
@@ -143,6 +151,7 @@ test.describe("@smoke public production readiness", () => {
       await expect(page.locator("body")).toHaveCSS("background-color", "rgb(238, 234, 222)");
     }
     await page.goto("/solo");
+    await expect(page.getByRole("switch", { name: "Activer le thème sombre" })).toBeVisible();
     await expect(page.locator(".coinche-game-table")).toBeVisible();
     await expect(page.locator(".coinche-game-table")).toHaveCSS("background-color", "rgb(13, 91, 60)");
     await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
@@ -159,9 +168,7 @@ test.describe("@smoke public production readiness", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
     await page.goto("/multiplayer");
-    await page.getByRole("button", { name: "Préférences", exact: true }).click();
-    await dialog.getByRole("button", { name: "AFFICHAGE", exact: true }).click();
-    await dialog.getByRole("button", { name: "Sombre", exact: true }).click();
+    await page.getByRole("switch", { name: "Activer le thème sombre" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   });
 

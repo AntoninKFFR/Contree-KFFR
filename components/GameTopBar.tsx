@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { IconCloseButton } from "@/components/ui/IconCloseButton";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export type GameMenuAction = {
   label: string;
@@ -95,7 +96,8 @@ export function GameTopBar({
         <span aria-hidden="true" className="h-4 w-px bg-white/15" />
         <span className="truncate text-xs font-semibold text-white/55">{contextLabel}</span>
       </div>
-      <div className="flex shrink-0 items-center">
+      <div className="flex shrink-0 items-center gap-2">
+        <ThemeToggle />
         <button aria-controls="game-menu-drawer" aria-expanded={isOpen} aria-label="Ouvrir le menu de partie" className="coinche-chrome-icon" onClick={() => setIsOpen(true)} ref={menuButtonRef} type="button">☰</button>
       </div>
     </header>

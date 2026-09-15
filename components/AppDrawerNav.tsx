@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { IconCloseButton } from "@/components/ui/IconCloseButton";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const NAV_LINKS = [
   { href: "/", label: "Accueil" },
@@ -115,17 +116,20 @@ export function AppDrawerNav() {
             </span>
             Contrée KFFR
           </Link>
-          <button
-            aria-controls="app-drawer-nav"
-            aria-expanded={isOpen}
-            aria-label="Ouvrir le menu"
-            className="coinche-icon-button inline-flex h-10 w-10 items-center justify-center rounded-xl border text-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
-            onClick={() => setIsOpen(true)}
-            ref={menuButtonRef}
-            type="button"
-          >
-            ☰
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              aria-controls="app-drawer-nav"
+              aria-expanded={isOpen}
+              aria-label="Ouvrir le menu"
+              className="coinche-icon-button inline-flex h-10 w-10 items-center justify-center rounded-xl border text-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+              onClick={() => setIsOpen(true)}
+              ref={menuButtonRef}
+              type="button"
+            >
+              ☰
+            </button>
+          </div>
         </div>
       </header>
 

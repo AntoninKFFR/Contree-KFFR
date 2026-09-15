@@ -522,6 +522,73 @@ summary:focus-visible {
   box-shadow: 0 2px 8px var(--shadow);
 }
 
+.coinche-theme-toggle {
+  position: relative;
+  display: inline-grid;
+  width: 3.35rem;
+  height: 2rem;
+  flex: none;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  box-shadow: inset 0 1px 2px var(--shadow);
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.coinche-theme-toggle:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+.coinche-theme-toggle:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.coinche-theme-toggle__thumb {
+  position: absolute;
+  left: 0.18rem;
+  width: 1.45rem;
+  height: 1.45rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 2px 8px var(--shadow);
+  transition: transform 180ms ease;
+}
+
+:root[data-theme="light"] .coinche-theme-toggle__thumb {
+  transform: translateX(1.46rem);
+}
+
+.coinche-theme-toggle__icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 100%;
+  place-items: center;
+  transition: color 150ms ease, transform 150ms ease;
+}
+
+.coinche-theme-toggle__icon svg {
+  width: 0.86rem;
+  height: 0.86rem;
+}
+
+:root[data-theme="dark"] .coinche-theme-toggle__moon,
+:root[data-theme="light"] .coinche-theme-toggle__sun {
+  color: var(--accent-foreground);
+  transform: scale(1.03);
+}
+
+:root[data-theme="dark"] .coinche-theme-toggle__sun,
+:root[data-theme="light"] .coinche-theme-toggle__moon {
+  color: var(--text-muted);
+}
+
 .coinche-global-header,
 .coinche-app-drawer {
   border-color: var(--border) !important;
