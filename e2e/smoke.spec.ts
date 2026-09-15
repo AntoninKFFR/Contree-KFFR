@@ -6,8 +6,11 @@ test.describe("@smoke public production readiness", () => {
     const monitor = monitorBrowserErrors(page);
 
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "La table est prête." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "La contrée, en solo ou entre amis" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Jouer en solo" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Multijoueur" })).toHaveAttribute("href", "/multiplayer");
+    await expect(page.getByText("Joue une vraie partie de Contrée, seul ou avec tes proches.")).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Points forts" })).toHaveCount(0);
 
     await page.goto("/login");
     await expect(page.getByRole("heading", { name: "Connexion" })).toBeVisible();
