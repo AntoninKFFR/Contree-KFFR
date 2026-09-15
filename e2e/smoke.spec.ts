@@ -15,8 +15,9 @@ test.describe("@smoke public production readiness", () => {
     await expect(page.getByLabel("Mot de passe")).toHaveAttribute("type", "password");
 
     await page.goto("/solo");
-    await expect(page.getByRole("button", { name: "Paramètres" })).toBeVisible();
-    await page.getByRole("button", { name: "Paramètres" }).click();
+    await expect(page.getByRole("button", { name: "Ouvrir le menu de partie" })).toBeVisible();
+    await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
     await expect(page.getByRole("dialog", { name: "Paramètres" })).toBeVisible();
     await expect(page.getByLabel("Vitesse de jeu")).toBeVisible();
     await page.keyboard.press("Escape");

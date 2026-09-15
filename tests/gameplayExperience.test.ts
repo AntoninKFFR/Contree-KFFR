@@ -27,14 +27,32 @@ describe("premium gameplay shell", () => {
       contextLabel: "Solo", focusMode: false,
       onOpenPreferences: () => undefined,
       onToggleFocusMode: () => undefined,
+      preferencesLabel: "Paramètres",
       menuActions: [{ label: "Abandonner la partie", tone: "danger", onSelect: () => undefined }],
     }));
     expect(markup).toContain("CONTRÉE KFFR");
-    expect(markup).toContain("Mode épuré");
+    expect(markup).toContain("Scores en direct");
+    expect(markup).toContain('role="switch"');
+    expect(markup).toContain('aria-checked="true"');
     expect(markup).toContain("Ouvrir le menu de partie");
     expect(markup).toContain("Accueil");
     expect(markup).toContain("Abandonner la partie");
     expect(markup).not.toContain(">Infos<");
+    expect(markup).not.toContain("Mode épuré");
+    const topbar = markup.match(/<header[^>]*coinche-game-topbar[\s\S]*?<\/header>/)?.[0] ?? "";
+    expect(topbar).toContain("Ouvrir le menu de partie");
+    expect(topbar).not.toContain("Scores en direct");
+    expect(topbar).not.toContain("Paramètres");
+  });
+
+  it("maps the existing hidden-HUD state to the live-score switch", () => {
+    vi.stubGlobal("React", React);
+    const markup = renderToStaticMarkup(React.createElement(GameTopBar, {
+      contextLabel: "Solo", focusMode: true,
+      onOpenPreferences: () => undefined,
+      onToggleFocusMode: () => undefined,
+    }));
+    expect(markup).toContain('aria-checked="false"');
   });
 
   it("renders a compact shared round result with reachable action and folded details", () => {
