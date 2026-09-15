@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { IconCloseButton } from "@/components/ui/IconCloseButton";
 
 const NAV_LINKS = [
   { href: "/", label: "Accueil" },
@@ -154,15 +155,11 @@ export function AppDrawerNav() {
             </p>
             <p className="mt-1 text-lg font-bold text-stone-50">Contrée KFFR</p>
           </div>
-          <button
-            aria-label="Fermer le menu"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.07] text-xl text-stone-100 transition hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+          <IconCloseButton
+            label="Fermer le menu"
             onClick={() => setIsOpen(false)}
             ref={closeButtonRef}
-            type="button"
-          >
-            ×
-          </button>
+          />
         </div>
 
         <nav className="flex flex-1 flex-col gap-2 px-4 py-5">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { IconCloseButton } from "@/components/ui/IconCloseButton";
 
 export type GameMenuAction = {
   label: string;
@@ -101,7 +102,7 @@ export function GameTopBar({
 
     <button aria-label="Fermer le menu de partie" className={`fixed inset-0 z-[70] bg-black/55 transition-opacity ${isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`} onClick={() => setIsOpen(false)} tabIndex={isOpen ? 0 : -1} type="button" />
     <aside aria-hidden={!isOpen} aria-label="Menu de partie" className={`fixed right-0 top-0 z-[80] flex h-dvh w-[min(360px,92vw)] flex-col border-l border-white/10 bg-[#0b1813] text-stone-100 shadow-2xl transition-transform duration-200 ${isOpen ? "translate-x-0" : "translate-x-full"}`} id="game-menu-drawer" inert={!isOpen} ref={drawerRef}>
-      <div className="flex items-center justify-between border-b border-white/10 px-5 py-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300/70">Partie</p><p className="font-bold text-[#f3ead2]">{contextLabel}</p></div><button aria-label="Fermer le menu" className="coinche-chrome-icon" onClick={() => setIsOpen(false)} ref={closeButtonRef} type="button">×</button></div>
+      <div className="flex items-center justify-between border-b border-white/10 px-5 py-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300/70">Partie</p><p className="font-bold text-[#f3ead2]">{contextLabel}</p></div><IconCloseButton label="Fermer le menu" onClick={() => setIsOpen(false)} ref={closeButtonRef} /></div>
       <div className="flex-1 overflow-y-auto p-4">
         <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">Affichage</p>
         <div className="grid gap-2">
