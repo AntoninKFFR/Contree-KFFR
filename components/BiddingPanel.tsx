@@ -113,29 +113,17 @@ export function BiddingPanel({
 
   return (
     <section
-      className={
-        compact
-          ? "rounded-xl border border-white/20 bg-black/20 p-2 text-white shadow-sm backdrop-blur-sm"
-          : "shrink-0 rounded-lg border border-stone-200 bg-white/95 p-2 shadow-sm"
-      }
+      className={`coinche-bidding-panel shrink-0 rounded-2xl border border-white/10 bg-[#07150f]/88 text-white shadow-2xl backdrop-blur-md ${compact ? "p-2" : "px-3 py-2.5 sm:px-4"}`}
     >
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className={`text-xs uppercase tracking-wide ${compact ? "text-white/70" : "text-stone-500"}`}>
-            Annonces
-          </p>
-          <h2 className={`text-sm font-bold ${compact ? "text-white" : ""}`}>
-            {canBid ? "A toi de parler" : "Les autres joueurs annoncent..."}
-          </h2>
-        </div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div><p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#e7d7ae]/60">Enchères</p><h2 className="text-sm font-black">{canBid ? "À toi de parler" : "Les autres joueurs annoncent…"}</h2></div>
+        {currentContract ? <p className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-white/65">{formatContractLabel(currentContract)}</p> : null}
       </div>
-      {pendingConfirmation ? <div aria-label="Confirmation d'enchère" aria-live="assertive" className={`mb-2 rounded-xl border p-3 shadow-sm ${compact ? "border-white/40 bg-stone-950/90 text-white" : "border-amber-300 bg-amber-50"}`} role="alertdialog"><p className="text-sm font-bold">{pendingConfirmation.message}</p><div className="mt-2 flex gap-2"><button autoFocus className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white" onClick={() => dismissConfirmation(pendingConfirmation.action)} type="button">Confirmer</button><button className="rounded-lg border bg-white px-3 py-2 text-xs font-bold text-stone-800" onClick={() => dismissConfirmation()} type="button">Annuler</button></div></div> : null}
+      {pendingConfirmation ? <div aria-label="Confirmation d'enchère" aria-live="assertive" className="mb-2 rounded-xl border border-amber-200/35 bg-amber-100/10 p-3 shadow-sm" role="alertdialog"><p className="text-sm font-bold">{pendingConfirmation.message}</p><div className="mt-2 flex gap-2"><button autoFocus className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white" onClick={() => dismissConfirmation(pendingConfirmation.action)} type="button">Confirmer</button><button className="rounded-lg border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold" onClick={() => dismissConfirmation()} type="button">Annuler</button></div></div> : null}
 
       {canBid && availableValues.length === 0 ? (
         <p
-          className={`mb-2 rounded-md px-2 py-1 text-xs ${
-            compact ? "bg-white/15 text-white/85" : "bg-yellow-50 text-stone-700"
-          }`}
+          className="mb-2 rounded-lg bg-white/8 px-2.5 py-1.5 text-xs text-white/70"
         >
           {currentContract?.status === "coinched"
             ? "Contrat contré: tu peux seulement passer ou surcontrer."
@@ -147,53 +135,12 @@ export function BiddingPanel({
         </p>
       ) : null}
 
-      <div className="grid gap-2 md:grid-cols-[120px_160px_1fr]">
-        <label className={`flex flex-col gap-1 text-xs font-semibold ${compact ? "text-white/85" : "text-stone-700"}`}>
-          Valeur
-          <select
-            className={`rounded-md px-2 py-2 text-sm ${
-              compact
-                ? "border border-white/20 bg-white/90 text-stone-900"
-                : "border border-stone-300"
-            }`}
-            disabled={!canMakeBid}
-            onChange={(event) => setValue(Number(event.target.value) as BidValue)}
-            value={value}
-          >
-            {availableValues.length === 0 ? <option value="">Aucune surenchere</option> : null}
-            {availableValues.map((bidValue) => (
-              <option key={bidValue} value={bidValue}>
-                {bidValue}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className={`flex flex-col gap-1 text-xs font-semibold ${compact ? "text-white/85" : "text-stone-700"}`}>
-          Atout
-          <select
-            className={`rounded-md px-2 py-2 text-sm ${
-              compact
-                ? "border border-white/20 bg-white/90 text-stone-900"
-                : "border border-stone-300"
-            }`}
-            disabled={!canChooseMode}
-            onChange={(event) => setModeValue(event.target.value as typeof modeValue)}
-            value={modeValue}
-          >
-            {SUITS.map((suit) => (
-              <option key={suit} value={suit}>
-                {SUIT_LABELS[suit]} {SUIT_SYMBOLS[suit]}
-              </option>
-            ))}
-            {biddingRules?.allowNoTrump ? <option value="no-trump">Sans Atout</option> : null}
-            {biddingRules?.allowAllTrump ? <option value="all-trump">Tout Atout</option> : null}
-          </select>
-        </label>
-
-        <div className={`grid grid-cols-2 items-end gap-2 ${biddingRules?.allowGenerale ? "sm:grid-cols-6" : "sm:grid-cols-5"}`}>
+      <div className={`grid gap-2 ${compact ? "grid-cols-[minmax(0,1fr)_auto]" : "lg:grid-cols-[1.15fr_1fr_1.35fr]"}`}>
+        <fieldset><legend className="sr-only">Valeur</legend><div className="flex gap-1 overflow-x-auto pb-0.5">{availableValues.map((bidValue) => <button aria-label={`Valeur ${bidValue}`} aria-pressed={value === bidValue} className={`min-h-9 min-w-11 rounded-lg border px-2 text-xs font-black transition ${value === bidValue ? "border-[#e9d49d]/60 bg-[#e9d49d] text-stone-950" : "border-white/10 bg-white/5 text-white/75 hover:bg-white/12"}`} disabled={!canMakeBid} key={bidValue} onClick={() => setValue(bidValue)} type="button">{bidValue}</button>)}</div></fieldset>
+        <fieldset><legend className="sr-only">Atout</legend><div className="flex gap-1 overflow-x-auto pb-0.5">{SUITS.map((suit) => <button aria-label={`Atout ${SUIT_LABELS[suit]}`} aria-pressed={modeValue === suit} className={`min-h-9 min-w-10 rounded-lg border text-lg transition ${modeValue === suit ? "border-[#e9d49d]/60 bg-white text-stone-950" : "border-white/10 bg-white/5 text-white hover:bg-white/12"}`} disabled={!canChooseMode} key={suit} onClick={() => setModeValue(suit)} type="button">{SUIT_SYMBOLS[suit]}</button>)}{biddingRules?.allowNoTrump ? <button aria-label="Atout Sans Atout" aria-pressed={modeValue === "no-trump"} className={`min-h-9 min-w-10 rounded-lg border px-2 text-[10px] font-black ${modeValue === "no-trump" ? "border-[#e9d49d]/60 bg-white text-stone-950" : "border-white/10 bg-white/5"}`} disabled={!canChooseMode} onClick={() => setModeValue("no-trump")} type="button">SA</button> : null}{biddingRules?.allowAllTrump ? <button aria-label="Atout Tout Atout" aria-pressed={modeValue === "all-trump"} className={`min-h-9 min-w-10 rounded-lg border px-2 text-[10px] font-black ${modeValue === "all-trump" ? "border-[#e9d49d]/60 bg-white text-stone-950" : "border-white/10 bg-white/5"}`} disabled={!canChooseMode} onClick={() => setModeValue("all-trump")} type="button">TA</button> : null}</div></fieldset>
+        <div className={`grid grid-cols-3 gap-1 ${compact ? `col-span-2 ${biddingRules?.allowGenerale ? "grid-cols-6" : "grid-cols-5"}` : biddingRules?.allowGenerale ? "sm:grid-cols-6" : "sm:grid-cols-5"}`}>
           <button
-            className="rounded-md bg-stone-900 px-2 py-2 text-xs font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-emerald-600 px-2 py-2 text-xs font-black text-white shadow hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-35"
             disabled={!canMakeBid}
             onClick={handleBid}
             type="button"
@@ -201,7 +148,7 @@ export function BiddingPanel({
             Annoncer
           </button>
           <button
-            className="rounded-md border border-amber-300 px-2 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-[#e9d49d]/25 bg-[#e9d49d]/10 px-2 py-2 text-xs font-bold text-[#f5e6bd] hover:bg-[#e9d49d]/20 disabled:opacity-35"
             disabled={!canMakeCapot}
             onClick={(event) => confirmed(bidConfirmationMessage("capot", currentContract, contractMode), shouldConfirmBidAction("capot", preferences), () => onCapot(contractMode), event.currentTarget)}
             type="button"
@@ -209,7 +156,7 @@ export function BiddingPanel({
             Capot
           </button>
           {biddingRules?.allowGenerale ? <button
-            className="rounded-md border border-purple-300 px-2 py-2 text-xs font-semibold text-purple-800 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-purple-300/25 bg-purple-300/10 px-2 py-2 text-xs font-bold text-purple-100 hover:bg-purple-300/20 disabled:opacity-35"
             disabled={!canMakeGenerale}
             onClick={(event) => confirmed(bidConfirmationMessage("generale", currentContract, contractMode), shouldConfirmBidAction("generale", preferences), () => onGenerale(contractMode), event.currentTarget)}
             type="button"
@@ -217,7 +164,7 @@ export function BiddingPanel({
             Générale
           </button> : null}
           <button
-            className="rounded-md border border-red-300 px-2 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-red-300/25 bg-red-300/10 px-2 py-2 text-xs font-bold text-red-100 hover:bg-red-300/20 disabled:opacity-35"
             disabled={!canCoinche}
             onClick={(event) => confirmed(bidConfirmationMessage("coinche", currentContract, contractMode), shouldConfirmBidAction("coinche", preferences), onCoinche, event.currentTarget)}
             type="button"
@@ -225,7 +172,7 @@ export function BiddingPanel({
             Contrer
           </button>
           <button
-            className="rounded-md border border-emerald-300 px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-emerald-300/25 bg-emerald-300/10 px-2 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-300/20 disabled:opacity-35"
             disabled={!canSurcoinche}
             onClick={(event) => confirmed(bidConfirmationMessage("surcoinche", currentContract, contractMode), shouldConfirmBidAction("surcoinche", preferences), onSurcoinche, event.currentTarget)}
             type="button"
@@ -233,7 +180,7 @@ export function BiddingPanel({
             Surcontrer
           </button>
           <button
-            className="rounded-md border border-stone-300 px-2 py-2 text-xs font-semibold text-stone-800 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-white/12 bg-white/5 px-2 py-2 text-xs font-bold text-white/80 hover:bg-white/12 disabled:opacity-35"
             disabled={!canBid}
             onClick={onPass}
             type="button"

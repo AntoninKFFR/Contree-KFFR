@@ -13,6 +13,7 @@ type ScoreBoardProps = {
   onNewGame?: () => void;
   onNextRound?: () => void;
   showActions?: boolean;
+  overlay?: boolean;
 };
 
 export function ScoreBoard({
@@ -20,6 +21,7 @@ export function ScoreBoard({
   onNewGame,
   onNextRound,
   showActions = true,
+  overlay = false,
 }: ScoreBoardProps) {
   const { preferences } = usePlayerPreferences();
   const displayedContract = state.contract;
@@ -30,7 +32,7 @@ export function ScoreBoard({
   const rules = resolveGameRules(state.settings);
 
   return (
-    <aside className={`hidden min-h-0 rounded-lg border border-stone-200 bg-white/95 text-sm shadow-sm lg:flex lg:flex-col lg:overflow-hidden ${preferences.visual.compactLayout ? "p-2" : "p-3"}`}>
+    <aside className={`coinche-score-hud hidden min-h-0 rounded-2xl border border-white/10 bg-[#07150f]/88 text-sm text-white shadow-2xl backdrop-blur-md lg:flex lg:flex-col lg:overflow-y-auto ${overlay ? "absolute right-3 top-3 z-30 max-h-36 w-[min(18rem,30vw)]" : ""} ${preferences.visual.compactLayout ? "p-2" : "p-3"}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-stone-500">Atout</p>

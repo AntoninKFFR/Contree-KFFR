@@ -68,6 +68,9 @@ export function AppDrawerNav() {
     setIsOpen(false);
   }
 
+  const isGameRoute = pathname === "/solo" || /^\/multiplayer\/[^/]+$/.test(pathname ?? "");
+  if (isGameRoute) return null;
+
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-[#f4f1e8]/95 backdrop-blur-sm">

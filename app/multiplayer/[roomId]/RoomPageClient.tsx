@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
+import { GameTopBar, type GameMenuAction } from "@/components/GameTopBar";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { ScoreBoard } from "@/components/ScoreBoard";
@@ -78,6 +79,7 @@ export default function MultiplayerRoomPage() {
   const [isUpdatingReady, setIsUpdatingReady] = useState(false);
   const [pageState, setPageState] = useState<PageState>("loading");
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  const [isFocusMode, setIsFocusMode] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [localDisplayName, setLocalDisplayName] = useState("Joueur");
@@ -243,7 +245,7 @@ export default function MultiplayerRoomPage() {
     }
 
     const portraitQuery = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
-    const landscapeQuery = window.matchMedia("(max-width: 767px) and (orientation: landscape)");
+    const landscapeQuery = window.matchMedia("(max-width: 900px) and (orientation: landscape)");
     const update = () => {
       setIsMobilePortrait(portraitQuery.matches);
       setIsMobileLandscape(landscapeQuery.matches);
@@ -737,17 +739,22 @@ export default function MultiplayerRoomPage() {
 
   const isPlayingLayout = displayedRoomStatus === "playing";
   const shouldLockPortrait = isMobilePortrait && displayedRoomStatus === "playing";
+  const gameMenuActions: GameMenuAction[] = [
+    ...(displayedRoomStatus === "lobby" && isHost ? [{ label: "Modifier les règles", onSelect: () => { setRulesDraft(rulesetToCustomInput(lobbyRules)); setIsRulesOpen(true); } }] : []),
+    ...(isHost && hostTransferCandidates.length > 0 ? [{ label: "Transférer l’hôte", onSelect: () => { setHostTransferSeat(null); setIsHostTransferOpen(true); } }] : []),
+    ...(displayedRoomStatus === "playing" ? [{ label: "Abandonner la partie", onSelect: () => setIsForfeitConfirmationOpen(true), tone: "danger" as const }] : []),
+  ];
 
   if (shouldLockPortrait) {
-    return <><MobileLandscapeNotice /><button className="fixed right-3 top-16 z-40 rounded-md border bg-white px-3 py-2 text-sm font-semibold shadow" onClick={() => setIsSettingsOpen(true)} type="button">Préférences</button>{isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost, tablePreferences, isSavingTablePreferences: isUpdatingTablePreferences, onTablePreferencesChange: handleUpdateTablePreferences }} onClose={() => setIsSettingsOpen(false)} /> : null}</>;
+    return <><GameTopBar contextLabel={roomWithPlayers?.room.code ?? "Multijoueur"} focusMode={isFocusMode} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} /><MobileLandscapeNotice />{isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost, tablePreferences, isSavingTablePreferences: isUpdatingTablePreferences, onTablePreferencesChange: handleUpdateTablePreferences }} onClose={() => setIsSettingsOpen(false)} /> : null}</>;
   }
 
   return (
-    <main
+    <><GameTopBar contextLabel={roomWithPlayers?.room.code ?? "Multijoueur"} focusMode={isFocusMode} infoOpen={isRightPanelOpen} menuActions={gameMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} onToggleInfo={isPlayingLayout ? () => setIsRightPanelOpen((current) => !current) : undefined} showFocusMode={isPlayingLayout} /><main
       className={
         isPlayingLayout
-          ? `min-h-[calc(100dvh-56px)] overflow-x-hidden overflow-y-auto bg-[#f4f1e8] px-3 py-2 text-stone-950 sm:px-4 lg:h-[calc(100dvh-56px)] lg:overflow-hidden${isMobileLandscape ? " overflow-hidden px-0 py-0 sm:px-4" : ""}`
-          : "min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950"
+          ? `h-[calc(100dvh-48px)] min-h-0 overflow-x-hidden overflow-y-auto bg-[#06120d] px-2 py-2 text-stone-50 sm:px-3 lg:overflow-hidden${isMobileLandscape ? " overflow-hidden px-0 py-0 sm:px-3" : ""}`
+          : "min-h-[calc(100dvh-48px)] bg-[#f4f1e8] px-4 py-6 text-stone-950"
       }
     >
       <div
@@ -780,7 +787,7 @@ export default function MultiplayerRoomPage() {
         ) : null}
 
         {error && pageState === "ready" ? (
-          <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
+          <p className={isPlayingLayout ? "fixed left-1/2 top-14 z-40 -translate-x-1/2 rounded-xl border border-red-300/30 bg-red-950/90 px-4 py-2 text-sm font-semibold text-red-100 shadow-xl" : "rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900"}>
             {error}
           </p>
         ) : null}
@@ -919,41 +926,11 @@ export default function MultiplayerRoomPage() {
             {displayedRoomStatus === "playing" && playerView ? (
               <div
                 className={[
-                  "grid min-h-0 flex-1 gap-2",
-                  isMobileLandscape
-                    ? "grid-cols-[minmax(0,1fr)]"
-                    : isRightPanelOpen
-                      ? "lg:grid-cols-[minmax(0,1fr)_310px]"
-                      : "lg:grid-cols-[minmax(0,1fr)]",
+                  "relative grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] gap-2",
+                  isMobileLandscape ? "grid-cols-[minmax(0,1fr)]" : "",
                 ].join(" ")}
               >
                 <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
-                  <div className={`flex justify-end ${isMobileLandscape ? "h-6 items-center pr-2" : ""}`}>
-                    <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-[10px] font-semibold text-stone-800 shadow-sm hover:bg-white sm:text-xs" onClick={() => setIsSettingsOpen(true)} type="button">Préférences</button>
-                    {isHost && hostTransferCandidates.length > 0 ? <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-[10px] font-semibold text-stone-800 shadow-sm hover:bg-white sm:text-xs" onClick={() => { setHostTransferSeat(null); setIsHostTransferOpen(true); }} type="button">Transférer l&apos;hôte</button> : null}
-                    <button
-                      className="rounded-md border border-red-300 bg-white/90 px-2 py-1 text-[10px] font-semibold text-red-800 shadow-sm hover:bg-red-50 sm:text-xs"
-                      onClick={() => setIsForfeitConfirmationOpen(true)}
-                      type="button"
-                    >
-                      Abandonner la partie
-                    </button>
-                  </div>
-                  <div className={`flex items-center justify-between ${isMobileLandscape ? "hidden" : ""}`}>
-                    {turnSecondsRemaining !== null ? (
-                      <p className="rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm">
-                        Temps : {turnSecondsRemaining} s
-                      </p>
-                    ) : <span />}
-                    <button
-                      className="hidden rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white lg:inline-flex"
-                      onClick={() => setIsRightPanelOpen((current) => !current)}
-                      type="button"
-                    >
-                      {isRightPanelOpen ? "Masquer infos" : "Afficher infos"}
-                    </button>
-                  </div>
-
                   {takeoverCandidates.length > 0 ? (
                     <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-stone-700">
                       {takeoverCandidates.map((player) => (
@@ -1006,6 +983,7 @@ export default function MultiplayerRoomPage() {
                         : undefined
                     }
                     immersiveMobileLandscape={isMobileLandscape}
+                    minimalHud={isFocusMode}
                     players={roomWithPlayers.players}
                     presentationScope={roomId ?? "multiplayer"}
                     state={playerView}
@@ -1044,7 +1022,7 @@ export default function MultiplayerRoomPage() {
                   ) : null}
 
                   {!isMobileLandscape ? (
-                    <div className={playerView.phase === "bidding" ? "hidden sm:block" : ""}>
+                    <div>
                       <HumanHand
                         canPlay={canPlayCard && !isPlayingCard}
                         cards={playerView.hand}
@@ -1057,7 +1035,7 @@ export default function MultiplayerRoomPage() {
                   ) : null}
                 </div>
 
-                {isRightPanelOpen && !isMobileLandscape ? (
+                {isRightPanelOpen && !isMobileLandscape && !isFocusMode ? (
                   <div className="flex min-h-0 flex-col gap-2">
                     {canShowNextRoundButton ? (
                       <button
@@ -1070,7 +1048,7 @@ export default function MultiplayerRoomPage() {
                       </button>
                     ) : null}
 
-                    <ScoreBoard state={playerView} showActions={false} />
+                    <ScoreBoard overlay state={playerView} showActions={false} />
                   </div>
                 ) : null}
               </div>
@@ -1079,41 +1057,9 @@ export default function MultiplayerRoomPage() {
         ) : null}
       </div>
 
-      {isForfeitConfirmationOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-          <section
-            aria-labelledby="forfeit-title"
-            aria-modal="true"
-            className="w-full max-w-sm rounded-lg border border-stone-300 bg-white p-5 shadow-xl"
-            role="dialog"
-          >
-            <h2 className="text-lg font-bold text-stone-950" id="forfeit-title">
-              Abandonner la partie ?
-            </h2>
-            <p className="mt-2 text-sm text-stone-700">Ton équipe perdra immédiatement.</p>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50 disabled:opacity-50"
-                disabled={isForfeiting}
-                onClick={() => setIsForfeitConfirmationOpen(false)}
-                type="button"
-              >
-                Annuler
-              </button>
-              <button
-                className="rounded-md bg-red-700 px-3 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isForfeiting}
-                onClick={() => void handleForfeitGame()}
-                type="button"
-              >
-                {isForfeiting ? "Abandon…" : "Abandonner"}
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
+      {isForfeitConfirmationOpen ? <AccessibleDialog description="Ton équipe perdra immédiatement la partie." footer={<div className="flex justify-end gap-2"><button className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-bold disabled:opacity-50" disabled={isForfeiting} onClick={() => setIsForfeitConfirmationOpen(false)} type="button">Continuer la partie</button><button className="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50" disabled={isForfeiting} onClick={() => void handleForfeitGame()} type="button">{isForfeiting ? "Abandon…" : "Abandonner"}</button></div>} onClose={() => { if (!isForfeiting) setIsForfeitConfirmationOpen(false); }} title="Abandonner la partie ?"><div /></AccessibleDialog> : null}
       {isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost, tablePreferences, isSavingTablePreferences: isUpdatingTablePreferences, onTablePreferencesChange: handleUpdateTablePreferences }} onClose={() => setIsSettingsOpen(false)} /> : null}
-    </main>
+    </main></>
   );
 }
 

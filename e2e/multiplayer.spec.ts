@@ -104,7 +104,11 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       await expectRoom(pages[0], roomId, "ready after rule reset", (view) => view.players.every((player) => player.is_ready));
       await pages[0].getByRole("button", { name: "Lancer la partie" }).click();
       let gameView = await expectRoom(pages[0], roomId, "authoritative game created", (view) => view.room.status === "playing" && view.game?.phase === "bidding");
-      for (const page of pages) await expect(page.getByRole("button", { name: "Abandonner la partie" })).toBeVisible();
+      for (const page of pages) {
+        await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+        await expect(page.getByRole("button", { name: "Abandonner la partie" })).toBeVisible();
+        await page.keyboard.press("Escape");
+      }
 
       const seatPages = new Map<number, Page>();
       const dealtCardIds = new Set<string>();
@@ -125,14 +129,14 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
 
       // Dynamic active-seat bidding: 80 SA, 90 TA, then three passes.
       let actorPage = seatPages.get(gameView.game!.currentPlayerId)!;
-      await actorPage.getByLabel("Valeur").selectOption("80");
-      await actorPage.getByLabel("Atout").selectOption("no-trump");
+      await actorPage.getByRole("button", { name: "Valeur 80" }).click();
+      await actorPage.getByRole("button", { name: "Atout Sans Atout" }).click();
       await expect(actorPage.getByRole("button", { name: "Générale" })).toBeEnabled();
       await actorPage.getByRole("button", { name: "Annoncer" }).click();
       gameView = await expectRoom(pages[0], roomId, "SA bid propagated", (view) => view.game?.bids.some((bid) => bid.action === "bid" && bid.value === 80) === true);
       actorPage = seatPages.get(gameView.game!.currentPlayerId)!;
-      await actorPage.getByLabel("Valeur").selectOption("90");
-      await actorPage.getByLabel("Atout").selectOption("all-trump");
+      await actorPage.getByRole("button", { name: "Valeur 90" }).click();
+      await actorPage.getByRole("button", { name: "Atout Tout Atout" }).click();
       await actorPage.getByRole("button", { name: "Annoncer" }).click();
       gameView = await expectRoom(pages[0], roomId, "TA bid propagated", (view) => view.game?.bids.some((bid) => bid.action === "bid" && bid.value === 90) === true);
       for (let pass = 0; pass < 3; pass += 1) {

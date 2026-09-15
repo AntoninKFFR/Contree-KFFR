@@ -6,6 +6,7 @@ import { BiddingPanel } from "@/components/BiddingPanel";
 import { BotReviewHistory, BotReviewPanel } from "@/components/BotReviewPanel";
 import { SoloBotHandsPanel } from "@/components/BotHandAnalysis";
 import { GameTable } from "@/components/GameTable";
+import { GameTopBar } from "@/components/GameTopBar";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { ScoreBoard } from "@/components/ScoreBoard";
@@ -63,6 +64,7 @@ export default function SoloPage() {
   const savedGameIdsRef = useRef(new Set<string>());
   const botDecisionNumberRef = useRef(0);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  const [isFocusMode, setIsFocusMode] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -76,6 +78,7 @@ export default function SoloPage() {
   const [rulesDraft, setRulesDraft] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isNewGameConfirmationOpen, setIsNewGameConfirmationOpen] = useState(false);
 
   const humanCanPlay =
     gameState?.phase === "playing" &&
@@ -120,7 +123,7 @@ export default function SoloPage() {
     }
 
     const portraitQuery = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
-    const landscapeQuery = window.matchMedia("(max-width: 767px) and (orientation: landscape)");
+    const landscapeQuery = window.matchMedia("(max-width: 900px) and (orientation: landscape)");
     const update = () => {
       setIsMobilePortrait(portraitQuery.matches);
       setIsMobileLandscape(landscapeQuery.matches);
@@ -304,21 +307,26 @@ export default function SoloPage() {
   }
 
   const rulesDialog = isRulesOpen ? <AccessibleDialog description="Partagées par les joueurs de la prochaine partie. La partie en cours reste inchangée." footer={<div className="grid gap-2 sm:grid-cols-[1fr_auto]"><RulesetSummary ruleset={buildCustomRuleset(rulesDraft)} compact /><button className="rounded-lg bg-emerald-800 px-4 py-3 font-bold text-white" type="button" onClick={applyRulesAndStartGame}>Appliquer et nouvelle partie</button></div>} onClose={() => setIsRulesOpen(false)} title="Règles de la prochaine partie"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null;
+  const soloMenuActions = [
+    { label: "Règles de la prochaine partie", onSelect: () => { setRulesDraft(rulesInput); setIsRulesOpen(true); } },
+    ...(BOT_REVIEW_MODE_ENABLED ? [{ label: `Mode analyse : ${isAnalysisModeEnabled ? "activé" : "désactivé"}`, onSelect: () => setIsAnalysisModeEnabled((current) => !current) }] : []),
+    { label: "Abandonner et redistribuer", tone: "danger" as const, onSelect: () => setIsNewGameConfirmationOpen(true) },
+  ];
 
   if (!gameState) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-stone-100 text-sm text-stone-600">
+      <main className="flex min-h-dvh items-center justify-center bg-[#07150f] text-sm text-white/60">
         Préparation de la partie…
       </main>
     );
   }
 
   if (isMobilePortrait) {
-    return <><MobileLandscapeNotice /><div className="fixed right-3 top-16 z-40 flex gap-2"><button className="rounded-md border bg-white px-3 py-2 text-sm font-semibold shadow" onClick={() => { setRulesDraft(rulesInput); setIsRulesOpen(true); }} type="button">Règles</button><button className="rounded-md border bg-white px-3 py-2 text-sm font-semibold shadow" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button></div>{rulesDialog}{isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}</>;
+    return <><GameTopBar contextLabel="Solo" focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" /><MobileLandscapeNotice />{rulesDialog}{isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}</>;
   }
 
   return (
-    <main
+    <><GameTopBar contextLabel="Solo" focusMode={isFocusMode} infoOpen={isRightPanelOpen} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} onToggleInfo={() => setIsRightPanelOpen((current) => !current)} preferencesLabel="Paramètres" /><main
       className={soloMainClassName(analysisDesktop, isMobileLandscape)}
     >
       <div className={soloContentClassName(analysisDesktop)}>
@@ -326,35 +334,6 @@ export default function SoloPage() {
           className={soloGridClassName(analysisDesktop, isMobileLandscape, isRightPanelOpen)}
         >
           <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
-            <div className={`flex items-center justify-end lg:hidden ${isMobileLandscape ? "hidden" : ""}`} />
-            <div className={`flex items-center justify-end ${isMobileLandscape ? "hidden" : ""}`}>
-              <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white" type="button" onClick={() => setIsSettingsOpen(true)}>Paramètres</button>
-              <button className="mr-2 rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white" type="button" onClick={() => { setRulesDraft(rulesInput); setIsRulesOpen(true); }}>Règles de la partie</button>
-              {BOT_REVIEW_MODE_ENABLED ? (
-                <button
-                  aria-pressed={isAnalysisModeEnabled}
-                  className={[
-                    "mr-2 rounded-md border px-2 py-1 text-xs font-semibold shadow-sm",
-                    isAnalysisModeEnabled
-                      ? "border-amber-500 bg-amber-100 text-stone-950"
-                      : "border-stone-300 bg-white/90 text-stone-700 hover:bg-white",
-                  ].join(" ")}
-                  onClick={() => setIsAnalysisModeEnabled((current) => !current)}
-                  type="button"
-                >
-                  Mode analyse : {isAnalysisModeEnabled ? "activé" : "désactivé"}
-                </button>
-              ) : null}
-              <button
-                className="hidden rounded-md border border-stone-300 bg-white/90 px-2 py-1 text-xs font-semibold text-stone-700 shadow-sm hover:bg-white lg:inline-flex"
-                onClick={() => setIsRightPanelOpen((current) => !current)}
-                type="button"
-              >
-                {isRightPanelOpen ? "Masquer infos" : "Afficher infos"}
-              </button>
-            </div>
-            {isMobileLandscape ? <div className="fixed right-1 top-[58px] z-40 flex gap-1"><button className="rounded-md border border-white/40 bg-black/55 px-2 py-1 text-[10px] font-semibold text-white" onClick={() => { setRulesDraft(rulesInput); setIsRulesOpen(true); }} type="button">Règles</button><button className="rounded-md border border-white/40 bg-black/55 px-2 py-1 text-[10px] font-semibold text-white" onClick={() => setIsSettingsOpen(true)} type="button">Paramètres</button></div> : null}
-
             <GameTable
               bottomOverlay={
                 isMobileLandscape
@@ -391,11 +370,12 @@ export default function SoloPage() {
                   : undefined
               }
               immersiveMobileLandscape={isMobileLandscape}
+              minimalHud={isFocusMode}
               state={gameState}
               showLiveScore={preferences.assistance.showLivePoints}
             />
 
-            {BOT_REVIEW_MODE_ENABLED && isAnalysisModeEnabled && !isMobileLandscape ? (
+            {BOT_REVIEW_MODE_ENABLED && isAnalysisModeEnabled && !isMobileLandscape && !isFocusMode ? (
               <>
                 <SoloBotHandsPanel state={gameState} />
                 {botReviewHistory.length > 0 ? (
@@ -412,7 +392,7 @@ export default function SoloPage() {
               </>
             ) : null}
 
-            {BOT_REVIEW_MODE_ENABLED && !isMobileLandscape && lastBotReview ? (
+            {BOT_REVIEW_MODE_ENABLED && !isMobileLandscape && lastBotReview && !isFocusMode ? (
               <div className="grid gap-2">
                 <button
                   className="justify-self-end rounded-md border border-amber-400 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-stone-800 shadow-sm hover:bg-amber-100"
@@ -481,7 +461,7 @@ export default function SoloPage() {
             ) : null}
 
             {!isMobileLandscape ? (
-              <div className={gameState.phase === "bidding" ? "hidden sm:block" : ""}>
+              <div>
                 <HumanHand
                   canPlay={humanCanPlay}
                   cards={gameState.hands[localHumanPlayerId]}
@@ -494,8 +474,9 @@ export default function SoloPage() {
             ) : null}
           </div>
 
-          {isRightPanelOpen && !isMobileLandscape ? (
+          {isRightPanelOpen && !isMobileLandscape && !isFocusMode ? (
             <ScoreBoard
+              overlay
               state={gameState}
               onNewGame={handleNewGame}
               onNextRound={handleNextRound}
@@ -504,7 +485,8 @@ export default function SoloPage() {
         </div>
       </div>
       {rulesDialog}
+      {isNewGameConfirmationOpen ? <AccessibleDialog description="La donne en cours sera remplacée par une nouvelle partie." footer={<div className="flex justify-end gap-2"><button className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-bold" onClick={() => setIsNewGameConfirmationOpen(false)} type="button">Continuer la partie</button><button className="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white" onClick={() => { setIsNewGameConfirmationOpen(false); handleNewGame(); }} type="button">Abandonner et redistribuer</button></div>} onClose={() => setIsNewGameConfirmationOpen(false)} title="Abandonner la partie ?"><div /></AccessibleDialog> : null}
       {isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}
-    </main>
+    </main></>
   );
 }

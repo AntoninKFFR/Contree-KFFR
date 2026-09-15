@@ -29,24 +29,24 @@ export function CardView({
   const isRed = card.suit === "hearts" || card.suit === "diamonds";
   const sizeClasses =
     size === "compact"
-      ? "h-16 w-11 p-1 sm:h-20 sm:w-14 sm:p-1.5"
+      ? "h-16 w-11 p-1 sm:h-24 sm:w-16 sm:p-1.5"
       : size === "small"
-        ? "h-20 w-14 p-1.5 sm:h-20 sm:w-14"
+        ? "h-20 w-14 p-1.5 sm:h-24 sm:w-16"
         : size === "large"
-          ? "h-32 w-24 p-3 sm:h-28 sm:w-20"
-          : "h-28 w-20 p-2.5 sm:h-24 sm:w-16 sm:p-2";
+          ? "h-32 w-24 p-3 sm:h-36 sm:w-24"
+          : "h-28 w-20 p-2.5 sm:h-32 sm:w-[5.35rem] sm:p-2.5";
   const rankClasses = size === "compact" || size === "small" ? "text-sm sm:text-base" : size === "large" ? "text-2xl sm:text-xl" : "text-xl sm:text-lg";
   const symbolClasses = size === "compact" || size === "small" ? "text-xl sm:text-2xl" : size === "large" ? "text-5xl sm:text-4xl" : "text-4xl sm:text-3xl";
   const clickDisabled = disabled || (!isPlayable && !allowIllegalClick);
   const classes = [
-    "coinche-card relative flex touch-manipulation items-center justify-center rounded-md border bg-white text-center shadow-sm transition-all duration-200 ease-out focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-amber-300",
+    "coinche-card relative flex touch-manipulation items-center justify-center rounded-lg border bg-[#fffef9] text-center shadow-[0_7px_18px_rgb(0_0_0/22%)] transition-all duration-150 ease-out focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-amber-300",
     sizeClasses,
     isRed ? "border-red-200 text-red-700" : "border-stone-300 text-stone-900",
     onClick && !clickDisabled
       ? "cursor-pointer hover:-translate-y-1 hover:scale-[1.03] hover:shadow-md"
       : "",
     highlighted ? "-translate-y-1 border-emerald-700 ring-2 ring-emerald-300 shadow-md" : "",
-    muted ?? (disabled || dimmed) ? "opacity-55 saturate-50" : "",
+    muted ?? dimmed ? "opacity-55 saturate-50" : "",
     className,
   ].join(" ");
 

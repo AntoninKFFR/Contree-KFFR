@@ -29,10 +29,86 @@ summary:focus-visible {
   outline-offset: 2px;
 }
 
+.coinche-chrome-button,
+.coinche-chrome-icon,
+.coinche-drawer-action {
+  border: 1px solid rgb(255 255 255 / 12%);
+  background: rgb(255 255 255 / 7%);
+  color: rgb(255 255 255 / 88%);
+  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.coinche-chrome-button {
+  min-height: 2rem;
+  align-items: center;
+  border-radius: 0.7rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.coinche-chrome-icon {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.7rem;
+  font-weight: 800;
+}
+
+.coinche-drawer-action {
+  width: 100%;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.coinche-chrome-button:hover,
+.coinche-chrome-icon:hover,
+.coinche-drawer-action:hover {
+  border-color: rgb(255 255 255 / 22%);
+  background: rgb(255 255 255 / 13%);
+}
+
+.coinche-chrome-button:active,
+.coinche-chrome-icon:active,
+.coinche-drawer-action:active {
+  transform: translateY(1px);
+}
+
 .coinche-game-table {
-  --coinche-table-color: #19734a;
+  --coinche-table-color: #0d5b3c;
   background-color: var(--coinche-table-color);
-  background-image: url("/TapisKFFR.png");
+  background-image:
+    radial-gradient(circle at 50% 42%, rgb(255 255 255 / 7%), transparent 42%),
+    linear-gradient(145deg, rgb(4 48 31 / 38%), rgb(3 25 18 / 36%)),
+    url("/TapisKFFR.png");
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 7%),
+    inset 0 0 90px rgb(0 0 0 / 38%),
+    0 18px 55px rgb(0 0 0 / 28%);
+}
+
+.coinche-game-table::before {
+  position: absolute;
+  inset: 0.55rem;
+  z-index: -1;
+  border: 1px solid rgb(239 222 174 / 10%);
+  border-radius: 1.05rem;
+  content: "";
+  pointer-events: none;
+}
+
+.coinche-game-table::after {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: radial-gradient(ellipse at center, transparent 45%, rgb(0 0 0 / 24%) 100%);
+  content: "";
+  pointer-events: none;
 }
 
 .coinche-table-midnight-blue .coinche-game-table {
@@ -111,7 +187,41 @@ summary:focus-visible {
 }
 
 .coinche-turn-pulse {
-  box-shadow: 0 0 0 3px rgb(16 185 129 / 45%);
+  box-shadow: 0 0 0 2px rgb(110 231 183 / 26%), 0 0 22px rgb(52 211 153 / 28%);
+}
+
+.coinche-hand-card {
+  margin-left: -0.45rem;
+}
+
+.coinche-hand-card:first-child {
+  margin-left: 0;
+}
+
+.coinche-score-hud .bg-stone-100,
+.coinche-score-hud .bg-emerald-50,
+.coinche-score-hud .bg-emerald-100,
+.coinche-score-hud .bg-yellow-50,
+.coinche-score-hud .bg-amber-50,
+.coinche-score-hud .bg-sky-50 {
+  background: rgb(255 255 255 / 7%);
+}
+
+.coinche-score-hud .text-stone-500,
+.coinche-score-hud .text-stone-600,
+.coinche-score-hud .text-stone-700,
+.coinche-score-hud .text-stone-800 {
+  color: rgb(255 255 255 / 64%);
+}
+
+.coinche-score-hud .bg-stone-900 {
+  background: rgb(255 255 255 / 10%);
+}
+
+@media (min-width: 640px) {
+  .coinche-hand-card {
+    margin-left: -0.7rem;
+  }
 }
 
 .coinche-high-contrast button,

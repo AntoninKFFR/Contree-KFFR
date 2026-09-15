@@ -22,7 +22,8 @@ test.describe("@smoke public production readiness", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog", { name: "Paramètres" })).toBeHidden();
 
-    await page.getByRole("button", { name: "Règles de la partie" }).click();
+    await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await page.getByRole("button", { name: "Règles de la prochaine partie" }).click();
     const rulesDialog = page.getByRole("dialog", { name: "Règles de la prochaine partie" });
     await rulesDialog.getByRole("combobox", { name: "Score cible" }).selectOption("1500");
     await rulesDialog.getByRole("button", { name: /Contrats/i }).click();
