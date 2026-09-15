@@ -51,18 +51,18 @@ export function AuthStatus() {
 
   return (
     <div className="flex items-center gap-2 text-xs font-semibold">
-      <span className="hidden max-w-[220px] truncate text-stone-700 sm:inline">
+      <span className="hidden max-w-[220px] truncate text-[var(--text-secondary)] sm:inline">
         {isReady ? label : "Session..."}
       </span>
       <Link
-        className="rounded-md border border-emerald-800 bg-white px-3 py-1.5 text-emerald-900 shadow-sm transition hover:bg-emerald-50"
+        className="coinche-secondary-action rounded-md border px-3 py-1.5 shadow-sm transition"
         href="/login"
       >
         {session ? "Compte" : "Se connecter"}
       </Link>
       {session ? (
         <Link
-          className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-stone-800 shadow-sm transition hover:bg-stone-50"
+          className="coinche-secondary-action rounded-md border px-3 py-1.5 shadow-sm transition"
           href="/profile"
         >
           Profil

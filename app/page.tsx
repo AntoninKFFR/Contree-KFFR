@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <AppPage className="justify-center sm:min-h-[calc(100dvh-120px)]" width="wide">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#0b1c15]/[0.88] px-5 py-8 shadow-[0_28px_90px_rgb(0_0_0_/_38%)] sm:px-10 sm:py-12 lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12 lg:px-14 lg:py-16">
+      <section className="coinche-app-surface relative overflow-hidden rounded-[2rem] border px-5 py-8 sm:px-10 sm:py-12 lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12 lg:px-14 lg:py-16">
         <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_75%_35%,rgb(58_160_108_/_17%),transparent_30%)]" />
         <div className="relative">
           <AppEyebrow>Contrée KFFR</AppEyebrow>

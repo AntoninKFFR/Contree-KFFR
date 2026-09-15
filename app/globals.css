@@ -2,13 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light;
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --app-bg: #06120d;
+  --app-bg-elevated: #071710;
+  --app-header: rgb(7 28 23 / 96%);
+  --app-sidebar: #071c17;
+  --surface: #0b1c15;
+  --surface-raised: #102219;
+  --surface-hover: rgb(255 255 255 / 10%);
+  --surface-muted: rgb(255 255 255 / 5%);
+  --text-primary: #f5f1e7;
+  --text-secondary: rgb(255 255 255 / 72%);
+  --text-muted: rgb(255 255 255 / 52%);
+  --text-inverse: #10251b;
+  --border: rgb(255 255 255 / 11%);
+  --border-strong: rgb(255 255 255 / 20%);
+  --accent: #ead8a6;
+  --accent-hover: #f7edcf;
+  --accent-soft: rgb(234 216 166 / 12%);
+  --accent-foreground: #10251b;
+  --brand: #34d399;
+  --brand-strong: #059669;
+  --brand-soft: rgb(52 211 153 / 12%);
+  --field-bg: rgb(0 0 0 / 20%);
+  --field-border: rgb(255 255 255 / 15%);
+  --field-text: #f5f1e7;
+  --field-placeholder: rgb(255 255 255 / 32%);
+  --overlay: rgb(2 7 4 / 80%);
+  --shadow: rgb(0 0 0 / 32%);
+  --focus-ring: #6ee7b7;
+  --danger: #fecaca;
+  --success: #6ee7b7;
   --coinche-settings-light-canvas: #eeeade;
   --coinche-settings-light-header: #f6f2e8;
   --coinche-settings-light-sidebar: #e5e3d9;
   --coinche-settings-light-surface: #fffdf7;
   --coinche-settings-light-text: #17201a;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --app-bg: #eeeade;
+  --app-bg-elevated: #f6f2e8;
+  --app-header: rgb(246 242 232 / 96%);
+  --app-sidebar: #e5e3d9;
+  --surface: #fffdf7;
+  --surface-raised: #f6f2e8;
+  --surface-hover: rgb(20 70 48 / 8%);
+  --surface-muted: rgb(23 32 26 / 5%);
+  --text-primary: #17201a;
+  --text-secondary: #425449;
+  --text-muted: #66756c;
+  --text-inverse: #fffdf7;
+  --border: rgb(38 65 49 / 16%);
+  --border-strong: rgb(38 65 49 / 28%);
+  --accent: #176642;
+  --accent-hover: #0f5134;
+  --accent-soft: rgb(23 102 66 / 10%);
+  --accent-foreground: #fffdf7;
+  --brand: #176642;
+  --brand-strong: #0f5134;
+  --brand-soft: rgb(23 102 66 / 10%);
+  --field-bg: #fffdf7;
+  --field-border: rgb(38 65 49 / 24%);
+  --field-text: #17201a;
+  --field-placeholder: #78857d;
+  --overlay: rgb(12 24 18 / 58%);
+  --shadow: rgb(55 45 28 / 15%);
+  --focus-ring: #047857;
+  --danger: #991b1b;
+  --success: #047857;
 }
 
 * {
@@ -17,24 +82,31 @@
 
 body {
   margin: 0;
-  background: #f7f7f2;
-  color: #17201a;
+  background: var(--app-bg);
+  color: var(--text-primary);
+  transition: background-color 160ms ease, color 160ms ease;
 }
 
 button,
-select {
+input,
+select,
+textarea {
   font: inherit;
 }
 
 .coinche-app-page {
-  background-color: #06120d;
+  background-color: var(--app-bg);
   background-image:
-    radial-gradient(circle at 50% -20%, rgb(35 119 79 / 24%), transparent 42%),
-    linear-gradient(145deg, #071710, #050c09 72%);
+    radial-gradient(circle at 50% -20%, var(--brand-soft), transparent 42%),
+    linear-gradient(145deg, var(--app-bg-elevated), var(--app-bg) 72%);
+  color: var(--text-primary);
 }
 
 .coinche-app-surface {
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%), 0 18px 55px rgb(0 0 0 / 22%);
+  border-color: var(--border) !important;
+  background: color-mix(in srgb, var(--surface) 94%, transparent) !important;
+  color: var(--text-primary);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 5%, transparent), 0 18px 55px var(--shadow);
 }
 
 .coinche-settings-panel {
@@ -46,6 +118,29 @@ select {
   --coinche-settings-field: rgb(0 0 0 / 20%);
   --coinche-settings-text: #f5f1e7;
   --coinche-settings-muted: rgb(255 255 255 / 58%);
+}
+
+.coinche-rules-configurator {
+  color-scheme: dark;
+  --coinche-settings-canvas: #091711;
+  --coinche-settings-header: #102219;
+  --coinche-settings-sidebar: #0c1c15;
+  --coinche-settings-surface: rgb(255 255 255 / 4.5%);
+  --coinche-settings-field: rgb(0 0 0 / 20%);
+  --coinche-settings-text: #f5f1e7;
+  --coinche-settings-muted: rgb(255 255 255 / 58%);
+}
+
+:root[data-theme="light"] .coinche-settings-panel,
+:root[data-theme="light"] .coinche-rules-configurator {
+  color-scheme: light;
+  --coinche-settings-canvas: var(--coinche-settings-light-canvas);
+  --coinche-settings-header: var(--coinche-settings-light-header);
+  --coinche-settings-sidebar: var(--coinche-settings-light-sidebar);
+  --coinche-settings-surface: var(--coinche-settings-light-surface);
+  --coinche-settings-field: var(--field-bg);
+  --coinche-settings-text: var(--coinche-settings-light-text);
+  --coinche-settings-muted: var(--text-secondary);
 }
 
 .coinche-settings-panel select,
@@ -66,21 +161,21 @@ select {
 .coinche-rules-configurator input[type="number"],
 .coinche-rules-configurator select {
   min-height: 2.75rem;
-  border: 1px solid rgb(255 255 255 / 14%);
+  border: 1px solid var(--field-border);
   border-radius: 0.75rem;
-  background: rgb(0 0 0 / 18%);
-  color: rgb(255 255 255 / 92%);
+  background: var(--field-bg);
+  color: var(--field-text);
   box-shadow: inset 0 1px 2px rgb(0 0 0 / 18%);
 }
 
 .coinche-app-field input::placeholder {
-  color: rgb(255 255 255 / 30%);
+  color: var(--field-placeholder);
 }
 
 .coinche-rules-configurator select option,
 .coinche-app-field select option {
-  background: #102219;
-  color: #f5f1e7;
+  background: var(--surface-raised);
+  color: var(--field-text);
 }
 
 button:focus-visible,
@@ -94,9 +189,9 @@ summary:focus-visible {
 .coinche-chrome-button,
 .coinche-chrome-icon,
 .coinche-drawer-action {
-  border: 1px solid rgb(255 255 255 / 12%);
-  background: rgb(255 255 255 / 7%);
-  color: rgb(255 255 255 / 88%);
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
   transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
 }
 
@@ -131,8 +226,9 @@ summary:focus-visible {
 .coinche-chrome-button:hover,
 .coinche-chrome-icon:hover,
 .coinche-drawer-action:hover {
-  border-color: rgb(255 255 255 / 22%);
-  background: rgb(255 255 255 / 13%);
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+  color: var(--text-primary);
 }
 
 .coinche-chrome-button:active,
@@ -352,3 +448,257 @@ summary:focus-visible {
     font-size: 0.95rem;
   }
 }
+
+/* Global theme primitives. These classes keep presentation choices out of JSX. */
+.coinche-primary-action {
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  background: var(--accent);
+  color: var(--accent-foreground);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
+.coinche-primary-action:hover { background: var(--accent-hover); }
+
+.coinche-secondary-action,
+.coinche-icon-button {
+  border-color: var(--border);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+
+.coinche-secondary-action:hover,
+.coinche-icon-button:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.coinche-input {
+  border-color: var(--field-border);
+  background: var(--field-bg);
+  color: var(--field-text);
+}
+
+.coinche-input::placeholder { color: var(--field-placeholder); }
+
+:root[data-theme="light"] .coinche-primary-action:disabled,
+:root[data-theme="light"] .coinche-secondary-action:disabled {
+  border-color: var(--border);
+  background: #d7ded7;
+  color: #526057;
+  opacity: 1;
+}
+
+:root[data-theme="light"] .coinche-input:disabled { opacity: 0.72; }
+
+.coinche-dialog {
+  border-color: var(--border) !important;
+  background: var(--app-bg-elevated) !important;
+  color: var(--text-primary);
+  box-shadow: 0 30px 100px var(--shadow) !important;
+}
+
+.coinche-dialog-header,
+.coinche-dialog-footer {
+  border-color: var(--border) !important;
+  background: var(--surface-raised) !important;
+  color: var(--text-primary) !important;
+}
+
+.coinche-dialog-backdrop { background: var(--overlay) !important; }
+
+.coinche-theme-segment {
+  border-color: var(--border);
+  background: var(--coinche-settings-surface);
+  color: var(--coinche-settings-text);
+}
+
+.coinche-theme-segment > div { background: var(--surface-muted); }
+.coinche-theme-segment button { color: var(--text-secondary); }
+.coinche-theme-segment button:hover { background: var(--surface-hover); color: var(--text-primary); }
+.coinche-theme-segment button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.coinche-global-header,
+.coinche-app-drawer {
+  border-color: var(--border) !important;
+  background: var(--app-header) !important;
+  color: var(--text-primary) !important;
+}
+
+.coinche-app-drawer { background: var(--app-sidebar) !important; }
+:root[data-theme="light"] .coinche-global-header .text-stone-50,
+:root[data-theme="light"] .coinche-global-header .text-stone-100,
+:root[data-theme="light"] .coinche-app-drawer .text-stone-50,
+:root[data-theme="light"] .coinche-app-drawer .text-stone-100 { color: var(--text-primary) !important; }
+:root[data-theme="light"] .coinche-app-drawer .text-stone-200 { color: var(--text-secondary) !important; }
+:root[data-theme="light"] .coinche-app-drawer [class*="border-white"] { border-color: var(--border) !important; }
+:root[data-theme="light"] .coinche-app-drawer [class*="bg-white/"],
+:root[data-theme="light"] .coinche-app-drawer [class*="bg-black/"] { background: var(--surface-muted) !important; }
+
+.coinche-game-shell {
+  background: var(--app-bg);
+  color: var(--text-primary);
+}
+
+.coinche-lobby-seat {
+  border-color: var(--border);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+}
+
+.coinche-mobile-notice {
+  background: var(--app-bg);
+  color: var(--text-primary);
+}
+
+:root[data-theme="light"] .coinche-global-header .text-\[\#f3ead2\],
+:root[data-theme="light"] .coinche-app-drawer .text-\[\#f3ead2\] { color: var(--text-primary) !important; }
+:root[data-theme="light"] .coinche-global-header [class*="text-white/"],
+:root[data-theme="light"] .coinche-app-drawer [class*="text-white/"] { color: var(--text-secondary) !important; }
+
+:root[data-theme="light"] .coinche-game-shell > [class*="text-white/"] { color: var(--text-secondary) !important; }
+
+:root[data-theme="light"] .coinche-human-hand {
+  border-color: var(--border) !important;
+  background: color-mix(in srgb, var(--surface) 94%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme="light"] .coinche-human-hand [class*="text-white/"] { color: var(--text-secondary) !important; }
+
+.coinche-rules-summary,
+.coinche-round-completion {
+  border-color: var(--border) !important;
+  background: color-mix(in srgb, var(--surface) 96%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme="light"] .coinche-rules-summary .text-\[\#f4ead0\],
+:root[data-theme="light"] .coinche-round-completion .text-\[\#f3ead2\] { color: var(--text-primary) !important; }
+:root[data-theme="light"] .coinche-rules-summary .text-\[\#ead8a6\],
+:root[data-theme="light"] .coinche-rules-summary [class*="text-emerald-"] { color: var(--brand-strong) !important; }
+:root[data-theme="light"] .coinche-rules-summary [class*="text-white/"],
+:root[data-theme="light"] .coinche-round-completion [class*="text-white/"] { color: var(--text-secondary) !important; }
+:root[data-theme="light"] .coinche-rules-summary [class*="border-white"],
+:root[data-theme="light"] .coinche-round-completion [class*="border-white"] { border-color: var(--border) !important; }
+:root[data-theme="light"] .coinche-rules-summary [class*="bg-white/"],
+:root[data-theme="light"] .coinche-round-completion [class*="bg-white/"],
+:root[data-theme="light"] .coinche-round-completion [class*="bg-black/"] { background: var(--surface-muted) !important; }
+
+:root[data-theme="light"] .coinche-bidding-panel,
+:root[data-theme="light"] .coinche-score-hud,
+:root[data-theme="light"] .coinche-game-table .coinche-table-hud,
+:root[data-theme="light"] .coinche-game-table .coinche-player-panel,
+:root[data-theme="light"] .coinche-game-table .coinche-human-hand {
+  border-color: rgb(255 255 255 / 16%) !important;
+  background: rgb(7 36 25 / 88%) !important;
+  color: #fffdf7 !important;
+}
+
+.coinche-settings-panel,
+.coinche-rules-configurator {
+  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-width: thin;
+}
+
+/* Light-theme compatibility for existing presentation utilities. Functional card/suit colours are excluded. */
+:root[data-theme="light"] .coinche-settings-panel,
+:root[data-theme="light"] .coinche-rules-configurator {
+  background: var(--coinche-settings-canvas) !important;
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme="light"] .coinche-settings-panel .text-stone-100,
+:root[data-theme="light"] .coinche-rules-configurator .text-stone-100,
+:root[data-theme="light"] .coinche-settings-panel .text-white,
+:root[data-theme="light"] .coinche-rules-configurator .text-white,
+:root[data-theme="light"] .coinche-settings-panel .text-\[\#f4ead0\],
+:root[data-theme="light"] .coinche-rules-configurator .text-\[\#f4ead0\] { color: var(--text-primary) !important; }
+
+:root[data-theme="light"] .coinche-settings-panel [class*="text-white/"],
+:root[data-theme="light"] .coinche-rules-configurator [class*="text-white/"],
+:root[data-theme="light"] .coinche-settings-panel .text-stone-500,
+:root[data-theme="light"] .coinche-rules-configurator .text-stone-500 { color: var(--text-secondary) !important; }
+
+:root[data-theme="light"] .coinche-settings-panel [class*="border-white"],
+:root[data-theme="light"] .coinche-rules-configurator [class*="border-white"] { border-color: var(--border) !important; }
+
+:root[data-theme="light"] .coinche-settings-panel [class*="bg-white/"],
+:root[data-theme="light"] .coinche-settings-panel [class*="bg-black/"],
+:root[data-theme="light"] .coinche-rules-configurator [class*="bg-white/"],
+:root[data-theme="light"] .coinche-rules-configurator [class*="bg-black/"] { background: var(--surface-muted) !important; }
+
+:root[data-theme="light"] .coinche-settings-panel nav,
+:root[data-theme="light"] .coinche-rules-configurator nav { border-color: var(--border) !important; }
+
+:root[data-theme="light"] .coinche-settings-panel button[aria-current="page"],
+:root[data-theme="light"] .coinche-rules-configurator button[aria-current="page"] {
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent) !important;
+  background: var(--accent) !important;
+  color: var(--accent-foreground) !important;
+}
+
+:root[data-theme="light"] .coinche-settings-panel .peer:checked + span,
+:root[data-theme="light"] .coinche-rules-configurator .peer:checked + span {
+  background: var(--brand-strong) !important;
+}
+
+:root[data-theme="light"] .coinche-rules-configurator > div:first-child {
+  border-color: var(--border) !important;
+  background: var(--coinche-settings-header) !important;
+}
+
+:root[data-theme="light"] .coinche-rules-configurator nav {
+  background: var(--coinche-settings-sidebar) !important;
+}
+
+:root[data-theme="light"] .coinche-app-page .text-stone-50,
+:root[data-theme="light"] .coinche-app-page .text-stone-100,
+:root[data-theme="light"] .coinche-app-page .text-white,
+:root[data-theme="light"] .coinche-app-surface .text-stone-50,
+:root[data-theme="light"] .coinche-app-surface .text-stone-100 { color: var(--text-primary) !important; }
+
+:root[data-theme="light"] .coinche-app-page .text-\[\#f4ead0\],
+:root[data-theme="light"] .coinche-app-page .text-\[\#f3ead2\],
+:root[data-theme="light"] .coinche-app-surface .text-\[\#f4ead0\],
+:root[data-theme="light"] .coinche-app-surface .text-\[\#f3ead2\] { color: var(--text-primary) !important; }
+
+:root[data-theme="light"] .coinche-app-page [class*="text-emerald-"],
+:root[data-theme="light"] .coinche-app-surface [class*="text-emerald-"] { color: var(--brand-strong) !important; }
+
+:root[data-theme="light"] .coinche-app-page .text-amber-100,
+:root[data-theme="light"] .coinche-app-surface .text-amber-100 { color: #765613 !important; }
+:root[data-theme="light"] .coinche-app-page .text-red-100,
+:root[data-theme="light"] .coinche-app-surface .text-red-100,
+:root[data-theme="light"] .coinche-settings-panel .text-red-100,
+:root[data-theme="light"] .coinche-rules-configurator .text-red-100 { color: #991b1b !important; }
+:root[data-theme="light"] .coinche-app-page .text-purple-100,
+:root[data-theme="light"] .coinche-app-surface .text-purple-100 { color: #6b21a8 !important; }
+
+:root[data-theme="light"] .coinche-app-page .text-stone-200,
+:root[data-theme="light"] .coinche-app-page .text-stone-300,
+:root[data-theme="light"] .coinche-app-page .text-stone-400,
+:root[data-theme="light"] .coinche-app-page [class*="text-white/"],
+:root[data-theme="light"] .coinche-app-surface .text-stone-200,
+:root[data-theme="light"] .coinche-app-surface .text-stone-300,
+:root[data-theme="light"] .coinche-app-surface .text-stone-400,
+:root[data-theme="light"] .coinche-app-surface [class*="text-white/"] { color: var(--text-secondary) !important; }
+
+:root[data-theme="light"] .coinche-app-page [class*="border-white"],
+:root[data-theme="light"] .coinche-app-surface [class*="border-white"] { border-color: var(--border) !important; }
+
+:root[data-theme="light"] .coinche-app-page [class*="bg-white/"],
+:root[data-theme="light"] .coinche-app-page [class*="bg-black/"],
+:root[data-theme="light"] .coinche-app-surface [class*="bg-white/"],
+:root[data-theme="light"] .coinche-app-surface [class*="bg-black/"] { background: var(--surface-muted) !important; }
+
+/* The felt, cards and their contrast stay deliberately stable in both themes. */
+:root[data-theme="light"] .coinche-game-table { color: #fff; }
+:root[data-theme="light"] .coinche-game-table .text-white,
+:root[data-theme="light"] .coinche-game-table [class*="text-white/"] { color: inherit !important; }
+:root[data-theme="light"] .coinche-game-table [class*="border-white"] { border-color: rgb(255 255 255 / 12%) !important; }
+:root[data-theme="light"] .coinche-game-table [class*="bg-black/"] { background: rgb(0 0 0 / 22%) !important; }

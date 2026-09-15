@@ -33,7 +33,7 @@ describe("premium settings navigation", () => {
     expect(markup.match(/Réinitialiser mes paramètres/g)).toHaveLength(1);
   });
 
-  it("keeps the warm ivory palette tokenized for a future light theme", () => {
+  it("uses semantic dark and warm-ivory light tokens", () => {
     const styles = readFileSync("app/globals.css", "utf8");
     expect(styles).toContain("--coinche-settings-canvas: #091711");
     expect(styles).toContain("--coinche-settings-sidebar: #0c1c15");
@@ -41,6 +41,17 @@ describe("premium settings navigation", () => {
     expect(styles).toContain("--coinche-settings-light-header: #f6f2e8");
     expect(styles).toContain("--coinche-settings-light-sidebar: #e5e3d9");
     expect(styles).toContain("--coinche-settings-light-surface: #fffdf7");
+    expect(styles).toContain(':root[data-theme="light"]');
+    expect(styles).toContain("--app-bg: #eeeade");
+    expect(styles).toContain("--text-primary: #17201a");
+  });
+
+  it("bootstraps the persisted theme on the root before hydration", () => {
+    const layout = readFileSync("app/layout.tsx", "utf8");
+    expect(layout).toContain('data-theme="dark"');
+    expect(layout).toContain("themeBootstrap");
+    expect(layout).toContain("localStorage.getItem");
+    expect(layout).toContain("suppressHydrationWarning");
   });
 
   it("shows precise timing sliders and human durations", () => {

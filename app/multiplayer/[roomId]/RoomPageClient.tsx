@@ -732,7 +732,7 @@ export default function MultiplayerRoomPage() {
     <><GameTopBar contextLabel={roomWithPlayers?.room.code ?? "Multijoueur"} focusMode={isFocusMode} menuActions={gameMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} showFocusMode={isPlayingLayout} /><main
       className={
         isPlayingLayout
-          ? `h-[calc(100dvh-48px)] min-h-0 overflow-x-hidden overflow-y-auto bg-[#06120d] px-2 py-2 text-stone-50 sm:px-3 lg:overflow-hidden${isMobileLandscape ? " overflow-hidden px-0 py-0 sm:px-3" : ""}`
+          ? `coinche-game-shell h-[calc(100dvh-48px)] min-h-0 overflow-x-hidden overflow-y-auto px-2 py-2 sm:px-3 lg:overflow-hidden${isMobileLandscape ? " overflow-hidden px-0 py-0 sm:px-3" : ""}`
           : "coinche-app-page min-h-[calc(100dvh-48px)] px-3 py-5 text-stone-50 sm:px-5 sm:py-7"
       }
     >
@@ -1168,11 +1168,11 @@ function SeatCard({
   return (
     <button
       className={[
-        "flex min-h-24 w-36 flex-col items-center justify-center rounded-xl border bg-[#10281e]/95 px-3 text-center text-sm text-stone-100 shadow-lg transition",
+        "coinche-lobby-seat flex min-h-24 w-36 flex-col items-center justify-center rounded-xl border px-3 text-center text-sm shadow-lg transition",
         player.is_ready
           ? "border-emerald-300/60 shadow-emerald-950/60 ring-2 ring-emerald-300/30"
           : "border-white/15",
-        canJoin ? "cursor-pointer hover:border-amber-200/60 hover:bg-[#173a2b]" : "cursor-default",
+        canJoin ? "cursor-pointer hover:border-amber-200/60 hover:bg-[var(--surface-hover)]" : "cursor-default",
       ].join(" ")}
       disabled={!canJoin}
       onClick={onJoin}

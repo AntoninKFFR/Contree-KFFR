@@ -289,7 +289,7 @@ function StatsDetails({
   title: string;
 }) {
   return (
-    <details className="group rounded-2xl border border-white/10 bg-[#0b1c15]/[0.88] p-4 shadow-lg backdrop-blur-sm">
+    <details className="coinche-app-surface group rounded-2xl border p-4 shadow-lg backdrop-blur-sm">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{title}</p>

@@ -126,6 +126,45 @@ test.describe("@smoke public production readiness", () => {
     await expect(opener).toBeFocused();
   });
 
+  test("@smoke global light theme is immediate, persistent and responsive", async ({ page }) => {
+    await page.goto("/multiplayer");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page.getByRole("button", { name: "Préférences", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Préférences" });
+    await dialog.getByRole("button", { name: "AFFICHAGE", exact: true }).click();
+    await dialog.getByRole("button", { name: "Clair", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(dialog.locator(".coinche-settings-panel")).toHaveCSS("background-color", "rgb(238, 234, 222)");
+    await dialog.getByRole("button", { name: "Fermer les préférences" }).click();
+
+    for (const path of ["/", "/rules", "/solo", "/multiplayer"]) {
+      await page.goto(path);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+      await expect(page.locator("body")).toHaveCSS("background-color", "rgb(238, 234, 222)");
+    }
+    await page.goto("/solo");
+    await expect(page.locator(".coinche-game-table")).toBeVisible();
+    await expect(page.locator(".coinche-game-table")).toHaveCSS("background-color", "rgb(13, 91, 60)");
+    await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await page.getByRole("button", { name: "Règles de la prochaine partie" }).click();
+    const rulesDialog = page.getByRole("dialog", { name: "Règles de la prochaine partie" });
+    await expect(rulesDialog.locator(".coinche-rules-configurator")).toHaveCSS("background-color", "rgb(238, 234, 222)");
+    await expect(rulesDialog.getByRole("spinbutton", { name: "Score cible personnalisé" })).toHaveCSS("color", "rgb(23, 32, 26)");
+    await page.keyboard.press("Escape");
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.goto("/");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+    await page.goto("/multiplayer");
+    await page.getByRole("button", { name: "Préférences", exact: true }).click();
+    await dialog.getByRole("button", { name: "AFFICHAGE", exact: true }).click();
+    await dialog.getByRole("button", { name: "Sombre", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  });
+
   for (const viewport of [
     { name: "mobile portrait", width: 375, height: 667 },
     { name: "mobile landscape", width: 844, height: 390 },

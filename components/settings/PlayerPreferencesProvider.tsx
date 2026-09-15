@@ -68,6 +68,7 @@ export function PlayerPreferencesProvider({ children, initialPreferences }: { ch
 
   const effectiveReducedMotion = systemReducedMotion || preferences.visual.reducedMotion || !preferences.visual.animations;
   useEffect(() => {
+    document.documentElement.dataset.theme = preferences.visual.theme;
     const classNames = {
       "coinche-compact": preferences.visual.compactLayout,
       "coinche-high-contrast": preferences.visual.highContrast,
@@ -80,7 +81,7 @@ export function PlayerPreferencesProvider({ children, initialPreferences }: { ch
       document.body.classList.toggle(className, enabled);
     }
     return () => Object.keys(classNames).forEach((className) => document.body.classList.remove(className));
-  }, [effectiveReducedMotion, preferences.cards.cardStyle, preferences.visual.compactLayout, preferences.visual.highContrast, preferences.visual.tableTheme, preferences.visual.textSize]);
+  }, [effectiveReducedMotion, preferences.cards.cardStyle, preferences.visual.compactLayout, preferences.visual.highContrast, preferences.visual.tableTheme, preferences.visual.textSize, preferences.visual.theme]);
 
   const setPreferences = useCallback<PreferencesContextValue["setPreferences"]>((update) => {
     setPreferencesState((current) => clonePlayerPreferences(typeof update === "function" ? update(current) : update));

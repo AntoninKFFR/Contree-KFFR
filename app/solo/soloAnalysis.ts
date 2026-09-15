@@ -18,7 +18,7 @@ export function shouldShowBotReviewAction(
 
 export function soloMainClassName(analysisDesktop: boolean, mobileLandscape: boolean): string {
   return [
-    "h-[calc(100dvh-48px)] min-h-0 overflow-x-hidden overflow-y-auto bg-[#06120d] px-2 py-2 text-stone-50 sm:px-3",
+    "coinche-game-shell h-[calc(100dvh-48px)] min-h-0 overflow-x-hidden overflow-y-auto px-2 py-2 sm:px-3",
     analysisDesktop
       ? "lg:h-auto lg:min-h-[calc(100dvh-48px)] lg:overflow-y-auto"
       : "lg:h-[calc(100dvh-48px)] lg:overflow-hidden",

@@ -41,8 +41,8 @@ export function HumanHand({
     <section
       className={
         embedded
-          ? "rounded-2xl border border-white/10 bg-[#07150f]/62 p-2 text-white shadow-xl backdrop-blur-md"
-          : "relative shrink-0 rounded-2xl border border-white/10 bg-[#07150f]/82 px-2 pb-2 pt-1.5 text-white shadow-2xl backdrop-blur-md sm:px-4"
+          ? "coinche-human-hand rounded-2xl border border-white/10 bg-[#07150f]/62 p-2 text-white shadow-xl backdrop-blur-md"
+          : "coinche-human-hand relative shrink-0 rounded-2xl border border-white/10 bg-[#07150f]/82 px-2 pb-2 pt-1.5 text-white shadow-2xl backdrop-blur-md sm:px-4"
       }
     >
       <div

@@ -9,6 +9,7 @@ export type HandSortMode = "suit-rank" | "rank-suit";
 export type PlayerCardSize = "small" | "medium" | "large";
 export type PlayerCardStyle = "classic" | "modern";
 export type TableTheme = "classic-green" | "midnight-blue" | "burgundy" | "dark-neutral";
+export type AppTheme = "dark" | "light";
 
 export type PlayerPreferences = {
   version: typeof PLAYER_PREFERENCES_VERSION;
@@ -40,6 +41,7 @@ export type PlayerPreferences = {
     cardStyle: PlayerCardStyle;
   };
   visual: {
+    theme: AppTheme;
     animations: boolean;
     dealAnimation: boolean;
     cardPlayAnimation: boolean;
@@ -100,6 +102,7 @@ const BASE_DEFAULTS: PlayerPreferences = {
     cardStyle: "classic",
   },
   visual: {
+    theme: "dark",
     animations: true,
     dealAnimation: true,
     cardPlayAnimation: true,
@@ -220,6 +223,7 @@ export function normalizePlayerPreferences(value: unknown): PlayerPreferences {
       cardStyle: enumValue(cards, "cardStyle", ["classic", "modern"], "classic"),
     },
     visual: {
+      theme: enumValue(visual, "theme", ["dark", "light"], "dark"),
       animations: booleanValue(visual, "animations", true),
       dealAnimation: booleanValue(visual, "dealAnimation", true),
       cardPlayAnimation: booleanValue(visual, "cardPlayAnimation", true),

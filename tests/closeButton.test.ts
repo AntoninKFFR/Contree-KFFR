@@ -18,7 +18,7 @@ describe("shared close button", () => {
     );
     expect(markup).toContain('aria-label="Fermer les détails"');
     expect(markup).toContain("h-9 w-9");
-    expect(markup).toContain("hover:border-white/20");
+    expect(markup).toContain("coinche-icon-button");
     expect(markup).toContain("<svg");
     expect(markup).not.toContain(">×<");
   });

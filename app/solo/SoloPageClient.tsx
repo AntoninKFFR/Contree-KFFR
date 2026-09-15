@@ -305,7 +305,7 @@ export default function SoloPage() {
 
   if (!gameState) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-[#07150f] text-sm text-white/60">
+      <main className="coinche-game-shell flex min-h-dvh items-center justify-center text-sm text-[var(--text-muted)]">
         Préparation de la partie…
       </main>
     );

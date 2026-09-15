@@ -107,7 +107,7 @@ export function AppDrawerNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#071c17]/92 text-stone-100 shadow-[0_10px_30px_rgba(1,12,9,0.2)] backdrop-blur-xl">
+      <header className="coinche-global-header sticky top-0 z-40 border-b shadow-[0_10px_30px_var(--shadow)] backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-5">
           <Link className="flex items-center gap-2.5 text-sm font-bold tracking-[0.08em] text-stone-50" href="/">
             <span className="grid h-8 w-8 place-items-center rounded-full border border-amber-200/35 bg-amber-200/10 text-sm text-amber-100 shadow-inner">
@@ -119,7 +119,7 @@ export function AppDrawerNav() {
             aria-controls="app-drawer-nav"
             aria-expanded={isOpen}
             aria-label="Ouvrir le menu"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.07] text-lg font-semibold text-stone-100 transition hover:border-amber-200/40 hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+            className="coinche-icon-button inline-flex h-10 w-10 items-center justify-center rounded-xl border text-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
             onClick={() => setIsOpen(true)}
             ref={menuButtonRef}
             type="button"
@@ -141,7 +141,7 @@ export function AppDrawerNav() {
       <aside
         aria-hidden={!isOpen}
         className={[
-          "fixed right-0 top-0 z-50 flex h-dvh w-[min(360px,96vw)] flex-col border-l border-white/10 bg-[#071c17] text-stone-100 shadow-[-20px_0_60px_rgba(0,0,0,0.42)] transition-transform duration-200 ease-out sm:w-[min(320px,88vw)]",
+          "coinche-app-drawer fixed right-0 top-0 z-50 flex h-dvh w-[min(360px,96vw)] flex-col border-l shadow-[-20px_0_60px_var(--shadow)] transition-transform duration-200 ease-out sm:w-[min(320px,88vw)]",
           isOpen ? "translate-x-0" : "translate-x-full",
         ].join(" ")}
         id="app-drawer-nav"

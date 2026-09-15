@@ -27,7 +27,7 @@ export function PlayerPanel({
     <div
       aria-current={highlight ? "true" : undefined}
       className={[
-        "flex min-h-10 min-w-20 items-center justify-center rounded-xl border bg-[#07150f]/72 px-2.5 py-1.5 text-center text-white shadow-lg backdrop-blur-md sm:min-h-12 sm:min-w-28 sm:px-3",
+        "coinche-player-panel flex min-h-10 min-w-20 items-center justify-center rounded-xl border bg-[#07150f]/72 px-2.5 py-1.5 text-center text-white shadow-lg backdrop-blur-md sm:min-h-12 sm:min-w-28 sm:px-3",
         highlight ? "border-emerald-300/80 coinche-turn-pulse" : "border-white/10",
         highlight && !effectiveReducedMotion ? "transition-shadow" : "",
       ].join(" ")}

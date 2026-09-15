@@ -41,7 +41,7 @@ export function RoundCompletionCard({ actionLabel, disabled = false, onAction, s
     <div className="pointer-events-none fixed inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 flex justify-center px-2 sm:bottom-4 sm:px-4">
       <section
         aria-label="Résultat de la manche"
-        className={`pointer-events-auto max-h-[calc(100dvh-4rem)] w-full max-w-md overflow-y-auto rounded-2xl border bg-[#091712]/96 p-3 text-center text-stone-50 shadow-[0_20px_70px_rgb(0_0_0_/_55%)] backdrop-blur-xl sm:p-4 ${success ? "border-emerald-300/35" : "border-red-300/35"} ${animated ? "coinche-card-enter" : ""}`}
+        className={`coinche-round-completion pointer-events-auto max-h-[calc(100dvh-4rem)] w-full max-w-md overflow-y-auto rounded-2xl border p-3 text-center shadow-[0_20px_70px_var(--shadow)] backdrop-blur-xl sm:p-4 ${success ? "border-emerald-300/35" : "border-red-300/35"} ${animated ? "coinche-card-enter" : ""}`}
       >
         <p className={`text-xs font-black uppercase tracking-[0.18em] ${success ? "text-emerald-300" : "text-red-300"}`}>
           {result ? (success ? "Contrat réussi ✓" : "Contrat chuté") : "Manche terminée"}

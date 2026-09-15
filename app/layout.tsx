@@ -11,14 +11,17 @@ export const metadata: Metadata = {
   description: "La contrée, en solo ou entre amis",
 };
 
+const themeBootstrap = `(()=>{try{const raw=localStorage.getItem("coinche:player-preferences:v1");const value=raw?JSON.parse(raw):null;document.documentElement.dataset.theme=value?.visual?.theme==="light"?"light":"dark"}catch{document.documentElement.dataset.theme="dark"}})()`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr">
-      <body className="bg-[#06120d] text-stone-50">
+    <html data-theme="dark" lang="fr" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: themeBootstrap }} /></head>
+      <body>
         <PlayerPreferencesProvider>
           <div className="min-h-dvh">
             <AppDrawerNav />
