@@ -222,7 +222,7 @@ export default function MultiplayerPage() {
             </AppSurface>
           </div>
         ) : null}
-        {isRulesOpen ? <AccessibleDialog description="Choisis la variante de cette table." footer={<button className={`${appPrimaryActionClass} w-full sm:w-auto`} type="button" onClick={() => setIsRulesOpen(false)}>Valider les règles</button>} onClose={() => setIsRulesOpen(false)} title="Règles de la table"><RulesetConfigurator value={rules} onChange={setRules} /></AccessibleDialog> : null}
+        {isRulesOpen ? <AccessibleDialog footer={<button className={`${appPrimaryActionClass} w-full sm:w-auto`} type="button" onClick={() => setIsRulesOpen(false)}>Valider les règles</button>} onClose={() => setIsRulesOpen(false)} title="Règles de la table"><RulesetConfigurator value={rules} onChange={setRules} /></AccessibleDialog> : null}
         {isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost: false }} onClose={() => setIsSettingsOpen(false)} /> : null}
     </AppPage>
   );

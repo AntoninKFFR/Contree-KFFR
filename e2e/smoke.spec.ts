@@ -44,6 +44,39 @@ test.describe("@smoke public production readiness", () => {
     monitor.assertClean();
   });
 
+  test("@smoke rules editor keeps custom target score editing fluid", async ({ page }) => {
+    await page.goto("/solo");
+    await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await page.getByRole("button", { name: "Règles de la prochaine partie" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Règles de la prochaine partie" });
+    const targetScore = dialog.getByRole("spinbutton", { name: "Score cible personnalisé" });
+
+    await targetScore.click();
+    await page.keyboard.press("Control+A");
+    await page.keyboard.press("Backspace");
+    await expect(targetScore).toHaveValue("");
+    await targetScore.fill("2000");
+    await page.keyboard.press("Enter");
+    await expect(targetScore).toHaveValue("2000");
+
+    await targetScore.fill("1500");
+    await page.keyboard.press("ArrowUp");
+    await expect(targetScore).toHaveValue("2000");
+    await page.keyboard.press("ArrowDown");
+    await expect(targetScore).toHaveValue("1500");
+
+    await dialog.getByRole("button", { name: "Jeu", exact: true }).click();
+    await expect(dialog.getByRole("heading", { name: "Jeu", exact: true })).toBeVisible();
+    await expect(dialog.getByText("Jeu de la carte", { exact: true })).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Score", exact: true }).click();
+    await expect(dialog.getByRole("combobox", { name: "Mode de score" })).toHaveValue("ffb");
+    await expect(dialog.getByRole("option", { name: "Officiel" })).toHaveJSProperty("selected", true);
+    await expect(dialog.getByText("Règles partagées", { exact: true })).toHaveCount(0);
+    await expect(dialog.getByText("Préférences perso inchangées", { exact: true })).toHaveCount(0);
+    await expect(dialog.getByText(/Différences avec Contrée KFFR/)).toHaveCount(0);
+  });
+
   for (const viewport of [
     { name: "mobile portrait", width: 375, height: 667 },
     { name: "mobile landscape", width: 844, height: 390 },

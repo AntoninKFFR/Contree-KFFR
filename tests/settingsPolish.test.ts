@@ -108,12 +108,13 @@ describe("structured shared rules", () => {
   it("centralizes a readable diff from Contrée KFFR", () => {
     expect(rulesetDifferences(custom)).toEqual(expect.arrayContaining([{ kind: "added", label: "Sans Atout" }, { kind: "added", label: "Tout Atout" }, { kind: "removed", label: "Battre la défense" }]));
   });
-  it("renders the diff and reset without mentioning local preference mutation", () => {
+  it("keeps standalone diffs while simplifying the rules editor header", () => {
     const summary = renderToStaticMarkup(React.createElement(RulesetSummary, { ruleset: custom, showDifferences: true }));
     const editor = renderToStaticMarkup(React.createElement(RulesetConfigurator, { value: { presetId: "contree-kffr", overrides: { bidding: { allowNoTrump: true } } }, onChange: noop }));
     expect(summary).toContain("Différences avec Contrée KFFR");
     expect(editor).toContain("Réinitialiser");
-    expect(editor).toContain("Préférences perso inchangées");
+    expect(editor).not.toContain("Préférences perso inchangées");
+    expect(editor).not.toContain("Différences avec Contrée KFFR");
   });
   it("renders dependency reasons rather than opacity alone", () => {
     const markup = renderToStaticMarkup(React.createElement(RulesetConfigurator, { value: { presetId: "contree-kffr", overrides: { bidding: { allowCoinche: false } } }, onChange: noop }));

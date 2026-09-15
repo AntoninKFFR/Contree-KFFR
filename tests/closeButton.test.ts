@@ -26,11 +26,10 @@ describe("shared close button", () => {
   it("is reused by dialogs and both application drawers", () => {
     const dialog = renderToStaticMarkup(
       React.createElement(AccessibleDialog, {
-        children: React.createElement("div"),
         description: "Test",
         onClose: noop,
         title: "Test",
-      }),
+      } as React.ComponentProps<typeof AccessibleDialog>, React.createElement("div")),
     );
     const gameDrawer = renderToStaticMarkup(React.createElement(GameTopBar, {
       contextLabel: "Solo",
