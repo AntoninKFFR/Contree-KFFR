@@ -12,6 +12,17 @@ afterEach(() => {
 });
 
 describe("rules-aware human hand", () => {
+  it("does not expose bot-thinking debug copy while the hand is inactive", () => {
+    vi.stubGlobal("React", React);
+    const markup = renderToStaticMarkup(React.createElement(HumanHand, {
+      cards: [],
+      legalCards: [],
+      canPlay: false,
+      onPlayCard: () => undefined,
+    }));
+    expect(markup).not.toContain("Les bots réfléchissent");
+  });
+
   it("enables a newly legal card and keeps the classic illegal card disabled", () => {
     vi.stubGlobal("React", React);
     const cards: Card[] = [

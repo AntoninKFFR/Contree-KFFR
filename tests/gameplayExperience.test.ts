@@ -4,10 +4,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable, tableSeatsFor } from "@/components/GameTable";
 import { GameTopBar } from "@/components/GameTopBar";
-import { RoundCompletionAction } from "@/components/RoundCompletionAction";
+import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
 import { createInitialGame } from "@/engine/game";
+import { scoreRound } from "@/engine/scoring";
 import { toPlayerGameView } from "@/engine/views";
+import { clonePlayerPreferences } from "@/lib/preferences/playerPreferences";
 import type { RoomPlayerView } from "@/lib/roomTypes";
 
 vi.mock("server-only", () => ({}));
@@ -35,13 +37,43 @@ describe("premium gameplay shell", () => {
     expect(markup).not.toContain(">Infos<");
   });
 
-  it("keeps the next-round action fixed and reachable on short viewports", () => {
-    const markup = renderToStaticMarkup(React.createElement(RoundCompletionAction, {
-      label: "Manche suivante", onClick: () => undefined,
+  it("renders a compact shared round result with reachable action and folded details", () => {
+    const initial = createInitialGame(() => 0.1);
+    const result = scoreRound({
+      contract: { playerId: 0, teamId: 0, value: 90, trump: "diamonds", status: "normal" },
+      settings: initial.settings,
+      trickPointsByTeam: { 0: 112, 1: 50 },
+    });
+    const state = { ...initial, phase: "finished" as const, contract: result.contract, result, roundScore: result.roundScore, totalScore: { 0: 200, 1: 50 } };
+    const markup = withPreferences(React.createElement(RoundCompletionCard, {
+      actionLabel: "Manche suivante", onAction: () => undefined, state,
     }));
     expect(markup).toContain("fixed");
     expect(markup).toContain("safe-area-inset-bottom");
     expect(markup).toContain("Manche suivante");
+    expect(markup).toContain("Contrat réussi");
+    expect(markup).toContain("90 ♦");
+    expect(markup).toContain("Partie : 200 — 50");
+    expect(markup).toContain("Détails");
+    expect(markup).not.toContain("open=\"\"");
+    expect(markup).not.toContain(initial.message);
+  });
+
+  it("disables the round-result entrance animation with reduced motion", () => {
+    vi.stubGlobal("React", React);
+    const initial = createInitialGame(() => 0.1);
+    const result = scoreRound({
+      contract: { playerId: 0, teamId: 0, value: 90, trump: "clubs", status: "normal" },
+      settings: initial.settings,
+      trickPointsByTeam: { 0: 100, 1: 62 },
+    });
+    const preferences = clonePlayerPreferences();
+    preferences.visual.reducedMotion = true;
+    const state = { ...initial, phase: "finished" as const, contract: result.contract, result, roundScore: result.roundScore };
+    const markup = renderToStaticMarkup(React.createElement(PlayerPreferencesProvider, { initialPreferences: preferences }, React.createElement(RoundCompletionCard, {
+      actionLabel: "Manche suivante", onAction: () => undefined, state,
+    })));
+    expect(markup).not.toContain("coinche-card-enter");
   });
 
   it("uses direct, keyboard-accessible bid and trump targets instead of form selects", () => {

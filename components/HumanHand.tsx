@@ -52,9 +52,7 @@ export function HumanHand({
         ].join(" ")}
       >
         <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#eadcb7]/75">Ta main</h2>
-        <p className="text-xs text-white/55">
-          {canPlay ? "Choisis une carte autorisée." : "Les bots réfléchissent…"}
-        </p>
+        {canPlay ? <p className="text-xs text-white/55">Choisis une carte autorisée.</p> : null}
       </div>
       {feedback ? <p aria-live="polite" className={`mb-2 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm ${embedded ? "border-amber-200/60 bg-stone-950/80 text-white" : "border-amber-300 bg-amber-50 text-amber-950"}`} role="status">{feedback}</p> : null}
       <div

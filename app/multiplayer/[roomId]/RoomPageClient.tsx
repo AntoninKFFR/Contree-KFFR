@@ -9,8 +9,7 @@ import { GameTable } from "@/components/GameTable";
 import { GameTopBar, type GameMenuAction } from "@/components/GameTopBar";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
-import { RoundCompletionAction } from "@/components/RoundCompletionAction";
-import { ScoreBoard } from "@/components/ScoreBoard";
+import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
@@ -928,6 +927,7 @@ export default function MultiplayerRoomPage() {
                         ? playerView.phase === "bidding"
                           ? (
                               <BiddingPanel
+                                bids={playerView.bids}
                                 biddingRules={gameRules?.bidding}
                                 canBid={canBid && !isPlayingCard}
                                 canCoinche={canBidCoinche && !isPlayingCard}
@@ -940,6 +940,7 @@ export default function MultiplayerRoomPage() {
                                 onCoinche={handleCoinche}
                                 onPass={handlePass}
                                 onSurcoinche={handleSurcoinche}
+                                playerId={playerView.viewerPlayerId}
                               />
                             )
                           : playerView.phase === "playing"
@@ -969,6 +970,7 @@ export default function MultiplayerRoomPage() {
 
                   {!isMobileLandscape && playerView.phase === "bidding" ? (
                     <BiddingPanel
+                      bids={playerView.bids}
                       biddingRules={gameRules?.bidding}
                       canBid={canBid && !isPlayingCard}
                       canCoinche={canBidCoinche && !isPlayingCard}
@@ -980,10 +982,11 @@ export default function MultiplayerRoomPage() {
                       onCoinche={handleCoinche}
                       onPass={handlePass}
                       onSurcoinche={handleSurcoinche}
+                      playerId={playerView.viewerPlayerId}
                     />
                   ) : null}
 
-                  {!isMobileLandscape ? (
+                  {!isMobileLandscape && (playerView.phase === "bidding" || playerView.phase === "playing") ? (
                     <div>
                       <HumanHand
                         canPlay={canPlayCard && !isPlayingCard}
@@ -997,11 +1000,6 @@ export default function MultiplayerRoomPage() {
                   ) : null}
                 </div>
 
-                {playerView.phase === "finished" && !isMobileLandscape && !isFocusMode ? (
-                  <div className="flex min-h-0 flex-col gap-2">
-                    <ScoreBoard overlay state={playerView} showActions={false} />
-                  </div>
-                ) : null}
               </div>
             ) : null}
           </>
@@ -1009,7 +1007,7 @@ export default function MultiplayerRoomPage() {
       </div>
 
       {displayedRoomStatus === "playing" && playerView?.phase === "finished" && canShowNextRoundButton ? (
-        <RoundCompletionAction disabled={isStartingNextRound} label="Manche suivante" onClick={handleStartNextRound} />
+        <RoundCompletionCard actionLabel="Manche suivante" disabled={isStartingNextRound} onAction={handleStartNextRound} state={playerView} />
       ) : null}
 
       {isForfeitConfirmationOpen ? <AccessibleDialog description="Ton équipe perdra immédiatement la partie." footer={<div className="flex justify-end gap-2"><button className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-bold disabled:opacity-50" disabled={isForfeiting} onClick={() => setIsForfeitConfirmationOpen(false)} type="button">Continuer la partie</button><button className="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50" disabled={isForfeiting} onClick={() => void handleForfeitGame()} type="button">{isForfeiting ? "Abandon…" : "Abandonner"}</button></div>} onClose={() => { if (!isForfeiting) setIsForfeitConfirmationOpen(false); }} title="Abandonner la partie ?"><div /></AccessibleDialog> : null}

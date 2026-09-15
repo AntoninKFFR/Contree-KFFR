@@ -9,8 +9,7 @@ import { GameTable } from "@/components/GameTable";
 import { GameTopBar } from "@/components/GameTopBar";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
-import { RoundCompletionAction } from "@/components/RoundCompletionAction";
-import { ScoreBoard } from "@/components/ScoreBoard";
+import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
@@ -330,6 +329,7 @@ export default function SoloPage() {
                   ? gameState.phase === "bidding"
                     ? (
                         <BiddingPanel
+                          bids={gameState.bids}
                           biddingRules={gameRules?.bidding}
                           canBid={humanCanBid}
                           canCoinche={humanCanCoinche}
@@ -342,6 +342,7 @@ export default function SoloPage() {
                           onCoinche={handleHumanCoinche}
                           onPass={handleHumanPass}
                           onSurcoinche={handleHumanSurcoinche}
+                          playerId={localHumanPlayerId}
                         />
                       )
                     : gameState.phase === "playing"
@@ -412,6 +413,7 @@ export default function SoloPage() {
 
             {!isMobileLandscape && gameState.phase === "bidding" ? (
               <BiddingPanel
+                bids={gameState.bids}
                 biddingRules={gameRules?.bidding}
                 canBid={humanCanBid}
                 canCoinche={humanCanCoinche}
@@ -423,10 +425,11 @@ export default function SoloPage() {
                 onCoinche={handleHumanCoinche}
                 onPass={handleHumanPass}
                 onSurcoinche={handleHumanSurcoinche}
+                playerId={localHumanPlayerId}
               />
             ) : null}
 
-            {!isMobileLandscape ? (
+            {!isMobileLandscape && (gameState.phase === "bidding" || gameState.phase === "playing") ? (
               <div>
                 <HumanHand
                   canPlay={humanCanPlay}
@@ -440,17 +443,10 @@ export default function SoloPage() {
             ) : null}
           </div>
 
-          {(gameState.phase === "finished" || gameState.phase === "game-over") && !isMobileLandscape && !isFocusMode ? (
-            <ScoreBoard
-              overlay
-              state={gameState}
-              showActions={false}
-            />
-          ) : null}
         </div>
       </div>
-      {gameState.phase === "finished" ? <RoundCompletionAction label="Manche suivante" onClick={handleNextRound} /> : null}
-      {gameState.phase === "game-over" ? <RoundCompletionAction label="Nouvelle partie" onClick={handleNewGame} /> : null}
+      {gameState.phase === "finished" ? <RoundCompletionCard actionLabel="Manche suivante" onAction={handleNextRound} state={gameState} /> : null}
+      {gameState.phase === "game-over" ? <RoundCompletionCard actionLabel="Nouvelle partie" onAction={handleNewGame} state={gameState} /> : null}
       {rulesDialog}
       {isNewGameConfirmationOpen ? <AccessibleDialog description="La donne en cours sera remplacée par une nouvelle partie." footer={<div className="flex justify-end gap-2"><button className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-bold" onClick={() => setIsNewGameConfirmationOpen(false)} type="button">Continuer la partie</button><button className="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white" onClick={() => { setIsNewGameConfirmationOpen(false); handleNewGame(); }} type="button">Abandonner et redistribuer</button></div>} onClose={() => setIsNewGameConfirmationOpen(false)} title="Abandonner la partie ?"><div /></AccessibleDialog> : null}
       {isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}

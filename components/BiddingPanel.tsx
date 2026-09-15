@@ -4,9 +4,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { SUIT_LABELS, SUIT_SYMBOLS, SUITS } from "@/engine/cards";
 import { canBidCapot, canBidGenerale, canBidGeneraleMode, getAvailableBidValues } from "@/engine/bidding";
-import { formatContractLabel, formatContractMode } from "@/engine/contractMode";
+import { formatContractLabel, formatContractMode, resolveContractMode } from "@/engine/contractMode";
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
-import type { BidValue, Contract, ContractMode, Suit } from "@/engine/types";
+import type { Bid, BidValue, Contract, ContractMode, PlayerId, Suit } from "@/engine/types";
 import type { PlayerPreferences } from "@/lib/preferences/playerPreferences";
 
 export type ConfirmableBidAction = "coinche" | "surcoinche" | "capot" | "generale";
@@ -26,17 +26,50 @@ export function bidConfirmationMessage(action: ConfirmableBidAction, contract: C
 
 type BidConfirmationFocusTarget = Pick<HTMLButtonElement, "disabled" | "focus" | "isConnected">;
 
+type BidModeValue = Suit | "no-trump" | "all-trump";
+
+function modeValueFromContractMode(mode: ContractMode): BidModeValue {
+  return mode.kind === "suit" ? mode.suit : mode.kind;
+}
+
+function lastBidModeFor(bids: Bid[], playerId: PlayerId): ContractMode | null {
+  for (let index = bids.length - 1; index >= 0; index -= 1) {
+    const bid = bids[index];
+    if (bid.playerId !== playerId || bid.action === "pass" || bid.action === "coinche" || bid.action === "surcoinche") continue;
+    const mode = resolveContractMode(bid);
+    if (mode) return mode;
+  }
+  return null;
+}
+
+export function preferredBidMode(bids: Bid[], playerId: PlayerId, fallback: ContractMode = { kind: "suit", suit: "hearts" }): ContractMode {
+  const ownMode = lastBidModeFor(bids, playerId);
+  if (ownMode) return ownMode;
+  const partnerId = ((playerId + 2) % 4) as PlayerId;
+  return lastBidModeFor(bids, partnerId) ?? fallback;
+}
+
+export function biddingTurnKey(canBid: boolean, playerId: PlayerId | undefined, bidCount: number): string | null {
+  return canBid && playerId !== undefined ? `${playerId}:${bidCount}` : null;
+}
+
+export function shouldInitializeBidMode(initializedTurnKey: string | null, currentTurnKey: string | null): boolean {
+  return currentTurnKey !== null && initializedTurnKey !== currentTurnKey;
+}
+
 export function restoreBidConfirmationFocus(trigger: BidConfirmationFocusTarget | null): void {
   if (trigger?.isConnected && !trigger.disabled) trigger.focus();
 }
 
 type BiddingPanelProps = {
+  bids?: Bid[];
   canBid: boolean;
   canCoinche: boolean;
   canSurcoinche: boolean;
   currentContract: Contract | null;
   biddingRules?: GameRulesetSnapshot["bidding"];
   compact?: boolean;
+  playerId?: PlayerId;
   onBid: (value: BidValue, contractMode: ContractMode) => void;
   onCapot: (contractMode: ContractMode) => void;
   onGenerale: (contractMode: ContractMode) => void;
@@ -46,6 +79,7 @@ type BiddingPanelProps = {
 };
 
 export function BiddingPanel({
+  bids = [],
   canBid,
   canCoinche,
   canSurcoinche,
@@ -58,6 +92,7 @@ export function BiddingPanel({
   onCoinche,
   onPass,
   onSurcoinche,
+  playerId,
 }: BiddingPanelProps) {
   const { preferences } = usePlayerPreferences();
   const availableValues = useMemo(
@@ -65,9 +100,10 @@ export function BiddingPanel({
     [biddingRules, currentContract],
   );
   const [value, setValue] = useState<BidValue | "">(availableValues[0] ?? "");
-  const [modeValue, setModeValue] = useState<Suit | "no-trump" | "all-trump">("hearts");
+  const [modeValue, setModeValue] = useState<BidModeValue>("hearts");
   const [pendingConfirmation, setPendingConfirmation] = useState<{ message: string; action: () => void } | null>(null);
   const confirmationTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const initializedTurnKeyRef = useRef<string | null>(null);
   const contractMode: ContractMode = modeValue === "no-trump" || modeValue === "all-trump"
     ? { kind: modeValue }
     : { kind: "suit", suit: modeValue };
@@ -76,6 +112,20 @@ export function BiddingPanel({
   const canMakeCapot = canBid && canBidCapot(currentContract, biddingRules);
   const canMakeGenerale = Boolean(canBid && biddingRules && canBidGenerale(currentContract, biddingRules) && canBidGeneraleMode(contractMode, biddingRules));
   const canChooseMode = canMakeBid || canMakeCapot || canMakeGenerale;
+  const turnKey = biddingTurnKey(canBid, playerId, bids.length);
+
+  useEffect(() => {
+    if (!turnKey || playerId === undefined) {
+      initializedTurnKeyRef.current = null;
+      return;
+    }
+    if (!shouldInitializeBidMode(initializedTurnKeyRef.current, turnKey)) return;
+    initializedTurnKeyRef.current = turnKey;
+    const preferred = preferredBidMode(bids, playerId);
+    if (preferred.kind === "no-trump" && !biddingRules?.allowNoTrump) return;
+    if (preferred.kind === "all-trump" && !biddingRules?.allowAllTrump) return;
+    setModeValue(modeValueFromContractMode(preferred));
+  }, [biddingRules?.allowAllTrump, biddingRules?.allowNoTrump, bids, playerId, turnKey]);
 
   useEffect(() => {
     if (value === "" || !availableValues.includes(value)) {
