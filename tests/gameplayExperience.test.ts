@@ -30,7 +30,8 @@ describe("premium gameplay shell", () => {
       preferencesLabel: "Paramètres",
       menuActions: [{ label: "Abandonner la partie", tone: "danger", onSelect: () => undefined }],
     }));
-    expect(markup).toContain("CONTRÉE KFFR");
+    expect(markup).toContain("KFFR Contrée");
+    expect(markup).toContain("coinche-brand-logo--compact");
     expect(markup).toContain("Scores en direct");
     expect(markup).toContain('role="switch"');
     expect(markup).toContain('aria-checked="true"');

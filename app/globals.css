@@ -617,12 +617,43 @@ summary:focus-visible {
 .coinche-game-nav-kicker { color: var(--game-nav-kicker); }
 .coinche-nav-section-label { color: var(--nav-section-label); }
 
-.coinche-brand-mark,
 .coinche-login-link {
   border-color: color-mix(in srgb, var(--accent) 35%, transparent);
   background: var(--accent-soft);
   color: var(--accent);
 }
+
+.coinche-brand-logo {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.coinche-brand-logo__image--light { display: none; }
+
+:root[data-theme="light"] .coinche-brand-logo__image--dark { display: none; }
+:root[data-theme="light"] .coinche-brand-logo__image--light { display: block; }
+
+/* The compact dark lockup reuses the clean alpha master and recolours only its ink. */
+:root[data-theme="dark"] .coinche-brand-logo--compact .coinche-brand-logo__image--dark {
+  filter: brightness(0) saturate(100%) invert(93%) sepia(16%) saturate(397%) hue-rotate(346deg) brightness(107%) contrast(94%);
+}
+
+:root[data-theme="dark"] .coinche-brand-logo--compact::before,
+:root[data-theme="dark"] .coinche-brand-logo--compact::after {
+  position: absolute;
+  bottom: 17%;
+  z-index: 1;
+  width: 15%;
+  height: 1px;
+  background: #c79a42;
+  content: "";
+}
+
+:root[data-theme="dark"] .coinche-brand-logo--compact::before { left: 11%; }
+:root[data-theme="dark"] .coinche-brand-logo--compact::after { right: 11%; }
 
 .coinche-login-link:hover {
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);

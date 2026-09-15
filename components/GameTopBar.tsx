@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { IconCloseButton } from "@/components/ui/IconCloseButton";
+import { KffrLogo } from "@/components/ui/KffrLogo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export type GameMenuAction = {
@@ -92,7 +93,7 @@ export function GameTopBar({
   return <>
     <header className="coinche-game-topbar coinche-global-header sticky top-0 z-50 flex h-12 shrink-0 items-center justify-between border-b px-3 shadow-lg backdrop-blur-md sm:px-5">
       <div className="flex min-w-0 items-center gap-3">
-        <Link className="shrink-0 text-sm font-black tracking-[0.12em] text-[#f3ead2]" href="/">CONTRÉE KFFR</Link>
+        <Link aria-label="Accueil — KFFR Contrée" className="shrink-0" href="/"><KffrLogo className="h-7 w-[4.65rem] sm:h-8 sm:w-[5.25rem]" variant="compact" /></Link>
         <span aria-hidden="true" className="h-4 w-px bg-white/15" />
         <span className="truncate text-xs font-semibold text-white/55">{contextLabel}</span>
       </div>

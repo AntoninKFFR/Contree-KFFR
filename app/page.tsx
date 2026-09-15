@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { AppEyebrow, AppPage, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
+import { AppPage, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
+import { KffrLogo } from "@/components/ui/KffrLogo";
 
 export const metadata: Metadata = {
   title: "Accueil",
@@ -12,8 +13,8 @@ export default function HomePage() {
       <section className="coinche-app-surface relative overflow-hidden rounded-[2rem] border px-5 py-8 sm:px-10 sm:py-12 lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12 lg:px-14 lg:py-16">
         <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_75%_35%,rgb(58_160_108_/_17%),transparent_30%)]" />
         <div className="relative">
-          <AppEyebrow>Contrée KFFR</AppEyebrow>
-          <h1 className="mt-3 max-w-2xl text-4xl font-black leading-[1.05] tracking-[-0.035em] text-[#f4ead0] sm:text-5xl lg:text-6xl">
+          <KffrLogo className="h-auto w-36 sm:w-44 lg:w-56" variant="full" />
+          <h1 className="mt-5 max-w-2xl text-4xl font-black leading-[1.05] tracking-[-0.035em] text-[#f4ead0] sm:text-5xl lg:text-6xl">
             La contrée, en solo ou entre amis
           </h1>
           <div className="mt-8 flex flex-col gap-2.5 sm:flex-row">

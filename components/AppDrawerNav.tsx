@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { IconCloseButton } from "@/components/ui/IconCloseButton";
+import { KffrLogo } from "@/components/ui/KffrLogo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const NAV_LINKS = [
@@ -110,11 +111,8 @@ export function AppDrawerNav() {
     <>
       <header className="coinche-global-header sticky top-0 z-40 border-b shadow-[0_10px_30px_var(--shadow)] backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-5">
-          <Link className="flex items-center gap-2.5 text-sm font-bold tracking-[0.08em] text-stone-50" href="/">
-            <span className="coinche-brand-mark grid h-8 w-8 place-items-center rounded-full border text-sm shadow-inner">
-              ♣
-            </span>
-            Contrée KFFR
+          <Link aria-label="Accueil — KFFR Contrée" className="flex items-center" href="/">
+            <KffrLogo className="h-8 w-[5.25rem] sm:h-9 sm:w-[5.9rem]" variant="compact" />
           </Link>
           <div className="flex items-center gap-2">
             <ThemeToggle />

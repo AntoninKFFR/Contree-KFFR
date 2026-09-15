@@ -169,6 +169,43 @@ test.describe("@smoke public production readiness", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   });
 
+  test("@smoke KFFR branding is theme-aware, compact and responsive", async ({ page }) => {
+    await page.goto("/");
+    const header = page.locator(".coinche-global-header");
+    const fullLogo = page.locator(".coinche-brand-logo--full");
+    const compactLogo = header.locator(".coinche-brand-logo--compact");
+
+    await expect(header.locator(":scope > div")).toHaveCSS("height", "56px");
+    expect(await header.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(57);
+    await expect(fullLogo).toBeVisible();
+    await expect(compactLogo).toBeVisible();
+    await expect(fullLogo.locator(".coinche-brand-logo__image--dark")).toBeVisible();
+    await expect(fullLogo.locator(".coinche-brand-logo__image--light")).toBeHidden();
+    await expect(page.locator('link[rel="icon"]')).toHaveAttribute("sizes", "48x48");
+    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("sizes", "180x180");
+
+    await page.getByRole("switch", { name: "Activer le thème clair" }).click();
+    await expect(fullLogo.locator(".coinche-brand-logo__image--dark")).toBeHidden();
+    await expect(fullLogo.locator(".coinche-brand-logo__image--light")).toBeVisible();
+
+    for (const viewport of [
+      { width: 1920, height: 1080 },
+      { width: 1366, height: 768 },
+      { width: 375, height: 667 },
+      { width: 844, height: 390 },
+    ]) {
+      await page.setViewportSize(viewport);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await expect(compactLogo).toBeVisible();
+      await expect(fullLogo).toBeVisible();
+    }
+
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.goto("/solo");
+    await expect(page.locator(".coinche-game-topbar")).toHaveCSS("height", "48px");
+    await expect(page.locator(".coinche-game-topbar .coinche-brand-logo--compact")).toBeVisible();
+  });
+
   for (const viewport of [
     { name: "mobile portrait", width: 375, height: 667 },
     { name: "mobile landscape", width: 844, height: 390 },
