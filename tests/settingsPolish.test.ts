@@ -49,6 +49,20 @@ describe("premium settings navigation", () => {
     expect(markup).toContain("<svg");
     expect(markup).not.toContain("Les règles des parties ne seront pas modifiées");
   });
+
+  it("uses the same premium settings shell in multiplayer", () => {
+    const markup = renderToStaticMarkup(React.createElement(PlayerPreferencesProvider, null, React.createElement(PlayerSettingsDialog, {
+      context: { mode: "multiplayer", isHost: false },
+      onClose: noop,
+    })));
+    expect(markup).toContain('aria-label="Fermer les préférences"');
+    expect(markup).toContain("coinche-settings-panel");
+    expect(markup).toContain("sm:h-[min(46rem,calc(100dvh-1.5rem))]");
+    expect(markup).toContain("bg-[#fffdf7]");
+    expect(markup.match(/Réinitialiser mes paramètres/g)).toHaveLength(1);
+    expect(markup).not.toContain("border-sky-200");
+    expect(markup).not.toContain("bg-sky-50");
+  });
 });
 
 describe("custom presentation preferences", () => {

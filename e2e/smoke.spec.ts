@@ -83,6 +83,46 @@ test.describe("@smoke public production readiness", () => {
     await expect(dialog.getByText(/Différences avec Contrée KFFR/)).toHaveCount(0);
   });
 
+  test("@smoke multiplayer preferences reuse the stable settings experience", async ({ page }) => {
+    await page.goto("/multiplayer");
+    const opener = page.getByRole("button", { name: "Préférences", exact: true });
+    await opener.click();
+
+    const dialog = page.getByRole("dialog", { name: "Préférences" });
+    const surface = dialog.locator(".coinche-dialog");
+    await expect(dialog.locator(".coinche-settings-panel")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Réinitialiser mes paramètres" })).toBeVisible();
+    const initialSize = await surface.evaluate((element) => ({ height: element.clientHeight, width: element.clientWidth }));
+    for (const section of ["AIDES", "CARTES", "AFFICHAGE", "SON", "ACCESSIBILITÉ", "JEU"]) {
+      await dialog.getByRole("button", { name: section, exact: true }).click();
+      await expect.poll(() => surface.evaluate((element) => ({ height: element.clientHeight, width: element.clientWidth }))).toEqual(initialSize);
+    }
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await expect(opener).toBeFocused();
+
+    await page.setViewportSize({ width: 844, height: 390 });
+    await opener.click();
+    await expect(dialog.locator(".coinche-settings-panel")).toBeVisible();
+    const mobileSize = await surface.evaluate((element) => ({ height: element.clientHeight, width: element.clientWidth }));
+    for (const section of ["CARTES", "AFFICHAGE", "ACCESSIBILITÉ", "JEU"]) {
+      await dialog.getByRole("button", { name: section, exact: true }).click();
+      await expect.poll(() => surface.evaluate((element) => ({ height: element.clientHeight, width: element.clientWidth }))).toEqual(mobileSize);
+    }
+    await expect(dialog.getByRole("heading", { name: "Jeu", exact: true }).locator("..").locator("..")).toHaveCSS("overflow-y", "auto");
+    await expect(dialog.getByRole("button", { name: "Réinitialiser mes paramètres" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await dialog.getByRole("button", { name: "Fermer les préférences" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(opener).toBeFocused();
+
+    await opener.click();
+    await dialog.click({ position: { x: 1, y: 1 } });
+    await expect(dialog).toBeHidden();
+    await expect(opener).toBeFocused();
+  });
+
   for (const viewport of [
     { name: "mobile portrait", width: 375, height: 667 },
     { name: "mobile landscape", width: 844, height: 390 },

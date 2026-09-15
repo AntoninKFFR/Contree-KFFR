@@ -110,6 +110,8 @@ describe("settings UI contexts", () => {
     expect(markup).toContain("Rythme de la table");
     expect(markup).toContain("Vitesse de jeu de la table");
     expect(markup).toContain("Durée d&#x27;affichage d&#x27;un pli");
+    expect(markup).toContain("bg-[#fffdf7]");
+    expect(markup).not.toContain("border-sky-200");
     expect(markup).not.toContain("Temps de réflexion visuel des bots");
     expect(markup).not.toContain("Délai entre enchères");
   });
