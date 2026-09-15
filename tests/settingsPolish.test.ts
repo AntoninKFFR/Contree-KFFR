@@ -104,8 +104,8 @@ describe("structured shared rules", () => {
     const summary = renderToStaticMarkup(React.createElement(RulesetSummary, { ruleset: custom, showDifferences: true }));
     const editor = renderToStaticMarkup(React.createElement(RulesetConfigurator, { value: { presetId: "contree-kffr", overrides: { bidding: { allowNoTrump: true } } }, onChange: noop }));
     expect(summary).toContain("Différences avec Contrée KFFR");
-    expect(editor).toContain("Revenir à Contrée KFFR");
-    expect(editor).toContain("MES PARAMÈTRES");
+    expect(editor).toContain("Réinitialiser");
+    expect(editor).toContain("Préférences perso inchangées");
   });
   it("renders dependency reasons rather than opacity alone", () => {
     const markup = renderToStaticMarkup(React.createElement(RulesetConfigurator, { value: { presetId: "contree-kffr", overrides: { bidding: { allowCoinche: false } } }, onChange: noop }));

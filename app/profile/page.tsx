@@ -17,6 +17,12 @@ import {
   type GameRow,
 } from "@/lib/stats";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import {
+  AppEyebrow,
+  AppPage,
+  AppSurface,
+  appPrimaryActionClass,
+} from "@/components/ui/AppShell";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
 
@@ -115,7 +121,7 @@ export default function ProfilePage() {
         <StatusCard title="Non connecté">
           Connecte-toi pour voir ton profil et tes statistiques.
           <Link
-            className="mt-4 inline-flex rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white"
+            className={`${appPrimaryActionClass} mt-4`}
             href="/login"
           >
             Se connecter
@@ -127,26 +133,24 @@ export default function ProfilePage() {
 
   return (
     <ProfileShell>
-      <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
-          Profil joueur
-        </p>
-        <h1 className="mt-1 text-2xl font-bold">
+      <AppSurface className="p-6 sm:p-7">
+        <AppEyebrow>Profil joueur</AppEyebrow>
+        <h1 className="mt-2 text-3xl font-black tracking-tight text-stone-50">
           {pageState === "loading" ? "Chargement..." : username ?? "Profil sans pseudo"}
         </h1>
-        <p className="mt-1 text-sm text-stone-600">
+        <p className="mt-1 text-sm text-stone-400">
           {session?.user.email ?? "Session en cours de lecture"}
         </p>
-      </section>
+      </AppSurface>
 
-      <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Statistiques solo</p>
+      <AppSurface>
+        <AppEyebrow>Statistiques solo</AppEyebrow>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
         <StatCard label="Parties" value={stats.total} />
         <StatCard label="Victoires" value={stats.wins} />
         <StatCard label="Défaites" value={stats.losses} />
         </div>
-      </section>
+      </AppSurface>
 
       <section className="grid gap-3 lg:grid-cols-2">
         <StatsDetails title="Winrate" summary={`${stats.winrate}%`}>
@@ -159,15 +163,15 @@ export default function ProfilePage() {
         </StatsDetails>
       </section>
 
-      <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Statistiques multijoueur</p>
+      <AppSurface>
+        <AppEyebrow>Statistiques multijoueur</AppEyebrow>
         <div className="mt-3 grid gap-3 sm:grid-cols-4">
           <StatCard label="Parties" value={multiplayerStats.total} />
           <StatCard label="Victoires" value={multiplayerStats.wins} />
           <StatCard label="Défaites" value={multiplayerStats.losses} />
           <StatCard label="Taux de victoire" value={`${multiplayerStats.winrate}%`} />
         </div>
-        <div className="mt-4 grid gap-2 text-sm text-stone-700 sm:grid-cols-2">
+        <div className="mt-4 grid gap-2 text-sm text-stone-300 sm:grid-cols-2">
           <DetailRow label="Victoires au score" value={multiplayerStats.scoreWins} />
           <DetailRow label="Victoires par abandon adverse" value={multiplayerStats.forfeitWins} />
           <DetailRow label="Défaites par abandon" value={multiplayerStats.forfeitLosses} />
@@ -175,18 +179,18 @@ export default function ProfilePage() {
           <DetailRow label="Partenaire(s) fréquent(s)" value={multiplayerStats.frequentPartners.join(", ") || "—"} />
           <DetailRow label="Adversaire(s) fréquent(s)" value={multiplayerStats.frequentOpponents.join(", ") || "—"} />
         </div>
-      </section>
+      </AppSurface>
 
-      <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
+      <AppSurface>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold">Dernières parties</h2>
-            <p className="text-xs font-semibold text-stone-500">
+            <h2 className="text-lg font-bold text-stone-50">Dernières parties</h2>
+            <p className="text-xs font-semibold text-stone-400">
               Aperçu des {recentGames.length} plus récentes
             </p>
           </div>
           <Link
-            className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white"
+            className={appPrimaryActionClass}
             href="/history"
           >
             Voir tout l&apos;historique
@@ -199,7 +203,7 @@ export default function ProfilePage() {
           isLoading={pageState === "loading"}
           noGamesText="Aucune partie enregistrée pour le moment."
         />
-      </section>
+      </AppSurface>
     </ProfileShell>
   );
 }
@@ -217,42 +221,42 @@ function GameList({
 }) {
   if (errorMessage) {
     return (
-      <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
+      <p className="rounded-xl border border-red-300/35 bg-red-400/10 px-3 py-2 text-sm text-red-100">
         Impossible de charger les parties: {errorMessage}
       </p>
     );
   }
 
   if (isLoading) {
-    return <p className="text-sm text-stone-600">Chargement des parties...</p>;
+    return <p className="text-sm text-stone-400">Chargement des parties...</p>;
   }
 
   if (games.length === 0) {
-    return <p className="text-sm text-stone-600">{noGamesText}</p>;
+    return <p className="text-sm text-stone-400">{noGamesText}</p>;
   }
 
   return (
     <ul className="space-y-2">
       {games.map((game) => (
-        <li className="rounded-md border border-stone-200 bg-stone-50 p-3 text-sm" key={game.id}>
+        <li className="rounded-xl border border-white/10 bg-white/[0.045] p-3 text-sm" key={game.id}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-semibold">{formatDate(game.created_at)}</p>
             <span
-              className={`rounded-md px-2 py-1 text-xs font-bold ${
-                game.won ? "bg-emerald-100 text-emerald-900" : "bg-red-100 text-red-900"
+              className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                game.won ? "bg-emerald-300/15 text-emerald-100" : "bg-red-300/15 text-red-100"
               }`}
             >
               {game.won ? "Gagné" : "Perdu"}
             </span>
           </div>
-          <div className="mt-2 grid gap-1 text-stone-700 sm:grid-cols-2">
+          <div className="mt-2 grid gap-1 text-stone-300 sm:grid-cols-2">
             <p>Mode: {scoringModeLabel(game.scoring_mode)}</p>
             <p>Cible: {game.target_score ?? "-"}</p>
             <p>Joueur: {game.player_score ?? "-"}</p>
             <p>Bots: {game.bot_score ?? "-"}</p>
           </div>
           {game.bot_summary ? (
-            <p className="mt-2 text-xs font-semibold text-stone-500">
+            <p className="mt-2 text-xs font-semibold text-stone-400">
               Bots affrontés: {game.bot_summary}
             </p>
           ) : null}
@@ -263,18 +267,14 @@ function GameList({
 }
 
 function ProfileShell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950">
-      <div className="mx-auto flex max-w-4xl flex-col gap-4">{children}</div>
-    </main>
-  );
+  return <AppPage>{children}</AppPage>;
 }
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold">{value}</p>
+    <div className="rounded-xl border border-white/10 bg-white/[0.045] p-4 shadow-inner">
+      <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{label}</p>
+      <p className="mt-1 text-2xl font-black text-stone-50">{value}</p>
     </div>
   );
 }
@@ -289,20 +289,20 @@ function StatsDetails({
   title: string;
 }) {
   return (
-    <details className="group rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+    <details className="group rounded-2xl border border-white/10 bg-[#0b1c15]/[0.88] p-4 shadow-lg backdrop-blur-sm">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">{title}</p>
-          <p className="mt-1 text-2xl font-bold">{summary}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{title}</p>
+          <p className="mt-1 text-2xl font-black text-stone-50">{summary}</p>
         </div>
-        <span className="rounded-md border border-stone-300 px-2 py-1 text-xs font-semibold text-stone-700 group-open:hidden">
+        <span className="rounded-full border border-white/15 px-2.5 py-1 text-xs font-semibold text-stone-300 group-open:hidden">
           Ouvrir
         </span>
-        <span className="hidden rounded-md border border-stone-300 px-2 py-1 text-xs font-semibold text-stone-700 group-open:inline">
+        <span className="hidden rounded-full border border-white/15 px-2.5 py-1 text-xs font-semibold text-stone-300 group-open:inline">
           Fermer
         </span>
       </summary>
-      <div className="mt-4 space-y-2 border-t border-stone-200 pt-3">{children}</div>
+      <div className="mt-4 space-y-2 border-t border-white/10 pt-3">{children}</div>
     </details>
   );
 }
@@ -310,17 +310,17 @@ function StatsDetails({
 function DetailRow({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-stone-600">{label}</span>
-      <span className="font-bold text-stone-950">{value}</span>
+      <span className="text-stone-400">{label}</span>
+      <span className="font-bold text-stone-100">{value}</span>
     </div>
   );
 }
 
 function StatusCard({ children, title }: { children: React.ReactNode; title: string }) {
   return (
-    <section className="rounded-lg border border-stone-300 bg-white p-5 text-sm shadow-sm">
-      <h1 className="text-2xl font-bold">{title}</h1>
-      <div className="mt-2 text-stone-700">{children}</div>
-    </section>
+    <AppSurface className="p-6 text-sm">
+      <h1 className="text-2xl font-bold text-stone-50">{title}</h1>
+      <div className="mt-2 text-stone-300">{children}</div>
+    </AppSurface>
   );
 }

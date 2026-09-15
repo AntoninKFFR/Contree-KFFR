@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AppEyebrow, AppPage, AppSurface } from "@/components/ui/AppShell";
 
 export const metadata: Metadata = {
   title: "Règles",
@@ -25,27 +26,35 @@ const RULE_SECTIONS = [
 
 export default function RulesPage() {
   return (
-    <main className="min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950">
-      <div className="mx-auto flex max-w-3xl flex-col gap-4">
-        <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
-            Aide de jeu
+    <AppPage width="medium">
+      <div className="flex flex-col gap-5">
+        <AppSurface className="overflow-hidden p-6 sm:p-8">
+          <AppEyebrow>Aide de jeu</AppEyebrow>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-stone-50 sm:text-4xl">
+            Règles de la coinche
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-300">
+            Les quatre repères essentiels pour rejoindre la table sans détour.
           </p>
-          <h1 className="mt-1 text-3xl font-bold">Règles de la coinche</h1>
-        </section>
+        </AppSurface>
 
-        <div className="grid gap-3">
-          {RULE_SECTIONS.map((section) => (
-            <section
-              className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm"
+        <div className="grid gap-3 sm:grid-cols-2">
+          {RULE_SECTIONS.map((section, index) => (
+            <AppSurface
+              className="group p-5 transition hover:-translate-y-0.5 hover:border-emerald-200/25"
               key={section.title}
             >
-              <h2 className="text-lg font-bold">{section.title}</h2>
-              <p className="mt-2 text-sm leading-6 text-stone-700">{section.text}</p>
-            </section>
+              <div className="flex items-center gap-3">
+                <span className="grid h-8 w-8 place-items-center rounded-full border border-amber-200/25 bg-amber-200/10 text-xs font-black text-amber-100">
+                  {index + 1}
+                </span>
+                <h2 className="text-lg font-bold text-stone-50">{section.title}</h2>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-stone-300">{section.text}</p>
+            </AppSurface>
           ))}
         </div>
       </div>
-    </main>
+    </AppPage>
   );
 }

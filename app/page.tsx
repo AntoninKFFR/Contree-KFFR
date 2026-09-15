@@ -1,48 +1,44 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { AppEyebrow, AppPage, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 
 export const metadata: Metadata = {
   title: "Accueil",
 };
 
-const HOME_LINKS = [
-  {
-    href: "/solo",
-    label: "Jouer en solo",
-  },
-  {
-    href: "/multiplayer",
-    label: "Multijoueur",
-  },
-  {
-    href: "/rules",
-    label: "Règles",
-  },
-];
-
 export default function HomePage() {
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[#f4f1e8] px-4 text-stone-950">
-      <section className="flex w-full max-w-md flex-col items-center gap-6 text-center">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
-            Contrée par KFFR
+    <AppPage className="justify-center" width="wide">
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#0b1c15]/[0.88] px-5 py-8 shadow-[0_28px_90px_rgb(0_0_0_/_38%)] sm:px-10 sm:py-12 lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12 lg:px-14 lg:py-16">
+        <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_75%_35%,rgb(58_160_108_/_17%),transparent_30%)]" />
+        <div className="relative">
+          <AppEyebrow>Contrée KFFR</AppEyebrow>
+          <h1 className="mt-3 max-w-2xl text-4xl font-black leading-[1.05] tracking-[-0.035em] text-[#f4ead0] sm:text-5xl lg:text-6xl">
+            La table est prête.
+          </h1>
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-white/58 sm:text-lg">
+            Joue une vraie partie de Contrée, seul ou avec tes proches.
           </p>
-          <h1 className="mt-2 text-4xl font-bold">La contrée, en solo ou entre amis</h1>
+          <div className="mt-7 flex flex-col gap-2.5 sm:flex-row">
+            <Link className={`${appPrimaryActionClass} sm:min-w-48`} href="/solo">Jouer en solo</Link>
+            <Link className={`${appSecondaryActionClass} sm:min-w-48`} href="/multiplayer">Créer une table</Link>
+          </div>
+          <Link className="mt-5 inline-flex text-sm font-bold text-emerald-200/70 transition hover:text-emerald-100" href="/rules">Voir les règles <span aria-hidden="true" className="ml-1.5">→</span></Link>
         </div>
 
-        <nav className="flex w-full flex-col gap-3">
-          {HOME_LINKS.map((link) => (
-            <Link
-              className="rounded-md border border-emerald-900 bg-white px-5 py-4 text-lg font-bold text-emerald-950 shadow-sm transition hover:bg-emerald-50"
-              href={link.href}
-              key={link.href}
-            >
-              {link.label}
-            </Link>
+        <div aria-hidden="true" className="relative mt-10 hidden min-h-72 lg:block">
+          <div className="absolute left-1/2 top-1/2 h-64 w-80 -translate-x-1/2 -translate-y-1/2 rounded-[45%] border border-white/10 bg-[radial-gradient(ellipse_at_center,rgb(24_112_72_/_55%),rgb(7_31_21_/_90%))] shadow-[inset_0_0_55px_rgb(0_0_0_/_40%),0_24px_60px_rgb(0_0_0_/_35%)]" />
+          {["♣", "♦", "♠", "♥"].map((suit, index) => (
+            <div className={`absolute left-1/2 top-1/2 flex h-32 w-24 items-center justify-center rounded-xl border border-stone-300 bg-[#fffdf7] text-4xl font-black shadow-2xl ${index === 0 ? "-translate-x-[125%] -translate-y-[42%] -rotate-12 text-stone-950" : index === 1 ? "-translate-x-[72%] -translate-y-[54%] -rotate-3 text-red-700" : index === 2 ? "-translate-x-[18%] -translate-y-[53%] rotate-6 text-stone-950" : "translate-x-[35%] -translate-y-[36%] rotate-12 text-red-700"}`} key={suit}>{suit}</div>
           ))}
-        </nav>
+        </div>
       </section>
-    </main>
+
+      <section aria-label="Points forts" className="grid gap-2 sm:grid-cols-3">
+        {[['Partie complète', 'Règles Contrée KFFR'], ['Solo', 'Bots et rythme personnalisable'], ['Entre amis', 'Tables privées par code']].map(([title, text]) => (
+          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.035] px-4 py-3" key={title}><p className="text-sm font-bold text-white/85">{title}</p><p className="mt-0.5 text-xs text-white/42">{text}</p></div>
+        ))}
+      </section>
+    </AppPage>
   );
 }

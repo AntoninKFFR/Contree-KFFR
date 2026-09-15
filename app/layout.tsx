@@ -18,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className="bg-[#f4f1e8] text-stone-950">
+      <body className="bg-[#06120d] text-stone-50">
         <PlayerPreferencesProvider>
           <div className="min-h-dvh">
             <AppDrawerNav />

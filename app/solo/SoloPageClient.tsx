@@ -13,6 +13,7 @@ import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
+import { appDangerActionClass, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { applyGameAction, type GameAction } from "@/engine/actions";
@@ -295,7 +296,7 @@ export default function SoloPage() {
     dispatchGameAction({ type: "start-next-round" });
   }
 
-  const rulesDialog = isRulesOpen ? <AccessibleDialog description="Partagées par les joueurs de la prochaine partie. La partie en cours reste inchangée." footer={<div className="grid gap-2 sm:grid-cols-[1fr_auto]"><RulesetSummary ruleset={buildCustomRuleset(rulesDraft)} compact /><button className="rounded-lg bg-emerald-800 px-4 py-3 font-bold text-white" type="button" onClick={applyRulesAndStartGame}>Appliquer et nouvelle partie</button></div>} onClose={() => setIsRulesOpen(false)} title="Règles de la prochaine partie"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null;
+  const rulesDialog = isRulesOpen ? <AccessibleDialog description="Ces règles s'appliqueront à la prochaine partie." footer={<div className="grid items-center gap-2 sm:grid-cols-[1fr_auto]"><div className="hidden sm:block"><RulesetSummary ruleset={buildCustomRuleset(rulesDraft)} compact /></div><button className={`${appPrimaryActionClass} w-full sm:w-auto`} type="button" onClick={applyRulesAndStartGame}>Appliquer et nouvelle partie</button></div>} onClose={() => setIsRulesOpen(false)} title="Règles de la prochaine partie"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null;
   const soloMenuActions = [
     { label: "Règles de la prochaine partie", onSelect: () => { setRulesDraft(rulesInput); setIsRulesOpen(true); } },
     ...(BOT_REVIEW_MODE_ENABLED ? [{ label: `Mode développeur : ${isAnalysisModeEnabled ? "activé" : "désactivé"}`, onSelect: () => setIsAnalysisModeEnabled((current) => !current) }] : []),
@@ -448,7 +449,7 @@ export default function SoloPage() {
       {gameState.phase === "finished" ? <RoundCompletionCard actionLabel="Manche suivante" onAction={handleNextRound} state={gameState} /> : null}
       {gameState.phase === "game-over" ? <RoundCompletionCard actionLabel="Nouvelle partie" onAction={handleNewGame} state={gameState} /> : null}
       {rulesDialog}
-      {isNewGameConfirmationOpen ? <AccessibleDialog description="La donne en cours sera remplacée par une nouvelle partie." footer={<div className="flex justify-end gap-2"><button className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-bold" onClick={() => setIsNewGameConfirmationOpen(false)} type="button">Continuer la partie</button><button className="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white" onClick={() => { setIsNewGameConfirmationOpen(false); handleNewGame(); }} type="button">Abandonner et redistribuer</button></div>} onClose={() => setIsNewGameConfirmationOpen(false)} title="Abandonner la partie ?"><div /></AccessibleDialog> : null}
+      {isNewGameConfirmationOpen ? <AccessibleDialog description="La donne en cours sera remplacée par une nouvelle partie." footer={<div className="flex justify-end gap-2"><button className={appSecondaryActionClass} onClick={() => setIsNewGameConfirmationOpen(false)} type="button">Continuer la partie</button><button className={appDangerActionClass} onClick={() => { setIsNewGameConfirmationOpen(false); handleNewGame(); }} type="button">Abandonner et redistribuer</button></div>} onClose={() => setIsNewGameConfirmationOpen(false)} title="Abandonner la partie ?"><div /></AccessibleDialog> : null}
       {isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}
     </main></>
   );

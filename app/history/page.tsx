@@ -19,6 +19,12 @@ import { buildCustomRuleset, rulesetToCustomInput } from "@/engine/rulesets/cust
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import { formatContractLabel } from "@/engine/contractMode";
 import type { GameState, PlayerId } from "@/engine/types";
+import {
+  AppEyebrow,
+  AppPage,
+  AppSurface,
+  appPrimaryActionClass,
+} from "@/components/ui/AppShell";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
 type HistoryFilter = "all" | "solo" | "multiplayer";
@@ -88,20 +94,20 @@ export default function HistoryPage() {
   }, [filter, games, multiplayerGames]);
 
   return (
-    <main className="min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950">
-      <div className="mx-auto flex max-w-4xl flex-col gap-4">
+    <AppPage>
+      <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
-          <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/profile">Retour au profil</Link>
-          <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/">Retour au jeu</Link>
+          <Link className="text-sm font-semibold text-emerald-200 hover:text-emerald-100" href="/profile">← Profil</Link>
+          <Link className="text-sm font-semibold text-emerald-200 hover:text-emerald-100" href="/">Accueil</Link>
         </div>
-        <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Historique</p>
-          <h1 className="mt-1 text-2xl font-bold">Toutes les parties</h1>
-          <p className="mt-1 text-sm text-stone-600">Les parties les plus récentes sont affichées en premier.</p>
+        <AppSurface className="p-6 sm:p-7">
+          <AppEyebrow>Historique</AppEyebrow>
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-stone-50">Toutes les parties</h1>
+          <p className="mt-1 text-sm text-stone-400">Les plus récentes apparaissent en premier.</p>
           <div className="mt-4 flex flex-wrap gap-2" aria-label="Filtrer l'historique">
             {(["all", "solo", "multiplayer"] as const).map((value) => (
               <button
-                className={`rounded-md px-3 py-1.5 text-sm font-semibold ${filter === value ? "bg-emerald-800 text-white" : "border border-stone-300 bg-white text-stone-700"}`}
+                className={`rounded-full border px-3.5 py-2 text-sm font-semibold transition ${filter === value ? "border-amber-200/40 bg-amber-200/15 text-amber-100" : "border-white/10 bg-white/[0.045] text-stone-300 hover:bg-white/[0.08]"}`}
                 key={value}
                 onClick={() => setFilter(value)}
                 type="button"
@@ -110,14 +116,14 @@ export default function HistoryPage() {
               </button>
             ))}
           </div>
-        </section>
-        <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
+        </AppSurface>
+        <AppSurface>
           {pageState === "unavailable" ? <StatusMessage>Supabase est indisponible. Vérifie la configuration dans .env.local.</StatusMessage> : null}
           {pageState === "signed-out" ? (
-            <StatusMessage>Connecte-toi pour voir ton historique.<Link className="mt-4 inline-flex rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white" href="/login">Se connecter</Link></StatusMessage>
+            <StatusMessage>Connecte-toi pour voir ton historique.<Link className={`${appPrimaryActionClass} mt-4`} href="/login">Se connecter</Link></StatusMessage>
           ) : null}
           {pageState === "loading" ? <StatusMessage>Chargement de l&apos;historique...</StatusMessage> : null}
-          {errorMessage ? <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">Impossible de charger l&apos;historique: {errorMessage}</p> : null}
+          {errorMessage ? <p className="rounded-xl border border-red-300/35 bg-red-400/10 px-3 py-2 text-sm text-red-100">Impossible de charger l&apos;historique: {errorMessage}</p> : null}
           {pageState === "ready" && !errorMessage && entries.length === 0 ? <StatusMessage>Aucune partie enregistrée pour ce filtre.</StatusMessage> : null}
           {pageState === "ready" && !errorMessage && entries.length > 0 ? (
             <ul className="space-y-2">
@@ -126,17 +132,17 @@ export default function HistoryPage() {
                 : <MultiplayerHistoryItem game={entry.game} key={`multi-${entry.game.id}`} />)}
             </ul>
           ) : null}
-        </section>
+        </AppSurface>
       </div>
-    </main>
+    </AppPage>
   );
 }
 
 function SoloHistoryItem({ game }: { game: GameRow }) {
   return (
-    <li className="rounded-md border border-stone-200 bg-stone-50 p-3 text-sm">
+    <li className="rounded-xl border border-white/10 bg-white/[0.045] p-3 text-sm">
       <HistoryHeader date={game.created_at} label="Solo" won={Boolean(game.won)} />
-      <div className="mt-2 grid gap-1 text-stone-700 sm:grid-cols-2">
+      <div className="mt-2 grid gap-1 text-stone-300 sm:grid-cols-2">
         <p>Mode: {scoringModeLabel(game.scoring_mode)}</p><p>Score: {game.player_score ?? "-"} – {game.bot_score ?? "-"}</p>
         <p>Cible: {game.target_score ?? "-"}</p><p>Fin: score</p>
       </div>
@@ -149,9 +155,9 @@ function SoloHistoryItem({ game }: { game: GameRow }) {
 function MultiplayerHistoryItem({ game }: { game: MultiplayerHistoryGame }) {
   const won = didViewerWin(game);
   return (
-    <li className="rounded-md border border-stone-200 bg-stone-50 p-3 text-sm">
+    <li className="rounded-xl border border-white/10 bg-white/[0.045] p-3 text-sm">
       <HistoryHeader date={game.finished_at} label="Multijoueur" won={won} />
-      <div className="mt-2 grid gap-1 text-stone-700 sm:grid-cols-2">
+      <div className="mt-2 grid gap-1 text-stone-300 sm:grid-cols-2">
         <p>Score: {viewerTeamScore(game)} – {opposingTeamScore(game)}</p>
         <p>Mode: {scoringModeLabel(game.scoring_mode)}</p>
         <p>Partenaire: {partnerNames(game).join(", ") || "Aucun"}</p>
@@ -168,17 +174,17 @@ function MultiplayerHistoryItem({ game }: { game: MultiplayerHistoryGame }) {
 function GeneraleHistory({ rounds, names }: { rounds?: GameState["roundHistory"]; names?: Partial<Record<PlayerId, string>> }) {
   const generales = (rounds ?? []).filter((round) => round.result.kind === "played" && round.result.contract.kind === "generale");
   if (!generales.length) return null;
-  return <div className="mt-2 rounded-md bg-purple-50 p-2 text-xs text-purple-950">{generales.map((round) => round.result.kind === "played" ? <p key={round.roundNumber}>{formatContractLabel(round.result.contract)} par {names?.[round.result.contract.playerId] ?? `Joueur ${round.result.contract.playerId + 1}`} · {round.result.contractSucceeded ? "réussie" : "chutée"}</p> : null)}</div>;
+  return <div className="mt-2 rounded-lg border border-purple-300/20 bg-purple-300/10 p-2 text-xs text-purple-100">{generales.map((round) => round.result.kind === "played" ? <p key={round.roundNumber}>{formatContractLabel(round.result.contract)} par {names?.[round.result.contract.playerId] ?? `Joueur ${round.result.contract.playerId + 1}`} · {round.result.contractSucceeded ? "réussie" : "chutée"}</p> : null)}</div>;
 }
 
 function HistoryRules({ id, snapshot }: { id?: string | null; snapshot?: GameRulesetSnapshot | null }) {
   const label = id === "custom" ? "Variante personnalisée" : "Contrée KFFR";
-  if (!snapshot) return <p className="mt-2 text-xs font-semibold text-stone-600">{label}</p>;
+  if (!snapshot) return <p className="mt-2 text-xs font-semibold text-stone-400">{label}</p>;
   try {
     const safe = buildCustomRuleset(rulesetToCustomInput(snapshot));
-    return <details className="mt-2"><summary className="cursor-pointer text-xs font-semibold">{label} · Voir les règles</summary><div className="mt-2"><RulesetSummary ruleset={safe} compact /></div></details>;
+    return <details className="mt-2"><summary className="cursor-pointer text-xs font-semibold text-emerald-200">{label} · Voir les règles</summary><div className="mt-2"><RulesetSummary ruleset={safe} compact /></div></details>;
   } catch {
-    return <p className="mt-2 text-xs font-semibold text-stone-600">{label}</p>;
+    return <p className="mt-2 text-xs font-semibold text-stone-400">{label}</p>;
   }
 }
 
@@ -186,11 +192,11 @@ function HistoryHeader({ date, label, won }: { date: string | null; label: strin
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <p className="font-semibold">{formatDate(date)} · {label}</p>
-      <span className={`rounded-md px-2 py-1 text-xs font-bold ${won ? "bg-emerald-100 text-emerald-900" : "bg-red-100 text-red-900"}`}>{won ? "Victoire" : "Défaite"}</span>
+      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${won ? "bg-emerald-300/15 text-emerald-100" : "bg-red-300/15 text-red-100"}`}>{won ? "Victoire" : "Défaite"}</span>
     </div>
   );
 }
 
 function StatusMessage({ children }: { children: React.ReactNode }) {
-  return <div className="text-sm text-stone-700">{children}</div>;
+  return <div className="flex flex-col text-sm text-stone-300">{children}</div>;
 }

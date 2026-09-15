@@ -11,6 +11,14 @@ import {
   isUsernameTaken,
 } from "@/lib/profiles";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import {
+  AppEyebrow,
+  AppPage,
+  AppSurface,
+  appInputClass,
+  appPrimaryActionClass,
+  appSecondaryActionClass,
+} from "@/components/ui/AppShell";
 
 type Notice = {
   tone: "error" | "success";
@@ -211,32 +219,30 @@ export default function LoginPage() {
     : "Non connecté";
 
   return (
-    <main className="min-h-dvh bg-[#f4f1e8] px-4 py-6 text-stone-950">
-      <div className="mx-auto flex max-w-md flex-col gap-5">
-        <Link className="text-sm font-semibold text-emerald-900 hover:underline" href="/">
-          Retour au jeu
+    <AppPage width="narrow">
+      <div className="flex flex-col gap-5">
+        <Link className="w-fit text-sm font-semibold text-emerald-200 transition hover:text-emerald-100" href="/">
+          ← Accueil
         </Link>
 
-        <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
+        <AppSurface className="p-5 sm:p-7">
           <div className="mb-5 flex flex-col gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
-              Compte joueur
-            </p>
-            <h1 className="text-2xl font-bold">Connexion</h1>
-            <p className="text-sm font-semibold text-stone-700">{sessionLabel}</p>
+            <AppEyebrow>Compte joueur</AppEyebrow>
+            <h1 className="text-3xl font-black tracking-tight text-stone-50">Connexion</h1>
+            <p className="text-sm font-semibold text-stone-300">{sessionLabel}</p>
           </div>
 
           {!supabase ? (
-            <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <p className="rounded-xl border border-amber-200/30 bg-amber-200/10 px-3 py-2 text-sm text-amber-100">
               Supabase n&apos;est pas encore configuré. Vérifie les valeurs dans .env.local.
             </p>
           ) : null}
 
           <form className="flex flex-col gap-3" onSubmit={handleSignIn}>
-            <label className="flex flex-col gap-1 text-sm font-semibold">
+            <label className="flex flex-col gap-1.5 text-sm font-semibold text-stone-200">
               Email
               <input
-                className="rounded-md border border-stone-300 px-3 py-2 font-normal"
+                className={appInputClass}
                 disabled={!supabase || isSubmitting}
                 onChange={(event) => setEmail(event.target.value)}
                 required
@@ -245,10 +251,10 @@ export default function LoginPage() {
               />
             </label>
 
-            <label className="flex flex-col gap-1 text-sm font-semibold">
+            <label className="flex flex-col gap-1.5 text-sm font-semibold text-stone-200">
               Mot de passe
               <input
-                className="rounded-md border border-stone-300 px-3 py-2 font-normal"
+                className={appInputClass}
                 disabled={!supabase || isSubmitting}
                 minLength={6}
                 onChange={(event) => setPassword(event.target.value)}
@@ -258,10 +264,10 @@ export default function LoginPage() {
               />
             </label>
 
-            <label className="flex flex-col gap-1 text-sm font-semibold">
+            <label className="flex flex-col gap-1.5 text-sm font-semibold text-stone-200">
               Pseudo
               <input
-                className="rounded-md border border-stone-300 px-3 py-2 font-normal"
+                className={appInputClass}
                 disabled={!supabase || isSubmitting}
                 onChange={(event) => setUsername(event.target.value)}
                 placeholder="Ton pseudo"
@@ -272,14 +278,14 @@ export default function LoginPage() {
 
             <div className="grid gap-2 sm:grid-cols-2">
               <button
-                className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className={appPrimaryActionClass}
                 disabled={!supabase || isSubmitting || !isReady}
                 type="submit"
               >
                 Se connecter
               </button>
               <button
-                className="rounded-md border border-emerald-800 bg-white px-3 py-2 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:opacity-60"
+                className={appSecondaryActionClass}
                 disabled={!supabase || isSubmitting || !isReady}
                 onClick={handleSignUp}
                 type="button"
@@ -291,7 +297,7 @@ export default function LoginPage() {
 
           {session ? (
             <button
-              className="mt-3 w-full rounded-md border border-stone-400 bg-stone-100 px-3 py-2 text-sm font-semibold text-stone-900 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`${appSecondaryActionClass} mt-3 w-full`}
               disabled={isSubmitting}
               onClick={handleSignOut}
               type="button"
@@ -302,7 +308,7 @@ export default function LoginPage() {
 
           {session && !profileUsername ? (
             <button
-              className="mt-3 w-full rounded-md border border-emerald-800 bg-white px-3 py-2 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`${appSecondaryActionClass} mt-3 w-full`}
               disabled={!supabase || isSubmitting || !isReady}
               onClick={handleCreateMissingProfile}
               type="button"
@@ -315,15 +321,15 @@ export default function LoginPage() {
             <p
               className={`mt-4 rounded-md border px-3 py-2 text-sm ${
                 notice.tone === "error"
-                  ? "border-red-300 bg-red-50 text-red-900"
-                  : "border-emerald-300 bg-emerald-50 text-emerald-900"
+                  ? "border-red-300/35 bg-red-400/10 text-red-100"
+                  : "border-emerald-300/35 bg-emerald-300/10 text-emerald-100"
               }`}
             >
               {notice.text}
             </p>
           ) : null}
-        </section>
+        </AppSurface>
       </div>
-    </main>
+    </AppPage>
   );
 }

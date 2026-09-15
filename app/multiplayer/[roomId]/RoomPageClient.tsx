@@ -13,6 +13,11 @@ import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
+import {
+  appDangerActionClass,
+  appPrimaryActionClass,
+  appSecondaryActionClass,
+} from "@/components/ui/AppShell";
 import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { canCoinche, canSurcoinche } from "@/engine/bidding";
@@ -728,7 +733,7 @@ export default function MultiplayerRoomPage() {
       className={
         isPlayingLayout
           ? `h-[calc(100dvh-48px)] min-h-0 overflow-x-hidden overflow-y-auto bg-[#06120d] px-2 py-2 text-stone-50 sm:px-3 lg:overflow-hidden${isMobileLandscape ? " overflow-hidden px-0 py-0 sm:px-3" : ""}`
-          : "min-h-[calc(100dvh-48px)] bg-[#f4f1e8] px-4 py-6 text-stone-950"
+          : "coinche-app-page min-h-[calc(100dvh-48px)] px-3 py-5 text-stone-50 sm:px-5 sm:py-7"
       }
     >
       <div
@@ -746,7 +751,7 @@ export default function MultiplayerRoomPage() {
           <StatusMessage>
             Connecte-toi pour voir cette table.
             <Link
-              className="mt-4 inline-flex rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white"
+              className={`${appPrimaryActionClass} mt-4`}
               href="/login"
             >
               Se connecter
@@ -761,7 +766,7 @@ export default function MultiplayerRoomPage() {
         ) : null}
 
         {error && pageState === "ready" ? (
-          <p className={isPlayingLayout ? "fixed left-1/2 top-14 z-40 -translate-x-1/2 rounded-xl border border-red-300/30 bg-red-950/90 px-4 py-2 text-sm font-semibold text-red-100 shadow-xl" : "rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900"}>
+          <p className="fixed left-1/2 top-14 z-40 -translate-x-1/2 rounded-xl border border-red-300/30 bg-red-950/90 px-4 py-2 text-sm font-semibold text-red-100 shadow-xl">
             {error}
           </p>
         ) : null}
@@ -769,25 +774,25 @@ export default function MultiplayerRoomPage() {
         {pageState === "ready" && roomWithPlayers ? (
           <>
             {displayedRoomStatus === "finished" && gameState ? (
-              <section className="rounded-lg border border-emerald-300 bg-emerald-50 p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-900">
+              <section className="coinche-app-surface rounded-2xl border border-emerald-200/20 bg-[#0b1c15]/90 p-5 shadow-xl">
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
                   Partie terminée
                 </p>
                 <h2 className="mt-1 text-2xl font-bold">
                   {finalOutcome}
                 </h2>
                 <div className="mt-3 grid gap-2 text-sm text-stone-800 sm:grid-cols-2">
-                  <p className="rounded-md bg-white px-3 py-2 font-semibold">
+                  <p className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 font-semibold">
                     Score équipe 0: {gameState.totalScore[0]}
                   </p>
-                  <p className="rounded-md bg-white px-3 py-2 font-semibold">
+                  <p className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 font-semibold">
                     Score équipe 1: {gameState.totalScore[1]}
                   </p>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {roomWithPlayers.isHost ? (
                     <button
-                      className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      className={appPrimaryActionClass}
                       disabled={isResettingRoom}
                       onClick={handleRematch}
                       type="button"
@@ -796,7 +801,7 @@ export default function MultiplayerRoomPage() {
                     </button>
                   ) : null}
                   <button
-                    className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50"
+                    className={appSecondaryActionClass}
                     onClick={() => loadRoom()}
                     type="button"
                   >
@@ -808,16 +813,16 @@ export default function MultiplayerRoomPage() {
 
             {displayedRoomStatus === "lobby" ? (
               <>
-                <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
+                <section className="coinche-app-surface rounded-2xl border border-white/10 bg-[#0b1c15]/90 p-5 shadow-xl">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-300">
                         Table multijoueur
                       </p>
                       <h1 className="mt-1 font-mono text-3xl font-bold">
                         {roomWithPlayers.room.code}
                       </h1>
-                      <p className="mt-2 text-sm text-stone-600">
+                      <p className="mt-2 text-sm text-stone-300">
                         Statut: {statusLabel(roomWithPlayers.room.status)} | Mode:{" "}
                         {scoringModeLabel(roomWithPlayers.room.scoring_mode)} | Cible:{" "}
                         {roomWithPlayers.room.target_score}
@@ -825,16 +830,16 @@ export default function MultiplayerRoomPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <button className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50" onClick={() => setIsSettingsOpen(true)} type="button">Préférences</button>
+                      <button className={appSecondaryActionClass} onClick={() => setIsSettingsOpen(true)} type="button">Préférences</button>
                       <button
-                        className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50"
+                        className={appSecondaryActionClass}
                         onClick={() => loadRoom()}
                         type="button"
                       >
                         Rafraîchir
                       </button>
                       <button
-                        className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className={appPrimaryActionClass}
                         disabled={!currentSeat || isUpdatingReady}
                         onClick={handleToggleReady}
                         type="button"
@@ -844,7 +849,7 @@ export default function MultiplayerRoomPage() {
                       {isHost ? (
                         <>
                           <button
-                            className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            className={appSecondaryActionClass}
                             disabled={hostTransferCandidates.length === 0}
                             onClick={() => { setHostTransferSeat(null); setIsHostTransferOpen(true); }}
                             type="button"
@@ -852,7 +857,7 @@ export default function MultiplayerRoomPage() {
                             Transférer l&apos;hôte
                           </button>
                           <button
-                            className="rounded-md bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            className={appPrimaryActionClass}
                             disabled={!canStartGame || isStartingGame}
                             onClick={handleStartGame}
                             type="button"
@@ -866,10 +871,10 @@ export default function MultiplayerRoomPage() {
 
                 </section>
 
-                <section className="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-bold">Règles de la table</h2><p className="text-xs text-stone-600">Toute modification remet les joueurs en attente de confirmation.</p></div>{isHost ? <button className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold" type="button" onClick={() => { setRulesDraft(rulesetToCustomInput(lobbyRules)); setIsRulesOpen(true); }}>Modifier les règles</button> : null}</div>
+                <section className="coinche-app-surface rounded-2xl border border-white/10 bg-[#0b1c15]/90 p-4 shadow-xl">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-bold text-stone-50">Règles de la table</h2><p className="text-xs text-stone-400">Une modification redemande la confirmation des joueurs.</p></div>{isHost ? <button className={appSecondaryActionClass} type="button" onClick={() => { setRulesDraft(rulesetToCustomInput(lobbyRules)); setIsRulesOpen(true); }}>Modifier les règles</button> : null}</div>
                   <RulesetSummary ruleset={lobbyRules} showDifferences />
-                  {rulesChangedNotice ? <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">Les règles ont changé. Les joueurs doivent se remettre prêts.</p> : null}
+                  {rulesChangedNotice ? <p className="mt-3 rounded-xl border border-amber-200/25 bg-amber-200/10 px-3 py-2 text-sm font-semibold text-amber-100">Règles modifiées · confirme à nouveau que tu es prêt.</p> : null}
                 </section>
 
                 <LobbyTable
@@ -894,8 +899,8 @@ export default function MultiplayerRoomPage() {
                 />
               </>
             ) : null}
-            {isRulesOpen && displayedRoomStatus === "lobby" ? <AccessibleDialog description="Partagées par toute la table. Les joueurs devront se remettre prêts." footer={<button className="w-full rounded bg-emerald-800 px-4 py-2 font-bold text-white disabled:opacity-50 sm:w-auto" disabled={isUpdatingRules} type="button" onClick={() => void handleUpdateRules()}>{isUpdatingRules ? "Enregistrement…" : "Enregistrer les règles"}</button>} onClose={() => setIsRulesOpen(false)} title="Règles de la table"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null}
-            {isHostTransferOpen && isHost ? <AccessibleDialog description="Choisis un joueur humain connecté. Le transfert prend effet immédiatement." footer={<button className="w-full rounded bg-emerald-800 px-4 py-2 font-bold text-white disabled:opacity-50 sm:w-auto" disabled={!selectedHostTransferPlayer || isTransferringHost} type="button" onClick={() => void handleTransferHost()}>{isTransferringHost ? "Transfert…" : selectedHostTransferPlayer ? `Transférer le rôle d'hôte à ${selectedHostTransferPlayer.display_name} ?` : "Choisir un joueur"}</button>} onClose={() => { if (!isTransferringHost) setIsHostTransferOpen(false); }} title="Transférer l'hôte" width="medium"><div className="grid gap-2 overflow-y-auto p-4 sm:p-6">{hostTransferCandidates.map((player) => <button aria-pressed={hostTransferSeat === player.seat_index} className={`rounded-lg border px-4 py-3 text-left font-semibold ${hostTransferSeat === player.seat_index ? "border-emerald-700 bg-emerald-50" : "border-stone-300 bg-white hover:bg-stone-50"}`} key={player.seat_index} onClick={() => setHostTransferSeat(player.seat_index)} type="button">{player.display_name}</button>)}</div></AccessibleDialog> : null}
+            {isRulesOpen && displayedRoomStatus === "lobby" ? <AccessibleDialog description="Partagées par toute la table. Une modification redemande la confirmation des joueurs." footer={<button className={`${appPrimaryActionClass} w-full sm:w-auto`} disabled={isUpdatingRules} type="button" onClick={() => void handleUpdateRules()}>{isUpdatingRules ? "Enregistrement…" : "Enregistrer les règles"}</button>} onClose={() => setIsRulesOpen(false)} title="Règles de la table"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null}
+            {isHostTransferOpen && isHost ? <AccessibleDialog description="Choisis un joueur connecté. Le transfert est immédiat." footer={<button className={`${appPrimaryActionClass} w-full sm:w-auto`} disabled={!selectedHostTransferPlayer || isTransferringHost} type="button" onClick={() => void handleTransferHost()}>{isTransferringHost ? "Transfert…" : selectedHostTransferPlayer ? `Confirmer pour ${selectedHostTransferPlayer.display_name}` : "Choisir un joueur"}</button>} onClose={() => { if (!isTransferringHost) setIsHostTransferOpen(false); }} title="Transférer l'hôte" width="medium"><div className="grid gap-2 overflow-y-auto p-4 sm:p-6">{hostTransferCandidates.map((player) => <button aria-pressed={hostTransferSeat === player.seat_index} className={`rounded-xl border px-4 py-3 text-left font-semibold transition ${hostTransferSeat === player.seat_index ? "border-amber-300/50 bg-amber-200/15 text-amber-950" : "border-stone-300 bg-white/70 text-stone-800 hover:bg-white"}`} key={player.seat_index} onClick={() => setHostTransferSeat(player.seat_index)} type="button">{player.display_name}</button>)}</div></AccessibleDialog> : null}
 
             {displayedRoomStatus === "playing" && playerView ? (
               <div
@@ -1010,7 +1015,7 @@ export default function MultiplayerRoomPage() {
         <RoundCompletionCard actionLabel="Manche suivante" disabled={isStartingNextRound} onAction={handleStartNextRound} state={playerView} />
       ) : null}
 
-      {isForfeitConfirmationOpen ? <AccessibleDialog description="Ton équipe perdra immédiatement la partie." footer={<div className="flex justify-end gap-2"><button className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-bold disabled:opacity-50" disabled={isForfeiting} onClick={() => setIsForfeitConfirmationOpen(false)} type="button">Continuer la partie</button><button className="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50" disabled={isForfeiting} onClick={() => void handleForfeitGame()} type="button">{isForfeiting ? "Abandon…" : "Abandonner"}</button></div>} onClose={() => { if (!isForfeiting) setIsForfeitConfirmationOpen(false); }} title="Abandonner la partie ?"><div /></AccessibleDialog> : null}
+      {isForfeitConfirmationOpen ? <AccessibleDialog description="Ton équipe perdra immédiatement la partie." footer={<div className="flex justify-end gap-2"><button className={appSecondaryActionClass} disabled={isForfeiting} onClick={() => setIsForfeitConfirmationOpen(false)} type="button">Continuer la partie</button><button className={appDangerActionClass} disabled={isForfeiting} onClick={() => void handleForfeitGame()} type="button">{isForfeiting ? "Abandon…" : "Abandonner"}</button></div>} onClose={() => { if (!isForfeiting) setIsForfeitConfirmationOpen(false); }} title="Abandonner la partie ?"><div /></AccessibleDialog> : null}
       {isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost, tablePreferences, isSavingTablePreferences: isUpdatingTablePreferences, onTablePreferencesChange: handleUpdateTablePreferences }} onClose={() => setIsSettingsOpen(false)} /> : null}
     </main></>
   );
@@ -1053,8 +1058,8 @@ function LobbyTable({
   players: RoomPlayerView[];
 }) {
   return (
-    <section className="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-bold">Places</h2>
+    <section className="coinche-app-surface rounded-2xl border border-white/10 bg-[#0b1c15]/90 p-5 shadow-xl">
+      <h2 className="text-lg font-bold text-stone-50">Places</h2>
       <div
         className="coinche-game-table relative mt-4 min-h-[360px] overflow-hidden rounded-lg border border-emerald-900/20 bg-cover bg-center p-4 shadow-sm"
       >
@@ -1098,16 +1103,16 @@ function WaitingArea({
   onLeaveSeat: () => void;
 }) {
   return (
-    <section className="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+    <section className="coinche-app-surface rounded-2xl border border-white/10 bg-[#0b1c15]/90 p-4 shadow-xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
             En attente
           </p>
-          <p className="mt-1 text-sm font-semibold text-stone-900">
-            {displayName} <span className="text-stone-500">(Toi)</span>
+          <p className="mt-1 text-sm font-semibold text-stone-100">
+            {displayName} <span className="text-stone-400">(Toi)</span>
           </p>
-          <p className="mt-1 text-xs text-stone-600">
+          <p className="mt-1 text-xs text-stone-400">
             {currentSeat
               ? "Tu es assis. Tu peux quitter ta place ou cliquer une autre place libre."
               : hasFreeSeat
@@ -1118,7 +1123,7 @@ function WaitingArea({
 
         {currentSeat ? (
           <button
-            className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className={appSecondaryActionClass}
             disabled={isLeavingSeat}
             onClick={onLeaveSeat}
             type="button"
@@ -1127,7 +1132,7 @@ function WaitingArea({
           </button>
         ) : (
           <button
-            className="rounded-md bg-emerald-800 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className={appPrimaryActionClass}
             disabled={!hasFreeSeat || firstFreeSeat === null || isJoiningSeat}
             onClick={() => {
               if (firstFreeSeat !== null) {
@@ -1163,27 +1168,27 @@ function SeatCard({
   return (
     <button
       className={[
-        "flex h-20 w-32 flex-col items-center justify-center rounded-md border bg-white px-3 text-center text-sm shadow-sm transition",
+        "flex min-h-24 w-36 flex-col items-center justify-center rounded-xl border bg-[#10281e]/95 px-3 text-center text-sm text-stone-100 shadow-lg transition",
         player.is_ready
-          ? "border-emerald-600 shadow-emerald-300/70 ring-2 ring-emerald-300"
-          : "border-stone-200",
-        canJoin ? "cursor-pointer hover:border-emerald-600 hover:bg-emerald-50" : "cursor-default",
+          ? "border-emerald-300/60 shadow-emerald-950/60 ring-2 ring-emerald-300/30"
+          : "border-white/15",
+        canJoin ? "cursor-pointer hover:border-amber-200/60 hover:bg-[#173a2b]" : "cursor-default",
       ].join(" ")}
       disabled={!canJoin}
       onClick={onJoin}
       type="button"
     >
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-400">
         Place {positionLabel}
       </span>
-      <span className="mt-2 block font-bold text-stone-950">
+      <span className="mt-2 block font-bold text-stone-50">
         {isEmpty ? "Place libre" : player.display_name}
         {isCurrentUser ? " (Toi)" : ""}
       </span>
       {player.is_host ? <span className="mt-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">Hôte</span> : null}
       {!isEmpty ? (
         player.kind === "human" ? (
-          <span className="mt-1 flex items-center gap-1 text-xs font-semibold text-stone-600">
+          <span className="mt-1 flex items-center gap-1 text-xs font-semibold text-stone-300">
             <span
               aria-hidden="true"
               className={`h-1.5 w-1.5 rounded-full ${player.is_connected ? "bg-emerald-600" : "bg-stone-400"}`}
@@ -1191,7 +1196,7 @@ function SeatCard({
             {player.bot_takeover ? "Bot temporaire" : player.is_connected ? "En ligne" : "Hors ligne"}
           </span>
         ) : (
-          <span className="mt-1 block text-xs font-semibold text-stone-600">{kindLabel}</span>
+          <span className="mt-1 block text-xs font-semibold text-stone-300">{kindLabel}</span>
         )
       ) : null}
     </button>
@@ -1200,7 +1205,7 @@ function SeatCard({
 
 function StatusMessage({ children }: { children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-stone-300 bg-white p-5 text-sm text-stone-700 shadow-sm">
+    <section className="coinche-app-surface rounded-2xl border border-white/10 bg-[#0b1c15]/90 p-5 text-sm text-stone-300 shadow-xl">
       {children}
     </section>
   );

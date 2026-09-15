@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
@@ -18,6 +18,9 @@ export function AppDrawerNav() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
+  const drawerRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setIsOpen(false);
@@ -44,15 +47,45 @@ export function AppDrawerNav() {
   }, []);
 
   useEffect(() => {
-    if (!isOpen) {
-      document.body.style.overflow = "";
-      return;
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const menuButton = menuButtonRef.current;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab" || !drawerRef.current) return;
+
+      const focusable = Array.from(
+        drawerRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      const first = focusable[0];
+      const last = focusable.at(-1);
+
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
 
-    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+      menuButton?.focus();
     };
   }, [isOpen]);
 
@@ -73,17 +106,21 @@ export function AppDrawerNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-[#f4f1e8]/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#071c17]/92 text-stone-100 shadow-[0_10px_30px_rgba(1,12,9,0.2)] backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-5">
-          <Link className="text-sm font-bold tracking-[0.08em] text-emerald-950" href="/">
+          <Link className="flex items-center gap-2.5 text-sm font-bold tracking-[0.08em] text-stone-50" href="/">
+            <span className="grid h-8 w-8 place-items-center rounded-full border border-amber-200/35 bg-amber-200/10 text-sm text-amber-100 shadow-inner">
+              ♣
+            </span>
             Contrée KFFR
           </Link>
           <button
             aria-controls="app-drawer-nav"
             aria-expanded={isOpen}
             aria-label="Ouvrir le menu"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-stone-300 bg-white/80 text-lg font-semibold text-stone-900 shadow-sm transition hover:bg-white"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.07] text-lg font-semibold text-stone-100 transition hover:border-amber-200/40 hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
             onClick={() => setIsOpen(true)}
+            ref={menuButtonRef}
             type="button"
           >
             ☰
@@ -94,7 +131,7 @@ export function AppDrawerNav() {
       <div
         aria-hidden={!isOpen}
         className={[
-          "fixed inset-0 z-40 bg-stone-950/20 transition-opacity duration-200",
+          "fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-200",
           isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         ].join(" ")}
         onClick={() => setIsOpen(false)}
@@ -103,29 +140,32 @@ export function AppDrawerNav() {
       <aside
         aria-hidden={!isOpen}
         className={[
-          "fixed right-0 top-0 z-50 flex h-dvh w-[min(360px,96vw)] flex-col border-l border-stone-200 bg-[#f8f5ee] shadow-2xl transition-transform duration-200 ease-out sm:w-[min(320px,88vw)]",
+          "fixed right-0 top-0 z-50 flex h-dvh w-[min(360px,96vw)] flex-col border-l border-white/10 bg-[#071c17] text-stone-100 shadow-[-20px_0_60px_rgba(0,0,0,0.42)] transition-transform duration-200 ease-out sm:w-[min(320px,88vw)]",
           isOpen ? "translate-x-0" : "translate-x-full",
         ].join(" ")}
         id="app-drawer-nav"
+        inert={!isOpen}
+        ref={drawerRef}
       >
-        <div className="flex items-center justify-between border-b border-stone-200 px-4 py-4">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-emerald-300">
               Navigation
             </p>
-            <p className="text-lg font-bold text-stone-950">Contrée KFFR</p>
+            <p className="mt-1 text-lg font-bold text-stone-50">Contrée KFFR</p>
           </div>
           <button
             aria-label="Fermer le menu"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-stone-300 bg-white text-lg font-semibold text-stone-900 shadow-sm transition hover:bg-stone-50"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.07] text-xl text-stone-100 transition hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
             onClick={() => setIsOpen(false)}
+            ref={closeButtonRef}
             type="button"
           >
             ×
           </button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-2 px-4 py-4">
+        <nav className="flex flex-1 flex-col gap-2 px-4 py-5">
           {NAV_LINKS.map((link) => {
             const isActive =
               pathname === link.href ||
@@ -134,10 +174,10 @@ export function AppDrawerNav() {
             return (
               <Link
                 className={[
-                  "rounded-lg border px-4 py-3 text-sm font-semibold transition",
+                  "rounded-xl border px-4 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200",
                   isActive
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-950"
-                    : "border-stone-200 bg-white text-stone-800 hover:bg-stone-50",
+                    ? "border-amber-200/40 bg-amber-200/12 text-amber-100 shadow-inner"
+                    : "border-white/[0.08] bg-white/[0.035] text-stone-200 hover:border-white/15 hover:bg-white/[0.07]",
                 ].join(" ")}
                 href={link.href}
                 key={link.href}
@@ -149,10 +189,10 @@ export function AppDrawerNav() {
           })}
         </nav>
 
-        <div className="border-t border-stone-200 px-4 py-4">
+        <div className="border-t border-white/10 bg-black/10 px-4 py-4">
           {session ? (
             <button
-              className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 text-left text-sm font-semibold text-stone-900 transition hover:bg-stone-50"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-4 py-3 text-left text-sm font-semibold text-stone-200 transition hover:bg-white/[0.1]"
               onClick={handleSignOut}
               type="button"
             >
@@ -160,7 +200,7 @@ export function AppDrawerNav() {
             </button>
           ) : (
             <Link
-              className="block rounded-lg border border-stone-300 bg-white px-4 py-3 text-sm font-semibold text-stone-900 transition hover:bg-stone-50"
+              className="block rounded-xl border border-amber-200/35 bg-amber-200/10 px-4 py-3 text-sm font-semibold text-amber-100 transition hover:bg-amber-200/15"
               href="/login"
               onClick={() => setIsOpen(false)}
             >

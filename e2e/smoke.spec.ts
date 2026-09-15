@@ -6,7 +6,7 @@ test.describe("@smoke public production readiness", () => {
     const monitor = monitorBrowserErrors(page);
 
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /La contrée, en solo ou entre amis/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "La table est prête." })).toBeVisible();
     await expect(page.getByRole("link", { name: "Jouer en solo" })).toBeVisible();
 
     await page.goto("/login");
@@ -35,7 +35,7 @@ test.describe("@smoke public production readiness", () => {
     await expect(rulesDialog).toBeHidden();
 
     await page.goto("/multiplayer");
-    await expect(page.getByRole("heading", { name: "Tables" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Une table, quatre places" })).toBeVisible();
     await expect(page.getByText(/Connecte-toi|Supabase est indisponible|Créer une table/)).toBeVisible();
     monitor.assertClean();
   });
