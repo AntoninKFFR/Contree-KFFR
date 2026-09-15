@@ -72,7 +72,14 @@ export function PlayerSettingsPanel({ context = SOLO_SETTINGS_CONTEXT }: { conte
   return <div className="coinche-settings-panel flex h-full min-h-0 flex-1 flex-col bg-[#eeeade] text-stone-900">
     <div className="shrink-0 border-b border-stone-300/70 bg-[#f6f2e8] px-4 py-2.5 sm:px-6"><input aria-label="Rechercher un paramètre" className="w-full rounded-xl border border-stone-300/80 bg-[#fffdf7] px-3 py-2.5 text-sm text-stone-900 shadow-inner outline-none placeholder:text-stone-500 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15" onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un paramètre" type="search" value={query} /></div>
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:grid md:grid-cols-[210px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
-      <nav aria-label="Sections des paramètres" className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-stone-300/70 bg-[#e5e3d9] p-2 md:flex-col md:overflow-x-hidden md:overflow-y-auto md:overscroll-contain md:border-b-0 md:border-r md:p-4">{visibleSections.map((section) => <button aria-current={selected === section.id ? "page" : undefined} className={`whitespace-nowrap rounded-xl border px-3 py-2.5 text-left text-sm font-bold transition ${selected === section.id ? "border-emerald-950 bg-[#123c2b] text-[#f6edda] shadow-md" : "border-transparent bg-transparent text-stone-700 hover:border-stone-300 hover:bg-[#f5f1e7]"}`} key={section.id} onClick={() => setActive(section.id)} type="button">{section.label.toLocaleUpperCase("fr")}</button>)}</nav>
+      <nav aria-label="Sections des paramètres" className="flex shrink-0 overflow-x-auto border-b border-stone-300/70 bg-[#e5e3d9] p-2 md:flex-col md:overflow-hidden md:border-b-0 md:border-r md:p-4">
+        <div className="flex shrink-0 gap-1.5 md:min-h-0 md:flex-1 md:flex-col md:overflow-y-auto md:overscroll-contain">
+          {visibleSections.map((section) => <button aria-current={selected === section.id ? "page" : undefined} className={`whitespace-nowrap rounded-xl border px-3 py-2.5 text-left text-sm font-bold transition ${selected === section.id ? "border-emerald-950 bg-[#123c2b] text-[#f6edda] shadow-md" : "border-transparent bg-transparent text-stone-700 hover:border-stone-300 hover:bg-[#f5f1e7]"}`} key={section.id} onClick={() => setActive(section.id)} type="button">{section.label.toLocaleUpperCase("fr")}</button>)}
+        </div>
+        <div className="ml-2 flex shrink-0 items-center gap-1.5 border-l border-stone-400/40 pl-2 md:ml-0 md:mt-3 md:block md:border-l-0 md:border-t md:pl-0 md:pt-3">
+          {confirmReset ? <div className="flex gap-1.5 md:grid"><button className="rounded-lg border border-red-800/25 bg-red-50 px-2.5 py-2 text-xs font-bold text-red-900 transition hover:bg-red-100" onClick={() => { reset(); setConfirmReset(false); }} type="button">Confirmer</button><button className="rounded-lg border border-stone-300 bg-white/70 px-2.5 py-2 text-xs font-bold text-stone-700 transition hover:bg-white" onClick={() => setConfirmReset(false)} type="button">Annuler</button></div> : <button className="whitespace-nowrap rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-stone-600 transition hover:bg-white/55 hover:text-red-900" onClick={() => setConfirmReset(true)} type="button">Réinitialiser mes paramètres</button>}
+        </div>
+      </nav>
       <div className="min-h-0 min-w-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_top_right,rgb(255_255_255_/_55%),transparent_45%)] p-4 [scrollbar-gutter:stable] sm:p-6">
         {!selected ? <p className="rounded-lg border bg-white p-4 text-sm">Aucun paramètre ne correspond à « {query} ».</p> : null}
         {selected === "game" ? <GameSettings context={context} preferences={preferences} setGameSpeed={setGameSpeed} timing={timing} update={update} speedLabels={speedLabels} /> : null}
@@ -81,7 +88,6 @@ export function PlayerSettingsPanel({ context = SOLO_SETTINGS_CONTEXT }: { conte
         {selected === "display" ? <DisplaySettings preferences={preferences} update={update} /> : null}
         {selected === "sound" ? <SoundSettings preferences={preferences} update={update} /> : null}
         {selected === "accessibility" ? <AccessibilitySettings preferences={preferences} update={update} /> : null}
-        <div className="mt-6 rounded-2xl border border-amber-900/15 bg-[#eee3c9] p-3.5"><p className="text-sm font-bold text-stone-900">Réinitialiser mes paramètres</p><p className="mt-0.5 text-xs text-stone-700">Les règles des parties ne seront pas modifiées.</p>{confirmReset ? <div className="mt-3 flex gap-2"><button className="rounded-xl bg-red-800 px-3 py-2 text-sm font-bold text-white" onClick={() => { reset(); setConfirmReset(false); }} type="button">Confirmer</button><button className="rounded-xl border border-stone-300 bg-[#fffdf7] px-3 py-2 text-sm font-bold" onClick={() => setConfirmReset(false)} type="button">Annuler</button></div> : <button className="mt-3 rounded-xl border border-red-800/25 bg-[#fffdf7] px-3 py-2 text-sm font-bold text-red-900 shadow-sm" onClick={() => setConfirmReset(true)} type="button">Réinitialiser mes paramètres</button>}</div>
       </div>
     </div>
   </div>;
@@ -129,5 +135,5 @@ function AccessibilitySettings({ preferences, update }: { preferences: PlayerPre
 
 export function PlayerSettingsDialog({ context = SOLO_SETTINGS_CONTEXT, onClose }: { context?: PlayerSettingsContext; onClose: () => void }) {
   const multiplayer = context.mode === "multiplayer";
-  return <AccessibleDialog onClose={onClose} showCloseButton={false} title={multiplayer ? "Préférences" : "Paramètres"}><PlayerSettingsPanel context={context} /></AccessibleDialog>;
+  return <AccessibleDialog closeLabel={multiplayer ? "Fermer les préférences" : "Fermer les paramètres"} minimalHeader onClose={onClose} stableHeight title={multiplayer ? "Préférences" : "Paramètres"}><PlayerSettingsPanel context={context} /></AccessibleDialog>;
 }

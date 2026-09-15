@@ -24,6 +24,7 @@ describe("premium settings navigation", () => {
     expect(markup).toContain("peer-checked:bg-emerald-700");
     expect(markup).toContain("overflow-y-auto");
     expect(markup).toContain("text-stone-900");
+    expect(markup.match(/Réinitialiser mes paramètres/g)).toHaveLength(1);
   });
 
   it("shows precise timing sliders and human durations", () => {
@@ -36,14 +37,17 @@ describe("premium settings navigation", () => {
     expect(formatPreferenceDuration(1200)).toBe("1,2 s");
   });
 
-  it("uses a labelled, compact modal without redundant header copy", () => {
+  it("uses a labelled, stable modal with a compact close action", () => {
     const markup = renderToStaticMarkup(React.createElement(PlayerPreferencesProvider, null, React.createElement(PlayerSettingsDialog, { onClose: noop })));
     expect(markup).toContain('role="dialog"');
     expect(markup).toContain('aria-modal="true"');
     expect(markup).not.toContain("Ces réglages ne changent que ton interface");
     expect(markup).not.toContain("Enregistré automatiquement");
     expect(markup).not.toContain("MES PARAMÈTRES");
-    expect(markup).not.toContain('aria-label="Fermer Paramètres"');
+    expect(markup).toContain('aria-label="Fermer les paramètres"');
+    expect(markup).toContain("sm:h-[min(46rem,calc(100dvh-1.5rem))]");
+    expect(markup).toContain("<svg");
+    expect(markup).not.toContain("Les règles des parties ne seront pas modifiées");
   });
 });
 

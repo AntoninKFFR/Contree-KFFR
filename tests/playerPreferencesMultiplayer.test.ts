@@ -38,5 +38,5 @@ describe("multiplayer preference isolation", () => {
 });
 
 describe("shared settings screen", () => {
-  it("separates local settings from game rules and exposes all sections", () => { vi.stubGlobal("React", React); const markup = renderToStaticMarkup(React.createElement(PlayerPreferencesProvider, null, React.createElement(PlayerSettingsPanel))); for (const section of ["JEU", "AIDES", "CARTES", "AFFICHAGE", "SON", "ACCESSIBILITÉ"]) expect(markup).toContain(section); expect(markup).toContain("Les règles des parties ne seront pas modifiées"); });
+  it("exposes every section and keeps reset as a single navigation action", () => { vi.stubGlobal("React", React); const markup = renderToStaticMarkup(React.createElement(PlayerPreferencesProvider, null, React.createElement(PlayerSettingsPanel))); for (const section of ["JEU", "AIDES", "CARTES", "AFFICHAGE", "SON", "ACCESSIBILITÉ"]) expect(markup).toContain(section); expect(markup.match(/Réinitialiser mes paramètres/g)).toHaveLength(1); expect(markup).not.toContain("Les règles des parties ne seront pas modifiées"); });
 });
