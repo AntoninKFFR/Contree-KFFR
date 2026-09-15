@@ -15,15 +15,13 @@ export function AppPage({ children, className = "", width = "medium" }: AppPageP
   const widthClass = width === "narrow" ? "max-w-xl" : width === "wide" ? "max-w-6xl" : "max-w-4xl";
   return (
     <main className="coinche-app-page relative min-h-[calc(100dvh-56px)] overflow-hidden px-3 py-5 sm:px-5 sm:py-8">
-      <div aria-hidden="true" className="pointer-events-none absolute -left-32 top-20 h-80 w-80 rounded-full bg-emerald-500/[0.07] blur-3xl" />
-      <div aria-hidden="true" className="pointer-events-none absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-amber-200/[0.05] blur-3xl" />
-      <div className={`relative mx-auto flex w-full ${widthClass} flex-col gap-4 ${className}`}>{children}</div>
+      <div className={`mx-auto flex w-full ${widthClass} flex-col gap-4 ${className}`}>{children}</div>
     </main>
   );
 }
 
 export function AppSurface({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <section className={`coinche-app-surface rounded-2xl border p-4 backdrop-blur-sm sm:p-5 ${className}`}>{children}</section>;
+  return <section className={`coinche-app-surface rounded-2xl border p-4 sm:p-5 ${className}`}>{children}</section>;
 }
 
 export function AppEyebrow({ children }: { children: ReactNode }) {
