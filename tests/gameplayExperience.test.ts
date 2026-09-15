@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable, tableSeatsFor } from "@/components/GameTable";
 import { GameTopBar } from "@/components/GameTopBar";
+import { RoundCompletionAction } from "@/components/RoundCompletionAction";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
 import { createInitialGame } from "@/engine/game";
 import { toPlayerGameView } from "@/engine/views";
@@ -21,10 +22,9 @@ describe("premium gameplay shell", () => {
   it("keeps essential controls in a compact shared game bar and separates dangerous actions", () => {
     vi.stubGlobal("React", React);
     const markup = renderToStaticMarkup(React.createElement(GameTopBar, {
-      contextLabel: "Solo", focusMode: false, infoOpen: true,
+      contextLabel: "Solo", focusMode: false,
       onOpenPreferences: () => undefined,
       onToggleFocusMode: () => undefined,
-      onToggleInfo: () => undefined,
       menuActions: [{ label: "Abandonner la partie", tone: "danger", onSelect: () => undefined }],
     }));
     expect(markup).toContain("CONTRÉE KFFR");
@@ -32,6 +32,16 @@ describe("premium gameplay shell", () => {
     expect(markup).toContain("Ouvrir le menu de partie");
     expect(markup).toContain("Accueil");
     expect(markup).toContain("Abandonner la partie");
+    expect(markup).not.toContain(">Infos<");
+  });
+
+  it("keeps the next-round action fixed and reachable on short viewports", () => {
+    const markup = renderToStaticMarkup(React.createElement(RoundCompletionAction, {
+      label: "Manche suivante", onClick: () => undefined,
+    }));
+    expect(markup).toContain("fixed");
+    expect(markup).toContain("safe-area-inset-bottom");
+    expect(markup).toContain("Manche suivante");
   });
 
   it("uses direct, keyboard-accessible bid and trump targets instead of form selects", () => {

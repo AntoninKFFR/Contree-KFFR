@@ -66,7 +66,7 @@ export function SoloBotHandsPanel({ state }: { state: GameState }) {
       className="rounded-lg border-2 border-amber-400 bg-amber-50 p-3 text-stone-950 shadow-sm"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-bold">Mode analyse · mains des bots</h2>
+        <h2 className="text-base font-bold">Mode développeur · mains des bots</h2>
         <p className="rounded-full bg-amber-200 px-2 py-1 text-xs font-semibold">Solo uniquement</p>
       </div>
       <div className="mt-3 grid gap-3 xl:grid-cols-3">

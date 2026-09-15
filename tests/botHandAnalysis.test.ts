@@ -17,6 +17,7 @@ import {
   soloContentClassName,
   soloGridClassName,
   soloMainClassName,
+  shouldShowBotReviewAction,
 } from "@/app/solo/soloAnalysis";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
@@ -171,17 +172,25 @@ describe("solo bot hand analysis", () => {
     expect(soloMainClassName(analysisDesktop, false)).toContain("lg:h-auto");
     expect(soloMainClassName(analysisDesktop, false)).toContain("lg:overflow-y-auto");
     expect(soloContentClassName(analysisDesktop)).toContain("h-auto min-h-full");
-    expect(soloGridClassName(analysisDesktop, false, true)).toContain("flex-none");
+    expect(soloGridClassName(analysisDesktop, false)).toContain("flex-none");
 
     const normalDesktop = isSoloDesktopAnalysisLayout(true, false, false);
     expect(normalDesktop).toBe(false);
     expect(soloMainClassName(normalDesktop, false)).toContain("h-[calc(100dvh-48px)]");
     expect(soloMainClassName(normalDesktop, false)).toContain("lg:overflow-hidden");
     expect(soloContentClassName(normalDesktop)).toContain("h-full");
-    expect(soloGridClassName(normalDesktop, false, true)).toContain("flex-1");
+    expect(soloGridClassName(normalDesktop, false)).toContain("flex-1");
 
     const mobileLandscape = isSoloDesktopAnalysisLayout(true, true, true);
     expect(mobileLandscape).toBe(false);
     expect(soloMainClassName(mobileLandscape, true)).toContain("overflow-hidden px-0 py-0");
+  });
+
+  it("shows move analysis only while developer mode is enabled", () => {
+    expect(shouldShowBotReviewAction(true, true, false, true, false)).toBe(true);
+    expect(shouldShowBotReviewAction(true, false, false, true, false)).toBe(false);
+    expect(shouldShowBotReviewAction(true, true, true, true, false)).toBe(false);
+    expect(shouldShowBotReviewAction(true, true, false, false, false)).toBe(false);
+    expect(shouldShowBotReviewAction(true, true, false, true, true)).toBe(false);
   });
 });

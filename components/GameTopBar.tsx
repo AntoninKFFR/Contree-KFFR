@@ -15,11 +15,9 @@ export type GameMenuAction = {
 type GameTopBarProps = {
   contextLabel: string;
   focusMode: boolean;
-  infoOpen?: boolean;
   menuActions?: GameMenuAction[];
   onOpenPreferences: () => void;
   onToggleFocusMode: () => void;
-  onToggleInfo?: () => void;
   preferencesLabel?: "Paramètres" | "Préférences";
   showFocusMode?: boolean;
 };
@@ -35,11 +33,9 @@ const NAV_LINKS = [
 export function GameTopBar({
   contextLabel,
   focusMode,
-  infoOpen,
   menuActions = [],
   onOpenPreferences,
   onToggleFocusMode,
-  onToggleInfo,
   preferencesLabel = "Préférences",
   showFocusMode = true,
 }: GameTopBarProps) {
@@ -100,7 +96,6 @@ export function GameTopBar({
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
         {showFocusMode ? <button aria-pressed={focusMode} className="coinche-chrome-button hidden sm:inline-flex" onClick={onToggleFocusMode} type="button">{focusMode ? "Quitter le mode épuré" : "Mode épuré"}</button> : null}
-        {onToggleInfo && !focusMode ? <button aria-pressed={infoOpen} className="coinche-chrome-button hidden lg:inline-flex" onClick={onToggleInfo} type="button">Infos</button> : null}
         <button className="coinche-chrome-button" onClick={onOpenPreferences} type="button">{preferencesLabel}</button>
         <button aria-controls="game-menu-drawer" aria-expanded={isOpen} aria-label="Ouvrir le menu de partie" className="coinche-chrome-icon" onClick={() => setIsOpen(true)} ref={menuButtonRef} type="button">☰</button>
       </div>
@@ -113,7 +108,6 @@ export function GameTopBar({
         <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">Affichage</p>
         <div className="grid gap-2">
           {showFocusMode ? <button className="coinche-drawer-action" onClick={() => run(onToggleFocusMode)} type="button">{focusMode ? "Afficher toutes les informations" : "Activer le mode épuré"}</button> : null}
-          {onToggleInfo && !focusMode ? <button className="coinche-drawer-action" onClick={() => run(onToggleInfo)} type="button">{infoOpen ? "Masquer le panneau d’informations" : "Afficher le panneau d’informations"}</button> : null}
           <button className="coinche-drawer-action" onClick={() => run(onOpenPreferences)} type="button">{preferencesLabel}</button>
         </div>
         {menuActions.filter((action) => action.tone !== "danger").length ? <><p className="mb-2 mt-6 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">Actions</p><div className="grid gap-2">{menuActions.filter((action) => action.tone !== "danger").map((action) => <button className="coinche-drawer-action" disabled={action.disabled} key={action.label} onClick={() => run(action.onSelect)} type="button">{action.label}</button>)}</div></> : null}

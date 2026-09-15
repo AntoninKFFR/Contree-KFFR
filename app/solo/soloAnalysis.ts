@@ -6,6 +6,16 @@ export function isSoloDesktopAnalysisLayout(
   return botReviewEnabled && analysisModeEnabled && !mobileLandscape;
 }
 
+export function shouldShowBotReviewAction(
+  botReviewEnabled: boolean,
+  developerModeEnabled: boolean,
+  mobileLandscape: boolean,
+  hasReview: boolean,
+  focusMode: boolean,
+): boolean {
+  return botReviewEnabled && developerModeEnabled && !mobileLandscape && hasReview && !focusMode;
+}
+
 export function soloMainClassName(analysisDesktop: boolean, mobileLandscape: boolean): string {
   return [
     "h-[calc(100dvh-48px)] min-h-0 overflow-x-hidden overflow-y-auto bg-[#06120d] px-2 py-2 text-stone-50 sm:px-3",
@@ -23,9 +33,7 @@ export function soloContentClassName(analysisDesktop: boolean): string {
 export function soloGridClassName(
   analysisDesktop: boolean,
   mobileLandscape: boolean,
-  rightPanelOpen: boolean,
 ): string {
-  void rightPanelOpen;
   return [
     `relative grid min-h-0 grid-cols-[minmax(0,1fr)] gap-2 ${analysisDesktop ? "flex-none" : "flex-1"}`,
     mobileLandscape ? "grid-cols-[minmax(0,1fr)]" : "",

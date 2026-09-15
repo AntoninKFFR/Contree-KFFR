@@ -9,6 +9,7 @@ import { GameTable } from "@/components/GameTable";
 import { GameTopBar, type GameMenuAction } from "@/components/GameTopBar";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
+import { RoundCompletionAction } from "@/components/RoundCompletionAction";
 import { ScoreBoard } from "@/components/ScoreBoard";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
@@ -25,7 +26,6 @@ import { rulesetToCustomInput, type CustomRulesetInput } from "@/engine/rulesets
 import { CONTREE_KFFR_RULESET } from "@/engine/rulesets/presets";
 import { resolveRoomRules } from "@/engine/rulesets/room";
 import type { BidValue, Card, ContractMode } from "@/engine/types";
-import type { PlayerGameView } from "@/engine/views";
 import { PRESENCE_HEARTBEAT_INTERVAL_MS } from "@/lib/multiplayerPresence";
 import { getProfileUsername } from "@/lib/profiles";
 import { fetchRoomView, sendPresenceHeartbeat, sendRoomIntent, sendRoomIntentWithLobbyRetry, sendRoomTick } from "@/lib/multiplayerApi";
@@ -78,7 +78,6 @@ export default function MultiplayerRoomPage() {
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [isUpdatingReady, setIsUpdatingReady] = useState(false);
   const [pageState, setPageState] = useState<PageState>("loading");
-  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
@@ -93,7 +92,6 @@ export default function MultiplayerRoomPage() {
   const [isUpdatingTablePreferences, setIsUpdatingTablePreferences] = useState(false);
   const [rulesChangedNotice, setRulesChangedNotice] = useState(false);
   const previousRulesKeyRef = useRef<string | null>(null);
-  const previousPhaseRef = useRef<PlayerGameView["phase"] | null>(null);
   const accessToken = session?.access_token ?? null;
   const viewerSeatIndex = roomWithPlayers?.viewerSeatIndex ?? null;
 
@@ -210,29 +208,6 @@ export default function MultiplayerRoomPage() {
       )
     : [];
 
-  useEffect(() => {
-    const phase = playerView?.phase ?? null;
-
-    if (!phase) {
-      previousPhaseRef.current = phase;
-      return;
-    }
-
-    if (previousPhaseRef.current === phase) {
-      return;
-    }
-
-    previousPhaseRef.current = phase;
-
-    if (phase === "playing") {
-      setIsRightPanelOpen(false);
-      return;
-    }
-
-    if (phase === "finished" || phase === "game-over") {
-      setIsRightPanelOpen(true);
-    }
-  }, [playerView?.phase]);
   const canShowNextRoundButton = Boolean(
     roomWithPlayers?.room.status === "playing" &&
       gameState?.phase === "finished" &&
@@ -750,7 +725,7 @@ export default function MultiplayerRoomPage() {
   }
 
   return (
-    <><GameTopBar contextLabel={roomWithPlayers?.room.code ?? "Multijoueur"} focusMode={isFocusMode} infoOpen={isRightPanelOpen} menuActions={gameMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} onToggleInfo={isPlayingLayout ? () => setIsRightPanelOpen((current) => !current) : undefined} showFocusMode={isPlayingLayout} /><main
+    <><GameTopBar contextLabel={roomWithPlayers?.room.code ?? "Multijoueur"} focusMode={isFocusMode} menuActions={gameMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} showFocusMode={isPlayingLayout} /><main
       className={
         isPlayingLayout
           ? `h-[calc(100dvh-48px)] min-h-0 overflow-x-hidden overflow-y-auto bg-[#06120d] px-2 py-2 text-stone-50 sm:px-3 lg:overflow-hidden${isMobileLandscape ? " overflow-hidden px-0 py-0 sm:px-3" : ""}`
@@ -1008,19 +983,6 @@ export default function MultiplayerRoomPage() {
                     />
                   ) : null}
 
-                  {playerView.phase === "finished" && canShowNextRoundButton ? (
-                    <div className="lg:hidden">
-                      <button
-                        className="w-full rounded-md bg-stone-900 px-3 py-3 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={isStartingNextRound}
-                        onClick={handleStartNextRound}
-                        type="button"
-                      >
-                        Manche suivante
-                      </button>
-                    </div>
-                  ) : null}
-
                   {!isMobileLandscape ? (
                     <div>
                       <HumanHand
@@ -1035,19 +997,8 @@ export default function MultiplayerRoomPage() {
                   ) : null}
                 </div>
 
-                {isRightPanelOpen && !isMobileLandscape && !isFocusMode ? (
+                {playerView.phase === "finished" && !isMobileLandscape && !isFocusMode ? (
                   <div className="flex min-h-0 flex-col gap-2">
-                    {canShowNextRoundButton ? (
-                      <button
-                        className="rounded-md bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={isStartingNextRound}
-                        onClick={handleStartNextRound}
-                        type="button"
-                      >
-                        Manche suivante
-                      </button>
-                    ) : null}
-
                     <ScoreBoard overlay state={playerView} showActions={false} />
                   </div>
                 ) : null}
@@ -1056,6 +1007,10 @@ export default function MultiplayerRoomPage() {
           </>
         ) : null}
       </div>
+
+      {displayedRoomStatus === "playing" && playerView?.phase === "finished" && canShowNextRoundButton ? (
+        <RoundCompletionAction disabled={isStartingNextRound} label="Manche suivante" onClick={handleStartNextRound} />
+      ) : null}
 
       {isForfeitConfirmationOpen ? <AccessibleDialog description="Ton équipe perdra immédiatement la partie." footer={<div className="flex justify-end gap-2"><button className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-bold disabled:opacity-50" disabled={isForfeiting} onClick={() => setIsForfeitConfirmationOpen(false)} type="button">Continuer la partie</button><button className="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50" disabled={isForfeiting} onClick={() => void handleForfeitGame()} type="button">{isForfeiting ? "Abandon…" : "Abandonner"}</button></div>} onClose={() => { if (!isForfeiting) setIsForfeitConfirmationOpen(false); }} title="Abandonner la partie ?"><div /></AccessibleDialog> : null}
       {isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost, tablePreferences, isSavingTablePreferences: isUpdatingTablePreferences, onTablePreferencesChange: handleUpdateTablePreferences }} onClose={() => setIsSettingsOpen(false)} /> : null}

@@ -20,6 +20,8 @@ describe("premium settings navigation", () => {
     expect(markup).toContain("overflow-x-auto");
     expect(markup).toContain("md:grid-cols-[210px_minmax(0,1fr)]");
     expect(markup).toContain("Rechercher un paramètre");
+    expect(markup).toContain("coinche-settings-panel");
+    expect(markup).toContain("peer-checked:bg-emerald-700");
   });
 
   it("shows precise timing sliders and human durations", () => {

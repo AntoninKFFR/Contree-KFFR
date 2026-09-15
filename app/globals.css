@@ -87,19 +87,8 @@ summary:focus-visible {
     linear-gradient(145deg, rgb(4 48 31 / 38%), rgb(3 25 18 / 36%)),
     url("/TapisKFFR.png");
   box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 7%),
     inset 0 0 90px rgb(0 0 0 / 38%),
     0 18px 55px rgb(0 0 0 / 28%);
-}
-
-.coinche-game-table::before {
-  position: absolute;
-  inset: 0.55rem;
-  z-index: -1;
-  border: 1px solid rgb(239 222 174 / 10%);
-  border-radius: 1.05rem;
-  content: "";
-  pointer-events: none;
 }
 
 .coinche-game-table::after {

@@ -9,6 +9,7 @@ import { GameTable } from "@/components/GameTable";
 import { GameTopBar } from "@/components/GameTopBar";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
+import { RoundCompletionAction } from "@/components/RoundCompletionAction";
 import { ScoreBoard } from "@/components/ScoreBoard";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
@@ -49,6 +50,7 @@ import {
   soloContentClassName,
   soloGridClassName,
   soloMainClassName,
+  shouldShowBotReviewAction,
 } from "@/app/solo/soloAnalysis";
 import { createSoloGame, loadSoloRules, saveSoloRules } from "@/app/solo/soloGameInitialization";
 
@@ -63,7 +65,6 @@ export default function SoloPage() {
   const hasInitializedRandomGameRef = useRef(false);
   const savedGameIdsRef = useRef(new Set<string>());
   const botDecisionNumberRef = useRef(0);
-  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
@@ -140,17 +141,6 @@ export default function SoloPage() {
       window.removeEventListener("resize", update);
     };
   }, []);
-
-  useEffect(() => {
-    if (gameState?.phase === "playing") {
-      setIsRightPanelOpen(false);
-      return;
-    }
-
-    if (gameState?.phase === "finished" || gameState?.phase === "game-over") {
-      setIsRightPanelOpen(true);
-    }
-  }, [gameState?.phase]);
 
   function dispatchGameAction(action: GameAction) {
     if (!gameState) {
@@ -309,7 +299,7 @@ export default function SoloPage() {
   const rulesDialog = isRulesOpen ? <AccessibleDialog description="Partagées par les joueurs de la prochaine partie. La partie en cours reste inchangée." footer={<div className="grid gap-2 sm:grid-cols-[1fr_auto]"><RulesetSummary ruleset={buildCustomRuleset(rulesDraft)} compact /><button className="rounded-lg bg-emerald-800 px-4 py-3 font-bold text-white" type="button" onClick={applyRulesAndStartGame}>Appliquer et nouvelle partie</button></div>} onClose={() => setIsRulesOpen(false)} title="Règles de la prochaine partie"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null;
   const soloMenuActions = [
     { label: "Règles de la prochaine partie", onSelect: () => { setRulesDraft(rulesInput); setIsRulesOpen(true); } },
-    ...(BOT_REVIEW_MODE_ENABLED ? [{ label: `Mode analyse : ${isAnalysisModeEnabled ? "activé" : "désactivé"}`, onSelect: () => setIsAnalysisModeEnabled((current) => !current) }] : []),
+    ...(BOT_REVIEW_MODE_ENABLED ? [{ label: `Mode développeur : ${isAnalysisModeEnabled ? "activé" : "désactivé"}`, onSelect: () => setIsAnalysisModeEnabled((current) => !current) }] : []),
     { label: "Abandonner et redistribuer", tone: "danger" as const, onSelect: () => setIsNewGameConfirmationOpen(true) },
   ];
 
@@ -326,12 +316,12 @@ export default function SoloPage() {
   }
 
   return (
-    <><GameTopBar contextLabel="Solo" focusMode={isFocusMode} infoOpen={isRightPanelOpen} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} onToggleInfo={() => setIsRightPanelOpen((current) => !current)} preferencesLabel="Paramètres" /><main
+    <><GameTopBar contextLabel="Solo" focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" /><main
       className={soloMainClassName(analysisDesktop, isMobileLandscape)}
     >
       <div className={soloContentClassName(analysisDesktop)}>
         <div
-          className={soloGridClassName(analysisDesktop, isMobileLandscape, isRightPanelOpen)}
+          className={soloGridClassName(analysisDesktop, isMobileLandscape)}
         >
           <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
             <GameTable
@@ -392,7 +382,7 @@ export default function SoloPage() {
               </>
             ) : null}
 
-            {BOT_REVIEW_MODE_ENABLED && !isMobileLandscape && lastBotReview && !isFocusMode ? (
+            {shouldShowBotReviewAction(BOT_REVIEW_MODE_ENABLED, isAnalysisModeEnabled, isMobileLandscape, Boolean(lastBotReview), isFocusMode) && lastBotReview ? (
               <div className="grid gap-2">
                 <button
                   className="justify-self-end rounded-md border border-amber-400 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-stone-800 shadow-sm hover:bg-amber-100"
@@ -436,30 +426,6 @@ export default function SoloPage() {
               />
             ) : null}
 
-            {gameState.phase === "finished" ? (
-              <div className="grid gap-2 lg:hidden">
-                <button
-                  className="rounded-md bg-stone-900 px-3 py-3 text-sm font-semibold text-white"
-                  onClick={handleNextRound}
-                  type="button"
-                >
-                  Manche suivante
-                </button>
-              </div>
-            ) : null}
-
-            {gameState.phase === "game-over" ? (
-              <div className="grid gap-2 lg:hidden">
-                <button
-                  className="rounded-md bg-stone-900 px-3 py-3 text-sm font-semibold text-white"
-                  onClick={handleNewGame}
-                  type="button"
-                >
-                  Nouvelle partie
-                </button>
-              </div>
-            ) : null}
-
             {!isMobileLandscape ? (
               <div>
                 <HumanHand
@@ -474,16 +440,17 @@ export default function SoloPage() {
             ) : null}
           </div>
 
-          {isRightPanelOpen && !isMobileLandscape && !isFocusMode ? (
+          {(gameState.phase === "finished" || gameState.phase === "game-over") && !isMobileLandscape && !isFocusMode ? (
             <ScoreBoard
               overlay
               state={gameState}
-              onNewGame={handleNewGame}
-              onNextRound={handleNextRound}
+              showActions={false}
             />
           ) : null}
         </div>
       </div>
+      {gameState.phase === "finished" ? <RoundCompletionAction label="Manche suivante" onClick={handleNextRound} /> : null}
+      {gameState.phase === "game-over" ? <RoundCompletionAction label="Nouvelle partie" onClick={handleNewGame} /> : null}
       {rulesDialog}
       {isNewGameConfirmationOpen ? <AccessibleDialog description="La donne en cours sera remplacée par une nouvelle partie." footer={<div className="flex justify-end gap-2"><button className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-bold" onClick={() => setIsNewGameConfirmationOpen(false)} type="button">Continuer la partie</button><button className="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white" onClick={() => { setIsNewGameConfirmationOpen(false); handleNewGame(); }} type="button">Abandonner et redistribuer</button></div>} onClose={() => setIsNewGameConfirmationOpen(false)} title="Abandonner la partie ?"><div /></AccessibleDialog> : null}
       {isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}
