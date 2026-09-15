@@ -51,7 +51,7 @@ export function HumanHand({
           embedded || preferences.visual.compactLayout ? "mb-1" : "",
         ].join(" ")}
       >
-        <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#eadcb7]/75">Ta main</h2>
+        <h2 className="coinche-panel-kicker text-xs font-bold uppercase tracking-[0.14em]">Ta main</h2>
       </div>
       {feedback ? <p aria-live="polite" className={`mb-2 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm ${embedded ? "border-amber-200/60 bg-stone-950/80 text-white" : "border-amber-300 bg-amber-50 text-amber-950"}`} role="status">{feedback}</p> : null}
       <div

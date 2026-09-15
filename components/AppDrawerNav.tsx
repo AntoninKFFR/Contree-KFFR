@@ -111,7 +111,7 @@ export function AppDrawerNav() {
       <header className="coinche-global-header sticky top-0 z-40 border-b shadow-[0_10px_30px_var(--shadow)] backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-5">
           <Link className="flex items-center gap-2.5 text-sm font-bold tracking-[0.08em] text-stone-50" href="/">
-            <span className="grid h-8 w-8 place-items-center rounded-full border border-amber-200/35 bg-amber-200/10 text-sm text-amber-100 shadow-inner">
+            <span className="coinche-brand-mark grid h-8 w-8 place-items-center rounded-full border text-sm shadow-inner">
               ♣
             </span>
             Contrée KFFR
@@ -154,7 +154,7 @@ export function AppDrawerNav() {
       >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
           <div>
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-emerald-300">
+            <p className="coinche-nav-kicker text-[0.68rem] font-semibold uppercase tracking-[0.2em]">
               Navigation
             </p>
             <p className="mt-1 text-lg font-bold text-stone-50">Contrée KFFR</p>
@@ -175,10 +175,8 @@ export function AppDrawerNav() {
             return (
               <Link
                 className={[
-                  "rounded-xl border px-4 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200",
-                  isActive
-                    ? "border-amber-200/40 bg-amber-200/12 text-amber-100 shadow-inner"
-                    : "border-white/[0.08] bg-white/[0.035] text-stone-200 hover:border-white/15 hover:bg-white/[0.07]",
+                  "coinche-nav-link rounded-xl border px-4 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]",
+                  isActive ? "coinche-nav-link--active" : "",
                 ].join(" ")}
                 href={link.href}
                 key={link.href}
@@ -201,7 +199,7 @@ export function AppDrawerNav() {
             </button>
           ) : (
             <Link
-              className="block rounded-xl border border-amber-200/35 bg-amber-200/10 px-4 py-3 text-sm font-semibold text-amber-100 transition hover:bg-amber-200/15"
+              className="coinche-login-link block rounded-xl border px-4 py-3 text-sm font-semibold transition"
               href="/login"
               onClick={() => setIsOpen(false)}
             >

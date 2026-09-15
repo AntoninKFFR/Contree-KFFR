@@ -21,6 +21,7 @@ describe("rules-aware human hand", () => {
       onPlayCard: () => undefined,
     }));
     expect(markup).not.toContain("Les bots réfléchissent");
+    expect(markup).toContain("coinche-panel-kicker");
   });
 
   it("enables a newly legal card and keeps the classic illegal card disabled", () => {

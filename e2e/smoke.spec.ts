@@ -136,12 +136,9 @@ test.describe("@smoke public production readiness", () => {
     await page.getByRole("button", { name: "Préférences", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Préférences" });
     await dialog.getByRole("button", { name: "AFFICHAGE", exact: true }).click();
-    await expect(dialog.getByRole("button", { name: "Clair", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await dialog.getByRole("button", { name: "Sombre", exact: true }).click();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    await expect(page.getByRole("switch", { name: "Activer le thème clair" })).toBeVisible();
-    await dialog.getByRole("button", { name: "Clair", exact: true }).click();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(dialog.getByText("Apparence", { exact: true })).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "Clair", exact: true })).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "Sombre", exact: true })).toHaveCount(0);
     await expect(dialog.locator(".coinche-settings-panel")).toHaveCSS("background-color", "rgb(238, 234, 222)");
     await dialog.getByRole("button", { name: "Fermer les préférences" }).click();
 

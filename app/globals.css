@@ -35,6 +35,20 @@
   --focus-ring: #6ee7b7;
   --danger: #fecaca;
   --success: #6ee7b7;
+  --panel-kicker: rgb(234 220 183 / 75%);
+  --nav-kicker: #6ee7b7;
+  --game-nav-kicker: rgb(110 231 183 / 70%);
+  --nav-section-label: rgb(255 255 255 / 40%);
+  --nav-link-border: rgb(255 255 255 / 8%);
+  --nav-link-bg: rgb(255 255 255 / 3.5%);
+  --nav-link-text: #e7e5e4;
+  --game-nav-link-text: rgb(255 255 255 / 75%);
+  --nav-link-hover-border: rgb(255 255 255 / 15%);
+  --nav-link-hover-bg: rgb(255 255 255 / 7%);
+  --nav-active-border: rgb(253 230 138 / 40%);
+  --nav-active-bg: rgb(253 230 138 / 12%);
+  --nav-active-text: #fef3c7;
+  --nav-active-shadow: inset 0 2px 4px rgb(0 0 0 / 5%);
   --coinche-settings-light-canvas: #eeeade;
   --coinche-settings-light-header: #f6f2e8;
   --coinche-settings-light-sidebar: #e5e3d9;
@@ -74,6 +88,20 @@
   --focus-ring: #047857;
   --danger: #991b1b;
   --success: #047857;
+  --panel-kicker: #365548;
+  --nav-kicker: #315d48;
+  --game-nav-kicker: #315d48;
+  --nav-section-label: #53665b;
+  --nav-link-border: var(--border);
+  --nav-link-bg: var(--surface-muted);
+  --nav-link-text: var(--text-secondary);
+  --game-nav-link-text: var(--text-secondary);
+  --nav-link-hover-border: var(--border-strong);
+  --nav-link-hover-bg: var(--surface-hover);
+  --nav-active-border: color-mix(in srgb, var(--accent) 38%, transparent);
+  --nav-active-bg: var(--accent-soft);
+  --nav-active-text: var(--text-primary);
+  --nav-active-shadow: inset 3px 0 0 var(--accent);
 }
 
 * {
@@ -507,21 +535,6 @@ summary:focus-visible {
 
 .coinche-dialog-backdrop { background: var(--overlay) !important; }
 
-.coinche-theme-segment {
-  border-color: var(--border);
-  background: var(--coinche-settings-surface);
-  color: var(--coinche-settings-text);
-}
-
-.coinche-theme-segment > div { background: var(--surface-muted); }
-.coinche-theme-segment button { color: var(--text-secondary); }
-.coinche-theme-segment button:hover { background: var(--surface-hover); color: var(--text-primary); }
-.coinche-theme-segment button[aria-pressed="true"] {
-  background: var(--accent);
-  color: var(--accent-foreground);
-  box-shadow: 0 2px 8px var(--shadow);
-}
-
 .coinche-theme-toggle {
   position: relative;
   display: inline-grid;
@@ -597,6 +610,51 @@ summary:focus-visible {
 }
 
 .coinche-app-drawer { background: var(--app-sidebar) !important; }
+
+.coinche-panel-kicker { color: var(--panel-kicker); }
+.coinche-game-table .coinche-panel-kicker { color: rgb(234 220 183 / 75%); }
+.coinche-nav-kicker { color: var(--nav-kicker); }
+.coinche-game-nav-kicker { color: var(--game-nav-kicker); }
+.coinche-nav-section-label { color: var(--nav-section-label); }
+
+.coinche-brand-mark,
+.coinche-login-link {
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.coinche-login-link:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent-hover);
+}
+
+.coinche-nav-link,
+.coinche-game-nav-link {
+  border-color: var(--nav-link-border);
+  background: var(--nav-link-bg);
+  color: var(--nav-link-text);
+}
+
+.coinche-game-nav-link {
+  background: transparent;
+  color: var(--game-nav-link-text);
+}
+
+.coinche-nav-link:hover,
+.coinche-game-nav-link:hover {
+  border-color: var(--nav-link-hover-border);
+  background: var(--nav-link-hover-bg);
+  color: var(--text-primary);
+}
+
+.coinche-nav-link--active {
+  border-color: var(--nav-active-border);
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+  box-shadow: var(--nav-active-shadow);
+}
 :root[data-theme="light"] .coinche-global-header .text-stone-50,
 :root[data-theme="light"] .coinche-global-header .text-stone-100,
 :root[data-theme="light"] .coinche-app-drawer .text-stone-50,

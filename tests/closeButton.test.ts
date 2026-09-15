@@ -46,5 +46,9 @@ describe("shared close button", () => {
     }
     expect(gameDrawer).toContain("coinche-theme-toggle");
     expect(appDrawer).toContain("coinche-theme-toggle");
+    expect(appDrawer).toContain("coinche-nav-link--active");
+    expect(appDrawer).toContain("coinche-nav-kicker");
+    expect(gameDrawer).toContain("coinche-game-nav-kicker");
+    expect(gameDrawer).toContain("coinche-nav-section-label");
   });
 });

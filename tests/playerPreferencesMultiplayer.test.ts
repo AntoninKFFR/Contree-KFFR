@@ -40,5 +40,5 @@ describe("multiplayer preference isolation", () => {
 
 describe("shared settings screen", () => {
   it("exposes every section and keeps reset as a single navigation action", () => { vi.stubGlobal("React", React); const markup = renderToStaticMarkup(React.createElement(PlayerPreferencesProvider, null, React.createElement(PlayerSettingsPanel))); for (const section of ["JEU", "AIDES", "CARTES", "AFFICHAGE", "SON", "ACCESSIBILITÉ"]) expect(markup).toContain(section); expect(markup.match(/Réinitialiser mes paramètres/g)).toHaveLength(1); expect(markup).not.toContain("Les règles des parties ne seront pas modifiées"); });
-  it("renders the local dark/light segmented control", () => { const source = readFileSync("components/settings/PlayerSettingsPanel.tsx", "utf8"); expect(source).toContain('aria-label="Apparence"'); expect(source).toContain("'dark','Sombre'"); expect(source).toContain("'light','Clair'"); expect(source).toContain('update("visual", { theme: value })'); });
+  it("keeps the global theme choice out of the settings panel", () => { const source = readFileSync("components/settings/PlayerSettingsPanel.tsx", "utf8"); expect(source).not.toContain('aria-label="Apparence"'); expect(source).not.toContain("'dark','Sombre'"); expect(source).not.toContain("'light','Clair'"); expect(source).not.toContain('update("visual", { theme: value })'); });
 });
