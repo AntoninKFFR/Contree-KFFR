@@ -1,4 +1,5 @@
 import * as React from "react";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { bidConfirmationMessage, restoreBidConfirmationFocus, shouldConfirmBidAction } from "@/components/BiddingPanel";
@@ -21,10 +22,25 @@ describe("premium settings navigation", () => {
     expect(markup).toContain("md:grid-cols-[210px_minmax(0,1fr)]");
     expect(markup).toContain("Rechercher un paramètre");
     expect(markup).toContain("coinche-settings-panel");
-    expect(markup).toContain("peer-checked:bg-emerald-700");
+    expect(markup).toContain("peer-checked:bg-emerald-600");
     expect(markup).toContain("overflow-y-auto");
-    expect(markup).toContain("text-stone-900");
+    expect(markup).toContain("bg-[var(--coinche-settings-canvas)]");
+    expect(markup).toContain("bg-[var(--coinche-settings-surface)]");
+    expect(markup).toContain("text-[#f4ead0]");
+    expect(markup).not.toContain("bg-[#eeeade]");
+    expect(markup).not.toContain("bg-[#f6f2e8]");
+    expect(markup).not.toContain("bg-[#e5e3d9]");
     expect(markup.match(/Réinitialiser mes paramètres/g)).toHaveLength(1);
+  });
+
+  it("keeps the warm ivory palette tokenized for a future light theme", () => {
+    const styles = readFileSync("app/globals.css", "utf8");
+    expect(styles).toContain("--coinche-settings-canvas: #091711");
+    expect(styles).toContain("--coinche-settings-sidebar: #0c1c15");
+    expect(styles).toContain("--coinche-settings-light-canvas: #eeeade");
+    expect(styles).toContain("--coinche-settings-light-header: #f6f2e8");
+    expect(styles).toContain("--coinche-settings-light-sidebar: #e5e3d9");
+    expect(styles).toContain("--coinche-settings-light-surface: #fffdf7");
   });
 
   it("shows precise timing sliders and human durations", () => {
@@ -58,7 +74,8 @@ describe("premium settings navigation", () => {
     expect(markup).toContain('aria-label="Fermer les préférences"');
     expect(markup).toContain("coinche-settings-panel");
     expect(markup).toContain("sm:h-[min(46rem,calc(100dvh-1.5rem))]");
-    expect(markup).toContain("bg-[#fffdf7]");
+    expect(markup).toContain("bg-[var(--coinche-settings-canvas)]");
+    expect(markup).toContain("bg-[var(--coinche-settings-surface)]");
     expect(markup.match(/Réinitialiser mes paramètres/g)).toHaveLength(1);
     expect(markup).not.toContain("border-sky-200");
     expect(markup).not.toContain("bg-sky-50");

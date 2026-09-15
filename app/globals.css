@@ -4,6 +4,11 @@
 
 :root {
   color-scheme: light;
+  --coinche-settings-light-canvas: #eeeade;
+  --coinche-settings-light-header: #f6f2e8;
+  --coinche-settings-light-sidebar: #e5e3d9;
+  --coinche-settings-light-surface: #fffdf7;
+  --coinche-settings-light-text: #17201a;
 }
 
 * {
@@ -30,6 +35,30 @@ select {
 
 .coinche-app-surface {
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%), 0 18px 55px rgb(0 0 0 / 22%);
+}
+
+.coinche-settings-panel {
+  color-scheme: dark;
+  --coinche-settings-canvas: #091711;
+  --coinche-settings-header: #102219;
+  --coinche-settings-sidebar: #0c1c15;
+  --coinche-settings-surface: rgb(255 255 255 / 4.5%);
+  --coinche-settings-field: rgb(0 0 0 / 20%);
+  --coinche-settings-text: #f5f1e7;
+  --coinche-settings-muted: rgb(255 255 255 / 58%);
+}
+
+.coinche-settings-panel select,
+.coinche-settings-panel input[type="search"] {
+  border-color: rgb(255 255 255 / 14%);
+  background: var(--coinche-settings-field);
+  color: var(--coinche-settings-text);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 20%);
+}
+
+.coinche-settings-panel select option {
+  background: var(--coinche-settings-header);
+  color: var(--coinche-settings-text);
 }
 
 .coinche-app-field input,

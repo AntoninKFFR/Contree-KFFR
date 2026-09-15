@@ -91,6 +91,9 @@ test.describe("@smoke public production readiness", () => {
     const dialog = page.getByRole("dialog", { name: "Préférences" });
     const surface = dialog.locator(".coinche-dialog");
     await expect(dialog.locator(".coinche-settings-panel")).toBeVisible();
+    await expect(dialog.locator(".coinche-settings-panel")).toHaveCSS("background-color", "rgb(9, 23, 17)");
+    await expect(dialog.getByRole("searchbox", { name: "Rechercher un paramètre" })).toHaveCSS("background-color", "rgba(0, 0, 0, 0.2)");
+    await expect(dialog.getByText(/Rythme de la table :/).locator("..")).toHaveCSS("background-color", "rgba(255, 255, 255, 0.043)");
     await expect(dialog.getByRole("button", { name: "Réinitialiser mes paramètres" })).toBeVisible();
     const initialSize = await surface.evaluate((element) => ({ height: element.clientHeight, width: element.clientWidth }));
     for (const section of ["AIDES", "CARTES", "AFFICHAGE", "SON", "ACCESSIBILITÉ", "JEU"]) {
