@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import HomePage from "@/app/page";
 import { KffrLogo } from "@/components/ui/KffrLogo";
 
 vi.stubGlobal("React", React);
@@ -27,5 +28,15 @@ describe("KFFR branding", () => {
     expect(layout).toContain("themeBootstrap");
     expect(readFileSync("app/icon.png").byteLength).toBeLessThan(20_000);
     expect(readFileSync("app/apple-icon.png").byteLength).toBeLessThan(100_000);
+  });
+
+  it("uses the full KFFR logo instead of playing cards as the home hero visual", () => {
+    const markup = renderToStaticMarkup(React.createElement(HomePage));
+
+    expect(markup.match(/coinche-brand-logo--full/g)).toHaveLength(1);
+    expect(markup).not.toMatch(/[♣♦♠♥]/);
+    expect(markup).toContain("La contrée, en solo ou entre amis");
+    expect(markup).toContain("Jouer en solo");
+    expect(markup).toContain("Multijoueur");
   });
 });
