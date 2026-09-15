@@ -50,6 +50,12 @@ test.describe("@smoke public production readiness", () => {
     await page.getByRole("button", { name: "Règles de la prochaine partie" }).click();
 
     const dialog = page.getByRole("dialog", { name: "Règles de la prochaine partie" });
+    const dialogSurface = dialog.locator(".coinche-dialog");
+    const initialSize = await dialogSurface.evaluate((element) => ({ height: element.clientHeight, width: element.clientWidth }));
+    for (const section of ["Contrats", "Annonces", "Belote", "Jeu", "Réussite du contrat", "Score", "Avancé", "Partie"]) {
+      await dialog.getByRole("button", { name: section, exact: true }).click();
+      await expect.poll(() => dialogSurface.evaluate((element) => ({ height: element.clientHeight, width: element.clientWidth }))).toEqual(initialSize);
+    }
     const targetScore = dialog.getByRole("spinbutton", { name: "Score cible personnalisé" });
 
     await targetScore.click();

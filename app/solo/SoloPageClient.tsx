@@ -296,7 +296,7 @@ export default function SoloPage() {
     dispatchGameAction({ type: "start-next-round" });
   }
 
-  const rulesDialog = isRulesOpen ? <AccessibleDialog description="Ces règles s'appliqueront à la prochaine partie." footer={<div className="grid items-center gap-2 sm:grid-cols-[1fr_auto]"><div className="hidden sm:block"><RulesetSummary ruleset={buildCustomRuleset(rulesDraft)} compact /></div><button className={`${appPrimaryActionClass} w-full sm:w-auto`} type="button" onClick={applyRulesAndStartGame}>Appliquer et nouvelle partie</button></div>} onClose={() => setIsRulesOpen(false)} title="Règles de la prochaine partie"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null;
+  const rulesDialog = isRulesOpen ? <AccessibleDialog description="Ces règles s'appliqueront à la prochaine partie." footer={<div className="grid items-center gap-2 sm:grid-cols-[1fr_auto]"><div className="hidden sm:block"><RulesetSummary ruleset={buildCustomRuleset(rulesDraft)} compact /></div><button className={`${appPrimaryActionClass} w-full sm:w-auto`} type="button" onClick={applyRulesAndStartGame}>Appliquer et nouvelle partie</button></div>} onClose={() => setIsRulesOpen(false)} stableHeight title="Règles de la prochaine partie"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null;
   const soloMenuActions = [
     { label: "Règles de la prochaine partie", onSelect: () => { setRulesDraft(rulesInput); setIsRulesOpen(true); } },
     ...(BOT_REVIEW_MODE_ENABLED ? [{ label: `Mode développeur : ${isAnalysisModeEnabled ? "activé" : "désactivé"}`, onSelect: () => setIsAnalysisModeEnabled((current) => !current) }] : []),

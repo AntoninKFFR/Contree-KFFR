@@ -6,6 +6,7 @@ import { RulesetSummary } from "@/components/rules/RulesetSummary";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { ScoreBoard } from "@/components/ScoreBoard";
 import { inactivePlayerMessage } from "@/components/GameTable";
+import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { buildCustomRuleset, mergeRulesetDraft } from "@/engine/rulesets/custom";
 import { createInitialGame } from "@/engine/game";
 import { scoreRound } from "@/engine/scoring";
@@ -13,7 +14,22 @@ import { createTestRuleset } from "@/tests/helpers/rulesets";
 import type { Contract } from "@/engine/types";
 
 const noop = vi.fn();
+vi.stubGlobal("React", React);
 describe("ruleset configuration UI", () => {
+  it("keeps the rules dialog height stable while its editor scrolls internally", () => {
+    const editor = React.createElement(RulesetConfigurator, { value: { presetId: "contree-kffr" }, onChange: noop });
+    const markup = renderToStaticMarkup(React.createElement(AccessibleDialog, {
+      footer: React.createElement("button", null, "Valider les règles"),
+      onClose: noop,
+      stableHeight: true,
+      title: "Règles de la table",
+    } as unknown as React.ComponentProps<typeof AccessibleDialog>, editor));
+    expect(markup).toContain("sm:h-[min(46rem,calc(100dvh-1.5rem))]");
+    expect(markup).toContain("coinche-rules-configurator flex h-full min-h-0");
+    expect(markup).toContain("min-h-0 flex-1 overflow-y-auto");
+    expect(markup).toContain("md:min-h-0 md:flex-col md:overflow-x-hidden md:overflow-y-auto");
+    expect(markup).toContain("shrink-0 border-t");
+  });
   it("shows business labels and offers Générale configuration", () => { const markup = renderToStaticMarkup(React.createElement(RulesetConfigurator, { value: { presetId: "contree-kffr" }, onChange: noop })); expect(markup).toContain("Obligation de fournir"); expect(markup).toContain("Réussite du contrat"); expect(markup).toContain("Générale"); });
   it("keeps the editor compact and uses user-facing rule labels", () => {
     const markup = renderToStaticMarkup(React.createElement(RulesetConfigurator, { value: { presetId: "contree-kffr", overrides: { game: { targetScore: 2500 } } }, onChange: noop }));
