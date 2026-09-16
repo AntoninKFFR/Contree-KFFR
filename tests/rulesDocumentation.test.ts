@@ -23,9 +23,13 @@ describe("rules documentation", () => {
   it("covers the default rules and editor-facing option families", () => {
     expect(kffrSections).toHaveLength(12);
     expect(variantSections).toHaveLength(7);
-    for (const label of ["Enchères", "Coinche et Surcoinche", "Belote / Rebelote", "Sans Atout", "Tout Atout", "Générale", "Tierce", "Cinquante", "Cent", "Carrés", "Jeu", "Réussite du contrat", "Calcul du score", "Score cible"]) {
+    for (const label of ["Enchères", "Contrer et surcontrer", "Belote / Rebelote", "Sans Atout", "Tout Atout", "Générale", "Tierce", "Cinquante", "Cent", "Carrés", "Jeu", "Réussite du contrat", "Calcul du score", "Score cible"]) {
       expect(markup).toContain(label);
     }
+    expect(markup).toContain("peut contrer");
+    expect(markup).toContain("peut surcontrer");
+    expect(markup).toContain("est contré ou surcontré");
+    expect(markup).not.toMatch(/coincher|surcoincher|coinché|surcoinché/i);
     for (const score of ["82 – 80", "81 – 81", "80 – 82"]) expect(markup).toContain(score);
   });
 

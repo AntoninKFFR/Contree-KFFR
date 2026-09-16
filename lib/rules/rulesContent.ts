@@ -54,10 +54,10 @@ export const kffrSections: RulesSection[] = [
   },
   {
     id: "coinche-surcoinche",
-    title: "Coinche et Surcoinche",
+    title: "Contrer et surcontrer",
     points: [
       `Coinche : un adversaire peut contrer le contrat à son tour. Le contrat est figé et le coefficient de marque est ×${defaultRules.coincheMultiplier}.`,
-      `Surcoinche : un joueur de l’équipe preneuse peut répondre à son tour. Elle termine immédiatement les enchères et porte le coefficient à ×${defaultRules.surcoincheMultiplier}.`,
+      `Surcoinche : un joueur de l’équipe preneuse peut surcontrer à son tour. Cette action termine immédiatement les enchères et porte le coefficient à ×${defaultRules.surcoincheMultiplier}.`,
     ],
   },
   {
@@ -85,7 +85,7 @@ export const kffrSections: RulesSection[] = [
     title: "Belote / Rebelote",
     paragraphs: [
       `Un joueur qui possède le Roi et la Dame d’atout dans sa main réalise Belote à la première de ces cartes jouée, puis Rebelote à la seconde. L’application enregistre ces déclarations automatiquement. La combinaison rapporte ${defaultRules.belotePoints} points.`,
-      "La Belote est imprenable : elle reste acquise même si le contrat chute, est coinché ou surcoinché. Dans la Contrée KFFR par défaut, les annonces Tierce, Cinquante, Cent et Carrés sont désactivées ; seule Belote / Rebelote est comptée.",
+      "La Belote est imprenable : elle reste acquise même si le contrat chute, est contré ou surcontré. Dans la Contrée KFFR par défaut, les annonces Tierce, Cinquante, Cent et Carrés sont désactivées ; seule Belote / Rebelote est comptée.",
     ],
   },
   {
@@ -109,8 +109,8 @@ export const kffrSections: RulesSection[] = [
     title: "Calcul du score · Officiel",
     paragraphs: [
       "Contrat normal réussi : les preneurs marquent leurs points de donne plus la valeur du contrat ; la défense marque ses propres points de donne.",
-      `Contrat coinché ou surcoinché réussi : les preneurs marquent la base réglementaire (${defaultRules.failureBase}, ou ${defaultRules.capotBase} si un Capot est réalisé), plus le contrat et leur Belote éventuelle, le tout multiplié par ${defaultRules.coincheMultiplier} ou ${defaultRules.surcoincheMultiplier}. La défense conserve seulement sa Belote éventuelle.`,
-      `Contrat chuté : les preneurs conservent uniquement leur Belote éventuelle. La défense marque la base de chute (${defaultRules.failureBase}), plus le contrat et sa Belote éventuelle. Si le contrat est coinché ou surcoinché, ce total est multiplié par ${defaultRules.coincheMultiplier} ou ${defaultRules.surcoincheMultiplier} ; la Belote des preneurs n’est pas multipliée. La base devient ${defaultRules.capotBase} si la défense réalise un Capot ou si le contrat demandé était un Capot.`,
+      `Contrat contré ou surcontré réussi : les preneurs marquent la base réglementaire (${defaultRules.failureBase}, ou ${defaultRules.capotBase} si un Capot est réalisé), plus le contrat et leur Belote éventuelle, le tout multiplié par ${defaultRules.coincheMultiplier} ou ${defaultRules.surcoincheMultiplier}. La défense conserve seulement sa Belote éventuelle.`,
+      `Contrat chuté : les preneurs conservent uniquement leur Belote éventuelle. La défense marque la base de chute (${defaultRules.failureBase}), plus le contrat et sa Belote éventuelle. Si le contrat est contré ou surcontré, ce total est multiplié par ${defaultRules.coincheMultiplier} ou ${defaultRules.surcoincheMultiplier} ; la Belote des preneurs n’est pas multipliée. La base devient ${defaultRules.capotBase} si la défense réalise un Capot ou si le contrat demandé était un Capot.`,
       "Le score final de chaque équipe est arrondi à la dizaine la plus proche ; un 5 est arrondi vers le haut.",
     ],
   },
