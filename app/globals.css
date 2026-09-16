@@ -328,6 +328,16 @@ summary:focus-visible {
   box-shadow: 0 8px 20px rgb(15 23 42 / 18%);
 }
 
+.coinche-card[data-highlighted="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 62%, transparent), 0 9px 20px rgb(0 0 0 / 22%);
+}
+
+.coinche-card:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
 @keyframes coinche-card-enter {
   from {
     opacity: 0;
@@ -651,6 +661,17 @@ summary:focus-visible {
 .coinche-bidding-secondary:hover:not(:disabled) { border-color: var(--border-strong); }
 .coinche-bidding-panel button:disabled { cursor: not-allowed; opacity: 0.58; }
 :root[data-theme="light"] .coinche-bidding-panel button:disabled { opacity: 0.66; }
+
+.coinche-bidding-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 80px), 1fr));
+  gap: .25rem;
+}
+
+.coinche-round-completion.coinche-round-completion--success {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent) !important;
+}
+.coinche-round-success-label { color: var(--accent); }
 
 :root[data-theme="light"] .coinche-primary-action:disabled,
 :root[data-theme="light"] .coinche-secondary-action:disabled {

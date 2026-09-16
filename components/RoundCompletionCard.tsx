@@ -41,9 +41,9 @@ export function RoundCompletionCard({ actionLabel, disabled = false, onAction, s
     <div className="pointer-events-none fixed inset-0 z-40 flex items-end justify-center bg-black/45 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4">
       <section
         aria-label="Résultat de la manche"
-        className={`coinche-round-completion pointer-events-auto max-h-[calc(100dvh-4rem)] w-full max-w-md overflow-y-auto rounded-2xl border p-3 text-center shadow-[0_20px_70px_var(--shadow)] backdrop-blur-xl sm:p-4 ${success ? "border-emerald-300/35" : "border-red-300/35"} ${animated ? "coinche-card-enter" : ""}`}
+        className={`coinche-round-completion pointer-events-auto max-h-[calc(100dvh-4rem)] w-full max-w-md overflow-y-auto rounded-2xl border p-3 text-center shadow-[0_20px_70px_var(--shadow)] backdrop-blur-xl sm:p-4 ${success ? "coinche-round-completion--success" : "border-red-300/35"} ${animated ? "coinche-card-enter" : ""}`}
       >
-        <p className={`text-xs font-black uppercase tracking-[0.18em] ${success ? "text-emerald-300" : "text-red-300"}`}>
+        <p className={`text-xs font-black uppercase tracking-[0.18em] ${success ? "coinche-round-success-label" : "text-red-300"}`}>
           {result ? (success ? "Contrat réussi ✓" : "Contrat chuté") : "Manche terminée"}
         </p>
         {result ? <p className="mt-1 text-lg font-black text-[#f3ead2]">{compactContractLabel(result.contract)} <span className="text-white/35">—</span> {playerName(result.contract.playerId, names)}</p> : null}
@@ -67,7 +67,7 @@ export function RoundCompletionCard({ actionLabel, disabled = false, onAction, s
 
         {result ? (
           <details className="mt-2 rounded-xl border border-white/10 bg-black/15 text-left text-xs text-white/70">
-            <summary className="cursor-pointer rounded-xl px-3 py-2 text-center font-bold text-white/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300">Détails</summary>
+            <summary className="cursor-pointer rounded-xl px-3 py-2 text-center font-bold text-white/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">Détails</summary>
             <div className="grid gap-1 border-t border-white/10 px-3 py-2.5 sm:grid-cols-2">
               <p>Points de plis : {result.trickPointsByTeam[0]} — {result.trickPointsByTeam[1]}</p>
               <p>Points détaillés : {result.totalPointsByTeam[0]} — {result.totalPointsByTeam[1]}</p>

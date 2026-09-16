@@ -241,8 +241,6 @@ test.describe("@smoke public production readiness", () => {
         await expect(bidding).toBeVisible();
         await expect(bidding).toHaveCSS("background-color", theme === "dark" ? "rgb(9, 24, 17)" : "rgb(255, 253, 247)");
         await expect(bidding.getByRole("button", { name: "Annoncer" })).toHaveCSS("background-color", theme === "dark" ? "rgb(234, 216, 166)" : "rgb(36, 55, 45)");
-        await expect(bidding.getByRole("button", { name: "Contrer", exact: true })).toHaveCSS("color", theme === "dark" ? "rgb(254, 202, 202)" : "rgb(153, 27, 27)");
-        await expect(bidding.getByRole("button", { name: "Surcontrer" })).toHaveCSS("color", theme === "dark" ? "rgb(247, 237, 207)" : "rgb(121, 85, 31)");
         await expect(bidding.getByRole("button", { name: "Passer" })).toHaveCSS("color", theme === "dark" ? "rgb(245, 241, 231)" : "rgb(23, 32, 26)");
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
         await page.screenshot({ path: `test-results/theme-${theme}-${viewport.width}.png`, fullPage: true });
