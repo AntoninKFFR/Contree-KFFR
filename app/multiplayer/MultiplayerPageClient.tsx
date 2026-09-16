@@ -8,10 +8,9 @@ import { ensureProfile } from "@/lib/profiles";
 import { createMultiplayerRoom, findMultiplayerRoom } from "@/lib/multiplayerApi";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
-import { RulesetSummary } from "@/components/rules/RulesetSummary";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
-import { buildCustomRuleset, type CustomRulesetInput } from "@/engine/rulesets/custom";
+import type { CustomRulesetInput } from "@/engine/rulesets/custom";
 import { AppEyebrow, AppPage, AppSurface, appInputClass, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
@@ -172,7 +171,6 @@ export default function MultiplayerPage() {
               <form className="mt-5 flex flex-col gap-3" onSubmit={handleCreateRoom}>
                 <p className="text-sm text-stone-300">Tu joues en tant que <strong>{username}</strong>.</p>
 
-                <RulesetSummary ruleset={buildCustomRuleset(rules)} compact showDifferences />
                 <button className={appSecondaryActionClass} disabled={!canSubmit} type="button" onClick={() => setIsRulesOpen(true)}>Modifier les règles</button>
 
                 <button
