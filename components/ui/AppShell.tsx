@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 export const appPrimaryActionClass = "coinche-primary-action inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50";
 export const appSecondaryActionClass = "coinche-secondary-action inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-bold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50";
 export const appDangerActionClass = "inline-flex min-h-11 items-center justify-center rounded-xl border border-red-300/20 bg-red-950/35 px-4 py-2.5 text-sm font-bold text-red-100 transition hover:bg-red-900/45 disabled:cursor-not-allowed disabled:opacity-50";
-export const appInputClass = "coinche-input min-h-11 w-full rounded-xl border px-3 py-2.5 text-sm font-medium shadow-inner outline-none focus:ring-2 focus:ring-emerald-300/15 disabled:cursor-not-allowed disabled:opacity-50";
+export const appInputClass = "coinche-input min-h-11 w-full rounded-xl border px-3 py-2.5 text-sm font-medium shadow-inner outline-none focus:ring-2 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-50";
 
 type AppPageProps = {
   children: ReactNode;
@@ -26,5 +26,5 @@ export function AppSurface({ children, className = "" }: { children: ReactNode; 
 }
 
 export function AppEyebrow({ children }: { children: ReactNode }) {
-  return <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300/70">{children}</p>;
+  return <p className="coinche-ui-kicker text-[10px] font-black uppercase tracking-[0.2em]">{children}</p>;
 }

@@ -12,7 +12,7 @@ export const IconCloseButton = forwardRef<HTMLButtonElement, IconCloseButtonProp
       <button
         {...props}
         aria-label={label}
-        className={`coinche-icon-button inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 ${className}`}
+        className={`coinche-icon-button inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] ${className}`}
         ref={ref}
         type={type}
       >

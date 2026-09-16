@@ -163,17 +163,17 @@ export function BiddingPanel({
 
   return (
     <section
-      className={`coinche-bidding-panel shrink-0 rounded-2xl border border-white/10 bg-[#07150f]/88 text-white shadow-2xl backdrop-blur-md ${compact ? "p-2" : "px-3 py-2.5 sm:px-4"}`}
+      className={`coinche-bidding-panel shrink-0 rounded-2xl border ${compact ? "p-2" : "px-3 py-2.5 sm:px-4"}`}
     >
       <div className="mb-2 flex items-center justify-between gap-3">
-        <div><p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#e7d7ae]/60">Enchères</p><h2 className="text-sm font-black">{canBid ? "À toi de parler" : "Les autres joueurs annoncent…"}</h2></div>
-        {currentContract ? <p className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-white/65">{formatContractLabel(currentContract)}</p> : null}
+        <div><p className="coinche-ui-kicker text-[9px] font-bold uppercase tracking-[0.18em]">Enchères</p><h2 className="text-sm font-black">{canBid ? "À toi de parler" : "Les autres joueurs annoncent…"}</h2></div>
+        {currentContract ? <p className="coinche-bidding-chip rounded-full px-2.5 py-1 text-[10px] font-semibold">{formatContractLabel(currentContract)}</p> : null}
       </div>
-      {pendingConfirmation ? <div aria-label="Confirmation d'enchère" aria-live="assertive" className="mb-2 rounded-xl border border-amber-200/35 bg-amber-100/10 p-3 shadow-sm" role="alertdialog"><p className="text-sm font-bold">{pendingConfirmation.message}</p><div className="mt-2 flex gap-2"><button autoFocus className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white" onClick={() => dismissConfirmation(pendingConfirmation.action)} type="button">Confirmer</button><button className="rounded-lg border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold" onClick={() => dismissConfirmation()} type="button">Annuler</button></div></div> : null}
+      {pendingConfirmation ? <div aria-label="Confirmation d'enchère" aria-live="assertive" className="coinche-bidding-confirmation mb-2 rounded-xl p-3 shadow-sm" role="alertdialog"><p className="text-sm font-bold">{pendingConfirmation.message}</p><div className="mt-2 flex gap-2"><button autoFocus className="coinche-bidding-primary rounded-lg px-4 py-2 text-xs font-bold" onClick={() => dismissConfirmation(pendingConfirmation.action)} type="button">Confirmer</button><button className="coinche-bidding-secondary rounded-lg px-4 py-2 text-xs font-bold" onClick={() => dismissConfirmation()} type="button">Annuler</button></div></div> : null}
 
       {canBid && availableValues.length === 0 ? (
         <p
-          className="mb-2 rounded-lg bg-white/8 px-2.5 py-1.5 text-xs text-white/70"
+          className="coinche-bidding-chip mb-2 rounded-lg px-2.5 py-1.5 text-xs"
         >
           {currentContract?.status === "coinched"
             ? "Contrat contré: tu peux seulement passer ou surcontrer."
@@ -186,11 +186,11 @@ export function BiddingPanel({
       ) : null}
 
       <div className={`grid gap-2 ${compact ? "grid-cols-[minmax(0,1fr)_auto]" : "lg:grid-cols-[1.15fr_1fr_1.35fr]"}`}>
-        <fieldset><legend className="sr-only">Valeur</legend><div className="flex gap-1 overflow-x-auto pb-0.5">{availableValues.map((bidValue) => <button aria-label={`Valeur ${bidValue}`} aria-pressed={value === bidValue} className={`min-h-9 min-w-11 rounded-lg border px-2 text-xs font-black transition ${value === bidValue ? "border-[#e9d49d]/60 bg-[#e9d49d] text-stone-950" : "border-white/10 bg-white/5 text-white/75 hover:bg-white/12"}`} disabled={!canMakeBid} key={bidValue} onClick={() => setValue(bidValue)} type="button">{bidValue}</button>)}</div></fieldset>
-        <fieldset><legend className="sr-only">Atout</legend><div className="flex gap-1 overflow-x-auto pb-0.5">{SUITS.map((suit) => <button aria-label={`Atout ${SUIT_LABELS[suit]}`} aria-pressed={modeValue === suit} className={`min-h-9 min-w-10 rounded-lg border text-lg transition ${modeValue === suit ? "border-[#e9d49d]/60 bg-white text-stone-950" : "border-white/10 bg-white/5 text-white hover:bg-white/12"}`} disabled={!canChooseMode} key={suit} onClick={() => setModeValue(suit)} type="button">{SUIT_SYMBOLS[suit]}</button>)}{biddingRules?.allowNoTrump ? <button aria-label="Atout Sans Atout" aria-pressed={modeValue === "no-trump"} className={`min-h-9 min-w-10 rounded-lg border px-2 text-[10px] font-black ${modeValue === "no-trump" ? "border-[#e9d49d]/60 bg-white text-stone-950" : "border-white/10 bg-white/5"}`} disabled={!canChooseMode} onClick={() => setModeValue("no-trump")} type="button">SA</button> : null}{biddingRules?.allowAllTrump ? <button aria-label="Atout Tout Atout" aria-pressed={modeValue === "all-trump"} className={`min-h-9 min-w-10 rounded-lg border px-2 text-[10px] font-black ${modeValue === "all-trump" ? "border-[#e9d49d]/60 bg-white text-stone-950" : "border-white/10 bg-white/5"}`} disabled={!canChooseMode} onClick={() => setModeValue("all-trump")} type="button">TA</button> : null}</div></fieldset>
+        <fieldset><legend className="sr-only">Valeur</legend><div className="flex gap-1 overflow-x-auto pb-0.5">{availableValues.map((bidValue) => <button aria-label={`Valeur ${bidValue}`} aria-pressed={value === bidValue} className="coinche-bidding-choice min-h-9 min-w-11 rounded-lg px-2 text-xs font-black transition" disabled={!canMakeBid} key={bidValue} onClick={() => setValue(bidValue)} type="button">{bidValue}</button>)}</div></fieldset>
+        <fieldset><legend className="sr-only">Atout</legend><div className="flex gap-1 overflow-x-auto pb-0.5">{SUITS.map((suit) => <button aria-label={`Atout ${SUIT_LABELS[suit]}`} aria-pressed={modeValue === suit} className="coinche-bidding-choice min-h-9 min-w-10 rounded-lg text-lg transition" disabled={!canChooseMode} key={suit} onClick={() => setModeValue(suit)} type="button">{SUIT_SYMBOLS[suit]}</button>)}{biddingRules?.allowNoTrump ? <button aria-label="Atout Sans Atout" aria-pressed={modeValue === "no-trump"} className="coinche-bidding-choice min-h-9 min-w-10 rounded-lg px-2 text-[10px] font-black" disabled={!canChooseMode} onClick={() => setModeValue("no-trump")} type="button">SA</button> : null}{biddingRules?.allowAllTrump ? <button aria-label="Atout Tout Atout" aria-pressed={modeValue === "all-trump"} className="coinche-bidding-choice min-h-9 min-w-10 rounded-lg px-2 text-[10px] font-black" disabled={!canChooseMode} onClick={() => setModeValue("all-trump")} type="button">TA</button> : null}</div></fieldset>
         <div className={`grid grid-cols-3 gap-1 ${compact ? `col-span-2 ${biddingRules?.allowGenerale ? "grid-cols-6" : "grid-cols-5"}` : biddingRules?.allowGenerale ? "sm:grid-cols-6" : "sm:grid-cols-5"}`}>
           <button
-            className="rounded-lg bg-emerald-600 px-2 py-2 text-xs font-black text-white shadow hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-35"
+            className="coinche-bidding-primary rounded-lg px-2 py-2 text-xs font-black shadow"
             disabled={!canMakeBid}
             onClick={handleBid}
             type="button"
@@ -198,7 +198,7 @@ export function BiddingPanel({
             Annoncer
           </button>
           <button
-            className="rounded-lg border border-[#e9d49d]/25 bg-[#e9d49d]/10 px-2 py-2 text-xs font-bold text-[#f5e6bd] hover:bg-[#e9d49d]/20 disabled:opacity-35"
+            className="coinche-bidding-capot rounded-lg px-2 py-2 text-xs font-bold"
             disabled={!canMakeCapot}
             onClick={(event) => confirmed(bidConfirmationMessage("capot", currentContract, contractMode), shouldConfirmBidAction("capot", preferences), () => onCapot(contractMode), event.currentTarget)}
             type="button"
@@ -206,7 +206,7 @@ export function BiddingPanel({
             Capot
           </button>
           {biddingRules?.allowGenerale ? <button
-            className="rounded-lg border border-purple-300/25 bg-purple-300/10 px-2 py-2 text-xs font-bold text-purple-100 hover:bg-purple-300/20 disabled:opacity-35"
+            className="coinche-bidding-secondary rounded-lg px-2 py-2 text-xs font-bold"
             disabled={!canMakeGenerale}
             onClick={(event) => confirmed(bidConfirmationMessage("generale", currentContract, contractMode), shouldConfirmBidAction("generale", preferences), () => onGenerale(contractMode), event.currentTarget)}
             type="button"
@@ -214,7 +214,7 @@ export function BiddingPanel({
             Générale
           </button> : null}
           <button
-            className="rounded-lg border border-red-300/25 bg-red-300/10 px-2 py-2 text-xs font-bold text-red-100 hover:bg-red-300/20 disabled:opacity-35"
+            className="coinche-bidding-danger rounded-lg px-2 py-2 text-xs font-bold"
             disabled={!canCoinche}
             onClick={(event) => confirmed(bidConfirmationMessage("coinche", currentContract, contractMode), shouldConfirmBidAction("coinche", preferences), onCoinche, event.currentTarget)}
             type="button"
@@ -222,7 +222,7 @@ export function BiddingPanel({
             Contrer
           </button>
           <button
-            className="rounded-lg border border-emerald-300/25 bg-emerald-300/10 px-2 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-300/20 disabled:opacity-35"
+            className="coinche-bidding-amber rounded-lg px-2 py-2 text-xs font-bold"
             disabled={!canSurcoinche}
             onClick={(event) => confirmed(bidConfirmationMessage("surcoinche", currentContract, contractMode), shouldConfirmBidAction("surcoinche", preferences), onSurcoinche, event.currentTarget)}
             type="button"
@@ -230,7 +230,7 @@ export function BiddingPanel({
             Surcontrer
           </button>
           <button
-            className="rounded-lg border border-white/12 bg-white/5 px-2 py-2 text-xs font-bold text-white/80 hover:bg-white/12 disabled:opacity-35"
+            className="coinche-bidding-secondary rounded-lg px-2 py-2 text-xs font-bold"
             disabled={!canBid}
             onClick={onPass}
             type="button"

@@ -19,7 +19,7 @@ export default function HomePage() {
             <Link className={`${appPrimaryActionClass} sm:min-w-48`} href="/solo">Jouer en solo</Link>
             <Link className={`${appSecondaryActionClass} sm:min-w-48`} href="/multiplayer">Multijoueur</Link>
           </div>
-          <Link className="mt-5 inline-flex text-sm font-bold text-emerald-200/70 transition hover:text-emerald-100" href="/rules">Voir les règles <span aria-hidden="true" className="ml-1.5">→</span></Link>
+          <Link className="coinche-ui-link mt-5 inline-flex text-sm font-bold transition" href="/rules">Voir les règles <span aria-hidden="true" className="coinche-ui-kicker ml-1.5">→</span></Link>
         </div>
 
         <div aria-hidden="true" className="relative mt-10 flex min-h-40 items-center justify-center sm:min-h-48 lg:mt-0 lg:min-h-80">

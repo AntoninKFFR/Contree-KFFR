@@ -23,6 +23,18 @@
   --accent-hover: #f7edcf;
   --accent-soft: rgb(234 216 166 / 12%);
   --accent-foreground: #10251b;
+  --ui-kicker: #cbb989;
+  --ui-link: #ded8c9;
+  --ui-link-hover: #f3dfaa;
+  --action-primary-bg: #ead8a6;
+  --action-primary-hover: #f7edcf;
+  --action-primary-text: #10251b;
+  --bidding-bg: #091811;
+  --bidding-text: #f5f1e7;
+  --bidding-border: rgb(255 255 255 / 15%);
+  --bidding-soft: rgb(255 255 255 / 6%);
+  --bidding-choice-bg: #ead8a6;
+  --bidding-choice-text: #17201a;
   --brand: #34d399;
   --brand-strong: #059669;
   --brand-soft: rgb(52 211 153 / 12%);
@@ -32,12 +44,12 @@
   --field-placeholder: rgb(255 255 255 / 32%);
   --overlay: rgb(2 7 4 / 80%);
   --shadow: rgb(0 0 0 / 32%);
-  --focus-ring: #6ee7b7;
+  --focus-ring: #ead8a6;
   --danger: #fecaca;
   --success: #6ee7b7;
   --panel-kicker: rgb(234 220 183 / 75%);
-  --nav-kicker: #6ee7b7;
-  --game-nav-kicker: rgb(110 231 183 / 70%);
+  --nav-kicker: #cbb989;
+  --game-nav-kicker: #cbb989;
   --nav-section-label: rgb(255 255 255 / 40%);
   --nav-link-border: rgb(255 255 255 / 8%);
   --nav-link-bg: rgb(255 255 255 / 3.5%);
@@ -72,10 +84,22 @@
   --text-inverse: #fffdf7;
   --border: rgb(38 65 49 / 16%);
   --border-strong: rgb(38 65 49 / 28%);
-  --accent: #176642;
-  --accent-hover: #0f5134;
-  --accent-soft: rgb(23 102 66 / 10%);
+  --accent: #79551f;
+  --accent-hover: #624419;
+  --accent-soft: rgb(121 85 31 / 10%);
   --accent-foreground: #fffdf7;
+  --ui-kicker: #735326;
+  --ui-link: #24352b;
+  --ui-link-hover: #79551f;
+  --action-primary-bg: #24372d;
+  --action-primary-hover: #34513f;
+  --action-primary-text: #fffdf7;
+  --bidding-bg: #fffdf7;
+  --bidding-text: #17201a;
+  --bidding-border: rgb(55 65 54 / 22%);
+  --bidding-soft: #f1ede3;
+  --bidding-choice-bg: #dbc391;
+  --bidding-choice-text: #17201a;
   --brand: #176642;
   --brand-strong: #0f5134;
   --brand-soft: rgb(23 102 66 / 10%);
@@ -85,12 +109,12 @@
   --field-placeholder: #78857d;
   --overlay: rgb(12 24 18 / 58%);
   --shadow: rgb(55 45 28 / 15%);
-  --focus-ring: #047857;
+  --focus-ring: #79551f;
   --danger: #991b1b;
   --success: #047857;
   --panel-kicker: #365548;
-  --nav-kicker: #315d48;
-  --game-nav-kicker: #315d48;
+  --nav-kicker: #735326;
+  --game-nav-kicker: #735326;
   --nav-section-label: #53665b;
   --nav-link-border: var(--border);
   --nav-link-bg: var(--surface-muted);
@@ -207,7 +231,7 @@ button:focus-visible,
 select:focus-visible,
 input:focus-visible,
 summary:focus-visible {
-  outline: 3px solid #047857;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -476,13 +500,13 @@ summary:focus-visible {
 
 /* Global theme primitives. These classes keep presentation choices out of JSX. */
 .coinche-primary-action {
-  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
-  background: var(--accent);
-  color: var(--accent-foreground);
+  border-color: color-mix(in srgb, var(--action-primary-bg) 42%, transparent);
+  background: var(--action-primary-bg);
+  color: var(--action-primary-text);
   box-shadow: 0 8px 24px var(--shadow);
 }
 
-.coinche-primary-action:hover { background: var(--accent-hover); }
+.coinche-primary-action:hover { background: var(--action-primary-hover); }
 
 .coinche-secondary-action,
 .coinche-icon-button {
@@ -505,6 +529,68 @@ summary:focus-visible {
 }
 
 .coinche-input::placeholder { color: var(--field-placeholder); }
+
+.coinche-ui-kicker { color: var(--ui-kicker); }
+.coinche-ui-link { color: var(--ui-link); }
+.coinche-ui-link:hover { color: var(--ui-link-hover); }
+
+.coinche-bidding-panel {
+  border-color: var(--bidding-border);
+  background: var(--bidding-bg);
+  color: var(--bidding-text);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--shadow) 45%, transparent);
+}
+.coinche-bidding-chip,
+.coinche-bidding-choice {
+  border: 1px solid var(--bidding-border);
+  background: var(--bidding-soft);
+  color: var(--bidding-text);
+}
+.coinche-bidding-choice:hover:not(:disabled),
+.coinche-bidding-chip:hover:not(:disabled) { border-color: var(--accent); }
+.coinche-bidding-choice[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--bidding-choice-bg);
+  color: var(--bidding-choice-text);
+}
+.coinche-bidding-confirmation {
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: var(--accent-soft);
+}
+.coinche-bidding-primary {
+  border: 1px solid color-mix(in srgb, var(--action-primary-bg) 50%, transparent);
+  background: var(--action-primary-bg);
+  color: var(--action-primary-text);
+}
+.coinche-bidding-primary:hover:not(:disabled) { background: var(--action-primary-hover); }
+.coinche-bidding-amber {
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background: transparent;
+  color: var(--accent-hover);
+}
+:root[data-theme="light"] .coinche-bidding-amber { color: var(--accent); }
+.coinche-bidding-amber:hover:not(:disabled) { background: var(--accent-soft); }
+.coinche-bidding-capot {
+  border: 1px solid color-mix(in srgb, var(--accent) 58%, transparent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--ui-kicker);
+}
+:root[data-theme="light"] .coinche-bidding-capot { color: var(--accent); }
+.coinche-bidding-capot:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+.coinche-bidding-danger {
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
+}
+.coinche-bidding-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 16%, transparent); }
+.coinche-bidding-secondary {
+  border: 1px solid var(--bidding-border);
+  background: var(--bidding-soft);
+  color: var(--bidding-text);
+}
+.coinche-bidding-secondary:hover:not(:disabled) { border-color: var(--border-strong); }
+.coinche-bidding-panel button:disabled { cursor: not-allowed; opacity: 0.58; }
+:root[data-theme="light"] .coinche-bidding-panel button:disabled { opacity: 0.66; }
 
 :root[data-theme="light"] .coinche-primary-action:disabled,
 :root[data-theme="light"] .coinche-secondary-action:disabled {
@@ -730,10 +816,7 @@ summary:focus-visible {
   color: var(--text-primary) !important;
 }
 
-:root[data-theme="light"] .coinche-rules-summary .text-\[\#f4ead0\],
 :root[data-theme="light"] .coinche-round-completion .text-\[\#f3ead2\] { color: var(--text-primary) !important; }
-:root[data-theme="light"] .coinche-rules-summary .text-\[\#ead8a6\],
-:root[data-theme="light"] .coinche-rules-summary [class*="text-emerald-"] { color: var(--brand-strong) !important; }
 :root[data-theme="light"] .coinche-rules-summary [class*="text-white/"],
 :root[data-theme="light"] .coinche-round-completion [class*="text-white/"] { color: var(--text-secondary) !important; }
 :root[data-theme="light"] .coinche-rules-summary [class*="border-white"],
@@ -742,7 +825,6 @@ summary:focus-visible {
 :root[data-theme="light"] .coinche-round-completion [class*="bg-white/"],
 :root[data-theme="light"] .coinche-round-completion [class*="bg-black/"] { background: var(--surface-muted) !important; }
 
-:root[data-theme="light"] .coinche-bidding-panel,
 :root[data-theme="light"] .coinche-score-hud,
 :root[data-theme="light"] .coinche-game-table .coinche-table-hud,
 :root[data-theme="light"] .coinche-game-table .coinche-player-panel,

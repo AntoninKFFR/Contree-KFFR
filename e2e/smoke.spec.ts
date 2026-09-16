@@ -2,6 +2,43 @@ import { expect, test } from "@playwright/test";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 
 test.describe("@smoke public production readiness", () => {
+  test("@smoke neutral accents and bidding panel follow both themes", async ({ page }) => {
+    test.setTimeout(90_000);
+    for (const viewport of [{ width: 1366, height: 768 }, { width: 844, height: 390 }]) {
+      await page.setViewportSize(viewport);
+      for (const theme of ["dark", "light"] as const) {
+        await page.goto("/");
+        const currentTheme = await page.locator("html").getAttribute("data-theme");
+        if (currentTheme !== theme) await page.getByRole("switch", { name: theme === "light" ? "Activer le thème clair" : "Activer le thème sombre" }).click();
+        await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+        await expect(page.getByRole("link", { name: /Voir les règles/ })).toHaveCSS("color", theme === "dark" ? "rgb(222, 216, 201)" : "rgb(36, 53, 43)");
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+        await page.screenshot({ path: `test-results/home-${theme}-${viewport.width}.png`, fullPage: true });
+        await page.getByRole("button", { name: "Ouvrir le menu" }).click();
+        await expect(page.locator(".coinche-nav-kicker")).toHaveCSS("color", theme === "dark" ? "rgb(203, 185, 137)" : "rgb(115, 83, 38)");
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+        await page.screenshot({ path: `test-results/drawer-${theme}-${viewport.width}.png`, fullPage: true });
+        await page.getByRole("button", { name: "Fermer le menu" }).click();
+        await page.goto("/multiplayer");
+        await expect(page.getByRole("heading", { name: "Une table, quatre places" })).toBeVisible();
+        await expect(page.locator(".coinche-app-surface").first()).toHaveCSS("background-color", theme === "dark" ? "rgb(11, 28, 21)" : "rgb(255, 253, 247)");
+        await expect(page.locator(".coinche-ui-kicker").first()).toHaveCSS("color", theme === "dark" ? "rgb(203, 185, 137)" : "rgb(115, 83, 38)");
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+        await page.screenshot({ path: `test-results/multiplayer-${theme}-${viewport.width}.png`, fullPage: true });
+        await page.goto("/solo");
+        const bidding = page.locator(".coinche-bidding-panel");
+        await expect(bidding).toBeVisible();
+        await expect(bidding).toHaveCSS("background-color", theme === "dark" ? "rgb(9, 24, 17)" : "rgb(255, 253, 247)");
+        await expect(bidding.getByRole("button", { name: "Annoncer" })).toHaveCSS("background-color", theme === "dark" ? "rgb(234, 216, 166)" : "rgb(36, 55, 45)");
+        await expect(bidding.getByRole("button", { name: "Contrer", exact: true })).toHaveCSS("color", theme === "dark" ? "rgb(254, 202, 202)" : "rgb(153, 27, 27)");
+        await expect(bidding.getByRole("button", { name: "Surcontrer" })).toHaveCSS("color", theme === "dark" ? "rgb(247, 237, 207)" : "rgb(121, 85, 31)");
+        await expect(bidding.getByRole("button", { name: "Passer" })).toHaveCSS("color", theme === "dark" ? "rgb(245, 241, 231)" : "rgb(23, 32, 26)");
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+        await page.screenshot({ path: `test-results/theme-${theme}-${viewport.width}.png`, fullPage: true });
+      }
+    }
+  });
+
   test("@smoke login separates sign-in and signup fields", async ({ page }) => {
     await page.goto("/login?next=%2Fmultiplayer");
     await expect(page.getByRole("heading", { name: "Connexion" })).toBeVisible();

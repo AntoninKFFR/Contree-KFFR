@@ -777,8 +777,8 @@ export default function MultiplayerRoomPage() {
         {pageState === "ready" && roomWithPlayers ? (
           <>
             {displayedRoomStatus === "finished" && gameState ? (
-              <section className="coinche-app-surface rounded-2xl border border-emerald-200/20 bg-[#0b1c15]/90 p-5 shadow-xl">
-                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
+              <section className="coinche-app-surface rounded-2xl border p-5 shadow-xl">
+                <p className="coinche-ui-kicker text-xs font-semibold uppercase tracking-wide">
                   Partie terminée
                 </p>
                 <h2 className="mt-1 text-2xl font-bold">
@@ -816,10 +816,10 @@ export default function MultiplayerRoomPage() {
 
             {displayedRoomStatus === "lobby" ? (
               <>
-                <section className="coinche-app-surface rounded-2xl border border-white/10 bg-[#0b1c15]/90 p-5 shadow-xl">
+                <section className="coinche-app-surface rounded-2xl border p-5 shadow-xl">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-300">
+                      <p className="coinche-ui-kicker text-xs font-semibold uppercase tracking-[0.16em]">
                         Table multijoueur
                       </p>
                       <h1 className="mt-1 font-mono text-3xl font-bold">
@@ -1109,10 +1109,10 @@ function WaitingArea({
   onLeaveSeat: () => void;
 }) {
   return (
-    <section className="coinche-app-surface rounded-2xl border border-white/10 bg-[#0b1c15]/90 p-4 shadow-xl">
+    <section className="coinche-app-surface rounded-2xl border p-4 shadow-xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
+          <p className="coinche-ui-kicker text-xs font-semibold uppercase tracking-wide">
             En attente
           </p>
           <p className="mt-1 text-sm font-semibold text-stone-100">

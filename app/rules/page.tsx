@@ -39,7 +39,7 @@ export default function RulesPage() {
   return <AppPage stickyContent width="wide">
     <div className="mx-auto w-full max-w-5xl pb-10">
       <header className="mb-7 border-b border-[color:var(--border)] pb-6 pt-3 sm:pt-5">
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--brand-strong)]">Aide de jeu</p>
+        <p className="coinche-ui-kicker text-xs font-black uppercase tracking-[0.18em]">Aide de jeu</p>
         <h1 className="mt-2 text-4xl font-black tracking-tight text-[color:var(--text-primary)] sm:text-5xl">Règles de la Contrée</h1>
       </header>
 
@@ -50,12 +50,12 @@ export default function RulesPage() {
 
       <div className="space-y-14">
         <section aria-labelledby="contree-title" className="scroll-mt-32" id="contree-kffr">
-          <div className="mb-5"><p className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--brand-strong)]">La variante par défaut</p><h2 className="mt-1 text-3xl font-black text-[color:var(--text-primary)]" id="contree-title">Contrée KFFR</h2></div>
+          <div className="mb-5"><p className="coinche-ui-kicker text-xs font-black uppercase tracking-[0.16em]">La variante par défaut</p><h2 className="mt-1 text-3xl font-black text-[color:var(--text-primary)]" id="contree-title">Contrée KFFR</h2></div>
           <div className="grid gap-4">{kffrSections.map((section) => <RuleSection key={section.id} section={section} />)}</div>
         </section>
 
         <section aria-labelledby="variants-title" className="scroll-mt-32" id="variantes-disponibles">
-          <div className="mb-5"><p className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--brand-strong)]">Une base, des réglages</p><h2 className="mt-1 text-3xl font-black text-[color:var(--text-primary)]" id="variants-title">Variantes disponibles</h2><p className={`mt-2 ${mutedClass}`}>Contrée KFFR est le seul preset fixe. Le mode <strong>Personnalisée</strong> adapte ses contrats, annonces, obligations de jeu, conditions de réussite et scores. Sans Atout, Tout Atout et Générale sont des options, pas des presets distincts.</p></div>
+          <div className="mb-5"><p className="coinche-ui-kicker text-xs font-black uppercase tracking-[0.16em]">Une base, des réglages</p><h2 className="mt-1 text-3xl font-black text-[color:var(--text-primary)]" id="variants-title">Variantes disponibles</h2><p className={`mt-2 ${mutedClass}`}>Contrée KFFR est le seul preset fixe. Le mode <strong>Personnalisée</strong> adapte ses contrats, annonces, obligations de jeu, conditions de réussite et scores. Sans Atout, Tout Atout et Générale sont des options, pas des presets distincts.</p></div>
           <div className="grid gap-4">{variantSections.map((section) => <RuleSection key={section.id} section={section} />)}</div>
         </section>
       </div>

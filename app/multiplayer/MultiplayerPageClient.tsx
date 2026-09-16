@@ -128,7 +128,7 @@ export default function MultiplayerPage() {
 
   return (
     <AppPage>
-        <AppSurface className="flex items-start justify-between gap-4 bg-[radial-gradient(circle_at_top_right,rgb(37_128_84_/_20%),transparent_45%)]">
+        <AppSurface className="flex items-start justify-between gap-4">
           <div><AppEyebrow>Multijoueur</AppEyebrow><h1 className="mt-1 text-3xl font-black tracking-tight text-[#f4ead0]">Une table, quatre places</h1><p className="mt-1 text-sm text-white/50">Crée la partie ou saisis un code.</p></div>
           <button className={appSecondaryActionClass} type="button" onClick={() => setIsSettingsOpen(true)}>Préférences</button>
         </AppSurface>
@@ -158,7 +158,7 @@ export default function MultiplayerPage() {
             className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
               notice.tone === "error"
                 ? "border-red-300/25 bg-red-950/45 text-red-100"
-                : "border-emerald-300/25 bg-emerald-950/45 text-emerald-100"
+                : "border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] text-[color:var(--text-primary)]"
             }`}
           >
             {notice.text}
@@ -167,8 +167,8 @@ export default function MultiplayerPage() {
 
         {pageState === "ready" ? (
           <div className="grid items-start gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-            <AppSurface className="border-emerald-300/20 bg-[linear-gradient(145deg,rgb(18_58_42_/_94%),rgb(8_24_17_/_94%))] lg:p-6">
-              <div className="flex items-center justify-between gap-3"><div><AppEyebrow>Nouvelle partie</AppEyebrow><h2 className="mt-1 text-2xl font-black text-[#f4ead0]">Créer une table</h2></div><span aria-hidden="true" className="text-3xl text-emerald-300/40">♣</span></div>
+            <AppSurface className="lg:p-6">
+              <div className="flex items-center justify-between gap-3"><div><AppEyebrow>Nouvelle partie</AppEyebrow><h2 className="mt-1 text-2xl font-black text-[#f4ead0]">Créer une table</h2></div><span aria-hidden="true" className="coinche-ui-kicker text-3xl opacity-60">♣</span></div>
               <form className="mt-5 flex flex-col gap-3" onSubmit={handleCreateRoom}>
                 <p className="text-sm text-stone-300">Tu joues en tant que <strong>{username}</strong>.</p>
 

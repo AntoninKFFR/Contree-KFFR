@@ -112,7 +112,7 @@ export default function LoginPage() {
   }
 
   return <AppPage width="narrow"><div className="flex flex-col gap-5">
-    <Link className="w-fit text-sm font-semibold text-[color:var(--brand-strong)] transition hover:underline" href="/">← Accueil</Link>
+    <Link className="coinche-ui-link w-fit text-sm font-semibold transition hover:underline" href="/">← Accueil</Link>
     <AppSurface className="p-5 sm:p-7">
       <AppEyebrow>Compte joueur</AppEyebrow>
       {!supabase ? <p className="mt-4 text-sm text-amber-100">Supabase n’est pas configuré. Vérifie .env.local.</p> : null}

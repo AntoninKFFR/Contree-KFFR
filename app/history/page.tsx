@@ -97,8 +97,8 @@ export default function HistoryPage() {
     <AppPage>
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
-          <Link className="text-sm font-semibold text-emerald-200 hover:text-emerald-100" href="/profile">← Profil</Link>
-          <Link className="text-sm font-semibold text-emerald-200 hover:text-emerald-100" href="/">Accueil</Link>
+          <Link className="coinche-ui-link text-sm font-semibold" href="/profile">← Profil</Link>
+          <Link className="coinche-ui-link text-sm font-semibold" href="/">Accueil</Link>
         </div>
         <AppSurface className="p-6 sm:p-7">
           <AppEyebrow>Historique</AppEyebrow>
@@ -182,7 +182,7 @@ function HistoryRules({ id, snapshot }: { id?: string | null; snapshot?: GameRul
   if (!snapshot) return <p className="mt-2 text-xs font-semibold text-stone-400">{label}</p>;
   try {
     const safe = buildCustomRuleset(rulesetToCustomInput(snapshot));
-    return <details className="mt-2"><summary className="cursor-pointer text-xs font-semibold text-emerald-200">{label} · Voir les règles</summary><div className="mt-2"><RulesetSummary ruleset={safe} compact /></div></details>;
+    return <details className="mt-2"><summary className="coinche-ui-link cursor-pointer text-xs font-semibold">{label} · Voir les règles</summary><div className="mt-2"><RulesetSummary ruleset={safe} compact /></div></details>;
   } catch {
     return <p className="mt-2 text-xs font-semibold text-stone-400">{label}</p>;
   }
