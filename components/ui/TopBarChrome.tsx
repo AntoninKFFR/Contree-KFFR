@@ -29,7 +29,7 @@ function PlaybackIcon({ playing }: { playing: boolean }) {
 }
 
 export function TopBarChrome({ contextLabel, menuId, menuOpen, menuLabel, menuButtonRef, onOpenMenu }: Props) {
-  const { playing, index, track, previous, next, togglePlay } = useMusic();
+  const { playing, index, track, volume, setVolume, previous, next, togglePlay } = useMusic();
   const trackTitle = `${track.title} — ${track.artist}`;
   const previousTrack = MUSIC_TRACKS[previousMusicTrackIndex(index, MUSIC_TRACKS.length)];
   const nextTrack = MUSIC_TRACKS[nextMusicTrackIndex(index, MUSIC_TRACKS.length)];
@@ -44,6 +44,10 @@ export function TopBarChrome({ contextLabel, menuId, menuOpen, menuLabel, menuBu
       <button aria-label="Piste précédente" className="coinche-chrome-icon" onClick={previous} title={`${previousTrack.title} — ${previousTrack.artist}`} type="button"><TrackIcon direction="previous" /></button>
       <button aria-label={playing ? "Mettre la musique en pause" : "Lire la musique"} className="coinche-chrome-icon" onClick={togglePlay} type="button"><PlaybackIcon playing={playing} /></button>
       <button aria-label="Piste suivante" className="coinche-chrome-icon" onClick={next} title={`${nextTrack.title} — ${nextTrack.artist}`} type="button"><TrackIcon direction="next" /></button>
+      <div className="hidden items-center gap-1.5 text-[var(--text-secondary)] sm:flex">
+        <svg aria-hidden="true" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 20 20"><path d="M3 7.5h3l4-3.5v12l-4-3.5H3zM13 7a4 4 0 0 1 0 6M15 4.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg>
+        <input aria-label="Volume musique" className="w-[72px] accent-[var(--accent)]" max={100} min={0} onChange={(event) => setVolume(Number(event.target.value) / 100)} step={1} type="range" value={Math.round(volume * 100)} />
+      </div>
       <ThemeToggle />
       <button aria-controls={menuId} aria-expanded={menuOpen} aria-label={menuLabel} className="coinche-chrome-icon" onClick={onOpenMenu} ref={menuButtonRef} type="button">☰</button>
     </div>

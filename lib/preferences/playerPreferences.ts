@@ -123,7 +123,7 @@ const BASE_DEFAULTS: PlayerPreferences = {
     uiSounds: true,
     volume: 0.5,
     musicEnabled: true,
-    musicVolume: 0.25,
+    musicVolume: 0.15,
   },
 };
 
@@ -246,7 +246,7 @@ export function normalizePlayerPreferences(value: unknown): PlayerPreferences {
       uiSounds: booleanValue(audio, "uiSounds", true),
       volume: volumeValue(audio.volume, 0.5),
       musicEnabled: booleanValue(audio, "musicEnabled", true),
-      musicVolume: volumeValue(audio.musicVolume, 0.25),
+      musicVolume: volumeValue(audio.musicVolume, 0.15),
     },
   };
 }

@@ -23,7 +23,7 @@ export type MusicSnapshot = { playing: boolean; index: number; track: typeof MUS
 export class MusicPlaylistController {
   private index = 0;
   private enabled = false;
-  private volume = 0.25;
+  private volume = 0.15;
   private playing = false;
   private playRequest = 0;
   private disposed = false;
@@ -40,7 +40,7 @@ export class MusicPlaylistController {
 
   configure(enabled: boolean, volume: number): void {
     this.enabled = enabled;
-    this.volume = Math.min(1, Math.max(0, Number.isFinite(volume) ? volume : 0.25));
+    this.volume = Math.min(1, Math.max(0, Number.isFinite(volume) ? volume : 0.15));
     this.audio.volume = this.volume;
     if (!enabled) this.pause();
   }

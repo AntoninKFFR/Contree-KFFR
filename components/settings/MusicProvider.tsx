@@ -5,6 +5,8 @@ import { MUSIC_TRACKS, MusicPlaylistController, type MusicSnapshot } from "@/lib
 import { usePlayerPreferences } from "./PlayerPreferencesProvider";
 
 type MusicContextValue = MusicSnapshot & {
+  volume: number;
+  setVolume: (value: number) => void;
   play: () => void;
   pause: () => void;
   togglePlay: () => void;
@@ -14,7 +16,7 @@ type MusicContextValue = MusicSnapshot & {
 
 const noop = () => undefined;
 const MusicContext = createContext<MusicContextValue>({
-  playing: false, index: 0, track: MUSIC_TRACKS[0],
+  playing: false, index: 0, track: MUSIC_TRACKS[0], volume: 0.15, setVolume: noop,
   play: noop, pause: noop, togglePlay: noop, next: noop, previous: noop,
 });
 
@@ -51,6 +53,11 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     controller.play();
   }, [preferences.audio.musicEnabled, preferences.audio.musicVolume, setPreferences]);
   const pause = useCallback(() => controllerRef.current?.pause(), []);
+  const setVolume = useCallback((value: number) => {
+    const volume = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0.15));
+    controllerRef.current?.configure(preferences.audio.musicEnabled, volume);
+    setPreferences((current) => ({ ...current, audio: { ...current.audio, musicVolume: volume } }));
+  }, [preferences.audio.musicEnabled, setPreferences]);
   const next = useCallback(() => controllerRef.current?.next(), []);
   const previous = useCallback(() => controllerRef.current?.previous(), []);
   const togglePlay = useCallback(() => {
@@ -58,7 +65,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     else play();
   }, [pause, play, snapshot.playing]);
 
-  return <MusicContext.Provider value={{ ...snapshot, play, pause, togglePlay, next, previous }}>
+  return <MusicContext.Provider value={{ ...snapshot, volume: preferences.audio.musicVolume, setVolume, play, pause, togglePlay, next, previous }}>
     <audio aria-hidden="true" className="hidden" data-background-music preload="metadata" ref={audioRef} />
     {children}
   </MusicContext.Provider>;

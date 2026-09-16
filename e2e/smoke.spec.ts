@@ -2,6 +2,62 @@ import { expect, test } from "@playwright/test";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 
 test.describe("@smoke public production readiness", () => {
+  test("@smoke navbar music volume stays in sync with settings and playback", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto("/solo");
+    const header = page.locator("header.coinche-game-topbar");
+    const navbarVolume = header.getByRole("slider", { name: "Volume musique" });
+    const audio = page.locator("audio[data-background-music]");
+    await expect(navbarVolume).toBeVisible();
+    await expect(navbarVolume).toHaveAttribute("min", "0");
+    await expect(navbarVolume).toHaveAttribute("max", "100");
+    await expect(navbarVolume).toHaveAttribute("step", "1");
+    await expect(navbarVolume).toHaveValue("15");
+    await navbarVolume.fill("40");
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(0.4);
+    await header.getByRole("button", { name: "Lire la musique" }).click();
+    await expect(header.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
+
+    await navbarVolume.fill("0");
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(0);
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(false);
+    await expect(header.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
+    await navbarVolume.fill("100");
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(1);
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(false);
+    await expect(header.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
+    await navbarVolume.fill("40");
+    await header.getByRole("button", { name: "Piste suivante" }).click();
+    await expect(header.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
+    await header.getByRole("button", { name: "Piste précédente" }).click();
+
+    await header.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
+    const dialog = page.getByRole("dialog", { name: "Paramètres" });
+    await dialog.getByRole("button", { name: "SON" }).click();
+    await expect(dialog.getByRole("slider", { name: "Volume musique" })).toHaveValue("40");
+    await expect(dialog.getByRole("slider", { name: "Volume des effets" })).toHaveValue("50");
+    await dialog.getByRole("slider", { name: "Volume musique" }).fill("70");
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(0.7);
+    await page.keyboard.press("Escape");
+    await expect(navbarVolume).toHaveValue("70");
+    await page.reload();
+    await expect(navbarVolume).toHaveValue("70");
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(0.7);
+    await expect(header.getByRole("button", { name: "Lire la musique" })).toBeVisible();
+
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect(navbarVolume).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.setViewportSize({ width: 375, height: 667 });
+    await expect(navbarVolume).toBeHidden();
+    for (const name of ["Piste précédente", "Lire la musique", "Piste suivante", "Ouvrir le menu de partie"]) {
+      await expect(header.getByRole("button", { name })).toBeVisible();
+    }
+    await expect(header.getByRole("switch", { name: "Activer le thème clair" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  });
+
   test("@smoke music metadata shows the current song and adjacent track tooltips", async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto("/");
@@ -132,7 +188,7 @@ test.describe("@smoke public production readiness", () => {
     const dialog = page.getByRole("dialog", { name: "Paramètres" });
     await dialog.getByRole("button", { name: "SON" }).click();
     await expect(dialog.getByRole("checkbox", { name: "Musique" })).toBeChecked();
-    await expect(dialog.getByRole("slider", { name: "Volume musique" })).toHaveValue("25");
+    await expect(dialog.getByRole("slider", { name: "Volume musique" })).toHaveValue("15");
     await dialog.getByRole("checkbox", { name: "Musique" }).uncheck();
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(true);
     await page.keyboard.press("Escape");
