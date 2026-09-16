@@ -10,9 +10,9 @@ export type MultiplayerTablePreferences = {
 };
 
 export const DEFAULT_MULTIPLAYER_TABLE_PREFERENCES: Readonly<MultiplayerTablePreferences> = Object.freeze({
-  gameSpeed: "normal",
+  gameSpeed: "slow",
   autoCollectTricks: true,
-  trickDisplayMs: GAME_SPEED_PRESETS.normal.trickDisplayMs,
+  trickDisplayMs: GAME_SPEED_PRESETS.slow.trickDisplayMs,
 });
 
 const SPEEDS = new Set<MultiplayerTablePreferences["gameSpeed"]>([

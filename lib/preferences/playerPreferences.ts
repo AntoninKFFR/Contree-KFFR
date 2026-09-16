@@ -2,6 +2,7 @@ import type { Suit } from "@/engine/types";
 
 export const PLAYER_PREFERENCES_VERSION = 1 as const;
 export const PLAYER_PREFERENCES_STORAGE_KEY = "coinche:player-preferences:v1";
+export const PLAYER_SPEED_DEFAULT_MIGRATION_KEY = "coinche:slow-default-migrated:v1";
 
 export type PresetGameSpeed = "slow" | "normal" | "fast" | "instant";
 export type GameSpeed = PresetGameSpeed | "custom";
@@ -79,8 +80,8 @@ export const GAME_SPEED_PRESETS: Readonly<Record<PresetGameSpeed, Readonly<GameS
 const BASE_DEFAULTS: PlayerPreferences = {
   version: PLAYER_PREFERENCES_VERSION,
   gameplay: {
-    gameSpeed: "normal",
-    ...GAME_SPEED_PRESETS.normal,
+    gameSpeed: "slow",
+    ...GAME_SPEED_PRESETS.slow,
     autoCollectTricks: true,
     confirmCoinche: true,
     confirmSurcoinche: true,
@@ -188,8 +189,8 @@ export function normalizePlayerPreferences(value: unknown): PlayerPreferences {
   const cards = isRecord(value.cards) ? value.cards : {};
   const visual = isRecord(value.visual) ? value.visual : {};
   const audio = isRecord(value.audio) ? value.audio : {};
-  const gameSpeed = enumValue(gameplay, "gameSpeed", ["slow", "normal", "fast", "instant", "custom"], "normal");
-  const speed = gameSpeed === "custom" ? GAME_SPEED_PRESETS.normal : GAME_SPEED_PRESETS[gameSpeed];
+  const gameSpeed = enumValue(gameplay, "gameSpeed", ["slow", "normal", "fast", "instant", "custom"], "slow");
+  const speed = gameSpeed === "custom" ? GAME_SPEED_PRESETS.slow : GAME_SPEED_PRESETS[gameSpeed];
   const botDelayMs = delayValue(gameplay, "botDelayMs", speed.botDelayMs, 2_000);
   const trickDisplayMs = delayValue(gameplay, "trickDisplayMs", speed.trickDisplayMs, 3_000);
   const biddingDelayMs = delayValue(gameplay, "biddingDelayMs", speed.biddingDelayMs, 1_500);
@@ -291,11 +292,35 @@ export function withCustomTiming(
 
 export type PreferenceStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
+function isLegacyNormalDefault(value: unknown): value is Record<string, unknown> & { gameplay: Record<string, unknown> } {
+  if (!isRecord(value) || value.version !== PLAYER_PREFERENCES_VERSION || !isRecord(value.gameplay)) return false;
+  const gameplay = value.gameplay;
+  return gameplay.gameSpeed === "normal"
+    && gameplay.botDelayMs === GAME_SPEED_PRESETS.normal.botDelayMs
+    && gameplay.trickDisplayMs === GAME_SPEED_PRESETS.normal.trickDisplayMs
+    && gameplay.biddingDelayMs === GAME_SPEED_PRESETS.normal.biddingDelayMs;
+}
+
 export function loadPlayerPreferences(storage: PreferenceStorage | null | undefined): PlayerPreferences {
   if (!storage) return clonePlayerPreferences();
   try {
     const raw = storage.getItem(PLAYER_PREFERENCES_STORAGE_KEY);
-    return raw === null ? clonePlayerPreferences() : normalizePlayerPreferences(JSON.parse(raw));
+    if (raw === null) return clonePlayerPreferences();
+    const saved = JSON.parse(raw) as unknown;
+    if (storage.getItem(PLAYER_SPEED_DEFAULT_MIGRATION_KEY) !== "1" && isLegacyNormalDefault(saved)) {
+      const migrated = normalizePlayerPreferences({
+        ...saved,
+        gameplay: { ...saved.gameplay, gameSpeed: "slow", ...GAME_SPEED_PRESETS.slow },
+      });
+      try {
+        storage.setItem(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(migrated));
+        storage.setItem(PLAYER_SPEED_DEFAULT_MIGRATION_KEY, "1");
+      } catch {
+        // Return migrated preferences even when persistence is unavailable.
+      }
+      return migrated;
+    }
+    return normalizePlayerPreferences(saved);
   } catch {
     return clonePlayerPreferences();
   }
@@ -305,6 +330,7 @@ export function savePlayerPreferences(storage: PreferenceStorage | null | undefi
   if (!storage) return false;
   try {
     storage.setItem(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(normalizePlayerPreferences(preferences)));
+    storage.setItem(PLAYER_SPEED_DEFAULT_MIGRATION_KEY, "1");
     return true;
   } catch {
     return false;

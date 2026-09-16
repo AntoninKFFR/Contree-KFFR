@@ -29,13 +29,14 @@ function renderBidding(contract: Contract | null, playerId: PlayerId, generale =
 }
 
 describe("gameplay polish", () => {
-  it("keeps the highlighted card interactive without emerald styling", () => {
+  it("keeps the raised card interactive without a selection ring", () => {
     const markup = renderToStaticMarkup(React.createElement(CardView, {
       card: { rank: "A", suit: "hearts" }, highlighted: true, onClick: noop,
     }));
     expect(markup).toContain('data-highlighted="true"');
     expect(markup).toContain('aria-label="Jouer A ♥"');
     expect(markup).not.toContain("emerald");
+    expect(markup).not.toContain("ring-");
     expect(markup).not.toContain("disabled");
   });
 

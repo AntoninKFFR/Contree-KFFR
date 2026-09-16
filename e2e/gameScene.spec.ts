@@ -37,12 +37,13 @@ test("@smoke Solo keeps the hand and played cards inside the scene", async ({ pa
   await expect(scene.locator(".coinche-scene-hand-card")).toHaveCount(8);
   const playable = scene.locator(".coinche-scene-hand-card button[data-playable='true']:not([disabled])").first();
   await expect(playable).toBeVisible({ timeout: 15_000 });
-  await expect(playable).toHaveCSS("border-color", "rgb(234, 216, 166)");
+  await expect(playable).toHaveAttribute("data-highlighted", "true");
+  expect(await playable.evaluate((card) => getComputedStyle(card).boxShadow)).not.toContain("234, 216, 166");
   await page.keyboard.press("Tab");
   await playable.focus();
   await expect(playable).toHaveCSS("outline-color", "rgb(234, 216, 166)");
   await page.getByRole("switch", { name: "Activer le thème clair" }).click();
-  await expect(playable).toHaveCSS("border-color", "rgb(121, 85, 31)");
+  expect(await playable.evaluate((card) => getComputedStyle(card).boxShadow)).not.toContain("121, 85, 31");
   await page.keyboard.press("Tab");
   await playable.focus();
   await expect(playable).toHaveCSS("outline-color", "rgb(121, 85, 31)");
@@ -71,4 +72,11 @@ test("@smoke round success accent follows dark and light KFFR tokens", async ({ 
     });
     expect(color).toBe(expected);
   }
+});
+
+test("@smoke a fresh Solo installation selects the slow rhythm", async ({ page }) => {
+  await page.goto("/solo");
+  await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+  await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
+  await expect(page.getByRole("dialog", { name: "Paramètres" }).getByLabel("Vitesse de jeu", { exact: true })).toHaveValue("slow");
 });

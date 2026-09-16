@@ -9,6 +9,8 @@ Les préférences joueur sont distinctes des règles de partie.
 
 Le type, les valeurs par défaut, la normalisation et la persistance se trouvent dans `lib/preferences/playerPreferences.ts`. Le stockage principal est `localStorage`, sous la clé versionnée `coinche:player-preferences:v1`. Une clé absente, un JSON corrompu, une version inconnue ou une valeur incorrecte revient à une copie saine des valeurs par défaut sans faire planter l'application.
 
+Le défaut est désormais **Lente**. Au premier chargement, une préférence sauvegardée correspondant exactement à l'ancien preset Normal (ses trois délais compris) passe à Lente. La clé `coinche:slow-default-migrated:v1` marque cette opération : un choix ultérieur de Normal reste donc respecté. Les autres préférences et les rythmes personnalisés sont conservés.
+
 L'abstraction `PreferenceStorage` garde la lecture et l'écriture indépendantes de `window`. Elle constitue aussi le point d'extension pour une éventuelle fusion future avec les préférences d'un profil cloud, sans changer les types du moteur ou de la room.
 
 `PlayerPreferencesProvider` lit le stockage une fois côté client, conserve les valeurs en mémoire et expose `usePlayerPreferences()`. Le même `PlayerSettingsPanel` est utilisé en solo, dans le lobby multijoueur et pendant une partie multijoueur.
@@ -27,6 +29,8 @@ Les quatre presets utilisent le mapping central `GAME_SPEED_PRESETS` :
 Le mode **Personnalisée** apparaît dès que l'un des trois délais fins est modifié : réflexion visuelle des bots (0–2000 ms), affichage du pli (0–3000 ms) ou délai entre enchères (0–1500 ms). Un preset n'est jamais affiché si les valeurs persistées ne lui correspondent pas.
 
 Ces délais sont uniquement visuels. En solo, la décision du bot est calculée immédiatement puis appliquée après le délai choisi. Les simulations et le moteur ne connaissent pas ces délais. En multijoueur, les timers et les bots autoritaires du serveur ne lisent jamais les préférences d'un client.
+
+Les nouvelles tables multijoueur enregistrent le rythme partagé Lente (pli à 1800 ms) dès leur création. Les tables existantes gardent leur rythme enregistré, y compris Normal et les valeurs personnalisées. Les actions humaines partent immédiatement ; les tours de bots multi restent traités en lot par le serveur, tandis que la présentation des plis utilise le délai partagé.
 
 Le ramassage automatique attend la durée du pli. S'il est désactivé, l'état autoritaire continue d'avancer mais la présentation conserve localement les trois cartes d'une Générale ou les quatre cartes d'un pli normal jusqu'au bouton **Continuer**.
 

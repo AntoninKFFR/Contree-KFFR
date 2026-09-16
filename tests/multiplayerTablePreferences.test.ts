@@ -7,6 +7,7 @@ import { PlayerSettingsPanel } from "@/components/settings/PlayerSettingsPanel";
 import {
   DEFAULT_MULTIPLAYER_TABLE_PREFERENCES,
   isMultiplayerTablePreferences,
+  normalizeMultiplayerTablePreferences,
   withMultiplayerTableSpeed,
 } from "@/lib/multiplayerTablePreferences";
 import { GAME_SPEED_PRESETS } from "@/lib/preferences/playerPreferences";
@@ -46,13 +47,18 @@ function settingsMarkup(context?: React.ComponentProps<typeof PlayerSettingsPane
 }
 
 describe("shared multiplayer table pacing", () => {
-  it("uses the central Normal preset as its default", () => {
+  it("uses the central Slow preset for new tables", () => {
     expect(DEFAULT_MULTIPLAYER_TABLE_PREFERENCES).toEqual({
-      gameSpeed: "normal", autoCollectTricks: true,
-      trickDisplayMs: GAME_SPEED_PRESETS.normal.trickDisplayMs,
+      gameSpeed: "slow", autoCollectTricks: true,
+      trickDisplayMs: GAME_SPEED_PRESETS.slow.trickDisplayMs,
     });
     expect(withMultiplayerTableSpeed({ ...DEFAULT_MULTIPLAYER_TABLE_PREFERENCES }, "fast").trickDisplayMs)
       .toBe(GAME_SPEED_PRESETS.fast.trickDisplayMs);
+    expect(withMultiplayerTableSpeed({ ...DEFAULT_MULTIPLAYER_TABLE_PREFERENCES }, "normal").trickDisplayMs)
+      .toBe(GAME_SPEED_PRESETS.normal.trickDisplayMs);
+    expect(normalizeMultiplayerTablePreferences(null)).toEqual(DEFAULT_MULTIPLAYER_TABLE_PREFERENCES);
+    expect(normalizeMultiplayerTablePreferences({ gameSpeed: "normal", autoCollectTricks: true, trickDisplayMs: 1_200 }))
+      .toEqual({ gameSpeed: "normal", autoCollectTricks: true, trickDisplayMs: 1_200 });
   });
 
   it("strictly validates the public intent payload", () => {
@@ -121,7 +127,7 @@ describe("settings UI contexts", () => {
       mode: "multiplayer", isHost: false,
       tablePreferences: { ...DEFAULT_MULTIPLAYER_TABLE_PREFERENCES },
     });
-    expect(markup).toContain("Rythme de la table : Normale");
+    expect(markup).toContain("Rythme de la table : Lente");
     expect(markup).toContain("Confirmer la Coinche");
     expect(markup).not.toContain("Appliquer à la table");
   });
@@ -145,6 +151,10 @@ describe("atomic persistence and client synchronization", () => {
   it("applies the room value to GameTable and relies on existing room Realtime", () => {
     expect(client).toContain("trickPresentationPolicy={{ autoCollect: tablePreferences.autoCollectTricks");
     expect(client).toContain("subscribeToRoomRealtime");
+  });
+
+  it("writes the shared slow default when creating a room", () => {
+    expect(service).toContain("presentation_settings: DEFAULT_MULTIPLAYER_TABLE_PREFERENCES");
   });
 
   it("does not add presentation or gameplay actions to automatic lobby retries", () => {

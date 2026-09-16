@@ -25,7 +25,7 @@ import {
   viewerSeatIndex,
 } from "./multiplayerGame";
 import { getSupabaseAdmin } from "./supabaseAdmin";
-import { normalizeMultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
+import { DEFAULT_MULTIPLAYER_TABLE_PREFERENCES, normalizeMultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 import { cleanUsername, validateUsername } from "@/lib/profiles";
 
 const ROOM_COLUMNS = "id,code,status,host_user_id,active_game_id,scoring_mode,target_score,ruleset_id,ruleset_version,ruleset_snapshot,presentation_settings,game_phase,state_version,turn_deadline_at,created_at,updated_at,started_at,finished_at";
@@ -336,6 +336,7 @@ export async function createRoom(input: {
   for (let attempt = 0; attempt < 8 && !room; attempt += 1) {
     const result = await db.from("rooms").insert({
       code: code(), host_user_id: input.userId, ...fields, status: "lobby",
+      presentation_settings: DEFAULT_MULTIPLAYER_TABLE_PREFERENCES,
     }).select(ROOM_COLUMNS).single();
     if (!result.error) room = result.data as RoomRow;
     else if (result.error.code !== "23505") throw result.error;
