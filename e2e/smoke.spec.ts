@@ -2,6 +2,46 @@ import { expect, test } from "@playwright/test";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 
 test.describe("@smoke public production readiness", () => {
+  test("@smoke music metadata shows the current song and adjacent track tooltips", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto("/");
+    const header = page.locator("header.coinche-game-topbar");
+    const currentTrack = header.locator("[data-current-track]");
+    const previous = header.getByRole("button", { name: "Piste précédente" });
+    const next = header.getByRole("button", { name: "Piste suivante" });
+    const play = header.getByRole("button", { name: "Lire la musique" });
+
+    await expect(currentTrack).toBeVisible();
+    await expect(currentTrack).toHaveText("Echoes — Allan");
+    await expect(previous).toHaveAttribute("title", "Your way — Allan");
+    await expect(next).toHaveAttribute("title", "Ena — Allan");
+    await expect(play).not.toHaveAttribute("title");
+
+    await previous.click();
+    await expect(currentTrack).toHaveText("Your way — Allan");
+    await expect(next).toHaveAttribute("title", "Echoes — Allan");
+    await next.click();
+    await next.click();
+    await expect(currentTrack).toHaveText("Ena — Allan");
+    await expect(previous).toHaveAttribute("title", "Echoes — Allan");
+    await expect(next).toHaveAttribute("title", "Estrella — Allan");
+
+    await play.click();
+    await expect(header.getByRole("button", { name: "Mettre la musique en pause" })).not.toHaveAttribute("title");
+    await header.getByRole("button", { name: "Mettre la musique en pause" }).click();
+    await expect(header.getByRole("button", { name: "Lire la musique" })).not.toHaveAttribute("title");
+
+    for (const viewport of [{ width: 844, height: 390 }, { width: 375, height: 667 }]) {
+      await page.setViewportSize(viewport);
+      await expect(currentTrack).toBeHidden();
+      for (const name of ["Piste précédente", "Lire la musique", "Piste suivante", "Ouvrir le menu"]) {
+        await expect(header.getByRole("button", { name })).toBeVisible();
+      }
+      await expect(header.getByRole("switch", { name: "Activer le thème clair" })).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    }
+  });
+
   test("@smoke unified topbar keeps its controls, context and size in both themes", async ({ page }) => {
     test.setTimeout(90_000);
     const header = page.locator("header.coinche-game-topbar");

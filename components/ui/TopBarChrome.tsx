@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { RefObject } from "react";
 import { useMusic } from "@/components/settings/MusicProvider";
+import { MUSIC_TRACKS, nextMusicTrackIndex, previousMusicTrackIndex } from "@/lib/preferences/music";
 import { KffrLogo } from "./KffrLogo";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -28,8 +29,10 @@ function PlaybackIcon({ playing }: { playing: boolean }) {
 }
 
 export function TopBarChrome({ contextLabel, menuId, menuOpen, menuLabel, menuButtonRef, onOpenMenu }: Props) {
-  const { playing, track, previous, next, togglePlay } = useMusic();
+  const { playing, index, track, previous, next, togglePlay } = useMusic();
   const trackTitle = `${track.title} — ${track.artist}`;
+  const previousTrack = MUSIC_TRACKS[previousMusicTrackIndex(index, MUSIC_TRACKS.length)];
+  const nextTrack = MUSIC_TRACKS[nextMusicTrackIndex(index, MUSIC_TRACKS.length)];
   return <header className="coinche-game-topbar coinche-global-header sticky top-0 z-50 flex h-12 shrink-0 items-center justify-between gap-2 border-b px-3 shadow-lg backdrop-blur-md sm:px-5">
     <div className="flex min-w-0 items-center gap-3">
       <Link aria-label="Accueil — KFFR Contrée" className="shrink-0" href="/"><KffrLogo className="h-7 w-[4.65rem] sm:h-8 sm:w-[5.25rem]" variant="compact" /></Link>
@@ -37,9 +40,10 @@ export function TopBarChrome({ contextLabel, menuId, menuOpen, menuLabel, menuBu
       <span className="truncate text-xs font-semibold text-white/55">{contextLabel}</span>
     </div>
     <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-      <button aria-label="Piste précédente" className="coinche-chrome-icon" onClick={previous} title={`Piste précédente · ${trackTitle}`} type="button"><TrackIcon direction="previous" /></button>
-      <button aria-label={playing ? "Mettre la musique en pause" : "Lire la musique"} className="coinche-chrome-icon" onClick={togglePlay} title={`${playing ? "Pause" : "Lecture"} · ${trackTitle}`} type="button"><PlaybackIcon playing={playing} /></button>
-      <button aria-label="Piste suivante" className="coinche-chrome-icon" onClick={next} title={`Piste suivante · ${trackTitle}`} type="button"><TrackIcon direction="next" /></button>
+      <span className="hidden max-w-40 truncate text-right text-[11px] font-medium text-[var(--text-secondary)] lg:block xl:max-w-56" data-current-track>{trackTitle}</span>
+      <button aria-label="Piste précédente" className="coinche-chrome-icon" onClick={previous} title={`${previousTrack.title} — ${previousTrack.artist}`} type="button"><TrackIcon direction="previous" /></button>
+      <button aria-label={playing ? "Mettre la musique en pause" : "Lire la musique"} className="coinche-chrome-icon" onClick={togglePlay} type="button"><PlaybackIcon playing={playing} /></button>
+      <button aria-label="Piste suivante" className="coinche-chrome-icon" onClick={next} title={`${nextTrack.title} — ${nextTrack.artist}`} type="button"><TrackIcon direction="next" /></button>
       <ThemeToggle />
       <button aria-controls={menuId} aria-expanded={menuOpen} aria-label={menuLabel} className="coinche-chrome-icon" onClick={onOpenMenu} ref={menuButtonRef} type="button">☰</button>
     </div>
