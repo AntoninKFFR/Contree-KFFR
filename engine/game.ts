@@ -8,7 +8,7 @@ import {
 import { formatContractMode, legacyTrump, resolveContractMode } from "./contractMode";
 import { declareAnnouncementsForPlayer, emptyAnnouncementState } from "./announcements";
 import { emptyBeloteState, playBeloteCard } from "./belote";
-import { canBidCapot, canBidGenerale, canBidGeneraleMode, canCoinche, canSurcoinche, isAllowedBidValue } from "./bidding";
+import { canBidCapot, canBidGenerale, canBidGeneraleMode, canCoinche, canSurcoinche, getCurrentContractFromBids, isAllowedBidValue } from "./bidding";
 import { inactivePlayerId, inactivePlayerIdForContract, nextActivePlayer, playersRequiredForTrick, tricksWonByPlayer } from "./activePlayers";
 import { createRandomPlayerNames, playerName, teamName } from "./players";
 import {
@@ -234,73 +234,6 @@ function sortHandsForTrump(hands: GameState["hands"], trump: Suit | null): GameS
   };
 }
 
-function currentHighestBid(bids: Bid[]): Contract | null {
-  let contract: Contract | null = null;
-
-  for (const bid of bids) {
-    if (bid.action === "bid") {
-      const contractMode = resolveContractMode(bid);
-      if (!contractMode) continue;
-      contract = {
-        kind: "points",
-        playerId: bid.playerId,
-        teamId: playerTeam(bid.playerId),
-        value: bid.value,
-        ...(legacyTrump(contractMode) ? { trump: legacyTrump(contractMode)! } : {}),
-        contractMode,
-        status: "normal",
-      };
-    }
-
-    if (bid.action === "capot") {
-      const contractMode = resolveContractMode(bid);
-      if (!contractMode) continue;
-      contract = {
-        kind: "capot",
-        playerId: bid.playerId,
-        teamId: playerTeam(bid.playerId),
-        value: 250,
-        ...(legacyTrump(contractMode) ? { trump: legacyTrump(contractMode)! } : {}),
-        contractMode,
-        status: "normal",
-      };
-    }
-
-    if (bid.action === "generale") {
-      const contractMode = resolveContractMode(bid);
-      if (!contractMode) continue;
-      contract = {
-        kind: "generale",
-        playerId: bid.playerId,
-        teamId: playerTeam(bid.playerId),
-        value: bid.value,
-        ...(legacyTrump(contractMode) ? { trump: legacyTrump(contractMode)! } : {}),
-        contractMode,
-        status: "normal",
-      };
-    }
-
-    if (bid.action === "coinche" && contract) {
-      contract = {
-        ...contract,
-        status: "coinched",
-        coinchedBy: bid.playerId,
-        surcoinchedBy: undefined,
-      };
-    }
-
-    if (bid.action === "surcoinche" && contract) {
-      contract = {
-        ...contract,
-        status: "surcoinched",
-        surcoinchedBy: bid.playerId,
-      };
-    }
-  }
-
-  return contract;
-}
-
 function isHigherBid(value: BidValue, currentContract: Contract | null): boolean {
   return !currentContract || (currentContract.kind !== "capot" && currentContract.kind !== "generale" && value > currentContract.value);
 }
@@ -319,7 +252,7 @@ function hasThreePassesAfterLastContractAction(bids: Bid[]): boolean {
 }
 
 function finishBidding(state: GameState, bids: Bid[]): GameState {
-  const contract = currentHighestBid(bids);
+  const contract = getCurrentContractFromBids(bids);
 
   if (!contract) {
     const roundScore = { 0: 0, 1: 0 } as Record<TeamId, number>;
@@ -408,7 +341,7 @@ export function makeBid(
   }
 
   const rules = resolveGameRules(state.settings);
-  const currentContract = currentHighestBid(state.bids);
+  const currentContract = getCurrentContractFromBids(state.bids);
   const bidMode = bid.action === "bid" || bid.action === "capot" || bid.action === "generale"
     ? resolveContractMode(bid)
     : null;
@@ -492,7 +425,7 @@ export function makeBid(
 }
 
 export function getCurrentContract(state: GameState): Contract | null {
-  return currentHighestBid(state.bids);
+  return getCurrentContractFromBids(state.bids);
 }
 
 export function playableCardsForCurrentPlayer(state: GameState): Card[] {

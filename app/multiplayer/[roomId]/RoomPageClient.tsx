@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/AppShell";
 import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
-import { canCoinche, canSurcoinche } from "@/engine/bidding";
+import { canCoinche, canSurcoinche, getCurrentContractFromBids } from "@/engine/bidding";
 import { resolveContractMode } from "@/engine/contractMode";
 import { explainIllegalCard } from "@/engine/illegalCardExplanation";
 import { teamName } from "@/engine/players";
@@ -195,7 +195,9 @@ export default function MultiplayerRoomPage() {
       playerView.phase === "bidding" &&
       playerView.currentPlayerId === currentSeat.seat_index,
   );
-  const currentContract = playerView?.contract ?? null;
+  const currentContract = playerView?.phase === "bidding"
+    ? getCurrentContractFromBids(playerView.bids)
+    : playerView?.contract ?? null;
   const currentMode = playerView ? resolveContractMode(playerView) : null;
   const gameRules = playerView ? resolveGameRules(playerView.settings) : null;
   const canBidCoinche = Boolean(

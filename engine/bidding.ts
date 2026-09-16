@@ -1,11 +1,79 @@
+import { legacyTrump, resolveContractMode } from "./contractMode";
 import { playerTeam } from "./rules";
 import { CONTREE_KFFR_RULESET } from "./rulesets/presets";
 import type { GameRulesetSnapshot } from "./rulesets/types";
-import type { BidValue, Contract, PlayerId } from "./types";
+import type { Bid, BidValue, Contract, PlayerId } from "./types";
 
 export const BID_VALUES: BidValue[] = [80, 90, 100, 110, 120, 130, 140, 150, 160];
 
 type BiddingRules = GameRulesetSnapshot["bidding"];
+
+export function getCurrentContractFromBids(bids: readonly Bid[]): Contract | null {
+  let contract: Contract | null = null;
+
+  for (const bid of bids) {
+    if (bid.action === "bid") {
+      const contractMode = resolveContractMode(bid);
+      if (!contractMode) continue;
+      contract = {
+        kind: "points",
+        playerId: bid.playerId,
+        teamId: playerTeam(bid.playerId),
+        value: bid.value,
+        ...(legacyTrump(contractMode) ? { trump: legacyTrump(contractMode)! } : {}),
+        contractMode,
+        status: "normal",
+      };
+    }
+
+    if (bid.action === "capot") {
+      const contractMode = resolveContractMode(bid);
+      if (!contractMode) continue;
+      contract = {
+        kind: "capot",
+        playerId: bid.playerId,
+        teamId: playerTeam(bid.playerId),
+        value: 250,
+        ...(legacyTrump(contractMode) ? { trump: legacyTrump(contractMode)! } : {}),
+        contractMode,
+        status: "normal",
+      };
+    }
+
+    if (bid.action === "generale") {
+      const contractMode = resolveContractMode(bid);
+      if (!contractMode) continue;
+      contract = {
+        kind: "generale",
+        playerId: bid.playerId,
+        teamId: playerTeam(bid.playerId),
+        value: bid.value,
+        ...(legacyTrump(contractMode) ? { trump: legacyTrump(contractMode)! } : {}),
+        contractMode,
+        status: "normal",
+      };
+    }
+
+    if (bid.action === "coinche" && contract) {
+      contract = {
+        ...contract,
+        status: "coinched",
+        coinchedBy: bid.playerId,
+        surcoinchedBy: undefined,
+      };
+    }
+
+    if (bid.action === "surcoinche" && contract) {
+      contract = {
+        ...contract,
+        status: "surcoinched",
+        surcoinchedBy: bid.playerId,
+      };
+    }
+  }
+
+  return contract;
+}
 
 export function isAllowedBidValue(
   value: unknown,
