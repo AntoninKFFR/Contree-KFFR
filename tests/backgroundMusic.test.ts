@@ -1,10 +1,12 @@
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { MUSIC_TRACKS, MusicPlaylistController, nextMusicTrackIndex } from "@/lib/preferences/music";
+import { MUSIC_TRACKS, MusicPlaylistController, nextMusicTrackIndex, previousMusicTrackIndex } from "@/lib/preferences/music";
 
 class FakeAudio {
-  src = "";
+  private currentSrc = "";
+  get src() { return this.currentSrc; }
+  set src(value: string) { this.currentSrc = value; this.paused = true; }
   preload = "";
   volume = 1;
   paused = true;
@@ -50,14 +52,14 @@ describe("background music playlist", () => {
     expect(new Set(playlist).size).toBe(playlist.length);
   });
 
-  it("starts only after interaction and advances sequentially, looping after the last song", async () => {
+  it("stays paused on load and advances sequentially only after explicit play", async () => {
     const audio = new FakeAudio();
     const controller = controllerFor(audio);
     controller.configure(true, 0.25);
     expect(audio.playCalls).toBe(0);
     expect(audio.src).toBe(MUSIC_TRACKS[0].src);
     expect(audio.preload).toBe("metadata");
-    controller.activate();
+    controller.play();
     await Promise.resolve();
     expect(audio.playCalls).toBe(1);
     for (let index = 1; index <= MUSIC_TRACKS.length; index++) {
@@ -74,7 +76,7 @@ describe("background music playlist", () => {
     const audio = new FakeAudio();
     const controller = controllerFor(audio);
     controller.configure(true, 0.25);
-    controller.activate();
+    controller.play();
     await Promise.resolve();
     controller.configure(true, 0.6);
     expect(audio.volume).toBe(0.6);
@@ -83,22 +85,25 @@ describe("background music playlist", () => {
     const song = audio.src;
     controller.configure(true, 0.6);
     await Promise.resolve();
+    expect(audio.paused).toBe(true);
+    controller.play();
+    await Promise.resolve();
     expect(audio.paused).toBe(false);
     expect(audio.src).toBe(song);
     controller.dispose();
   });
 
-  it("silently tolerates blocked playback and retries on a later interaction", async () => {
+  it("silently tolerates blocked playback and retries on a later explicit play", async () => {
     const audio = new FakeAudio();
     audio.rejectPlay = true;
     const controller = controllerFor(audio);
     controller.configure(true, 0.25);
-    controller.activate();
+    controller.play();
     await Promise.resolve();
     await Promise.resolve();
     expect(audio.paused).toBe(true);
     audio.rejectPlay = false;
-    controller.activate();
+    controller.play();
     await Promise.resolve();
     expect(audio.paused).toBe(false);
     controller.dispose();
@@ -110,5 +115,35 @@ describe("background music playlist", () => {
     controller.dispose();
     audio.end();
     expect(audio.src).toBe(MUSIC_TRACKS[0].src);
+  });
+
+  it("wraps both directions and keeps next/previous paused when paused", async () => {
+    const audio = new FakeAudio();
+    const controller = controllerFor(audio);
+    controller.configure(true, 0.25);
+    controller.previous();
+    expect(audio.src).toBe(MUSIC_TRACKS.at(-1)?.src);
+    expect(audio.paused).toBe(true);
+    expect(audio.playCalls).toBe(0);
+    controller.next();
+    expect(audio.src).toBe(MUSIC_TRACKS[0].src);
+    controller.next();
+    expect(audio.src).toBe(MUSIC_TRACKS[1].src);
+    expect(audio.paused).toBe(true);
+    controller.play();
+    await Promise.resolve();
+    controller.next();
+    await Promise.resolve();
+    expect(audio.src).toBe(MUSIC_TRACKS[2].src);
+    expect(audio.paused).toBe(false);
+    controller.previous();
+    await Promise.resolve();
+    expect(audio.src).toBe(MUSIC_TRACKS[1].src);
+    expect(audio.paused).toBe(false);
+    expect(previousMusicTrackIndex(0, MUSIC_TRACKS.length)).toBe(MUSIC_TRACKS.length - 1);
+    controller.pause();
+    expect(audio.paused).toBe(true);
+    expect(controller.snapshot.playing).toBe(false);
+    controller.dispose();
   });
 });

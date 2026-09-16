@@ -1,0 +1,47 @@
+"use client";
+
+import Link from "next/link";
+import type { RefObject } from "react";
+import { useMusic } from "@/components/settings/MusicProvider";
+import { KffrLogo } from "./KffrLogo";
+import { ThemeToggle } from "./ThemeToggle";
+
+type Props = {
+  contextLabel: string;
+  menuId: string;
+  menuOpen: boolean;
+  menuLabel: string;
+  menuButtonRef: RefObject<HTMLButtonElement | null>;
+  onOpenMenu: () => void;
+};
+
+function TrackIcon({ direction }: { direction: "previous" | "next" }) {
+  return <svg aria-hidden="true" className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+    {direction === "previous" ? <path d="M3 3.5h2v13H3zm13.5.8v11.4a.8.8 0 0 1-1.2.7L6.4 10.7a.8.8 0 0 1 0-1.4l8.9-5.7a.8.8 0 0 1 1.2.7Z" /> : <path d="M15 3.5h2v13h-2zM3.5 4.3a.8.8 0 0 1 1.2-.7l8.9 5.7a.8.8 0 0 1 0 1.4l-8.9 5.7a.8.8 0 0 1-1.2-.7Z" />}
+  </svg>;
+}
+
+function PlaybackIcon({ playing }: { playing: boolean }) {
+  return playing
+    ? <svg aria-hidden="true" className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4.5 3.5h4v13h-4zm7 0h4v13h-4z" /></svg>
+    : <svg aria-hidden="true" className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5.5 3.6a.8.8 0 0 1 1.2-.7l9 6.4a.8.8 0 0 1 0 1.4l-9 6.4a.8.8 0 0 1-1.2-.7z" /></svg>;
+}
+
+export function TopBarChrome({ contextLabel, menuId, menuOpen, menuLabel, menuButtonRef, onOpenMenu }: Props) {
+  const { playing, track, previous, next, togglePlay } = useMusic();
+  const trackTitle = `${track.title} — ${track.artist}`;
+  return <header className="coinche-game-topbar coinche-global-header sticky top-0 z-50 flex h-12 shrink-0 items-center justify-between gap-2 border-b px-3 shadow-lg backdrop-blur-md sm:px-5">
+    <div className="flex min-w-0 items-center gap-3">
+      <Link aria-label="Accueil — KFFR Contrée" className="shrink-0" href="/"><KffrLogo className="h-7 w-[4.65rem] sm:h-8 sm:w-[5.25rem]" variant="compact" /></Link>
+      <span aria-hidden="true" className="h-4 w-px shrink-0 bg-white/15" />
+      <span className="truncate text-xs font-semibold text-white/55">{contextLabel}</span>
+    </div>
+    <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+      <button aria-label="Piste précédente" className="coinche-chrome-icon" onClick={previous} title={`Piste précédente · ${trackTitle}`} type="button"><TrackIcon direction="previous" /></button>
+      <button aria-label={playing ? "Mettre la musique en pause" : "Lire la musique"} className="coinche-chrome-icon" onClick={togglePlay} title={`${playing ? "Pause" : "Lecture"} · ${trackTitle}`} type="button"><PlaybackIcon playing={playing} /></button>
+      <button aria-label="Piste suivante" className="coinche-chrome-icon" onClick={next} title={`Piste suivante · ${trackTitle}`} type="button"><TrackIcon direction="next" /></button>
+      <ThemeToggle />
+      <button aria-controls={menuId} aria-expanded={menuOpen} aria-label={menuLabel} className="coinche-chrome-icon" onClick={onOpenMenu} ref={menuButtonRef} type="button">☰</button>
+    </div>
+  </header>;
+}

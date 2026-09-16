@@ -5,8 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { IconCloseButton } from "@/components/ui/IconCloseButton";
-import { KffrLogo } from "@/components/ui/KffrLogo";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { TopBarChrome } from "@/components/ui/TopBarChrome";
 
 export type GameMenuAction = {
   label: string;
@@ -91,17 +90,7 @@ export function GameTopBar({
   };
 
   return <>
-    <header className="coinche-game-topbar coinche-global-header sticky top-0 z-50 flex h-12 shrink-0 items-center justify-between border-b px-3 shadow-lg backdrop-blur-md sm:px-5">
-      <div className="flex min-w-0 items-center gap-3">
-        <Link aria-label="Accueil — KFFR Contrée" className="shrink-0" href="/"><KffrLogo className="h-7 w-[4.65rem] sm:h-8 sm:w-[5.25rem]" variant="compact" /></Link>
-        <span aria-hidden="true" className="h-4 w-px bg-white/15" />
-        <span className="truncate text-xs font-semibold text-white/55">{contextLabel}</span>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <ThemeToggle />
-        <button aria-controls="game-menu-drawer" aria-expanded={isOpen} aria-label="Ouvrir le menu de partie" className="coinche-chrome-icon" onClick={() => setIsOpen(true)} ref={menuButtonRef} type="button">☰</button>
-      </div>
-    </header>
+    <TopBarChrome contextLabel={contextLabel} menuButtonRef={menuButtonRef} menuId="game-menu-drawer" menuLabel="Ouvrir le menu de partie" menuOpen={isOpen} onOpenMenu={() => setIsOpen(true)} />
 
     <button aria-label="Fermer le menu de partie" className={`fixed inset-0 z-[70] bg-black/55 transition-opacity ${isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`} onClick={() => setIsOpen(false)} tabIndex={isOpen ? 0 : -1} type="button" />
     <aside aria-hidden={!isOpen} aria-label="Menu de partie" className={`coinche-app-drawer fixed right-0 top-0 z-[80] flex h-dvh w-[min(360px,92vw)] flex-col border-l shadow-2xl transition-transform duration-200 ${isOpen ? "translate-x-0" : "translate-x-full"}`} id="game-menu-drawer" inert={!isOpen} ref={drawerRef}>

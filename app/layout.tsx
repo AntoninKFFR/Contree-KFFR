@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AppDrawerNav } from "@/components/AppDrawerNav";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
-import { BackgroundMusic } from "@/components/settings/BackgroundMusic";
+import { MusicProvider } from "@/components/settings/MusicProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,11 +24,12 @@ export default function RootLayout({
       <head><script dangerouslySetInnerHTML={{ __html: themeBootstrap }} /></head>
       <body>
         <PlayerPreferencesProvider>
-          <BackgroundMusic />
-          <div className="min-h-dvh">
-            <AppDrawerNav />
-            {children}
-          </div>
+          <MusicProvider>
+            <div className="min-h-dvh">
+              <AppDrawerNav />
+              {children}
+            </div>
+          </MusicProvider>
         </PlayerPreferencesProvider>
       </body>
     </html>

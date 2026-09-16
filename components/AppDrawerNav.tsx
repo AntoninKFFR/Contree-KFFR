@@ -7,8 +7,7 @@ import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { ensureProfile, getProfileUsername, PROFILE_CHANGED_EVENT } from "@/lib/profiles";
 import { IconCloseButton } from "@/components/ui/IconCloseButton";
-import { KffrLogo } from "@/components/ui/KffrLogo";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { TopBarChrome } from "@/components/ui/TopBarChrome";
 
 const NAV_LINKS = [
   { href: "/", label: "Accueil" },
@@ -130,35 +129,22 @@ export function AppDrawerNav() {
 
   const isGameRoute = pathname === "/solo" || /^\/multiplayer\/[^/]+$/.test(pathname ?? "");
   if (isGameRoute) return null;
+  const contextLabel = pathname === "/" ? "Accueil"
+    : pathname === "/multiplayer" ? "Multijoueur"
+    : pathname === "/rules" ? "Règles"
+    : pathname === "/profile" ? "Profil"
+    : pathname === "/history" ? "Historique"
+    : pathname === "/login" ? "Connexion"
+    : "Contrée";
 
   return (
     <>
-      <header className="coinche-global-header sticky top-0 z-40 border-b shadow-[0_10px_30px_var(--shadow)] backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-5">
-          <Link aria-label="Accueil — KFFR Contrée" className="flex items-center" href="/">
-            <KffrLogo className="h-8 w-[5.25rem] sm:h-9 sm:w-[5.9rem]" variant="compact" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <button
-              aria-controls="app-drawer-nav"
-              aria-expanded={isOpen}
-              aria-label="Ouvrir le menu"
-              className="coinche-icon-button inline-flex h-10 w-10 items-center justify-center rounded-xl border text-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
-              onClick={() => setIsOpen(true)}
-              ref={menuButtonRef}
-              type="button"
-            >
-              ☰
-            </button>
-          </div>
-        </div>
-      </header>
+      <TopBarChrome contextLabel={contextLabel} menuButtonRef={menuButtonRef} menuId="app-drawer-nav" menuLabel="Ouvrir le menu" menuOpen={isOpen} onOpenMenu={() => setIsOpen(true)} />
 
       <div
         aria-hidden={!isOpen}
         className={[
-          "fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-200",
+          "fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm transition-opacity duration-200",
           isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         ].join(" ")}
         onClick={() => setIsOpen(false)}
@@ -167,7 +153,7 @@ export function AppDrawerNav() {
       <aside
         aria-hidden={!isOpen}
         className={[
-          "coinche-app-drawer fixed right-0 top-0 z-50 flex h-dvh w-[min(360px,96vw)] flex-col border-l shadow-[-20px_0_60px_var(--shadow)] transition-transform duration-200 ease-out sm:w-[min(320px,88vw)]",
+          "coinche-app-drawer fixed right-0 top-0 z-[80] flex h-dvh w-[min(360px,96vw)] flex-col border-l shadow-[-20px_0_60px_var(--shadow)] transition-transform duration-200 ease-out sm:w-[min(320px,88vw)]",
           isOpen ? "translate-x-0" : "translate-x-full",
         ].join(" ")}
         id="app-drawer-nav"

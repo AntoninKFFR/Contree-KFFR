@@ -14,59 +14,97 @@ export function nextMusicTrackIndex(current: number, count: number): number {
   return count > 0 ? (current + 1) % count : 0;
 }
 
+export function previousMusicTrackIndex(current: number, count: number): number {
+  return count > 0 ? (current - 1 + count) % count : 0;
+}
+
+export type MusicSnapshot = { playing: boolean; index: number; track: typeof MUSIC_TRACKS[number] };
+
 export class MusicPlaylistController {
   private index = 0;
   private enabled = false;
   private volume = 0.25;
-  private activated = false;
-  private playPending = false;
+  private playing = false;
+  private playRequest = 0;
   private disposed = false;
 
-  constructor(private readonly audio: HTMLAudioElement) {
+  constructor(private readonly audio: HTMLAudioElement, private readonly onChange: (snapshot: MusicSnapshot) => void = () => undefined) {
     audio.preload = "metadata";
     audio.src = MUSIC_TRACKS[0].src;
     audio.addEventListener("ended", this.handleEnded);
+  }
+
+  get snapshot(): MusicSnapshot {
+    return { playing: this.playing, index: this.index, track: MUSIC_TRACKS[this.index] };
   }
 
   configure(enabled: boolean, volume: number): void {
     this.enabled = enabled;
     this.volume = Math.min(1, Math.max(0, Number.isFinite(volume) ? volume : 0.25));
     this.audio.volume = this.volume;
-    if (!enabled || this.volume === 0) this.audio.pause();
-    else this.tryPlay();
+    if (!enabled) this.pause();
   }
 
-  activate(): void {
-    this.activated = true;
-    this.tryPlay();
+  play(): void {
+    if (this.disposed || !this.enabled) return;
+    this.playing = true;
+    this.notify();
+    this.startPlayback();
+  }
+
+  pause(): void {
+    this.playing = false;
+    this.playRequest++;
+    this.audio.pause();
+    this.notify();
+  }
+
+  next(): void {
+    this.changeTrack(nextMusicTrackIndex(this.index, MUSIC_TRACKS.length));
+  }
+
+  previous(): void {
+    this.changeTrack(previousMusicTrackIndex(this.index, MUSIC_TRACKS.length));
   }
 
   dispose(): void {
     this.disposed = true;
     this.audio.removeEventListener("ended", this.handleEnded);
-    this.audio.pause();
+    this.pause();
   }
 
   private readonly handleEnded = (): void => {
-    if (this.disposed) return;
-    this.index = nextMusicTrackIndex(this.index, MUSIC_TRACKS.length);
-    this.audio.src = MUSIC_TRACKS[this.index].src;
-    this.tryPlay();
+    if (!this.disposed) this.next();
   };
 
-  private tryPlay(): void {
-    if (this.disposed || !this.activated || !this.enabled || this.volume === 0 || !this.audio.paused || this.playPending) return;
+  private changeTrack(index: number): void {
+    if (this.disposed) return;
+    this.playRequest++;
+    this.index = index;
+    this.audio.src = MUSIC_TRACKS[this.index].src;
+    this.notify();
+    if (this.playing) this.startPlayback();
+  }
+
+  private startPlayback(): void {
+    if (this.disposed || !this.playing || !this.enabled || !this.audio.paused) return;
+    const request = ++this.playRequest;
     try {
-      this.playPending = true;
-      void this.audio.play().then(() => {
-        this.playPending = false;
-        if (!this.enabled || this.volume === 0 || this.disposed) this.audio.pause();
+      void Promise.resolve(this.audio.play()).then(() => {
+        if (!this.playing || !this.enabled || this.disposed) this.audio.pause();
       }).catch(() => {
-        // Autoplay can be denied; the next user interaction retries silently.
-        this.playPending = false;
+        // A browser may reject playback; leave the UI paused without console noise.
+        if (request !== this.playRequest) return;
+        this.playing = false;
+        this.notify();
       });
     } catch {
-      this.playPending = false;
+      this.playing = false;
+      this.notify();
     }
+  }
+
+  private notify(): void {
+    this.onChange(this.snapshot);
   }
 }

@@ -2,23 +2,76 @@ import { expect, test } from "@playwright/test";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 
 test.describe("@smoke public production readiness", () => {
+  test("@smoke unified topbar keeps its controls, context and size in both themes", async ({ page }) => {
+    for (const viewport of [{ width: 1366, height: 768 }, { width: 844, height: 390 }, { width: 375, height: 667 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/");
+      const header = page.locator("header.coinche-game-topbar");
+      const headerClass = await header.getAttribute("class");
+      for (const theme of ["dark", "light"] as const) {
+        const currentTheme = await page.locator("html").getAttribute("data-theme");
+        if (currentTheme !== theme) await page.getByRole("switch", { name: theme === "light" ? "Activer le thème clair" : "Activer le thème sombre" }).click();
+        await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+        for (const [route, context, menu] of [
+          ["/", "Accueil", "Ouvrir le menu"],
+          ["/rules", "Règles", "Ouvrir le menu"],
+          ["/multiplayer", "Multijoueur", "Ouvrir le menu"],
+          ["/profile", "Profil", "Ouvrir le menu"],
+          ["/history", "Historique", "Ouvrir le menu"],
+          ["/login", "Connexion", "Ouvrir le menu"],
+          ["/solo", "Solo", "Ouvrir le menu de partie"],
+        ] as const) {
+          await page.goto(route);
+          await expect(header).toHaveAttribute("class", headerClass ?? "");
+          await expect(header.getByText(context, { exact: true })).toBeVisible();
+          for (const name of ["Piste précédente", "Lire la musique", "Piste suivante", menu]) {
+            await expect(header.getByRole("button", { name })).toBeVisible();
+          }
+          await expect(header.getByRole("switch", { name: theme === "light" ? "Activer le thème sombre" : "Activer le thème clair" })).toBeVisible();
+          expect(await header.evaluate((element) => Math.round(element.getBoundingClientRect().height))).toBe(48);
+          expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+        }
+      }
+    }
+  });
+
   test("@smoke background music persists across navigation and obeys its own settings", async ({ page }) => {
     await page.goto("/");
     const audio = page.locator("audio[data-background-music]");
     await expect(audio).toHaveCount(1);
     await expect(audio).toHaveAttribute("preload", "metadata");
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).src)).toContain("/audio/music/echoes-allan.mp3");
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(true);
+    await page.getByRole("link", { name: "Accueil — KFFR Contrée" }).click();
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(true);
+    await expect(page.getByRole("button", { name: "Lire la musique" })).toBeVisible();
+    await page.getByRole("button", { name: "Piste précédente" }).click();
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).src)).toContain("/audio/music/your-way-allan.mp3");
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(true);
+    await page.getByRole("button", { name: "Piste suivante" }).click();
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).src)).toContain("/audio/music/echoes-allan.mp3");
+    await page.getByRole("button", { name: "Lire la musique" }).click();
+    await expect(page.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(false);
+    await page.getByRole("button", { name: "Piste suivante" }).click();
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).src)).toContain("/audio/music/ena-allan.mp3");
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(false);
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).currentTime)).toBeGreaterThan(0);
+    const positionBeforeNavigation = await audio.evaluate((element) => (element as HTMLAudioElement).currentTime);
     await audio.evaluate((element) => { (element as HTMLAudioElement & { musicMarker?: string }).musicMarker = "same-player"; });
 
     await page.getByRole("link", { name: "Voir les règles" }).click();
     await expect(page).toHaveURL(/\/rules$/);
     await expect(audio).toHaveCount(1);
     expect(await audio.evaluate((element) => (element as HTMLAudioElement & { musicMarker?: string }).musicMarker)).toBe("same-player");
+    await expect(page.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
+    expect(await audio.evaluate((element) => (element as HTMLAudioElement).currentTime)).toBeGreaterThanOrEqual(positionBeforeNavigation);
 
     await page.getByRole("button", { name: "Ouvrir le menu" }).click();
     await page.getByRole("link", { name: "Jouer en solo" }).last().click();
     await expect(page).toHaveURL(/\/solo$/);
     expect(await audio.evaluate((element) => (element as HTMLAudioElement & { musicMarker?: string }).musicMarker)).toBe("same-player");
+    await expect(page.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
 
     await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
     await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
@@ -28,10 +81,26 @@ test.describe("@smoke public production readiness", () => {
     await expect(dialog.getByRole("slider", { name: "Volume musique" })).toHaveValue("25");
     await dialog.getByRole("checkbox", { name: "Musique" }).uncheck();
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(true);
-    await dialog.getByRole("checkbox", { name: "Musique" }).check();
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Lire la musique" }).click();
+    await expect(page.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
+    await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
+    await dialog.getByRole("button", { name: "SON" }).click();
+    await expect(dialog.getByRole("checkbox", { name: "Musique" })).toBeChecked();
     await dialog.getByRole("slider", { name: "Volume musique" }).fill("40");
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(0.4);
     await expect(dialog.getByRole("checkbox", { name: "Effets sonores" })).not.toBeChecked();
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Mettre la musique en pause" }).click();
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(true);
+    await page.getByRole("button", { name: "Lire la musique" }).click();
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(false);
+    await page.reload();
+    await expect(audio).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Lire la musique" })).toBeVisible();
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(true);
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(0.4);
   });
 
   test("@smoke neutral accents and bidding panel follow both themes", async ({ page }) => {
