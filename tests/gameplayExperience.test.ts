@@ -5,6 +5,7 @@ import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable, tableSeatsFor } from "@/components/GameTable";
 import { GameTopBar } from "@/components/GameTopBar";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
+import { HumanHand } from "@/components/HumanHand";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
 import { createInitialGame, makeBid } from "@/engine/game";
 import { scoreRound } from "@/engine/scoring";
@@ -142,5 +143,27 @@ describe("premium gameplay shell", () => {
     const state = createInitialGame(() => 0.1);
     expect(tableSeatsFor(toPlayerGameView(state, 1))).toEqual({ bottom: 1, right: 2, top: 3, left: 0 });
     expect(tableSeatsFor(toPlayerGameView(state, 3))).toEqual({ bottom: 3, right: 0, top: 1, left: 2 });
+  });
+
+  it("renders the same integrated controls with a filtered multiplayer view", () => {
+    const state = createInitialGame(() => 0.1);
+    const view = {
+      ...toPlayerGameView(state, 2),
+      currentTrick: { ...state.currentTrick, cards: [{ playerId: 1 as const, card: state.hands[1][0] }] },
+    };
+    const hand = React.createElement(HumanHand, {
+      cards: view.hand, legalCards: [], canPlay: false,
+      onPlayCard: () => undefined, inScene: true,
+    });
+    const markup = withPreferences(React.createElement(GameTable, {
+      state: view, hand, biddingControls: React.createElement("button", null, "Passer"),
+    }));
+    expect(markup).toContain("coinche-game-scene");
+    expect(markup).toContain("coinche-scene-hand");
+    expect(markup).toContain("coinche-scene-bidding");
+    expect(markup).toContain("Passer");
+    expect(markup.match(/class="coinche-scene-hand-card"/g)).toHaveLength(8);
+    expect(markup).toContain('data-player-id="1"');
+    expect(markup).toContain("coinche-trick-card--left");
   });
 });

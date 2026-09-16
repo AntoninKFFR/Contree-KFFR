@@ -325,42 +325,31 @@ export default function SoloPage() {
         >
           <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
             <GameTable
-              bottomOverlay={
-                isMobileLandscape
-                  ? gameState.phase === "bidding"
-                    ? (
-                        <BiddingPanel
-                          bids={gameState.bids}
-                          biddingRules={gameRules?.bidding}
-                          canBid={humanCanBid}
-                          canCoinche={humanCanCoinche}
-                          canSurcoinche={humanCanSurcoinche}
-                          compact
-                          currentContract={currentContract}
-                          onBid={handleHumanBid}
-                          onCapot={handleHumanCapot}
-                          onGenerale={handleHumanGenerale}
-                          onCoinche={handleHumanCoinche}
-                          onPass={handleHumanPass}
-                          onSurcoinche={handleHumanSurcoinche}
-                          playerId={localHumanPlayerId}
-                        />
-                      )
-                    : gameState.phase === "playing"
-                      ? (
-                          <HumanHand
-                            canPlay={humanCanPlay}
-                            cards={gameState.hands[localHumanPlayerId]}
-                            contractMode={currentMode}
-                            embedded
-                            illegalCardMessage={illegalCardMessage}
-                            legalCards={legalHumanCards}
-                            onPlayCard={handlePlayCard}
-                          />
-                        )
-                      : null
-                  : undefined
-              }
+              biddingControls={gameState.phase === "bidding" && humanCanBid ? <BiddingPanel
+                bids={gameState.bids}
+                biddingRules={gameRules?.bidding}
+                canBid={humanCanBid}
+                canCoinche={humanCanCoinche}
+                canSurcoinche={humanCanSurcoinche}
+                compact
+                currentContract={currentContract}
+                onBid={handleHumanBid}
+                onCapot={handleHumanCapot}
+                onGenerale={handleHumanGenerale}
+                onCoinche={handleHumanCoinche}
+                onPass={handleHumanPass}
+                onSurcoinche={handleHumanSurcoinche}
+                playerId={localHumanPlayerId}
+              /> : null}
+              hand={(gameState.phase === "bidding" || gameState.phase === "playing") ? <HumanHand
+                canPlay={humanCanPlay}
+                cards={gameState.hands[localHumanPlayerId]}
+                contractMode={currentMode}
+                illegalCardMessage={illegalCardMessage}
+                inScene
+                legalCards={legalHumanCards}
+                onPlayCard={handlePlayCard}
+              /> : null}
               immersiveMobileLandscape={isMobileLandscape}
               minimalHud={isFocusMode}
               state={gameState}
@@ -412,36 +401,6 @@ export default function SoloPage() {
               </div>
             ) : null}
 
-            {!isMobileLandscape && gameState.phase === "bidding" ? (
-              <BiddingPanel
-                bids={gameState.bids}
-                biddingRules={gameRules?.bidding}
-                canBid={humanCanBid}
-                canCoinche={humanCanCoinche}
-                canSurcoinche={humanCanSurcoinche}
-                currentContract={currentContract}
-                onBid={handleHumanBid}
-                onCapot={handleHumanCapot}
-                onGenerale={handleHumanGenerale}
-                onCoinche={handleHumanCoinche}
-                onPass={handleHumanPass}
-                onSurcoinche={handleHumanSurcoinche}
-                playerId={localHumanPlayerId}
-              />
-            ) : null}
-
-            {!isMobileLandscape && (gameState.phase === "bidding" || gameState.phase === "playing") ? (
-              <div>
-                <HumanHand
-                  canPlay={humanCanPlay}
-                  cards={gameState.hands[localHumanPlayerId]}
-                  contractMode={currentMode}
-                  illegalCardMessage={illegalCardMessage}
-                  legalCards={legalHumanCards}
-                  onPlayCard={handlePlayCard}
-                />
-              </div>
-            ) : null}
           </div>
 
         </div>

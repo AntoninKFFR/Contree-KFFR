@@ -48,7 +48,8 @@ export function inactivePlayerMessage(state: GameTableState): string | null {
 
 type GameTableProps = {
   state: GameTableState;
-  bottomOverlay?: ReactNode;
+  hand?: ReactNode;
+  biddingControls?: ReactNode;
   immersiveMobileLandscape?: boolean;
   players?: RoomPlayerView[];
   presentationScope?: string;
@@ -148,75 +149,29 @@ function dominantBidPlayerId(bids: Bid[]): PlayerId | null {
   return null;
 }
 
-function playedCardsToShow(state: GameTableState): { title: string; cards: PlayedCard[] } {
-  return { title: "Pli en cours", cards: state.currentTrick.cards };
-}
-
 function trickCollectionOffset(winnerId: PlayerId, seats: TableSeats): { x: string; y: string } {
-  if (winnerId === seats.top) return { x: "0px", y: "-120px" };
-  if (winnerId === seats.left) return { x: "-150px", y: "0px" };
-  if (winnerId === seats.right) return { x: "150px", y: "0px" };
-  return { x: "0px", y: "120px" };
+  if (winnerId === seats.top) return { x: "0px", y: "calc(-40vh + 2rem)" };
+  if (winnerId === seats.left) return { x: "calc(-50vw + 5rem)", y: "0px" };
+  if (winnerId === seats.right) return { x: "calc(50vw - 5rem)", y: "0px" };
+  return { x: "0px", y: "32vh" };
 }
 
-function playedCardForPlayer(cards: PlayedCard[], playerId: PlayerId): PlayedCard | undefined {
-  return cards.find((played) => played.playerId === playerId);
-}
-
-function PlayedCardSlot({
-  cards,
-  playerId,
-}: {
-  cards: PlayedCard[];
-  playerId: PlayerId;
-}) {
-  const played = playedCardForPlayer(cards, playerId);
+function TrickCard({ played, position, animate }: { played: PlayedCard; position: keyof TableSeats; animate: boolean }) {
   const { effectiveReducedMotion, preferences } = usePlayerPreferences();
-
   return (
-    <div className="flex h-full w-full items-center justify-center">
-      {played ? (
-        <CardView
-          card={played.card}
-          className={isPreferenceAnimationEnabled(preferences, "card-play", effectiveReducedMotion) ? "coinche-card-enter" : ""}
-          disabled
-          muted={false}
-          size="compact"
-        />
-      ) : (
-        <div aria-hidden="true" className="h-16 w-11 rounded-lg border border-dashed border-white/15 bg-black/5 sm:h-24 sm:w-16">
-        </div>
-      )}
+    <div className={`coinche-trick-card coinche-trick-card--${position}`} data-player-id={played.playerId}>
+      <CardView card={played.card} className={animate && isPreferenceAnimationEnabled(preferences, "card-play", effectiveReducedMotion) ? `coinche-card-play-from-${position}` : ""} disabled muted={false} size="compact" />
     </div>
   );
 }
 
-function TrickCell({
-  cards,
-  className,
-  playerId,
-}: {
-  cards: PlayedCard[];
-  className: string;
-  playerId: PlayerId;
-}) {
+function TrickCenter({ cards, seats, animate = true }: { cards: PlayedCard[]; seats: TableSeats; animate?: boolean }) {
   return (
-    <div className={`${className} flex h-full w-full items-center justify-center`}>
-      <PlayedCardSlot cards={cards} playerId={playerId} />
-    </div>
-  );
-}
-
-function TrickCenter({ cards, seats, title }: { cards: PlayedCard[]; seats: TableSeats; title: string }) {
-  return (
-    <div className="absolute left-1/2 top-1/2 grid grid-cols-[44px_70px_44px] grid-rows-[62px_62px_62px] place-items-center gap-1.5 -translate-x-1/2 -translate-y-1/2 sm:grid-cols-[68px_98px_68px] sm:grid-rows-[92px_92px_92px] sm:gap-2">
-      <TrickCell cards={cards} className="col-start-2 row-start-1" playerId={seats.top} />
-      <TrickCell cards={cards} className="col-start-1 row-start-2" playerId={seats.left} />
-      <h2 className="col-start-2 row-start-2 flex min-h-8 items-center justify-center rounded-full border border-white/10 bg-black/20 px-2 py-1 text-center text-[9px] font-bold uppercase tracking-[0.08em] text-white/70 shadow-sm backdrop-blur-sm sm:text-[10px]">
-        {title}
-      </h2>
-      <TrickCell cards={cards} className="col-start-3 row-start-2" playerId={seats.right} />
-      <TrickCell cards={cards} className="col-start-2 row-start-3" playerId={seats.bottom} />
+    <div aria-label="Cartes du pli" className="coinche-trick-area absolute left-1/2 top-[43%] -translate-x-1/2 -translate-y-1/2">
+      {cards.map((played) => {
+        const position = (Object.keys(seats) as (keyof TableSeats)[]).find((seat) => seats[seat] === played.playerId)!;
+        return <TrickCard animate={animate} key={`${played.playerId}-${played.card.rank}-${played.card.suit}`} played={played} position={position} />;
+      })}
     </div>
   );
 }
@@ -226,13 +181,11 @@ function TrickCollectionAnimation({
   durationMs,
   trick,
   seats,
-  winnerName,
 }: {
   animate: boolean;
   durationMs: number;
   trick: CompletedTrick;
   seats: TableSeats;
-  winnerName: string;
 }) {
   const offset = trickCollectionOffset(trick.winnerId, seats);
 
@@ -249,7 +202,7 @@ function TrickCollectionAnimation({
         } as React.CSSProperties
       }
     >
-      <TrickCenter cards={trick.cards} seats={seats} title={`${winnerName} remporte le pli`} />
+      <TrickCenter animate={false} cards={trick.cards} seats={seats} />
     </div>
   );
 }
@@ -369,7 +322,8 @@ function GameHud({
 
 export function GameTable({
   state,
-  bottomOverlay,
+  hand,
+  biddingControls,
   immersiveMobileLandscape = false,
   players,
   minimalHud = false,
@@ -386,9 +340,8 @@ export function GameTable({
     null,
   );
   const [showLastTrick, setShowLastTrick] = useState(false);
-  const center = playedCardsToShow(state);
   const seats = tableSeatsFor(state);
-  const visualTrick = selectVisualTrick(center.cards, animatedCompletedTrick);
+  const visualTrick = selectVisualTrick(state.currentTrick.cards, animatedCompletedTrick);
   const nameFor = (playerId: PlayerId) => playerName(playerId, state.playerNames);
   const inactiveMessage = inactivePlayerMessage(state);
   const connectionFor = (playerId: PlayerId) => {
@@ -522,12 +475,8 @@ export function GameTable({
   return (
     <section
       className={[
-        "coinche-game-table relative isolate w-full max-w-full overflow-hidden rounded-[1.4rem] border border-white/10 bg-cover bg-center text-stone-900 shadow-2xl",
-        immersiveMobileLandscape
-          ? "min-h-0 flex-1 rounded-none border-x-0 border-y-0 shadow-none"
-          : preferences.visual.compactLayout
-            ? "min-h-[180px] flex-none sm:min-h-[230px] lg:flex-1 lg:min-h-[280px]"
-            : "min-h-[190px] flex-none sm:min-h-[260px] lg:flex-1 lg:min-h-[320px]",
+        "coinche-game-table coinche-game-scene relative isolate min-h-0 w-full max-w-full flex-1 overflow-hidden rounded-[1.4rem] border border-white/10 bg-cover bg-center text-stone-900 shadow-2xl",
+        immersiveMobileLandscape ? "rounded-none border-0 shadow-none" : "",
       ].join(" ")}
     >
       {animatedCompletedTrick ? (
@@ -536,10 +485,9 @@ export function GameTable({
           durationMs={effectiveTrickPresentationPolicy.delayMs}
           seats={seats}
           trick={animatedCompletedTrick.trick}
-          winnerName={nameFor(animatedCompletedTrick.trick.winnerId)}
         />
       ) : (
-        <TrickCenter cards={visualTrick.cards} seats={seats} title={center.title} />
+        <TrickCenter cards={visualTrick.cards} seats={seats} />
       )}
       {showRoundHelp ? <RoundHelpOverlay showLiveScore={showLiveScore && preferences.assistance.showLivePoints} state={state} /> : null}
       {animatedCompletedTrick && !effectiveTrickPresentationPolicy.autoCollect ? <button className="absolute bottom-2 left-1/2 z-40 -translate-x-1/2 rounded-xl border-2 border-white bg-emerald-950 px-5 py-2.5 text-xs font-bold text-white shadow-xl" onClick={dismissPresentedTrick} type="button"><span className="block">Ramasser le pli</span><span className="block text-[10px] font-normal text-white/80">{nameFor(animatedCompletedTrick.trick.winnerId)} gagne · {animatedCompletedTrick.trick.points} pts</span></button> : null}
@@ -551,16 +499,15 @@ export function GameTable({
           {inactiveMessage}
         </div>
       ) : null}
-      {immersiveMobileLandscape && bottomOverlay ? (
-        <div className="absolute inset-x-2 bottom-2 z-30">{bottomOverlay}</div>
-      ) : null}
+      {state.phase === "bidding" && biddingControls ? <div className="coinche-scene-bidding absolute left-1/2 z-30 w-[min(700px,calc(100%-2rem))] -translate-x-1/2">{biddingControls}</div> : null}
+      {hand ? <div className="coinche-scene-hand absolute inset-x-0 bottom-0 z-20 flex justify-center">{hand}</div> : null}
 
       <div className="absolute left-1/2 top-2 -translate-x-1/2 sm:top-3">
         {topAnnouncement ? (
           <AnnouncementBubble
             key={topAnnouncement.bubbleKey}
             animate={topAnnouncement.animate}
-            className={bubblePositionClasses(2)}
+            className={`coinche-bubble-top ${bubblePositionClasses(2)}`}
             content={topAnnouncement.content}
             isDominant={topAnnouncement.isDominant}
           />
@@ -581,7 +528,7 @@ export function GameTable({
           <AnnouncementBubble
             key={leftAnnouncement.bubbleKey}
             animate={leftAnnouncement.animate}
-            className={bubblePositionClasses(3)}
+            className={`coinche-bubble-left ${bubblePositionClasses(3)}`}
             content={leftAnnouncement.content}
             isDominant={leftAnnouncement.isDominant}
           />
@@ -602,7 +549,7 @@ export function GameTable({
           <AnnouncementBubble
             key={rightAnnouncement.bubbleKey}
             animate={rightAnnouncement.animate}
-            className={bubblePositionClasses(1)}
+            className={`coinche-bubble-right ${bubblePositionClasses(1)}`}
             content={rightAnnouncement.content}
             isDominant={rightAnnouncement.isDominant}
           />
@@ -618,12 +565,12 @@ export function GameTable({
           playerId={seats.right}
         />
       </div>
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 sm:bottom-3">
+      <div className="coinche-bottom-seat absolute bottom-2 left-1/2 -translate-x-1/2 sm:bottom-3">
         {bottomAnnouncement ? (
           <AnnouncementBubble
             key={bottomAnnouncement.bubbleKey}
             animate={bottomAnnouncement.animate}
-            className={bubblePositionClasses(0)}
+            className={`coinche-bubble-bottom ${bubblePositionClasses(0)}`}
             content={bottomAnnouncement.content}
             isDominant={bottomAnnouncement.isDominant}
           />

@@ -933,42 +933,31 @@ export default function MultiplayerRoomPage() {
                   ) : null}
 
                   <GameTable
-                    bottomOverlay={
-                      isMobileLandscape
-                        ? playerView.phase === "bidding"
-                          ? (
-                              <BiddingPanel
-                                bids={playerView.bids}
-                                biddingRules={gameRules?.bidding}
-                                canBid={canBid && !isPlayingCard}
-                                canCoinche={canBidCoinche && !isPlayingCard}
-                                canSurcoinche={canBidSurcoinche && !isPlayingCard}
-                                compact
-                                currentContract={currentContract}
-                                onBid={handleBid}
-                                onCapot={handleCapot}
-                                onGenerale={handleGenerale}
-                                onCoinche={handleCoinche}
-                                onPass={handlePass}
-                                onSurcoinche={handleSurcoinche}
-                                playerId={playerView.viewerPlayerId}
-                              />
-                            )
-                          : playerView.phase === "playing"
-                            ? (
-                                <HumanHand
-                                  canPlay={canPlayCard && !isPlayingCard}
-                                  cards={playerView.hand}
-                                  contractMode={currentMode}
-                                  embedded
-                                  illegalCardMessage={illegalCardMessage}
-                                  legalCards={legalCards}
-                                  onPlayCard={handlePlayCard}
-                                />
-                              )
-                            : null
-                        : undefined
-                    }
+                    biddingControls={playerView.phase === "bidding" && canBid && !isPlayingCard ? <BiddingPanel
+                      bids={playerView.bids}
+                      biddingRules={gameRules?.bidding}
+                      canBid={canBid && !isPlayingCard}
+                      canCoinche={canBidCoinche && !isPlayingCard}
+                      canSurcoinche={canBidSurcoinche && !isPlayingCard}
+                      compact
+                      currentContract={currentContract}
+                      onBid={handleBid}
+                      onCapot={handleCapot}
+                      onGenerale={handleGenerale}
+                      onCoinche={handleCoinche}
+                      onPass={handlePass}
+                      onSurcoinche={handleSurcoinche}
+                      playerId={playerView.viewerPlayerId}
+                    /> : null}
+                    hand={(playerView.phase === "bidding" || playerView.phase === "playing") ? <HumanHand
+                      canPlay={canPlayCard && !isPlayingCard}
+                      cards={playerView.hand}
+                      contractMode={currentMode}
+                      illegalCardMessage={illegalCardMessage}
+                      inScene
+                      legalCards={legalCards}
+                      onPlayCard={handlePlayCard}
+                    /> : null}
                     immersiveMobileLandscape={isMobileLandscape}
                     minimalHud={isFocusMode}
                     players={roomWithPlayers.players}
@@ -979,36 +968,6 @@ export default function MultiplayerRoomPage() {
                     turnSecondsRemaining={turnSecondsRemaining}
                   />
 
-                  {!isMobileLandscape && playerView.phase === "bidding" ? (
-                    <BiddingPanel
-                      bids={playerView.bids}
-                      biddingRules={gameRules?.bidding}
-                      canBid={canBid && !isPlayingCard}
-                      canCoinche={canBidCoinche && !isPlayingCard}
-                      canSurcoinche={canBidSurcoinche && !isPlayingCard}
-                      currentContract={currentContract}
-                      onBid={handleBid}
-                      onCapot={handleCapot}
-                      onGenerale={handleGenerale}
-                      onCoinche={handleCoinche}
-                      onPass={handlePass}
-                      onSurcoinche={handleSurcoinche}
-                      playerId={playerView.viewerPlayerId}
-                    />
-                  ) : null}
-
-                  {!isMobileLandscape && (playerView.phase === "bidding" || playerView.phase === "playing") ? (
-                    <div>
-                      <HumanHand
-                        canPlay={canPlayCard && !isPlayingCard}
-                        cards={playerView.hand}
-                        contractMode={currentMode}
-                        illegalCardMessage={illegalCardMessage}
-                        legalCards={legalCards}
-                        onPlayCard={handlePlayCard}
-                      />
-                    </div>
-                  ) : null}
                 </div>
 
               </div>
