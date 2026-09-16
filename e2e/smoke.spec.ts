@@ -2,6 +2,38 @@ import { expect, test } from "@playwright/test";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 
 test.describe("@smoke public production readiness", () => {
+  test("@smoke background music persists across navigation and obeys its own settings", async ({ page }) => {
+    await page.goto("/");
+    const audio = page.locator("audio[data-background-music]");
+    await expect(audio).toHaveCount(1);
+    await expect(audio).toHaveAttribute("preload", "metadata");
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).src)).toContain("/audio/music/echoes-allan.mp3");
+    await audio.evaluate((element) => { (element as HTMLAudioElement & { musicMarker?: string }).musicMarker = "same-player"; });
+
+    await page.getByRole("link", { name: "Voir les règles" }).click();
+    await expect(page).toHaveURL(/\/rules$/);
+    await expect(audio).toHaveCount(1);
+    expect(await audio.evaluate((element) => (element as HTMLAudioElement & { musicMarker?: string }).musicMarker)).toBe("same-player");
+
+    await page.getByRole("button", { name: "Ouvrir le menu" }).click();
+    await page.getByRole("link", { name: "Jouer en solo" }).last().click();
+    await expect(page).toHaveURL(/\/solo$/);
+    expect(await audio.evaluate((element) => (element as HTMLAudioElement & { musicMarker?: string }).musicMarker)).toBe("same-player");
+
+    await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
+    const dialog = page.getByRole("dialog", { name: "Paramètres" });
+    await dialog.getByRole("button", { name: "SON" }).click();
+    await expect(dialog.getByRole("checkbox", { name: "Musique" })).toBeChecked();
+    await expect(dialog.getByRole("slider", { name: "Volume musique" })).toHaveValue("25");
+    await dialog.getByRole("checkbox", { name: "Musique" }).uncheck();
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(true);
+    await dialog.getByRole("checkbox", { name: "Musique" }).check();
+    await dialog.getByRole("slider", { name: "Volume musique" }).fill("40");
+    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(0.4);
+    await expect(dialog.getByRole("checkbox", { name: "Effets sonores" })).not.toBeChecked();
+  });
+
   test("@smoke neutral accents and bidding panel follow both themes", async ({ page }) => {
     test.setTimeout(90_000);
     for (const viewport of [{ width: 1366, height: 768 }, { width: 844, height: 390 }]) {

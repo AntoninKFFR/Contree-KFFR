@@ -19,7 +19,7 @@ const SECTIONS = [
   { id: "help", label: "Aides", keywords: "carte jouable interdite score contrat dernier pli tour" },
   { id: "cards", label: "Cartes", keywords: "carte tri couleur taille style classique moderne" },
   { id: "display", label: "Affichage", keywords: "interface tapis thème animation distribution enchère pli" },
-  { id: "sound", label: "Son", keywords: "son audio volume tester carte enchère interface" },
+  { id: "sound", label: "Son", keywords: "son audio musique volume tester carte enchère interface" },
   { id: "accessibility", label: "Accessibilité", keywords: "accessibilité mouvement contraste texte taille" },
 ] as const;
 type SectionId = typeof SECTIONS[number]["id"];
@@ -126,7 +126,16 @@ function DisplaySettings({ preferences, update }: { preferences: PlayerPreferenc
 
 function SoundSettings({ preferences, update }: { preferences: PlayerPreferences; update: Update }) {
   const sounds: [keyof PlayerPreferences["audio"], string, string][] = [["cardSounds","Sons des cartes","Jouer une carte et ramasser un pli."],["biddingSounds","Sons des enchères","Enchères, Coinche, Surcoinche, Capot et Générale."],["uiSounds","Sons de l'interface","Boutons et confirmations."]];
-  return <section aria-labelledby="settings-sound" className="space-y-2"><h3 className="text-lg font-bold text-[#f4ead0]" id="settings-sound">Son</h3><Toggle checked={preferences.audio.enabled} description="Retours locaux uniquement ; ils ne bloquent jamais le jeu." label="Sons" onChange={(v) => update("audio", { enabled: v }, false)} /><Field label={`Volume général : ${Math.round(preferences.audio.volume * 100)} %`}><input aria-label="Volume général" className="mt-2 w-full accent-emerald-500" disabled={!preferences.audio.enabled} max={100} min={0} onChange={(event) => update("audio", { volume: Number(event.target.value) / 100 }, false)} type="range" value={Math.round(preferences.audio.volume * 100)} /></Field>{sounds.map(([key,label,description]) => <Toggle checked={preferences.audio[key] as boolean} description={description} disabled={!preferences.audio.enabled} disabledReason="Active d'abord les sons." key={key} label={label} onChange={(v) => update("audio", { [key]: v })} />)}<button className="w-full rounded-lg border border-emerald-300/25 bg-emerald-700/80 px-3 py-2 text-sm font-bold text-white transition hover:bg-emerald-600 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 disabled:opacity-50" disabled={!preferences.audio.enabled || preferences.audio.volume === 0} onClick={() => playPreferenceSound("ui", preferences)} type="button">Tester le son</button></section>;
+  return <section aria-labelledby="settings-sound" className="space-y-2">
+    <h3 className="text-lg font-bold text-[#f4ead0]" id="settings-sound">Son</h3>
+    <Toggle checked={preferences.audio.musicEnabled} description="Playlist de fond sur toutes les pages." label="Musique" onChange={(v) => update("audio", { musicEnabled: v }, false)} />
+    <Field label={`Volume musique : ${Math.round(preferences.audio.musicVolume * 100)} %`}><input aria-label="Volume musique" className="mt-2 w-full accent-emerald-500" disabled={!preferences.audio.musicEnabled} max={100} min={0} onChange={(event) => update("audio", { musicVolume: Number(event.target.value) / 100 }, false)} type="range" value={Math.round(preferences.audio.musicVolume * 100)} /></Field>
+    <div className="my-3 border-t border-white/10" />
+    <Toggle checked={preferences.audio.enabled} description="Retours locaux uniquement ; ils ne bloquent jamais le jeu." label="Effets sonores" onChange={(v) => update("audio", { enabled: v }, false)} />
+    <Field label={`Volume des effets : ${Math.round(preferences.audio.volume * 100)} %`}><input aria-label="Volume des effets" className="mt-2 w-full accent-emerald-500" disabled={!preferences.audio.enabled} max={100} min={0} onChange={(event) => update("audio", { volume: Number(event.target.value) / 100 }, false)} type="range" value={Math.round(preferences.audio.volume * 100)} /></Field>
+    {sounds.map(([key,label,description]) => <Toggle checked={preferences.audio[key] as boolean} description={description} disabled={!preferences.audio.enabled} disabledReason="Active d'abord les sons." key={key} label={label} onChange={(v) => update("audio", { [key]: v })} />)}
+    <button className="w-full rounded-lg border border-emerald-300/25 bg-emerald-700/80 px-3 py-2 text-sm font-bold text-white transition hover:bg-emerald-600 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 disabled:opacity-50" disabled={!preferences.audio.enabled || preferences.audio.volume === 0} onClick={() => playPreferenceSound("ui", preferences)} type="button">Tester le son</button>
+  </section>;
 }
 
 function AccessibilitySettings({ preferences, update }: { preferences: PlayerPreferences; update: Update }) {

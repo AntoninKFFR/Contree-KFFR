@@ -59,6 +59,8 @@ export type PlayerPreferences = {
     biddingSounds: boolean;
     uiSounds: boolean;
     volume: number;
+    musicEnabled: boolean;
+    musicVolume: number;
   };
 };
 
@@ -120,6 +122,8 @@ const BASE_DEFAULTS: PlayerPreferences = {
     biddingSounds: true,
     uiSounds: true,
     volume: 0.5,
+    musicEnabled: true,
+    musicVolume: 0.25,
   },
 };
 
@@ -241,6 +245,8 @@ export function normalizePlayerPreferences(value: unknown): PlayerPreferences {
       biddingSounds: booleanValue(audio, "biddingSounds", true),
       uiSounds: booleanValue(audio, "uiSounds", true),
       volume: volumeValue(audio.volume, 0.5),
+      musicEnabled: booleanValue(audio, "musicEnabled", true),
+      musicVolume: volumeValue(audio.musicVolume, 0.25),
     },
   };
 }
