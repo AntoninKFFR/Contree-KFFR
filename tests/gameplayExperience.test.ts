@@ -11,6 +11,7 @@ import { createInitialGame, makeBid } from "@/engine/game";
 import { scoreRound } from "@/engine/scoring";
 import { toPlayerGameView } from "@/engine/views";
 import { clonePlayerPreferences } from "@/lib/preferences/playerPreferences";
+import { handWithoutPendingCard } from "@/lib/multiplayerOptimisticPlay";
 import type { RoomPlayerView } from "@/lib/roomTypes";
 
 vi.mock("server-only", () => ({}));
@@ -165,5 +166,21 @@ describe("premium gameplay shell", () => {
     expect(markup.match(/class="coinche-scene-hand-card"/g)).toHaveLength(8);
     expect(markup).toContain('data-player-id="1"');
     expect(markup).toContain("coinche-trick-card--left");
+  });
+
+  it("shows a pending multiplayer card once at the table and removes it from the visual hand", () => {
+    const state = createInitialGame(() => 0.1);
+    const view = toPlayerGameView(state, 2);
+    const card = view.hand[0];
+    const hand = React.createElement(HumanHand, {
+      cards: handWithoutPendingCard(view.hand, card), legalCards: [], canPlay: false,
+      onPlayCard: () => undefined, inScene: true,
+    });
+    const markup = withPreferences(React.createElement(GameTable, {
+      state: view, hand, optimisticCard: { playerId: 2, card },
+    }));
+    expect(markup.match(/class="coinche-scene-hand-card"/g)).toHaveLength(7);
+    expect(markup.match(/data-player-id="2"/g)).toHaveLength(1);
+    expect(markup).toContain("coinche-card-play-from-bottom");
   });
 });

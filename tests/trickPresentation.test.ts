@@ -38,7 +38,7 @@ function observe(
 
 describe("visual completed-trick transition", () => {
   it("uses the preference-controlled client-only presentation window", () => {
-    expect(getTrickPresentationPolicy(clonePlayerPreferences()).delayMs).toBe(1_200);
+    expect(getTrickPresentationPolicy(clonePlayerPreferences()).delayMs).toBe(1_800);
   });
 
   it("does not replay historical tricks on refresh or reconnection", () => {

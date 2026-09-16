@@ -6,7 +6,7 @@ import { createGameSettings } from "@/engine/rulesets/resolve";
 import type { Card, CompletedTrick, ContractStatus, GameState, PlayerId } from "@/engine/types";
 import { turnDeadlineForState } from "@/lib/multiplayerTurnTimer";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
-import { applyAuthorizedAction, applyBotTurns } from "@/lib/server/multiplayerGame";
+import { applyAuthorizedAction, applySingleBotTurn } from "@/lib/server/multiplayerGame";
 import { parseServerGameState } from "@/lib/server/gameStateValidation";
 import { createTestRuleset } from "@/tests/helpers/rulesets";
 
@@ -230,7 +230,7 @@ describe("requested capot early completion", () => {
   it("stops bot automation as soon as the defensive trick defeats the capot", () => {
     const initial = capotBeforeThirdTrickEnds();
     const cardsBefore = Object.values(initial.hands).flat().length;
-    const finished = applyBotTurns(initial, players(["human", "bot", "bot", "bot"]));
+    const finished = applySingleBotTurn(initial, players(["human", "bot", "bot", "bot"]));
     expect(finished.phase).toBe("finished");
     expect(finished.completedTricks).toHaveLength(3);
     expect(Object.values(finished.hands).flat()).toHaveLength(cardsBefore - 1);

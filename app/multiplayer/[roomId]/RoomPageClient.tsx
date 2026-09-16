@@ -31,13 +31,14 @@ import { CONTREE_KFFR_RULESET } from "@/engine/rulesets/presets";
 import { resolveRoomRules } from "@/engine/rulesets/room";
 import type { BidValue, Card, ContractMode } from "@/engine/types";
 import { PRESENCE_HEARTBEAT_INTERVAL_MS } from "@/lib/multiplayerPresence";
+import { handWithoutPendingCard, visiblePendingCard, type PendingLocalPlay } from "@/lib/multiplayerOptimisticPlay";
 import { loginPath } from "@/lib/authRedirect";
 import { ensureProfile } from "@/lib/profiles";
-import { fetchRoomView, sendPresenceHeartbeat, sendRoomIntent, sendRoomIntentWithLobbyRetry, sendRoomTick } from "@/lib/multiplayerApi";
+import { fetchRoomView, MultiplayerApiError, sendPresenceHeartbeat, sendRoomIntent, sendRoomIntentWithLobbyRetry, sendRoomTick } from "@/lib/multiplayerApi";
 import type { RoomPlayerAction, RoomPlayerRow, RoomPlayerView, MultiplayerRoomView } from "@/lib/roomTypes";
 import { subscribeToRoomRealtime } from "@/lib/roomRealtime";
 import { getSupabaseClient } from "@/lib/supabaseClient";
-import { MULTIPLAYER_TICK_INTERVAL_MS } from "@/lib/multiplayerTurnTimer";
+import { MULTIPLAYER_TICK_INTERVAL_MS, botPacingDelayMs } from "@/lib/multiplayerTurnTimer";
 import { scoringModeLabel } from "@/lib/productGame";
 import { normalizeMultiplayerTablePreferences, type MultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 
@@ -72,6 +73,8 @@ export default function MultiplayerRoomPage() {
   const [isJoiningSeat, setIsJoiningSeat] = useState(false);
   const [isLeavingSeat, setIsLeavingSeat] = useState(false);
   const [isPlayingCard, setIsPlayingCard] = useState(false);
+  const [pendingLocalPlay, setPendingLocalPlay] = useState<PendingLocalPlay | null>(null);
+  const actionInFlightRef = useRef(false);
   const [isForfeiting, setIsForfeiting] = useState(false);
   const [isForfeitConfirmationOpen, setIsForfeitConfirmationOpen] = useState(false);
   const [isHostTransferOpen, setIsHostTransferOpen] = useState(false);
@@ -147,6 +150,7 @@ export default function MultiplayerRoomPage() {
       roomWithPlayers.players.every((player) => player.kind !== "human" || player.is_ready),
   );
   const playerView = roomWithPlayers?.game ?? null;
+  const visiblePendingCardValue = visiblePendingCard(pendingLocalPlay, roomWithPlayers?.room.state_version ?? null, playerView?.hand ?? null);
   const gameState = playerView;
   const deadlineMs = roomWithPlayers?.room.turn_deadline_at
     ? Date.parse(roomWithPlayers.room.turn_deadline_at)
@@ -279,7 +283,8 @@ export default function MultiplayerRoomPage() {
 
     try {
       const nextRoom = await fetchRoomView(roomId, nextSession);
-      setRoomWithPlayers(nextRoom);
+      setRoomWithPlayers((current) => current && current.room.id === nextRoom.room.id
+        && current.room.state_version > nextRoom.room.state_version ? current : nextRoom);
       setError(null);
       setPageState("ready");
     } catch (loadError) {
@@ -365,32 +370,39 @@ export default function MultiplayerRoomPage() {
     ) return;
 
     let active = true;
-    let inFlight = false;
+    let timerId: number;
+    const game = roomWithPlayers.game;
+    const seat = game ? roomWithPlayers.players.find((player) => player.seat_index === game.currentPlayerId) : null;
+    const botTurn = game && (game.phase === "bidding" || game.phase === "playing")
+      && (seat?.kind === "bot" || seat?.bot_takeover);
+    const updatedAt = Date.parse(roomWithPlayers.room.updated_at);
+    const dueAt = botTurn && Number.isFinite(updatedAt)
+      ? updatedAt + botPacingDelayMs(game.phase as "bidding" | "playing", game.currentTrick.cards.length, game.completedTricks.length, tablePreferences)
+      : null;
     const tick = async () => {
-      if (inFlight) return;
-      inFlight = true;
       try {
         const nextRoom = await sendRoomTick(roomId, { access_token: accessToken });
         if (active) {
           setRoomWithPlayers((current) =>
-            current && current.room.state_version > nextRoom.room.state_version
+            current && current.room.state_version >= nextRoom.room.state_version
               ? current
               : nextRoom);
         }
       } catch {
-        // Another member or the next interval can safely retry the idempotent tick.
+        // Another member or the next scheduled check can advance the room.
       } finally {
-        inFlight = false;
+        if (active) timerId = window.setTimeout(tick, botTurn ? 500 : MULTIPLAYER_TICK_INTERVAL_MS);
       }
     };
 
-    void tick();
-    const intervalId = window.setInterval(tick, MULTIPLAYER_TICK_INTERVAL_MS);
+    timerId = window.setTimeout(tick, dueAt === null
+      ? MULTIPLAYER_TICK_INTERVAL_MS
+      : Math.max(0, dueAt - Date.now()) + 30);
     return () => {
       active = false;
-      window.clearInterval(intervalId);
+      window.clearTimeout(timerId);
     };
-  }, [accessToken, roomId, roomWithPlayers?.room.status, viewerSeatIndex]);
+  }, [accessToken, roomId, roomWithPlayers, tablePreferences, viewerSeatIndex]);
 
   useEffect(() => {
     if (!roomWithPlayers?.room.turn_deadline_at) {
@@ -607,12 +619,14 @@ export default function MultiplayerRoomPage() {
       !supabase ||
       !roomWithPlayers ||
       !session ||
-      (isCardAction ? !canPlayCard : !canBid)
+      (isCardAction ? !canPlayCard : !canBid) || actionInFlightRef.current
     ) {
       return;
     }
 
+    actionInFlightRef.current = true;
     setIsPlayingCard(true);
+    if (isCardAction) setPendingLocalPlay({ card: action.card, version: roomWithPlayers.room.state_version });
     setError(null);
 
     try {
@@ -622,11 +636,14 @@ export default function MultiplayerRoomPage() {
         { type: "game-action", action },
         session,
       );
-      setRoomWithPlayers(nextRoom);
+      setRoomWithPlayers((current) => current && current.room.state_version > nextRoom.room.state_version ? current : nextRoom);
       setPageState("ready");
     } catch (playError) {
       setError(errorMessage(playError));
+      if (playError instanceof MultiplayerApiError && playError.status === 409) void loadRoom({ silent: true });
     } finally {
+      actionInFlightRef.current = false;
+      setPendingLocalPlay(null);
       setIsPlayingCard(false);
     }
   }
@@ -933,6 +950,7 @@ export default function MultiplayerRoomPage() {
                   ) : null}
 
                   <GameTable
+                    optimisticCard={visiblePendingCardValue ? { playerId: playerView.viewerPlayerId, card: visiblePendingCardValue } : null}
                     biddingControls={playerView.phase === "bidding" && canBid && !isPlayingCard ? <BiddingPanel
                       bids={playerView.bids}
                       biddingRules={gameRules?.bidding}
@@ -951,7 +969,7 @@ export default function MultiplayerRoomPage() {
                     /> : null}
                     hand={(playerView.phase === "bidding" || playerView.phase === "playing") ? <HumanHand
                       canPlay={canPlayCard && !isPlayingCard}
-                      cards={playerView.hand}
+                      cards={handWithoutPendingCard(playerView.hand, visiblePendingCardValue)}
                       contractMode={currentMode}
                       illegalCardMessage={illegalCardMessage}
                       inScene

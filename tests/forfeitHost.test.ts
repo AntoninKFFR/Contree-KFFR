@@ -5,7 +5,7 @@ import { canClaimRoomHost, nextHostUserId } from "@/lib/multiplayerHost";
 import { turnDeadlineForState } from "@/lib/multiplayerTurnTimer";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import {
-  applyBotTurns, applyTimedOutTurnIfExpired, forfeitRoom, leaveLobbySeat, resetRoomPlayers,
+  applySingleBotTurn, applyTimedOutTurnIfExpired, forfeitRoom, leaveLobbySeat, resetRoomPlayers,
 } from "@/lib/server/multiplayerGame";
 import { parseRoomIntent } from "@/lib/server/roomIntentValidation";
 
@@ -68,7 +68,7 @@ describe("voluntary multiplayer forfeit", () => {
       NOW_MS,
     )).toBeNull();
     expect(result.players.every((player) => !player.bot_takeover)).toBe(true);
-    expect(applyBotTurns(result.state, result.players)).toEqual(result.state);
+    expect(applySingleBotTurn(result.state, result.players)).toEqual(result.state);
   });
 
   it("rejects a non-member and a second forfeit after game over", () => {

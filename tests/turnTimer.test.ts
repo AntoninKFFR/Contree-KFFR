@@ -4,11 +4,11 @@ import { getLegalCards } from "@/engine/rules";
 import type { Card, GameState } from "@/engine/types";
 import {
   MULTIPLAYER_TICK_INTERVAL_MS, MULTIPLAYER_TURN_TIMEOUT_MS,
-  isTurnDeadlineExpired, turnDeadlineForState,
+  botReadyAt, isTurnDeadlineExpired, turnDeadlineForState,
 } from "@/lib/multiplayerTurnTimer";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import {
-  applyBotTurns, applyTimedOutTurn, applyTimedOutTurnIfExpired, requireVersion,
+  applyAuthorizedAction, applySingleBotTurn, applyTimedOutTurn, applyTimedOutTurnIfExpired, requireVersion,
 } from "@/lib/server/multiplayerGame";
 
 const NOW_MS = Date.parse("2026-09-09T12:00:00.000Z");
@@ -28,7 +28,7 @@ function room(deadline: string | null, version = 31): RoomRow {
   return {
     id: "room", code: "ABC123", status: "playing", host_user_id: "user-0", active_game_id: "game-1",
     scoring_mode: "made-points", target_score: 1000, game_phase: "bidding",
-    state_version: version, turn_deadline_at: deadline, created_at: "", updated_at: "",
+    state_version: version, turn_deadline_at: deadline, created_at: "", updated_at: new Date(NOW_MS).toISOString(),
     started_at: "", finished_at: null,
   };
 }
@@ -52,6 +52,40 @@ describe("server-authoritative multiplayer turn timer", () => {
     expect(MULTIPLAYER_TICK_INTERVAL_MS).toBe(4_000);
   });
 
+  it("paces each slow bot bid and card from the last committed room timestamp", () => {
+    const currentPlayers = players();
+    currentPlayers[0] = { ...currentPlayers[0], kind: "bot", user_id: null };
+    const currentRoom = { ...room(null), presentation_settings: { gameSpeed: "slow" as const, autoCollectTricks: true, trickDisplayMs: 1800 } };
+    expect(botReadyAt(currentRoom, createInitialGame(() => 0.1), currentPlayers)).toBe(NOW_MS + 800);
+    expect(botReadyAt(currentRoom, playingState(), currentPlayers)).toBe(NOW_MS + 1200);
+    const afterTrick = { ...playingState(), currentTrick: { leaderId: 0 as const, cards: [] }, completedTricks: [{ leaderId: 0 as const, winnerId: 0 as const, cards: [], points: 0 }] };
+    expect(botReadyAt(currentRoom, afterTrick, currentPlayers)).toBe(NOW_MS + 1800);
+    expect(NOW_MS + 799 < botReadyAt(currentRoom, createInitialGame(() => 0.1), currentPlayers)!).toBe(true);
+  });
+
+  it("holds a completed four-card trick before a takeover bot can lead", () => {
+    const initial = {
+      ...playingState(),
+      currentTrick: { leaderId: 1 as const, cards: [
+        { playerId: 1 as const, card: card("K", "clubs") },
+        { playerId: 2 as const, card: card("8", "clubs") },
+        { playerId: 3 as const, card: card("9", "clubs") },
+      ] },
+    };
+    const finishedTrick = applyAuthorizedAction({
+      room: room(null), players: players(), state: initial,
+      userId: "user-0", expectedVersion: 31,
+      action: { type: "play-card", card: card("A", "clubs") },
+    });
+    expect(finishedTrick.completedTricks.at(-1)?.cards).toHaveLength(4);
+    expect(finishedTrick.completedTricks.at(-1)?.winnerId).toBe(0);
+    expect(finishedTrick.currentTrick.cards).toHaveLength(0);
+    const currentPlayers = players();
+    currentPlayers[0] = { ...currentPlayers[0], bot_takeover: true };
+    const currentRoom = { ...room(null, 32), presentation_settings: { gameSpeed: "slow" as const, autoCollectTricks: true, trickDisplayMs: 1800 } };
+    expect(botReadyAt(currentRoom, finishedTrick, currentPlayers)).toBe(NOW_MS + 1800);
+  });
+
   it("creates an absolute deadline when a human decision is expected", () => {
     expect(turnDeadlineForState(createInitialGame(() => 0.1), players(), NOW_MS))
       .toBe("2026-09-09T12:00:45.000Z");
@@ -64,7 +98,7 @@ describe("server-authoritative multiplayer turn timer", () => {
     };
     const initial = createInitialGame(() => 0.1);
     expect(turnDeadlineForState(initial, currentPlayers, NOW_MS)).toBeNull();
-    const afterBots = applyBotTurns(initial, currentPlayers);
+    const afterBots = applySingleBotTurn(initial, currentPlayers);
     expect(afterBots.currentPlayerId).toBe(1);
     expect(turnDeadlineForState(afterBots, currentPlayers, NOW_MS)).not.toBeNull();
   });
@@ -82,6 +116,19 @@ describe("server-authoritative multiplayer turn timer", () => {
     const played = next.currentTrick.cards.find((entry) => entry.playerId === 0)?.card;
     expect(legalCards).toContainEqual(played);
     expect(next.hands[0]).toHaveLength(initial.hands[0].length - 1);
+  });
+
+  it("leaves following bots for later ticks after an automatic human card", () => {
+    const currentPlayers = players();
+    currentPlayers[1] = { ...currentPlayers[1], kind: "bot", user_id: null };
+    const initial = { ...playingState(), currentTrick: { leaderId: 0 as const, cards: [] } };
+    const afterTimeout = applyTimedOutTurn(initial, currentPlayers);
+    expect(afterTimeout.currentTrick.cards).toHaveLength(1);
+    expect(afterTimeout.currentTrick.cards[0]?.playerId).toBe(0);
+    expect(afterTimeout.currentPlayerId).toBe(1);
+    const afterBot = applySingleBotTurn(afterTimeout, currentPlayers);
+    expect(afterBot.currentTrick.cards).toHaveLength(2);
+    expect(afterBot.currentTrick.cards[1]?.playerId).toBe(1);
   });
 
   it("leaves the timed-out player a human with the same identity", () => {
@@ -136,7 +183,7 @@ describe("server-authoritative multiplayer turn timer", () => {
     currentPlayers[0] = { ...currentPlayers[0], bot_takeover: true };
     const initial = createInitialGame(() => 0.1);
     expect(turnDeadlineForState(initial, currentPlayers, NOW_MS)).toBeNull();
-    const afterTakeover = applyBotTurns(initial, currentPlayers);
+    const afterTakeover = applySingleBotTurn(initial, currentPlayers);
     expect(afterTakeover.currentPlayerId).toBe(1);
     expect(turnDeadlineForState(afterTakeover, currentPlayers, NOW_MS)).not.toBeNull();
   });

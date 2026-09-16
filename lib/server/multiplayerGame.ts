@@ -217,36 +217,24 @@ export function forfeitRoom(input: {
   };
 }
 
-export function applyBotTurns(state: GameState, players: RoomPlayerRow[]): GameState {
-  let next = state;
-  for (let count = 0; count < 32 && (next.phase === "bidding" || next.phase === "playing"); count += 1) {
-    const seat = currentSeat(next, players);
-    if (!seat || (seat.kind !== "bot" && !seat.bot_takeover)) return next;
-    if (next.phase === "bidding") {
-      const bid = chooseBotBid(next);
-      const action: RoomPlayerAction = bid.action === "bid"
-        ? { type: "bid", value: bid.value, trump: bid.trump, contractMode: bid.contractMode }
-        : bid.action === "generale"
-          ? { type: "generale", contractMode: bid.contractMode }
+export function applySingleBotTurn(state: GameState, players: RoomPlayerRow[]): GameState {
+  if (state.phase !== "bidding" && state.phase !== "playing") return state;
+  const seat = currentSeat(state, players);
+  if (!seat || (seat.kind !== "bot" && !seat.bot_takeover)) return state;
+  if (state.phase === "bidding") {
+    const bid = chooseBotBid(state);
+    const action: RoomPlayerAction = bid.action === "bid"
+      ? { type: "bid", value: bid.value, trump: bid.trump, contractMode: bid.contractMode }
+      : bid.action === "generale"
+        ? { type: "generale", contractMode: bid.contractMode }
         : { type: bid.action };
-      next = applyGameAction(next, gameAction(action, next.currentPlayerId));
-    } else {
-      next = applyGameAction(next, {
-        type: "play-card",
-        playerId: next.currentPlayerId,
-        card: chooseBotCard(next),
-      });
-    }
+    return applyGameAction(state, gameAction(action, state.currentPlayerId));
   }
-  const remainingSeat = currentSeat(next, players);
-  if (
-    (next.phase === "bidding" || next.phase === "playing") &&
-    remainingSeat &&
-    (remainingSeat.kind === "bot" || remainingSeat.bot_takeover)
-  ) {
-    throw new MultiplayerError("La limite de tours automatiques des bots a été atteinte.", 500, "bot_limit");
-  }
-  return next;
+  return applyGameAction(state, {
+    type: "play-card",
+    playerId: state.currentPlayerId,
+    card: chooseBotCard(state),
+  });
 }
 
 export function applyTimedOutTurn(state: GameState, players: RoomPlayerRow[]): GameState {
@@ -264,7 +252,7 @@ export function applyTimedOutTurn(state: GameState, players: RoomPlayerRow[]): G
         playerId: state.currentPlayerId,
         card: chooseBotCard(state),
       };
-  return applyBotTurns(applyGameAction(state, automaticAction), players);
+  return applyGameAction(state, automaticAction);
 }
 
 export function applyTimedOutTurnIfExpired(
@@ -299,10 +287,7 @@ export function applyAuthorizedAction(input: {
     throw new MultiplayerError("Ce n'est pas ton tour.", 403, "out_of_turn");
   }
   try {
-    return applyBotTurns(
-      applyGameAction(input.state, gameAction(input.action, seat.seat_index)),
-      input.players,
-    );
+    return applyGameAction(input.state, gameAction(input.action, seat.seat_index));
   } catch (error) {
     if (error instanceof MultiplayerError) throw error;
     throw new MultiplayerError(error instanceof Error ? error.message : "Action de jeu illégale.");

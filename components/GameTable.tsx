@@ -57,6 +57,7 @@ type GameTableProps = {
   minimalHud?: boolean;
   turnSecondsRemaining?: number | null;
   trickPresentationPolicy?: { autoCollect: boolean; delayMs: number };
+  optimisticCard?: PlayedCard | null;
 };
 
 type AnnouncementBubbleContent = {
@@ -330,6 +331,7 @@ export function GameTable({
   presentationScope = "game",
   showLiveScore = false,
   trickPresentationPolicy,
+  optimisticCard,
 }: GameTableProps) {
   const { effectiveReducedMotion, preferences } = usePlayerPreferences();
   const observationRef = useRef<TrickObservation | null>(null);
@@ -342,6 +344,10 @@ export function GameTable({
   const [showLastTrick, setShowLastTrick] = useState(false);
   const seats = tableSeatsFor(state);
   const visualTrick = selectVisualTrick(state.currentTrick.cards, animatedCompletedTrick);
+  const withOptimisticCard = (cards: PlayedCard[]) => optimisticCard && !cards.some((played) =>
+    played.playerId === optimisticCard.playerId && played.card.rank === optimisticCard.card.rank && played.card.suit === optimisticCard.card.suit)
+    ? [...cards, optimisticCard] : cards;
+  const displayedTrickCards = withOptimisticCard(visualTrick.cards);
   const nameFor = (playerId: PlayerId) => playerName(playerId, state.playerNames);
   const inactiveMessage = inactivePlayerMessage(state);
   const connectionFor = (playerId: PlayerId) => {
@@ -480,14 +486,17 @@ export function GameTable({
       ].join(" ")}
     >
       {animatedCompletedTrick ? (
-        <TrickCollectionAnimation
-          animate={effectiveTrickPresentationPolicy.autoCollect && isPreferenceAnimationEnabled(preferences, "trick", effectiveReducedMotion)}
-          durationMs={effectiveTrickPresentationPolicy.delayMs}
-          seats={seats}
-          trick={animatedCompletedTrick.trick}
-        />
+        <>
+          <TrickCollectionAnimation
+            animate={effectiveTrickPresentationPolicy.autoCollect && isPreferenceAnimationEnabled(preferences, "trick", effectiveReducedMotion)}
+            durationMs={effectiveTrickPresentationPolicy.delayMs}
+            seats={seats}
+            trick={animatedCompletedTrick.trick}
+          />
+          {state.currentTrick.cards.length > 0 || optimisticCard ? <div className="pointer-events-none absolute inset-0 z-30"><TrickCenter cards={withOptimisticCard(state.currentTrick.cards)} seats={seats} /></div> : null}
+        </>
       ) : (
-        <TrickCenter cards={visualTrick.cards} seats={seats} />
+        <TrickCenter cards={displayedTrickCards} seats={seats} />
       )}
       {showRoundHelp ? <RoundHelpOverlay showLiveScore={showLiveScore && preferences.assistance.showLivePoints} state={state} /> : null}
       {animatedCompletedTrick && !effectiveTrickPresentationPolicy.autoCollect ? <button className="absolute bottom-2 left-1/2 z-40 -translate-x-1/2 rounded-xl border-2 border-white bg-emerald-950 px-5 py-2.5 text-xs font-bold text-white shadow-xl" onClick={dismissPresentedTrick} type="button"><span className="block">Ramasser le pli</span><span className="block text-[10px] font-normal text-white/80">{nameFor(animatedCompletedTrick.trick.winnerId)} gagne · {animatedCompletedTrick.trick.points} pts</span></button> : null}

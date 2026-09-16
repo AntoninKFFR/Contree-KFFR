@@ -5,7 +5,7 @@ import { CONTREE_KFFR_RULESET } from "@/engine/rulesets/presets";
 import type { Card, GameState } from "@/engine/types";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import {
-  applyAuthorizedAction, applyBotTurns, enableBotTakeover, joinLobbySeat, requireHost,
+  applyAuthorizedAction, applySingleBotTurn, enableBotTakeover, joinLobbySeat, requireHost,
   prepareRoomRulesUpdate,
   requireLobbySeatChange, requireVersion, resetRoomPlayers, setLobbyReady, viewerSeatIndex,
 } from "@/lib/server/multiplayerGame";
@@ -245,10 +245,31 @@ describe("server-authoritative multiplayer", () => {
     expect(() => requireVersion(room, 7)).toThrow("La partie a changé");
   });
 
-  it("runs consecutive bot turns on the server after a human action", () => {
+  it("commits only the human action before a bot turn", () => {
     const next = applyAuthorizedAction({ room, players: players(["human", "bot", "bot", "bot"]), state: createInitialGame(() => 0.1), userId: "host", expectedVersion: 8, action: { type: "pass" } });
-    expect(next.bids.length).toBeGreaterThan(1);
-    expect(next.phase === "finished" || next.currentPlayerId === 0).toBe(true);
+    expect(next.bids).toHaveLength(1);
+    expect(next.currentPlayerId).toBe(1);
+    const current = players(["human", "bot", "bot", "bot"]);
+    const botOne = applySingleBotTurn(next, current);
+    expect(botOne.bids).toHaveLength(2);
+    expect(botOne.currentPlayerId).toBe(2);
+    const botTwo = applySingleBotTurn(botOne, current);
+    expect(botTwo.bids).toHaveLength(3);
+    expect(botTwo.currentPlayerId).toBe(3);
+  });
+
+  it("leaves following bot cards untouched after a human card", () => {
+    const initial = { ...playingState(), currentTrick: { leaderId: 0 as const, cards: [] } };
+    const current = players(["human", "bot", "bot", "bot"]);
+    const afterHuman = applyAuthorizedAction({
+      room: { ...room, game_phase: "playing" }, players: current, state: initial,
+      userId: "host", expectedVersion: 8, action: { type: "play-card", card: card("A", "clubs") },
+    });
+    expect(afterHuman.currentTrick.cards).toEqual([{ playerId: 0, card: card("A", "clubs") }]);
+    expect(afterHuman.currentPlayerId).toBe(1);
+    const afterBot = applySingleBotTurn(afterHuman, current);
+    expect(afterBot.currentTrick.cards).toHaveLength(2);
+    expect(afterBot.currentPlayerId).toBe(2);
   });
 
   it("lets the host enable takeover while preserving the human seat identity", () => {
@@ -274,12 +295,12 @@ describe("server-authoritative multiplayer", () => {
       .toThrow("encore en ligne");
   });
 
-  it("automates a takeover seat immediately when it is already their turn", () => {
+  it("advances a takeover seat by one action when ticked", () => {
     const current = players();
     current[2] = { ...current[2], bot_takeover: true, is_connected: false };
     const initial = { ...createInitialGame(() => 0.1), currentPlayerId: 2 as const };
-    const next = applyBotTurns(initial, current);
-    expect(next.bids.length).toBeGreaterThan(0);
+    const next = applySingleBotTurn(initial, current);
+    expect(next.bids).toHaveLength(1);
     expect(next.currentPlayerId).not.toBe(2);
   });
 
@@ -290,9 +311,8 @@ describe("server-authoritative multiplayer", () => {
       room, players: current, state: createInitialGame(() => 0.1), userId: "host",
       expectedVersion: 8, action: { type: "pass" },
     });
-    expect(next.bids).toHaveLength(2);
-    expect(next.bids[1]?.playerId).toBe(1);
-    expect(next.currentPlayerId).toBe(2);
+    expect(next.bids).toHaveLength(1);
+    expect(next.currentPlayerId).toBe(1);
   });
 
   it("rejects direct human actions while takeover is active", () => {
