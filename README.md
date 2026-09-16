@@ -55,6 +55,23 @@ Le `GameState` complet est stocké dans `room_game_states`, une table sans permi
 pour `anon` ou `authenticated`. Le navigateur reçoit uniquement sa `PlayerGameView`; Realtime ne
 sert qu'à déclencher une nouvelle lecture authentifiée auprès de l'API Next.js.
 
+### Identité des comptes
+
+La migration `20260916000000_account_profile_identity.sql` conserve les profils existants, garantit
+l'unicité et la validation de `profiles.username`, limite la lecture et l'écriture du profil à son
+propriétaire via RLS, puis crée le profil lors de l'inscription à partir des métadonnées Auth.
+Un compte ancien sans pseudo peut le renseigner une fois dans `/profile`. Le pseudo du profil est
+la seule identité utilisée par le serveur lors de la création ou de la prise d'un siège en lobby ;
+les noms déjà enregistrés dans une partie restent des snapshots. Après déploiement de la migration,
+autorise `/auth/callback` dans les URL de redirection Supabase pour la confirmation par email.
+
+Pour appliquer et vérifier cette migration sur le projet Supabase lié :
+
+```bash
+supabase db push
+supabase migration list
+```
+
 ## Préférences joueur
 
 Les réglages de confort sont locaux à chaque navigateur et restent séparés des règles partagées de

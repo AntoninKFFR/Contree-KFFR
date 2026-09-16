@@ -73,7 +73,7 @@ export type RoomPlayerAction =
   | { type: "play-card"; card: Card };
 
 export type RoomIntent =
-  | { type: "join-seat"; seatIndex: RoomPlayerRow["seat_index"]; displayName: string }
+  | { type: "join-seat"; seatIndex: RoomPlayerRow["seat_index"] }
   | { type: "leave-seat" }
   | { type: "set-ready"; ready: boolean }
   | { type: "start-game" }

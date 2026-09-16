@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { ensureProfile, getProfileUsername, PROFILE_CHANGED_EVENT } from "@/lib/profiles";
 import { IconCloseButton } from "@/components/ui/IconCloseButton";
 import { KffrLogo } from "@/components/ui/KffrLogo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -21,6 +22,7 @@ export function AppDrawerNav() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -48,6 +50,28 @@ export function AppDrawerNav() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    if (!supabase || !session) {
+      setUsername(null);
+      return;
+    }
+    let cancelled = false;
+    ensureProfile(supabase, session.user).then((name) => {
+      if (!cancelled) setUsername(name);
+    });
+    const refresh = () => {
+      getProfileUsername(supabase, session.user.id).then((name) => {
+        if (!cancelled) setUsername(name);
+      });
+    };
+    window.addEventListener(PROFILE_CHANGED_EVENT, refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(PROFILE_CHANGED_EVENT, refresh);
+    };
+  }, [session]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -188,13 +212,18 @@ export function AppDrawerNav() {
 
         <div className="border-t border-white/10 bg-black/10 px-4 py-4">
           {session ? (
-            <button
-              className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-4 py-3 text-left text-sm font-semibold text-stone-200 transition hover:bg-white/[0.1]"
-              onClick={handleSignOut}
-              type="button"
-            >
-              Déconnexion
-            </button>
+            <div className="space-y-2">
+              <Link className="coinche-login-link block rounded-xl border px-4 py-3 text-sm font-semibold transition" href="/profile" onClick={() => setIsOpen(false)}>
+                {username ?? "Choisir un pseudo"} · Profil
+              </Link>
+              <button
+                className="w-full rounded-xl border border-white/10 bg-white/[0.05] px-4 py-3 text-left text-sm font-semibold text-stone-200 transition hover:bg-white/[0.1]"
+                onClick={handleSignOut}
+                type="button"
+              >
+                Déconnexion
+              </button>
+            </div>
           ) : (
             <Link
               className="coinche-login-link block rounded-xl border px-4 py-3 text-sm font-semibold transition"

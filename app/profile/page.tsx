@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { getProfileUsername } from "@/lib/profiles";
+import { ensureProfile, saveProfileUsername } from "@/lib/profiles";
 import {
   calculateMultiplayerStats,
   getUserMultiplayerGames,
@@ -22,6 +22,8 @@ import {
   AppPage,
   AppSurface,
   appPrimaryActionClass,
+  appSecondaryActionClass,
+  appInputClass,
 } from "@/components/ui/AppShell";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
@@ -32,6 +34,10 @@ export default function ProfilePage() {
   const [pageState, setPageState] = useState<PageState>("loading");
   const [session, setSession] = useState<Session | null>(null);
   const [username, setUsername] = useState<string | null>(null);
+  const [usernameDraft, setUsernameDraft] = useState("");
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [isSavingUsername, setIsSavingUsername] = useState(false);
+  const [identityMessage, setIdentityMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,7 +68,7 @@ export default function ProfilePage() {
       }
 
       const [nextUsername, gamesResult, multiplayerResult] = await Promise.all([
-        getProfileUsername(client, nextSession.user.id),
+        ensureProfile(client, nextSession.user),
         getUserGames(client, nextSession.user.id),
         getUserMultiplayerGames(client),
       ]);
@@ -70,6 +76,7 @@ export default function ProfilePage() {
       if (isCancelled) return;
 
       setUsername(nextUsername);
+      setUsernameDraft(nextUsername ?? "");
 
       const historyError = gamesResult.error ?? multiplayerResult.error;
       if (historyError) {
@@ -105,6 +112,23 @@ export default function ProfilePage() {
   );
   const recentGames = useMemo(() => games.slice(0, 5), [games]);
 
+  async function handleSaveUsername() {
+    const client = getSupabaseClient();
+    if (!client || !session) return;
+    setIsSavingUsername(true);
+    setIdentityMessage(null);
+    try {
+      const result = await saveProfileUsername(client, session.user.id, usernameDraft);
+      if (result.error) { setIdentityMessage(result.error); return; }
+      setUsername(result.username);
+      setUsernameDraft(result.username ?? "");
+      setIsEditingUsername(false);
+      setIdentityMessage("Pseudo enregistré.");
+    } catch {
+      setIdentityMessage("Erreur réseau. Réessaie.");
+    } finally { setIsSavingUsername(false); }
+  }
+
   if (pageState === "unavailable") {
     return (
       <ProfileShell>
@@ -122,7 +146,7 @@ export default function ProfilePage() {
           Connecte-toi pour voir ton profil et tes statistiques.
           <Link
             className={`${appPrimaryActionClass} mt-4`}
-            href="/login"
+            href="/login?next=%2Fprofile"
           >
             Se connecter
           </Link>
@@ -141,6 +165,20 @@ export default function ProfilePage() {
         <p className="mt-1 text-sm text-stone-400">
           {session?.user.email ?? "Session en cours de lecture"}
         </p>
+      </AppSurface>
+
+      <AppSurface className="p-6 sm:p-7">
+        <AppEyebrow>Compte / Identité</AppEyebrow>
+        <h2 className="mt-2 text-lg font-bold text-stone-50">Pseudo</h2>
+        {isEditingUsername || !username ? <div className="mt-3 flex flex-wrap items-end gap-2">
+          <label className="min-w-48 flex-1 text-sm font-semibold text-stone-200">Ton pseudo
+            <input aria-label="Pseudo" className={`${appInputClass} mt-1 w-full`} disabled={isSavingUsername} maxLength={40} onChange={(event) => setUsernameDraft(event.target.value)} value={usernameDraft} />
+          </label>
+          <button className={appPrimaryActionClass} disabled={isSavingUsername} onClick={handleSaveUsername} type="button">{isSavingUsername ? "Enregistrement…" : "Enregistrer"}</button>
+          {username ? <button className={appSecondaryActionClass} disabled={isSavingUsername} onClick={() => { setUsernameDraft(username); setIsEditingUsername(false); setIdentityMessage(null); }} type="button">Annuler</button> : null}
+        </div> : <div className="mt-3 flex items-center gap-3"><span className="font-bold text-stone-100">{username}</span><button className={appSecondaryActionClass} onClick={() => { setIsEditingUsername(true); setIdentityMessage(null); }} type="button">Modifier</button></div>}
+        {identityMessage ? <p className="mt-3 text-sm text-stone-300" role="status">{identityMessage}</p> : null}
+        {!username ? <p className="mt-3 text-sm text-stone-300">Choisis un pseudo pour jouer en multijoueur.</p> : null}
       </AppSurface>
 
       <AppSurface>

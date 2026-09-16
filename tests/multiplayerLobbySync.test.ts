@@ -51,7 +51,7 @@ describe("safe lobby CAS retries", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(sendRoomIntentWithLobbyRetry("room", 4, {
-      type: "join-seat", seatIndex: 1, displayName: "Ben",
+      type: "join-seat", seatIndex: 1,
     }, token)).resolves.toEqual(joined);
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ expectedVersion: 4 });
@@ -68,7 +68,7 @@ describe("safe lobby CAS retries", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(sendRoomIntentWithLobbyRetry("room", 4, {
-      type: "join-seat", seatIndex: 1, displayName: "Mathilde",
+      type: "join-seat", seatIndex: 1,
     }, token)).rejects.toMatchObject({
       status: 409, code: "seat_taken", message: "Cette place vient d'être prise.",
     });

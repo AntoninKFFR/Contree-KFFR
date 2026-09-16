@@ -137,7 +137,7 @@ export async function sendRoomIntentWithLobbyRetry(
 }
 
 export function createMultiplayerRoom(
-  input: { displayName: string; rules: CustomRulesetInput },
+  input: { rules: CustomRulesetInput },
   token: AccessTokenSource,
 ) {
   return request<MultiplayerRoomView>("/api/multiplayer/rooms", token, {

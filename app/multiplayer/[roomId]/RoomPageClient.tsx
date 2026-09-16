@@ -31,7 +31,8 @@ import { CONTREE_KFFR_RULESET } from "@/engine/rulesets/presets";
 import { resolveRoomRules } from "@/engine/rulesets/room";
 import type { BidValue, Card, ContractMode } from "@/engine/types";
 import { PRESENCE_HEARTBEAT_INTERVAL_MS } from "@/lib/multiplayerPresence";
-import { getProfileUsername } from "@/lib/profiles";
+import { loginPath } from "@/lib/authRedirect";
+import { ensureProfile } from "@/lib/profiles";
 import { fetchRoomView, sendPresenceHeartbeat, sendRoomIntent, sendRoomIntentWithLobbyRetry, sendRoomTick } from "@/lib/multiplayerApi";
 import type { RoomPlayerAction, RoomPlayerRow, RoomPlayerView, MultiplayerRoomView } from "@/lib/roomTypes";
 import { subscribeToRoomRealtime } from "@/lib/roomRealtime";
@@ -86,6 +87,7 @@ export default function MultiplayerRoomPage() {
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [localDisplayName, setLocalDisplayName] = useState("Joueur");
+  const [profileUsername, setProfileUsername] = useState<string | null>(null);
   const [roomWithPlayers, setRoomWithPlayers] = useState<MultiplayerRoomView | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [countdownNowMs, setCountdownNowMs] = useState<number | null>(null);
@@ -269,8 +271,9 @@ export default function MultiplayerRoomPage() {
       return;
     }
 
-    const profileName = await getProfileUsername(supabase, nextSession.user.id);
-    setLocalDisplayName(profileName ?? nextSession.user.email?.split("@")[0] ?? "Joueur");
+    const profileName = await ensureProfile(supabase, nextSession.user);
+    setProfileUsername(profileName);
+    setLocalDisplayName(profileName ?? "Profil sans pseudo");
 
     try {
       const nextRoom = await fetchRoomView(roomId, nextSession);
@@ -424,7 +427,7 @@ export default function MultiplayerRoomPage() {
   async function handleJoinSeat(seatIndex: RoomPlayerRow["seat_index"]) {
     const supabase = getSupabaseClient();
 
-    if (!supabase || !roomWithPlayers || !session || isJoiningSeat) return;
+    if (!supabase || !roomWithPlayers || !session || !profileUsername || isJoiningSeat) return;
 
     setIsJoiningSeat(true);
     setError(null);
@@ -433,7 +436,7 @@ export default function MultiplayerRoomPage() {
       const nextRoom = await sendRoomIntentWithLobbyRetry(
         roomWithPlayers.room.id,
         roomWithPlayers.room.state_version,
-        { type: "join-seat", displayName: localDisplayName, seatIndex },
+        { type: "join-seat", seatIndex },
         session,
       );
 
@@ -752,7 +755,7 @@ export default function MultiplayerRoomPage() {
             Connecte-toi pour voir cette table.
             <Link
               className={`${appPrimaryActionClass} mt-4`}
-              href="/login"
+              href={loginPath(`/multiplayer/${roomId}`)}
             >
               Se connecter
             </Link>
@@ -878,7 +881,7 @@ export default function MultiplayerRoomPage() {
                 </section>
 
                 <LobbyTable
-                  canJoinSeat={!isJoiningSeat}
+                  canJoinSeat={!isJoiningSeat && Boolean(profileUsername)}
                   currentSeatIndex={roomWithPlayers.viewerSeatIndex}
                   onJoinSeat={handleJoinSeat}
                   players={roomWithPlayers.players}
@@ -894,6 +897,7 @@ export default function MultiplayerRoomPage() {
                   hasFreeSeat={roomWithPlayers.players.some((player) => player.kind === "empty")}
                   isJoiningSeat={isJoiningSeat}
                   isLeavingSeat={isLeavingSeat}
+                  profileUsername={profileUsername}
                   onJoinSeat={handleJoinSeat}
                   onLeaveSeat={handleLeaveSeat}
                 />
@@ -1090,6 +1094,7 @@ function WaitingArea({
   hasFreeSeat,
   isJoiningSeat,
   isLeavingSeat,
+  profileUsername,
   onJoinSeat,
   onLeaveSeat,
 }: {
@@ -1099,6 +1104,7 @@ function WaitingArea({
   hasFreeSeat: boolean;
   isJoiningSeat: boolean;
   isLeavingSeat: boolean;
+  profileUsername: string | null;
   onJoinSeat: (seatIndex: RoomPlayerRow["seat_index"]) => void;
   onLeaveSeat: () => void;
 }) {
@@ -1113,7 +1119,9 @@ function WaitingArea({
             {displayName} <span className="text-stone-400">(Toi)</span>
           </p>
           <p className="mt-1 text-xs text-stone-400">
-            {currentSeat
+            {!profileUsername
+              ? <Link className="font-semibold underline" href="/profile">Choisis d’abord ton pseudo dans ton profil.</Link>
+              : currentSeat
               ? "Tu es assis. Tu peux quitter ta place ou cliquer une autre place libre."
               : hasFreeSeat
                 ? "Clique une place libre pour t'asseoir."
@@ -1133,7 +1141,7 @@ function WaitingArea({
         ) : (
           <button
             className={appPrimaryActionClass}
-            disabled={!hasFreeSeat || firstFreeSeat === null || isJoiningSeat}
+            disabled={!profileUsername || !hasFreeSeat || firstFreeSeat === null || isJoiningSeat}
             onClick={() => {
               if (firstFreeSeat !== null) {
                 onJoinSeat(firstFreeSeat);

@@ -2,6 +2,30 @@ import { expect, test } from "@playwright/test";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 
 test.describe("@smoke public production readiness", () => {
+  test("@smoke login separates sign-in and signup fields", async ({ page }) => {
+    await page.goto("/login?next=%2Fmultiplayer");
+    await expect(page.getByRole("heading", { name: "Connexion" })).toBeVisible();
+    await expect(page.getByLabel("Pseudo", { exact: true })).toHaveCount(0);
+    await expect(page.getByLabel("Email")).toBeVisible();
+    await expect(page.getByLabel("Mot de passe", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Créer un compte", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Créer un compte" })).toBeVisible();
+    await expect(page.getByLabel("Pseudo", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Confirmer le mot de passe")).toBeVisible();
+    await page.getByRole("button", { name: "Se connecter", exact: true }).click();
+    await expect(page.getByLabel("Pseudo", { exact: true })).toHaveCount(0);
+    await page.goto("/profile");
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+      await expect(page.getByRole("heading", { name: "Non connecté" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Se connecter" })).toHaveAttribute("href", "/login?next=%2Fprofile");
+    }
+    await page.goto("/multiplayer");
+    await expect(page.getByText("Nom affiché", { exact: true })).toHaveCount(0);
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+      await expect(page.getByRole("link", { name: "Se connecter" })).toHaveAttribute("href", "/login?next=%2Fmultiplayer");
+    }
+  });
+
   test("@smoke rules reference stays readable in both themes and responsive widths", async ({ page }) => {
     const monitor = monitorBrowserErrors(page);
     await page.goto("/rules");

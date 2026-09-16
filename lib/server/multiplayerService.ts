@@ -26,15 +26,17 @@ import {
 } from "./multiplayerGame";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 import { normalizeMultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
+import { cleanUsername, validateUsername } from "@/lib/profiles";
 
 const ROOM_COLUMNS = "id,code,status,host_user_id,active_game_id,scoring_mode,target_score,ruleset_id,ruleset_version,ruleset_snapshot,presentation_settings,game_phase,state_version,turn_deadline_at,created_at,updated_at,started_at,finished_at";
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-function cleanName(value: unknown): string {
-  if (typeof value !== "string" || !value.trim() || value.trim().length > 40) {
-    throw new MultiplayerError("Le nom doit contenir entre 1 et 40 caractères.");
-  }
-  return value.trim();
+export async function resolveRoomUsername(userId: string): Promise<string> {
+  const { data, error } = await getSupabaseAdmin().from("profiles").select("username").eq("id", userId).maybeSingle();
+  if (error) throw new MultiplayerError("Impossible de vérifier ton pseudo pour le moment.", 503, "profile_unavailable");
+  const username = typeof data?.username === "string" ? data.username : "";
+  if (validateUsername(username)) throw new MultiplayerError("Choisis d’abord ton pseudo dans ton profil.", 403, "profile_required");
+  return cleanUsername(username);
 }
 
 function code(): string {
@@ -323,9 +325,9 @@ export async function tickRoom(
 }
 
 export async function createRoom(input: {
-  userId: string; displayName: unknown; rules: unknown;
+  userId: string; rules: unknown;
 }): Promise<MultiplayerRoomView> {
-  const displayName = cleanName(input.displayName);
+  const displayName = await resolveRoomUsername(input.userId);
   const db = getSupabaseAdmin();
   let fields: ReturnType<typeof buildRoomRulesFields>;
   try { fields = buildRoomRulesFields(input.rules); }
@@ -507,7 +509,7 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
     await commit(current.room, null, "lobby", players, players, nowMs, successor);
   } else if (intent.type === "join-seat") {
     requireLobbySeatChange(current.room);
-    const displayName = cleanName(intent.displayName);
+    const displayName = await resolveRoomUsername(userId);
     joinLobbySeat({
       players: current.players, userId, seatIndex: intent.seatIndex,
       displayName, now,

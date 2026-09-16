@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabaseClient";
-import { getProfileUsername } from "@/lib/profiles";
+import { ensureProfile, getProfileUsername, PROFILE_CHANGED_EVENT } from "@/lib/profiles";
 
 export function AuthStatus() {
   const [session, setSession] = useState<Session | null>(null);
@@ -42,11 +42,19 @@ export function AuthStatus() {
       return;
     }
 
-    getProfileUsername(supabase, session.user.id).then(setUsername);
+    ensureProfile(supabase, session.user).then(setUsername);
+  }, [session]);
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    if (!supabase || !session) return;
+    const refresh = () => { getProfileUsername(supabase, session.user.id).then(setUsername); };
+    window.addEventListener(PROFILE_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(PROFILE_CHANGED_EVENT, refresh);
   }, [session]);
 
   const label = session
-    ? `Connecté: ${username ?? "profil sans pseudo"}`
+    ? `Connecté : ${username ?? "profil sans pseudo"}`
     : "Non connecté";
 
   return (
@@ -56,18 +64,10 @@ export function AuthStatus() {
       </span>
       <Link
         className="coinche-secondary-action rounded-md border px-3 py-1.5 shadow-sm transition"
-        href="/login"
+        href={session ? "/profile" : "/login"}
       >
-        {session ? "Compte" : "Se connecter"}
+        {session ? "Profil" : "Se connecter"}
       </Link>
-      {session ? (
-        <Link
-          className="coinche-secondary-action rounded-md border px-3 py-1.5 shadow-sm transition"
-          href="/profile"
-        >
-          Profil
-        </Link>
-      ) : null}
     </div>
   );
 }
