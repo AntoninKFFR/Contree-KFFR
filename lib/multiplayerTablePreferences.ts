@@ -9,10 +9,22 @@ export type MultiplayerTablePreferences = {
   trickDisplayMs: number;
 };
 
+export const MULTIPLAYER_SLOW_PACING = Object.freeze({
+  biddingDelayMs: 650,
+  botDelayMs: 1_000,
+  trickDisplayMs: 1_500,
+});
+
+export function multiplayerPacingForSpeed(gameSpeed: MultiplayerTablePreferences["gameSpeed"]) {
+  return gameSpeed === "slow"
+    ? MULTIPLAYER_SLOW_PACING
+    : GAME_SPEED_PRESETS[gameSpeed === "custom" ? "normal" : gameSpeed];
+}
+
 export const DEFAULT_MULTIPLAYER_TABLE_PREFERENCES: Readonly<MultiplayerTablePreferences> = Object.freeze({
   gameSpeed: "slow",
   autoCollectTricks: true,
-  trickDisplayMs: GAME_SPEED_PRESETS.slow.trickDisplayMs,
+  trickDisplayMs: MULTIPLAYER_SLOW_PACING.trickDisplayMs,
 });
 
 const SPEEDS = new Set<MultiplayerTablePreferences["gameSpeed"]>([
@@ -32,6 +44,10 @@ export function isMultiplayerTablePreferences(value: unknown): value is Multipla
 
 export function normalizeMultiplayerTablePreferences(value: unknown): MultiplayerTablePreferences {
   if (!isMultiplayerTablePreferences(value)) return { ...DEFAULT_MULTIPLAYER_TABLE_PREFERENCES };
+  // Older Slow rooms stored the Solo default. No custom timing uses this mode.
+  if (value.gameSpeed === "slow" && value.trickDisplayMs === GAME_SPEED_PRESETS.slow.trickDisplayMs) {
+    return { ...value, trickDisplayMs: MULTIPLAYER_SLOW_PACING.trickDisplayMs };
+  }
   return { ...value };
 }
 
@@ -39,7 +55,7 @@ export function withMultiplayerTableSpeed(
   settings: MultiplayerTablePreferences,
   gameSpeed: PresetGameSpeed,
 ): MultiplayerTablePreferences {
-  return { ...settings, gameSpeed, trickDisplayMs: GAME_SPEED_PRESETS[gameSpeed].trickDisplayMs };
+  return { ...settings, gameSpeed, trickDisplayMs: multiplayerPacingForSpeed(gameSpeed).trickDisplayMs };
 }
 
 export function withMultiplayerTableTrickDisplay(

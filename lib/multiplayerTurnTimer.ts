@@ -1,8 +1,7 @@
 import type { GameState } from "@/engine/types";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import { inactivePlayerId } from "@/engine/activePlayers";
-import { GAME_SPEED_PRESETS } from "@/lib/preferences/playerPreferences";
-import { normalizeMultiplayerTablePreferences, type MultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
+import { multiplayerPacingForSpeed, normalizeMultiplayerTablePreferences, type MultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 
 export const MULTIPLAYER_TURN_TIMEOUT_MS = 45_000;
 export const MULTIPLAYER_TICK_INTERVAL_MS = 4_000;
@@ -13,7 +12,7 @@ export function botPacingDelayMs(
   completedTricks: number,
   settings: MultiplayerTablePreferences,
 ): number {
-  const preset = GAME_SPEED_PRESETS[settings.gameSpeed === "custom" ? "normal" : settings.gameSpeed];
+  const preset = multiplayerPacingForSpeed(settings.gameSpeed);
   const actionDelay = phase === "bidding" ? preset.biddingDelayMs : preset.botDelayMs;
   const trickDelay = phase === "playing" && currentTrickCards === 0 && completedTricks > 0
     ? settings.trickDisplayMs : 0;

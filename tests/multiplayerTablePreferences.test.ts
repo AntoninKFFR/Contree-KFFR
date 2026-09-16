@@ -6,7 +6,9 @@ import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferenc
 import { PlayerSettingsPanel } from "@/components/settings/PlayerSettingsPanel";
 import {
   DEFAULT_MULTIPLAYER_TABLE_PREFERENCES,
+  MULTIPLAYER_SLOW_PACING,
   isMultiplayerTablePreferences,
+  multiplayerPacingForSpeed,
   normalizeMultiplayerTablePreferences,
   withMultiplayerTableSpeed,
 } from "@/lib/multiplayerTablePreferences";
@@ -47,11 +49,22 @@ function settingsMarkup(context?: React.ComponentProps<typeof PlayerSettingsPane
 }
 
 describe("shared multiplayer table pacing", () => {
-  it("uses the central Slow preset for new tables", () => {
+  it("uses a slightly faster Multiplayer Slow pace without changing Solo", () => {
     expect(DEFAULT_MULTIPLAYER_TABLE_PREFERENCES).toEqual({
       gameSpeed: "slow", autoCollectTricks: true,
-      trickDisplayMs: GAME_SPEED_PRESETS.slow.trickDisplayMs,
+      trickDisplayMs: 1_500,
     });
+    expect(MULTIPLAYER_SLOW_PACING).toEqual({ biddingDelayMs: 650, botDelayMs: 1_000, trickDisplayMs: 1_500 });
+    expect(multiplayerPacingForSpeed("slow")).toEqual(MULTIPLAYER_SLOW_PACING);
+    expect(GAME_SPEED_PRESETS.slow).toEqual({ biddingDelayMs: 800, botDelayMs: 1_200, trickDisplayMs: 1_800 });
+    for (const speed of ["normal", "fast", "instant"] as const) {
+      expect(multiplayerPacingForSpeed(speed)).toEqual(GAME_SPEED_PRESETS[speed]);
+    }
+    expect(multiplayerPacingForSpeed("custom")).toEqual(GAME_SPEED_PRESETS.normal);
+    expect(normalizeMultiplayerTablePreferences({ gameSpeed: "slow", autoCollectTricks: true, trickDisplayMs: 1_800 }))
+      .toEqual(DEFAULT_MULTIPLAYER_TABLE_PREFERENCES);
+    expect(normalizeMultiplayerTablePreferences({ gameSpeed: "custom", autoCollectTricks: false, trickDisplayMs: 1_800 }))
+      .toEqual({ gameSpeed: "custom", autoCollectTricks: false, trickDisplayMs: 1_800 });
     expect(withMultiplayerTableSpeed({ ...DEFAULT_MULTIPLAYER_TABLE_PREFERENCES }, "fast").trickDisplayMs)
       .toBe(GAME_SPEED_PRESETS.fast.trickDisplayMs);
     expect(withMultiplayerTableSpeed({ ...DEFAULT_MULTIPLAYER_TABLE_PREFERENCES }, "normal").trickDisplayMs)

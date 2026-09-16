@@ -41,7 +41,7 @@ export async function setLocalPreferences(
 }
 
 export async function enableTechnicalRules(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Modifier les règles" }).click();
+  await page.getByRole("button", { name: "Règles", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Règles de la table" });
   await expect(dialog).toBeVisible();
   await dialog.getByRole("combobox", { name: "Score cible" }).selectOption("1500");

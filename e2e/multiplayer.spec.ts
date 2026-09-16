@@ -35,8 +35,8 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       for (let index = 1; index < 4; index += 1) await joinRoomThroughUi(pages[index], created.code, names[index]);
 
       for (const page of pages) {
-        await expect(page.getByText("Contrée KFFR", { exact: true }).first()).toBeVisible();
-        await expect(page.getByText(/Cible:\s*1000/)).toBeVisible();
+        await expect(page.getByRole("button", { name: "Règles", exact: true })).toBeVisible();
+        await expect(page.getByText(/1000 pts/)).toBeVisible();
       }
       const joinedViews = await Promise.all(pages.map((page) => roomView(page, roomId!)));
       expect(new Set(joinedViews.map((view) => view.room.id)).size).toBe(1);
@@ -90,8 +90,8 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
 
       await enableTechnicalRules(pages[0]);
       for (const page of pages) {
-        await expect(page.getByText(/Cible:\s*1500/)).toBeVisible();
-        await expect(page.getByText("Les règles ont changé. Les joueurs doivent se remettre prêts.")).toBeVisible();
+        await expect(page.getByText(/1500 pts/)).toBeVisible();
+        await expect(page.getByText("Règles modifiées · confirme à nouveau que tu es prêt.")).toBeVisible();
         await expect(page.getByRole("button", { name: "Prêt", exact: true })).toBeVisible();
       }
       const rulesView = await roomView(pages[0], roomId);

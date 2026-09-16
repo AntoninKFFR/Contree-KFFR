@@ -865,6 +865,77 @@ summary:focus-visible {
   color: var(--text-primary);
 }
 
+.coinche-lobby-shell {
+  background: var(--app-bg);
+}
+
+.coinche-lobby-felt {
+  isolation: isolate;
+}
+
+.coinche-lobby-actions .coinche-primary-action,
+.coinche-lobby-actions .coinche-secondary-action {
+  min-height: 2.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .coinche-lobby-shell {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .coinche-lobby-shell > div {
+    gap: 0.25rem;
+  }
+
+  .coinche-lobby-table {
+    padding: 0.375rem;
+  }
+
+  .coinche-lobby-table > h2 {
+    margin-bottom: 0.125rem;
+    line-height: 1;
+  }
+
+  .coinche-lobby-seat {
+    min-height: 3rem;
+    width: 7rem;
+    padding: 0.125rem 0.25rem;
+    font-size: 0.6875rem;
+  }
+
+  .coinche-lobby-seat-position,
+  .coinche-lobby-seat-presence {
+    display: none;
+  }
+
+  .coinche-lobby-seat .mt-2,
+  .coinche-lobby-seat-host {
+    margin-top: 0;
+  }
+
+  .coinche-lobby-actions .coinche-primary-action,
+  .coinche-lobby-actions .coinche-secondary-action {
+    min-height: 1.875rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.6875rem;
+  }
+}
+
+@media (max-width: 600px) and (orientation: portrait) {
+  .coinche-lobby-shell {
+    height: auto;
+    min-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+
+  .coinche-lobby-table {
+    min-height: 22rem;
+  }
+}
+
 .coinche-mobile-notice {
   background: var(--app-bg);
   color: var(--text-primary);

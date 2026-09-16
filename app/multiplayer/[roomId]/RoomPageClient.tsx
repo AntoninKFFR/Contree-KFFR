@@ -27,6 +27,7 @@ import { teamName } from "@/engine/players";
 import { getLegalCards } from "@/engine/rules";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import { rulesetToCustomInput, type CustomRulesetInput } from "@/engine/rulesets/custom";
+import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import { CONTREE_KFFR_RULESET } from "@/engine/rulesets/presets";
 import { resolveRoomRules } from "@/engine/rulesets/room";
 import type { BidValue, Card, ContractMode } from "@/engine/types";
@@ -739,9 +740,10 @@ export default function MultiplayerRoomPage() {
   }
 
   const isPlayingLayout = displayedRoomStatus === "playing";
+  const isLobbyLayout = displayedRoomStatus === "lobby" && pageState === "ready";
+  const isFinishedLayout = displayedRoomStatus === "finished" && pageState === "ready";
   const shouldLockPortrait = isMobilePortrait && displayedRoomStatus === "playing";
   const gameMenuActions: GameMenuAction[] = [
-    ...(displayedRoomStatus === "lobby" && isHost ? [{ label: "Modifier les règles", onSelect: () => { setRulesDraft(rulesetToCustomInput(lobbyRules)); setIsRulesOpen(true); } }] : []),
     ...(isHost && hostTransferCandidates.length > 0 ? [{ label: "Transférer l’hôte", onSelect: () => { setHostTransferSeat(null); setIsHostTransferOpen(true); } }] : []),
     ...(displayedRoomStatus === "playing" ? [{ label: "Abandonner la partie", onSelect: () => setIsForfeitConfirmationOpen(true), tone: "danger" as const }] : []),
   ];
@@ -755,6 +757,10 @@ export default function MultiplayerRoomPage() {
       className={
         isPlayingLayout
           ? `coinche-game-shell h-[calc(100dvh-48px)] min-h-0 overflow-x-hidden overflow-y-auto px-2 py-2 sm:px-3 lg:overflow-hidden${isMobileLandscape ? " overflow-hidden px-0 py-0 sm:px-3" : ""}`
+          : isLobbyLayout
+          ? "coinche-app-page coinche-lobby-shell h-[calc(100dvh-48px)] min-h-0 overflow-hidden px-2 py-2 sm:px-3"
+          : isFinishedLayout
+          ? "coinche-app-page flex h-[calc(100dvh-48px)] min-h-0 items-center justify-center px-3 py-4"
           : "coinche-app-page min-h-[calc(100dvh-48px)] px-3 py-5 text-stone-50 sm:px-5 sm:py-7"
       }
     >
@@ -762,6 +768,10 @@ export default function MultiplayerRoomPage() {
         className={
           isPlayingLayout
             ? "flex h-full w-full flex-col gap-2"
+            : isLobbyLayout
+            ? "mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col gap-2"
+            : isFinishedLayout
+            ? "mx-auto flex w-full max-w-xl flex-col"
             : "mx-auto flex max-w-5xl flex-col gap-4"
         }
       >
@@ -796,108 +806,38 @@ export default function MultiplayerRoomPage() {
         {pageState === "ready" && roomWithPlayers ? (
           <>
             {displayedRoomStatus === "finished" && gameState ? (
-              <section className="coinche-app-surface rounded-2xl border p-5 shadow-xl">
-                <p className="coinche-ui-kicker text-xs font-semibold uppercase tracking-wide">
-                  Partie terminée
-                </p>
-                <h2 className="mt-1 text-2xl font-bold">
-                  {finalOutcome}
-                </h2>
-                <div className="mt-3 grid gap-2 text-sm text-stone-800 sm:grid-cols-2">
-                  <p className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 font-semibold">
-                    Score équipe 0: {gameState.totalScore[0]}
-                  </p>
-                  <p className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 font-semibold">
-                    Score équipe 1: {gameState.totalScore[1]}
-                  </p>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {roomWithPlayers.isHost ? (
-                    <button
-                      className={appPrimaryActionClass}
-                      disabled={isResettingRoom}
-                      onClick={handleRematch}
-                      type="button"
-                    >
-                      {isResettingRoom ? "Préparation…" : "Rejouer"}
-                    </button>
-                  ) : null}
-                  <button
-                    className={appSecondaryActionClass}
-                    onClick={() => loadRoom()}
-                    type="button"
-                  >
-                    Retour à la table
-                  </button>
-                </div>
-              </section>
+              <FinishedRoomCard
+                isHost={roomWithPlayers.isHost}
+                isResettingRoom={isResettingRoom}
+                onRematch={handleRematch}
+                onReturn={() => void loadRoom()}
+                outcome={finalOutcome}
+                scores={gameState.totalScore}
+              />
             ) : null}
 
             {displayedRoomStatus === "lobby" ? (
               <>
-                <section className="coinche-app-surface rounded-2xl border p-5 shadow-xl">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="coinche-ui-kicker text-xs font-semibold uppercase tracking-[0.16em]">
-                        Table multijoueur
-                      </p>
-                      <h1 className="mt-1 font-mono text-3xl font-bold">
-                        {roomWithPlayers.room.code}
-                      </h1>
-                      <p className="mt-2 text-sm text-stone-300">
-                        Statut: {statusLabel(roomWithPlayers.room.status)} | Mode:{" "}
-                        {scoringModeLabel(roomWithPlayers.room.scoring_mode)} | Cible:{" "}
-                        {roomWithPlayers.room.target_score}
-                      </p>
-                    </div>
+                <LobbyHeader
+                  canStartGame={canStartGame}
+                  canTransferHost={hostTransferCandidates.length > 0}
+                  code={roomWithPlayers.room.code}
+                  currentSeat={currentSeat}
+                  isHost={isHost}
+                  isStartingGame={isStartingGame}
+                  isUpdatingReady={isUpdatingReady}
+                  onOpenPreferences={() => setIsSettingsOpen(true)}
+                  onOpenRules={() => { if (isHost) setRulesDraft(rulesetToCustomInput(lobbyRules)); setIsRulesOpen(true); }}
+                  onReady={handleToggleReady}
+                  onRefresh={() => void loadRoom()}
+                  onStartGame={handleStartGame}
+                  onTransferHost={() => { setHostTransferSeat(null); setIsHostTransferOpen(true); }}
+                  scoringMode={roomWithPlayers.room.scoring_mode}
+                  status={roomWithPlayers.room.status}
+                  targetScore={roomWithPlayers.room.target_score}
+                />
 
-                    <div className="flex flex-wrap gap-2">
-                      <button className={appSecondaryActionClass} onClick={() => setIsSettingsOpen(true)} type="button">Préférences</button>
-                      <button
-                        className={appSecondaryActionClass}
-                        onClick={() => loadRoom()}
-                        type="button"
-                      >
-                        Rafraîchir
-                      </button>
-                      <button
-                        className={appPrimaryActionClass}
-                        disabled={!currentSeat || isUpdatingReady}
-                        onClick={handleToggleReady}
-                        type="button"
-                      >
-                        {currentSeat?.is_ready ? "Pas prêt" : "Prêt"}
-                      </button>
-                      {isHost ? (
-                        <>
-                          <button
-                            className={appSecondaryActionClass}
-                            disabled={hostTransferCandidates.length === 0}
-                            onClick={() => { setHostTransferSeat(null); setIsHostTransferOpen(true); }}
-                            type="button"
-                          >
-                            Transférer l&apos;hôte
-                          </button>
-                          <button
-                            className={appPrimaryActionClass}
-                            disabled={!canStartGame || isStartingGame}
-                            onClick={handleStartGame}
-                            type="button"
-                          >
-                            Lancer la partie
-                          </button>
-                        </>
-                      ) : null}
-                    </div>
-                  </div>
-
-                </section>
-
-                <section className="coinche-app-surface rounded-2xl border border-white/10 bg-[#0b1c15]/90 p-4 shadow-xl">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-bold text-stone-50">Règles de la table</h2><p className="text-xs text-stone-400">Une modification redemande la confirmation des joueurs.</p></div>{isHost ? <button className={appSecondaryActionClass} type="button" onClick={() => { setRulesDraft(rulesetToCustomInput(lobbyRules)); setIsRulesOpen(true); }}>Modifier les règles</button> : null}</div>
-                  <RulesetSummary ruleset={lobbyRules} showDifferences />
-                  {rulesChangedNotice ? <p className="mt-3 rounded-xl border border-amber-200/25 bg-amber-200/10 px-3 py-2 text-sm font-semibold text-amber-100">Règles modifiées · confirme à nouveau que tu es prêt.</p> : null}
-                </section>
+                {rulesChangedNotice ? <p className="shrink-0 rounded-lg border border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] px-3 py-1.5 text-xs font-semibold text-[color:var(--text-primary)]">Règles modifiées · confirme à nouveau que tu es prêt.</p> : null}
 
                 <LobbyTable
                   canJoinSeat={!isJoiningSeat && Boolean(profileUsername)}
@@ -922,7 +862,7 @@ export default function MultiplayerRoomPage() {
                 />
               </>
             ) : null}
-            {isRulesOpen && displayedRoomStatus === "lobby" ? <AccessibleDialog description="Partagées par toute la table. Une modification redemande la confirmation des joueurs." footer={<button className={`${appPrimaryActionClass} w-full sm:w-auto`} disabled={isUpdatingRules} type="button" onClick={() => void handleUpdateRules()}>{isUpdatingRules ? "Enregistrement…" : "Enregistrer les règles"}</button>} onClose={() => setIsRulesOpen(false)} stableHeight title="Règles de la table"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null}
+            {isRulesOpen && displayedRoomStatus === "lobby" ? <LobbyRulesDialog isHost={isHost} isUpdatingRules={isUpdatingRules} onClose={() => setIsRulesOpen(false)} onSave={() => void handleUpdateRules()} onRulesDraftChange={setRulesDraft} rulesDraft={rulesDraft} ruleset={lobbyRules} /> : null}
             {isHostTransferOpen && isHost ? <AccessibleDialog description="Choisis un joueur connecté. Le transfert est immédiat." footer={<button className={`${appPrimaryActionClass} w-full sm:w-auto`} disabled={!selectedHostTransferPlayer || isTransferringHost} type="button" onClick={() => void handleTransferHost()}>{isTransferringHost ? "Transfert…" : selectedHostTransferPlayer ? `Confirmer pour ${selectedHostTransferPlayer.display_name}` : "Choisir un joueur"}</button>} onClose={() => { if (!isTransferringHost) setIsHostTransferOpen(false); }} title="Transférer l'hôte" width="medium"><div className="grid gap-2 overflow-y-auto p-4 sm:p-6">{hostTransferCandidates.map((player) => <button aria-pressed={hostTransferSeat === player.seat_index} className={`rounded-xl border px-4 py-3 text-left font-semibold transition ${hostTransferSeat === player.seat_index ? "border-amber-300/50 bg-amber-200/15 text-amber-950" : "border-stone-300 bg-white/70 text-stone-800 hover:bg-white"}`} key={player.seat_index} onClick={() => setHostTransferSeat(player.seat_index)} type="button">{player.display_name}</button>)}</div></AccessibleDialog> : null}
 
             {displayedRoomStatus === "playing" && playerView ? (
@@ -1029,7 +969,98 @@ const LOBBY_SEAT_POSITIONS: Record<
   },
 };
 
-function LobbyTable({
+export function LobbyRulesDialog({
+  isHost, isUpdatingRules, onClose, onRulesDraftChange, onSave, rulesDraft, ruleset,
+}: {
+  isHost: boolean;
+  isUpdatingRules: boolean;
+  onClose: () => void;
+  onRulesDraftChange: (value: CustomRulesetInput) => void;
+  onSave: () => void;
+  rulesDraft: CustomRulesetInput;
+  ruleset: GameRulesetSnapshot;
+}) {
+  return <AccessibleDialog
+    description={isHost ? "Partagées par toute la table. Une modification redemande la confirmation des joueurs." : "Règles actuelles de cette table."}
+    footer={isHost ? <button className={`${appPrimaryActionClass} w-full sm:w-auto`} disabled={isUpdatingRules} type="button" onClick={onSave}>{isUpdatingRules ? "Enregistrement…" : "Enregistrer les règles"}</button> : undefined}
+    onClose={onClose}
+    stableHeight={isHost}
+    title="Règles de la table"
+    width={isHost ? "wide" : "medium"}
+  >
+    {isHost ? <RulesetConfigurator value={rulesDraft} onChange={onRulesDraftChange} /> : <div className="overflow-y-auto p-4"><RulesetSummary ruleset={ruleset} compact showDifferences /></div>}
+  </AccessibleDialog>;
+}
+
+export function LobbyHeader({
+  canStartGame, canTransferHost, code, currentSeat, isHost, isStartingGame, isUpdatingReady,
+  onOpenPreferences, onOpenRules, onReady, onRefresh, onStartGame, onTransferHost,
+  scoringMode, status, targetScore,
+}: {
+  canStartGame: boolean;
+  canTransferHost: boolean;
+  code: string;
+  currentSeat: RoomPlayerView | null;
+  isHost: boolean;
+  isStartingGame: boolean;
+  isUpdatingReady: boolean;
+  onOpenPreferences: () => void;
+  onOpenRules: () => void;
+  onReady: () => void;
+  onRefresh: () => void;
+  onStartGame: () => void;
+  onTransferHost: () => void;
+  scoringMode: MultiplayerRoomView["room"]["scoring_mode"];
+  status: MultiplayerRoomView["room"]["status"];
+  targetScore: number;
+}) {
+  return <section className="coinche-app-surface shrink-0 rounded-2xl border px-3 py-2.5 shadow-xl sm:px-4">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h1 className="font-mono text-2xl font-bold leading-none tracking-wide">{code}</h1>
+        <p className="mt-1 text-xs text-[color:var(--text-secondary)]">{statusLabel(status)} · {scoringModeLabel(scoringMode)} · {targetScore} pts</p>
+      </div>
+      <div className="coinche-lobby-actions flex flex-wrap gap-1.5">
+        <button className={appSecondaryActionClass} onClick={onOpenPreferences} type="button">Préférences</button>
+        <button className={appSecondaryActionClass} onClick={onOpenRules} type="button">Règles</button>
+        <button className={appSecondaryActionClass} onClick={onRefresh} type="button">Rafraîchir</button>
+        <button className={appPrimaryActionClass} disabled={!currentSeat || isUpdatingReady} onClick={onReady} type="button">{currentSeat?.is_ready ? "Pas prêt" : "Prêt"}</button>
+        {isHost ? <>
+          <button className={appSecondaryActionClass} disabled={!canTransferHost} onClick={onTransferHost} type="button">Transférer l&apos;hôte</button>
+          <button className={appPrimaryActionClass} disabled={!canStartGame || isStartingGame} onClick={onStartGame} type="button">Lancer la partie</button>
+        </> : null}
+      </div>
+    </div>
+  </section>;
+}
+
+export function FinishedRoomCard({
+  isHost, isResettingRoom, onRematch, onReturn, outcome, scores,
+}: {
+  isHost: boolean;
+  isResettingRoom: boolean;
+  onRematch: () => void;
+  onReturn: () => void;
+  outcome: string;
+  scores: Record<0 | 1, number>;
+}) {
+  return <section className="coinche-app-surface w-full rounded-2xl border p-5 shadow-xl sm:p-7">
+    <p className="coinche-ui-kicker text-xs font-semibold uppercase tracking-wide">Partie terminée</p>
+    <h2 className="mt-2 text-2xl font-bold text-[color:var(--text-primary)]">{outcome}</h2>
+    <div className="mt-5 grid gap-2 text-sm sm:grid-cols-2">
+      {[0, 1].map((team) => <p className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-muted)] px-4 py-3 text-[color:var(--text-secondary)]" key={team}>
+        <span className="block text-xs font-semibold">Score équipe {team}</span>
+        <strong className="mt-1 block text-xl text-[color:var(--text-primary)]">{scores[team as 0 | 1]}</strong>
+      </p>)}
+    </div>
+    <div className="mt-4 flex flex-wrap gap-2">
+      {isHost ? <button className={appPrimaryActionClass} disabled={isResettingRoom} onClick={onRematch} type="button">{isResettingRoom ? "Préparation…" : "Rejouer"}</button> : null}
+      <button className={appSecondaryActionClass} onClick={onReturn} type="button">Retour à la table</button>
+    </div>
+  </section>;
+}
+
+export function LobbyTable({
   canJoinSeat,
   currentSeatIndex,
   onJoinSeat,
@@ -1041,10 +1072,10 @@ function LobbyTable({
   players: RoomPlayerView[];
 }) {
   return (
-    <section className="coinche-app-surface rounded-2xl border border-white/10 bg-[#0b1c15]/90 p-5 shadow-xl">
-      <h2 className="text-lg font-bold text-stone-50">Places</h2>
+    <section className="coinche-app-surface coinche-lobby-table flex min-h-0 flex-1 flex-col rounded-2xl border p-2 shadow-xl sm:p-3">
+      <h2 className="coinche-ui-kicker mb-1 text-xs font-bold uppercase tracking-[0.16em]">Places</h2>
       <div
-        className="coinche-game-table relative mt-4 min-h-[360px] overflow-hidden rounded-lg border border-emerald-900/20 bg-cover bg-center p-4 shadow-sm"
+        className="coinche-game-table coinche-lobby-felt relative min-h-0 flex-1 overflow-hidden rounded-xl border border-emerald-900/20 bg-cover bg-center shadow-sm"
       >
         {players.map((player) => {
           const position = LOBBY_SEAT_POSITIONS[player.seat_index];
@@ -1066,7 +1097,7 @@ function LobbyTable({
   );
 }
 
-function WaitingArea({
+export function WaitingArea({
   currentSeat,
   displayName,
   firstFreeSeat,
@@ -1088,24 +1119,12 @@ function WaitingArea({
   onLeaveSeat: () => void;
 }) {
   return (
-    <section className="coinche-app-surface rounded-2xl border p-4 shadow-xl">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="coinche-ui-kicker text-xs font-semibold uppercase tracking-wide">
-            En attente
-          </p>
-          <p className="mt-1 text-sm font-semibold text-stone-100">
-            {displayName} <span className="text-stone-400">(Toi)</span>
-          </p>
-          <p className="mt-1 text-xs text-stone-400">
-            {!profileUsername
-              ? <Link className="font-semibold underline" href="/profile">Choisis d’abord ton pseudo dans ton profil.</Link>
-              : currentSeat
-              ? "Tu es assis. Tu peux quitter ta place ou cliquer une autre place libre."
-              : hasFreeSeat
-                ? "Clique une place libre pour t'asseoir."
-                : "La table est pleine pour le moment."}
-          </p>
+    <section className="coinche-app-surface shrink-0 rounded-2xl border px-3 py-2 shadow-xl">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
+          <span className="coinche-ui-kicker text-[10px] font-bold uppercase tracking-wide">En attente</span>
+          <span className="font-semibold text-[color:var(--text-primary)]">{currentSeat ? `${displayName} (toi)` : "Choisis une place pour rejoindre"}</span>
+          {!profileUsername ? <Link className="text-xs font-semibold underline" href="/profile">Choisir un pseudo</Link> : !currentSeat && !hasFreeSeat ? <span className="text-xs text-[color:var(--text-secondary)]">Table pleine</span> : null}
         </div>
 
         {currentSeat ? (
@@ -1155,7 +1174,7 @@ function SeatCard({
   return (
     <button
       className={[
-        "coinche-lobby-seat flex min-h-24 w-36 flex-col items-center justify-center rounded-xl border px-3 text-center text-sm shadow-lg transition",
+        "coinche-lobby-seat flex min-h-20 w-36 flex-col items-center justify-center rounded-xl border px-3 py-1 text-center text-sm shadow-lg transition",
         player.is_ready
           ? "border-emerald-300/60 shadow-emerald-950/60 ring-2 ring-emerald-300/30"
           : "border-white/15",
@@ -1165,17 +1184,17 @@ function SeatCard({
       onClick={onJoin}
       type="button"
     >
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-400">
+      <span className="coinche-lobby-seat-position text-[10px] font-semibold uppercase tracking-wide text-stone-400">
         Place {positionLabel}
       </span>
       <span className="mt-2 block font-bold text-stone-50">
         {isEmpty ? "Place libre" : player.display_name}
         {isCurrentUser ? " (Toi)" : ""}
       </span>
-      {player.is_host ? <span className="mt-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">Hôte</span> : null}
+      {player.is_host ? <span className="coinche-lobby-seat-host mt-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">Hôte</span> : null}
       {!isEmpty ? (
         player.kind === "human" ? (
-          <span className="mt-1 flex items-center gap-1 text-xs font-semibold text-stone-300">
+          <span className="coinche-lobby-seat-presence mt-1 flex items-center gap-1 text-xs font-semibold text-stone-300">
             <span
               aria-hidden="true"
               className={`h-1.5 w-1.5 rounded-full ${player.is_connected ? "bg-emerald-600" : "bg-stone-400"}`}
