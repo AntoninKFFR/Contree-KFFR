@@ -49,15 +49,15 @@ export const kffrSections: RulesSection[] = [
     ],
     points: [
       "Quatre passes sans contrat annulent la donne : aucun score n’est marqué.",
-      "Après une enchère ou une Coinche, les enchères s’arrêtent lorsque les trois joueurs suivants ont passé.",
+      "Après une enchère ou un contre, les enchères s’arrêtent lorsque les trois joueurs suivants ont passé.",
     ],
   },
   {
     id: "coinche-surcoinche",
     title: "Contrer et surcontrer",
     points: [
-      `Coinche : un adversaire peut contrer le contrat à son tour. Le contrat est figé et le coefficient de marque est ×${defaultRules.coincheMultiplier}.`,
-      `Surcoinche : un joueur de l’équipe preneuse peut surcontrer à son tour. Cette action termine immédiatement les enchères et porte le coefficient à ×${defaultRules.surcoincheMultiplier}.`,
+      `Contrer : un adversaire peut contrer le contrat à son tour. Le contrat est figé et le coefficient de marque est ×${defaultRules.coincheMultiplier}.`,
+      `Surcontrer : un joueur de l’équipe preneuse peut surcontrer à son tour. Cette action termine immédiatement les enchères et porte le coefficient à ×${defaultRules.surcoincheMultiplier}.`,
     ],
   },
   {
@@ -133,9 +133,9 @@ export const variantSections: RulesSection[] = [
   {
     id: "variante-contrats",
     title: "Contrats",
-    paragraphs: ["La variante Personnalisée peut activer ou désactiver Capot, Coinche, Surcoinche, Sans Atout, Tout Atout et Générale. Une Générale engage un joueur à gagner seul les 8 plis ; son partenaire ne joue pas la donne."],
+    paragraphs: ["La variante Personnalisée peut activer ou désactiver Capot, Contrer, Surcontrer, Sans Atout, Tout Atout et Générale. Une Générale engage un joueur à gagner seul les 8 plis ; son partenaire ne joue pas la donne."],
     points: [
-      "Surcoinche nécessite Coinche.",
+      "Surcontrer n’est possible qu’après un contre.",
       "Générale Sans Atout et Générale Tout Atout disposent chacune d’une option dédiée. Activer Sans Atout ou Tout Atout ordinaire ne les active pas automatiquement.",
     ],
   },
@@ -163,8 +163,8 @@ export const variantSections: RulesSection[] = [
     id: "variante-score",
     title: "Score et options avancées",
     paragraphs: [
-      "L’éditeur propose les modes Officiel, Contrat uniquement, Contrat uniquement / base de chute et Points réalisés, ainsi que l’arrondi à la dizaine. Il permet de choisir si tous les points sont multipliés en cas de Coinche et si les annonces changent de camp après une chute ou un Capot.",
-      `Les options avancées exposent la valeur de la Générale et les multiplicateurs de Coinche et Surcoinche. Le moteur accepte aussi des bases de chute et de Capot personnalisées (par défaut ${defaultRules.failureBase} et ${defaultRules.capotBase}), même si ces champs ne sont pas actuellement exposés dans l’éditeur visuel.`,
+      "L’éditeur propose les modes Officiel, Contrat uniquement, Contrat uniquement / base de chute et Points réalisés, ainsi que l’arrondi à la dizaine. Il permet de choisir si tous les points sont multipliés en cas de contre et si les annonces changent de camp après une chute ou un Capot.",
+      `Les options avancées exposent la valeur de la Générale et les multiplicateurs de contre et de surcontre. Le moteur accepte aussi des bases de chute et de Capot personnalisées (par défaut ${defaultRules.failureBase} et ${defaultRules.capotBase}), même si ces champs ne sont pas actuellement exposés dans l’éditeur visuel.`,
     ],
   },
 ];

@@ -21,6 +21,7 @@ describe("rules documentation", () => {
   });
 
   it("covers the default rules and editor-facing option families", () => {
+    const visibleText = markup.replace(/<[^>]*>/g, " ");
     expect(kffrSections).toHaveLength(12);
     expect(variantSections).toHaveLength(7);
     for (const label of ["Enchères", "Contrer et surcontrer", "Belote / Rebelote", "Sans Atout", "Tout Atout", "Générale", "Tierce", "Cinquante", "Cent", "Carrés", "Jeu", "Réussite du contrat", "Calcul du score", "Score cible"]) {
@@ -29,7 +30,9 @@ describe("rules documentation", () => {
     expect(markup).toContain("peut contrer");
     expect(markup).toContain("peut surcontrer");
     expect(markup).toContain("est contré ou surcontré");
-    expect(markup).not.toMatch(/coincher|surcoincher|coinché|surcoinché/i);
+    expect(visibleText).toContain("Après une enchère ou un contre");
+    expect(visibleText).toContain("multiplicateurs de contre et de surcontre");
+    expect(visibleText).not.toMatch(/coinche|surcoinche|coincher|surcoincher|coinché|surcoinché/i);
     for (const score of ["82 – 80", "81 – 81", "80 – 82"]) expect(markup).toContain(score);
   });
 
