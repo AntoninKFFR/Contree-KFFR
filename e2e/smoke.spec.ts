@@ -2,6 +2,31 @@ import { expect, test } from "@playwright/test";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 
 test.describe("@smoke public production readiness", () => {
+  test("@smoke rules reference stays readable in both themes and responsive widths", async ({ page }) => {
+    const monitor = monitorBrowserErrors(page);
+    await page.goto("/rules");
+    await expect(page.getByRole("heading", { name: "Règles de la Contrée" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Navigation des règles" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Contrée KFFR", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Variantes disponibles" })).toHaveCount(1);
+
+    for (const viewport of [{ width: 1366, height: 768 }, { width: 844, height: 390 }, { width: 375, height: 667 }]) {
+      await page.setViewportSize(viewport);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await expect(page.getByRole("navigation", { name: "Navigation des règles" })).toBeVisible();
+    }
+
+    await page.getByRole("link", { name: "Variantes disponibles" }).click();
+    await expect(page).toHaveURL(/#variantes-disponibles$/);
+    await expect(page.getByRole("heading", { name: "Variantes disponibles" })).toBeInViewport();
+    await expect(page.getByRole("navigation", { name: "Navigation des règles" })).toBeInViewport();
+    await page.getByRole("switch", { name: "Activer le thème clair" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(page.locator(".coinche-app-page")).toHaveCSS("background-color", "rgb(238, 234, 222)");
+    await expect(page.locator("#variante-contrats")).toHaveCSS("background-color", "rgb(255, 253, 247)");
+    monitor.assertClean();
+  });
+
   test("home, login, solo, settings and multiplayer render without browser errors", async ({ page }) => {
     const monitor = monitorBrowserErrors(page);
 

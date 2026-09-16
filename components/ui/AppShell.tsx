@@ -8,13 +8,14 @@ export const appInputClass = "coinche-input min-h-11 w-full rounded-xl border px
 type AppPageProps = {
   children: ReactNode;
   className?: string;
+  stickyContent?: boolean;
   width?: "narrow" | "medium" | "wide";
 };
 
-export function AppPage({ children, className = "", width = "medium" }: AppPageProps) {
+export function AppPage({ children, className = "", stickyContent = false, width = "medium" }: AppPageProps) {
   const widthClass = width === "narrow" ? "max-w-xl" : width === "wide" ? "max-w-6xl" : "max-w-4xl";
   return (
-    <main className="coinche-app-page relative min-h-[calc(100dvh-56px)] overflow-hidden px-3 py-5 sm:px-5 sm:py-8">
+    <main className={`coinche-app-page relative min-h-[calc(100dvh-56px)] ${stickyContent ? "overflow-x-clip" : "overflow-hidden"} px-3 py-5 sm:px-5 sm:py-8`}>
       <div className={`mx-auto flex w-full ${widthClass} flex-col gap-4 ${className}`}>{children}</div>
     </main>
   );
