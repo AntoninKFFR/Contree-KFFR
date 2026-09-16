@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const remoteBaseUrl = process.env.E2E_BASE_URL?.trim().replace(/\/$/, "");
 const localBaseUrl = "http://127.0.0.1:3000";
+const productionServer = process.env.E2E_PRODUCTION_SERVER === "1";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -19,7 +20,7 @@ export default defineConfig({
   webServer: remoteBaseUrl
     ? undefined
     : {
-        command: "npm run dev -- --hostname 127.0.0.1",
+        command: productionServer ? "npm run start -- --hostname 127.0.0.1" : "npm run dev -- --hostname 127.0.0.1",
         url: localBaseUrl,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

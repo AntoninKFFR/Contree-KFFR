@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "simulate:bots": "vite-node --config vitest.config.ts scripts/simulateBots.ts",
     "benchmark:v3": "vite-node --config vitest.config.ts scripts/benchmarkV3.ts",

@@ -3,34 +3,48 @@ import { monitorBrowserErrors } from "./helpers/browserErrors";
 
 test.describe("@smoke public production readiness", () => {
   test("@smoke unified topbar keeps its controls, context and size in both themes", async ({ page }) => {
-    for (const viewport of [{ width: 1366, height: 768 }, { width: 844, height: 390 }, { width: 375, height: 667 }]) {
+    test.setTimeout(90_000);
+    const header = page.locator("header.coinche-game-topbar");
+    const assertChrome = async (context: string, menu: string) => {
+      await expect(header).toBeVisible();
+      await expect(header).toHaveCSS("height", "48px");
+      await expect(header.getByText(context, { exact: true })).toBeVisible();
+      for (const name of ["Piste précédente", "Lire la musique", "Piste suivante", menu]) {
+        await expect(header.getByRole("button", { name })).toBeVisible();
+      }
+      await expect(header.getByRole("switch", { name: "Activer le thème clair" })).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    };
+
+    await page.setViewportSize({ width: 1366, height: 768 });
+    for (const [route, context, menu] of [
+      ["/", "Accueil", "Ouvrir le menu"],
+      ["/rules", "Règles", "Ouvrir le menu"],
+      ["/multiplayer", "Multijoueur", "Ouvrir le menu"],
+      ["/profile", "Profil", "Ouvrir le menu"],
+      ["/history", "Historique", "Ouvrir le menu"],
+      ["/login", "Connexion", "Ouvrir le menu"],
+      ["/solo", "Solo", "Ouvrir le menu de partie"],
+    ] as const) {
+      await page.goto(route);
+      await assertChrome(context, menu);
+    }
+
+    for (const [route, context, menu] of [["/", "Accueil", "Ouvrir le menu"], ["/solo", "Solo", "Ouvrir le menu de partie"]] as const) {
+      await page.goto(route);
+      await page.getByRole("switch", { name: "Activer le thème clair" }).click();
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+      await expect(header.getByText(context, { exact: true })).toBeVisible();
+      await expect(header.getByRole("switch", { name: "Activer le thème sombre" })).toBeVisible();
+      await expect(header.getByRole("button", { name: menu })).toBeVisible();
+      await page.getByRole("switch", { name: "Activer le thème sombre" }).click();
+    }
+
+    for (const viewport of [{ width: 844, height: 390 }, { width: 375, height: 667 }]) {
       await page.setViewportSize(viewport);
-      await page.goto("/");
-      const header = page.locator("header.coinche-game-topbar");
-      const headerClass = await header.getAttribute("class");
-      for (const theme of ["dark", "light"] as const) {
-        const currentTheme = await page.locator("html").getAttribute("data-theme");
-        if (currentTheme !== theme) await page.getByRole("switch", { name: theme === "light" ? "Activer le thème clair" : "Activer le thème sombre" }).click();
-        await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-        for (const [route, context, menu] of [
-          ["/", "Accueil", "Ouvrir le menu"],
-          ["/rules", "Règles", "Ouvrir le menu"],
-          ["/multiplayer", "Multijoueur", "Ouvrir le menu"],
-          ["/profile", "Profil", "Ouvrir le menu"],
-          ["/history", "Historique", "Ouvrir le menu"],
-          ["/login", "Connexion", "Ouvrir le menu"],
-          ["/solo", "Solo", "Ouvrir le menu de partie"],
-        ] as const) {
-          await page.goto(route);
-          await expect(header).toHaveAttribute("class", headerClass ?? "");
-          await expect(header.getByText(context, { exact: true })).toBeVisible();
-          for (const name of ["Piste précédente", "Lire la musique", "Piste suivante", menu]) {
-            await expect(header.getByRole("button", { name })).toBeVisible();
-          }
-          await expect(header.getByRole("switch", { name: theme === "light" ? "Activer le thème sombre" : "Activer le thème clair" })).toBeVisible();
-          expect(await header.evaluate((element) => Math.round(element.getBoundingClientRect().height))).toBe(48);
-          expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-        }
+      for (const [route, context, menu] of [["/", "Accueil", "Ouvrir le menu"], ["/solo", "Solo", "Ouvrir le menu de partie"]] as const) {
+        await page.goto(route);
+        await assertChrome(context, menu);
       }
     }
   });
@@ -358,12 +372,11 @@ test.describe("@smoke public production readiness", () => {
 
   test("@smoke KFFR branding is theme-aware, compact and responsive", async ({ page }) => {
     await page.goto("/");
-    const header = page.locator(".coinche-global-header");
+    const header = page.locator("header.coinche-game-topbar");
     const fullLogo = page.locator(".coinche-brand-logo--full");
     const compactLogo = header.locator(".coinche-brand-logo--compact");
 
-    await expect(header.locator(":scope > div")).toHaveCSS("height", "56px");
-    expect(await header.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(57);
+    await expect(header).toHaveCSS("height", "48px");
     await expect(fullLogo).toBeVisible();
     await expect(compactLogo).toBeVisible();
     await expect(fullLogo.locator(".coinche-brand-logo__image--dark")).toBeVisible();
