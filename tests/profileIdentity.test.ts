@@ -1,6 +1,7 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { describe, expect, it } from "vitest";
-import { loginPath, safeNextPath, signupNextStep } from "@/lib/authRedirect";
+import { describe, expect, it, vi } from "vitest";
+import { authCallbackUrl, loginPath, safeNextPath, signInWithGoogle, signupNextStep } from "@/lib/authRedirect";
+import { completeAuthCallback } from "@/lib/authCallback";
 import { cleanUsername, ensureProfile, getProfileUsername, isUsernameTaken, saveProfileUsername, validateUsername } from "@/lib/profiles";
 
 function fakeClient(rows = new Map<string, string>()): SupabaseClient {
@@ -63,5 +64,65 @@ describe("safe auth return path", () => {
     expect(signupNextStep(true, false, "/multiplayer")).toEqual({ kind: "redirect", path: "/profile" });
     expect(signupNextStep(false, false, "/multiplayer")).toEqual({ kind: "confirm" });
     expect(signupNextStep(true, true, "https://evil.example")).toEqual({ kind: "redirect", path: "/" });
+  });
+});
+
+describe("Google OAuth through the existing callback", () => {
+  it("keeps a valid next path and sanitizes a dangerous one in the callback URL", () => {
+    const valid = new URL(authCallbackUrl("http://localhost:3000", "/multiplayer?code=ABC#join"));
+    expect(valid.origin).toBe("http://localhost:3000");
+    expect(valid.pathname).toBe("/auth/callback");
+    expect(valid.searchParams.get("next")).toBe("/multiplayer?code=ABC#join");
+    expect(new URL(authCallbackUrl("https://kffr.example", "//evil.example")).searchParams.get("next")).toBe("/");
+  });
+
+  it("requests only Google authentication with the current-origin callback and no extra scopes", async () => {
+    const signInWithOAuth = vi.fn().mockResolvedValue({ data: { url: "https://example.test/authorize" }, error: null });
+    const client = { auth: { signInWithOAuth } } as unknown as SupabaseClient;
+    expect(await signInWithGoogle(client, "http://localhost:3000", "/multiplayer")).toBe(true);
+    expect(signInWithOAuth).toHaveBeenCalledExactlyOnceWith({
+      provider: "google", options: { redirectTo: "http://localhost:3000/auth/callback?next=%2Fmultiplayer" },
+    });
+  });
+
+  it("reports an immediate OAuth error so the login notice can be shown and controls re-enabled", async () => {
+    const signInWithOAuth = vi.fn().mockResolvedValueOnce({ data: null, error: new Error("provider unavailable") })
+      .mockRejectedValueOnce(new Error("network unavailable"));
+    const client = { auth: { signInWithOAuth } } as unknown as SupabaseClient;
+    expect(await signInWithGoogle(client, "http://localhost:3000", "/profile")).toBe(false);
+    expect(await signInWithGoogle(client, "http://localhost:3000", "/profile")).toBe(false);
+  });
+
+  function callbackClient(rows: Map<string, string>, user: User) {
+    let session: { user: User } | null = null;
+    const getSession = vi.fn(async () => ({ data: { session }, error: null }));
+    const exchangeCodeForSession = vi.fn(async () => { session = { user }; return { error: null }; });
+    const client = Object.assign(fakeClient(rows), { auth: { getSession, exchangeCodeForSession } });
+    return { client, getSession, exchangeCodeForSession };
+  }
+
+  it("exchanges the code and returns an existing player with a username to the safe next path", async () => {
+    const user = { id: "u1", user_metadata: { name: "Google name" } } as unknown as User;
+    const { client, getSession, exchangeCodeForSession } = callbackClient(new Map([["u1", "Antonin"]]), user);
+    expect(await completeAuthCallback(client, new URL("http://localhost:3000/auth/callback?code=oauth-code&next=%2Fmultiplayer"))).toBe("/multiplayer");
+    expect(exchangeCodeForSession).toHaveBeenCalledExactlyOnceWith("oauth-code");
+    expect(getSession).toHaveBeenCalledTimes(2);
+    expect(await completeAuthCallback(client, new URL("http://localhost:3000/auth/callback?next=%2F%2Fevil.example"))).toBe("/");
+  });
+
+  it("sends a new Google player to profile without treating Google identity fields as a KFFR username", async () => {
+    const user = { id: "new-google", email: "google@example.test", user_metadata: { name: "Google Name", full_name: "Google Full Name", email: "google@example.test" } } as unknown as User;
+    const rows = new Map<string, string>();
+    const { client } = callbackClient(rows, user);
+    expect(await completeAuthCallback(client, new URL("http://localhost:3000/auth/callback?code=oauth-code&next=%2Fmultiplayer"))).toBe("/profile");
+    expect(rows.size).toBe(0);
+  });
+
+  it("rejects an OAuth provider error before attempting a session exchange", async () => {
+    const { client, getSession, exchangeCodeForSession } = callbackClient(new Map(), { id: "u1", user_metadata: {} } as unknown as User);
+    await expect(completeAuthCallback(client, new URL("http://localhost:3000/auth/callback?error=access_denied"))).rejects.toThrow();
+    expect(getSession).not.toHaveBeenCalled();
+    expect(exchangeCodeForSession).not.toHaveBeenCalled();
+    await expect(completeAuthCallback(client, new URL("http://localhost:3000/auth/callback#error=access_denied"))).rejects.toThrow();
   });
 });

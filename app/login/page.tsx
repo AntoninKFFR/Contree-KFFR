@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { safeNextPath, signupNextStep } from "@/lib/authRedirect";
+import { authCallbackUrl, safeNextPath, signInWithGoogle, signupNextStep } from "@/lib/authRedirect";
 import { cleanUsername, ensureProfile, getProfileUsername, isUsernameTaken, profileErrorMessage, validateUsername } from "@/lib/profiles";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { AppEyebrow, AppPage, AppSurface, appInputClass, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
@@ -32,6 +32,7 @@ export default function LoginPage() {
   const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleRedirecting, setIsGoogleRedirecting] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -76,11 +77,9 @@ export default function LoginPage() {
     const nextUsername = cleanUsername(username);
     try {
       if (await isUsernameTaken(supabase, nextUsername)) { setNotice({ tone: "error", text: "Ce pseudo est déjà pris." }); return; }
-      const callback = new URL("/auth/callback", window.location.origin);
-      callback.searchParams.set("next", nextPath);
       const { data, error } = await supabase.auth.signUp({
         email, password,
-        options: { data: { username: nextUsername }, emailRedirectTo: callback.toString() },
+        options: { data: { username: nextUsername }, emailRedirectTo: authCallbackUrl(window.location.origin, nextPath) },
       });
       if (error) {
         const taken = await isUsernameTaken(supabase, nextUsername).catch(() => false);
@@ -100,6 +99,17 @@ export default function LoginPage() {
     } catch (error) {
       setNotice({ tone: "error", text: profileErrorMessage(error instanceof Error ? error : null) });
     } finally { setIsSubmitting(false); }
+  }
+
+  async function handleGoogleSignIn() {
+    if (!supabase || isSubmitting) return;
+    setIsSubmitting(true);
+    setIsGoogleRedirecting(true);
+    setNotice(null);
+    if (await signInWithGoogle(supabase, window.location.origin, nextPath)) return;
+    setNotice({ tone: "error", text: "Connexion Google impossible. Réessaie." });
+    setIsGoogleRedirecting(false);
+    setIsSubmitting(false);
   }
 
   async function handleSignOut() {
@@ -139,6 +149,8 @@ export default function LoginPage() {
           <button aria-pressed={mode === "signup"} className={mode === "signup" ? appPrimaryActionClass : appSecondaryActionClass} onClick={() => { setMode("signup"); setNotice(null); }} type="button">Créer un compte</button>
         </div>
         <form className="mt-5 flex flex-col gap-3" onSubmit={mode === "signin" ? handleSignIn : handleSignUp}>
+          <button className="inline-flex min-h-11 w-full items-center justify-center gap-3 rounded-xl border border-[color:var(--border-strong)] bg-[color:var(--surface-raised)] px-4 py-2.5 text-sm font-bold text-[color:var(--text-primary)] shadow-sm transition hover:bg-[color:var(--surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-50" disabled={!supabase || isSubmitting} onClick={() => void handleGoogleSignIn()} type="button"><GoogleMark />{isGoogleRedirecting ? "Redirection…" : "Continuer avec Google"}</button>
+          <div aria-label="ou" className="flex items-center gap-3 py-1 text-xs font-semibold uppercase tracking-wide text-[color:var(--text-secondary)]" role="separator"><span aria-hidden="true" className="h-px flex-1 bg-[color:var(--border)]" /><span>ou</span><span aria-hidden="true" className="h-px flex-1 bg-[color:var(--border)]" /></div>
           {mode === "signup" ? <label className="flex flex-col gap-1.5 text-sm font-semibold text-stone-200">Pseudo<input className={appInputClass} disabled={!supabase || isSubmitting} maxLength={40} onChange={(event) => setUsername(event.target.value)} required value={username} /></label> : null}
           <label className="flex flex-col gap-1.5 text-sm font-semibold text-stone-200">Email<input className={appInputClass} disabled={!supabase || isSubmitting} onChange={(event) => setEmail(event.target.value)} required type="email" value={email} /></label>
           <label className="flex flex-col gap-1.5 text-sm font-semibold text-stone-200">Mot de passe<input className={appInputClass} disabled={!supabase || isSubmitting} minLength={6} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></label>
@@ -149,4 +161,13 @@ export default function LoginPage() {
       {notice ? <p role="alert" className={`mt-4 rounded-xl border px-3 py-2 text-sm ${notice.tone === "error" ? "border-red-300/35 bg-red-400/10 text-red-100" : "border-emerald-300/35 bg-emerald-300/10 text-emerald-100"}`}>{notice.text}</p> : null}
     </AppSurface>
   </div></AppPage>;
+}
+
+function GoogleMark() {
+  return <svg aria-hidden="true" className="h-5 w-5 shrink-0" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z" />
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.31 5.48-4.91 7.18l7.73 6C44.27 38.03 46.98 31.88 46.98 24.55Z" />
+    <path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.28-3.13.77-4.59l-7.98-6.2A23.9 23.9 0 0 0 0 24c0 3.87.93 7.52 2.56 10.78l7.97-6.19Z" />
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z" />
+  </svg>;
 }

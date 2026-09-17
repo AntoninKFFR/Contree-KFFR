@@ -251,11 +251,13 @@ test.describe("@smoke public production readiness", () => {
   test("@smoke login separates sign-in and signup fields", async ({ page }) => {
     await page.goto("/login?next=%2Fmultiplayer");
     await expect(page.getByRole("heading", { name: "Connexion" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continuer avec Google" })).toBeVisible();
     await expect(page.getByLabel("Pseudo", { exact: true })).toHaveCount(0);
     await expect(page.getByLabel("Email")).toBeVisible();
     await expect(page.getByLabel("Mot de passe", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Créer un compte", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Créer un compte" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continuer avec Google" })).toBeVisible();
     await expect(page.getByLabel("Pseudo", { exact: true })).toBeVisible();
     await expect(page.getByLabel("Confirmer le mot de passe")).toBeVisible();
     await page.getByRole("button", { name: "Se connecter", exact: true }).click();

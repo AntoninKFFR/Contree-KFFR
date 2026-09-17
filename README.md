@@ -65,6 +65,15 @@ la seule identité utilisée par le serveur lors de la création ou de la prise 
 les noms déjà enregistrés dans une partie restent des snapshots. Après déploiement de la migration,
 autorise `/auth/callback` dans les URL de redirection Supabase pour la confirmation par email.
 
+### Connexion Google
+
+Active le fournisseur Google dans Supabase Auth et renseigne son Client ID et son Client Secret
+dans le tableau de bord Supabase. Dans Google Auth Platform, utilise l'URL de callback indiquée
+par Supabase comme URI de redirection autorisée et ajoute les origines de l'application. Dans
+Supabase Auth > URL Configuration, autorise `/auth/callback**` pour chaque origine utilisée
+(locale et hébergée), afin d'accepter le paramètre `?next=`. L'application construit cette URL depuis l'origine courante et conserve
+`?next=` ; aucun identifiant Google ni secret ne va dans le dépôt.
+
 Pour appliquer et vérifier cette migration sur le projet Supabase lié :
 
 ```bash
