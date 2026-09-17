@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
+import { DetailedStatsDashboard } from "@/components/profile/DetailedStatsDashboard";
 import { calculateDetailedPlayerStats, multiplayerGamesForDetailedStats, soloGamesForDetailedStats, type PlayerStatsGame } from "@/lib/detailedPlayerStats";
 import type { Contract, PlayerId, RoundHistoryEntry, RoundResult, TeamId } from "@/engine/types";
 import type { GameRow } from "@/lib/stats";
@@ -153,5 +156,175 @@ describe("shared detailed player statistics", () => {
       { ...game([], 0, true), finishedAt: "2026-09-14T12:00:00Z" },
     ];
     expect(calculateDetailedPlayerStats(games)).toMatchObject({ currentStreak: 2, bestStreak: 2 });
+  });
+
+  it("separates my contracts and partner contracts, including personal point averages", () => {
+    const result = stats(
+      played(contract(0, 0, 100), { success: true, takerPoints: 120 }),
+      played(contract(0, 0, 120), { success: false, takerPoints: 110 }),
+      played(contract(0, 2, 110), { success: true }),
+      played(contract(0, 2, 130), { success: true }),
+      played(contract(1, 1, 100), { success: false }),
+    );
+    expect(result).toMatchObject({ personalContracts: 2, personalSuccessRate: 50, partnerContracts: 2, partnerSuccessRate: 100,
+      personalAverageBid: 110, personalAverageTakerPoints: 115, personalAverageBidDifference: 5, attackSuccessRate: 75 });
+  });
+
+  it("uses true odd and even medians and separates successful and failed bid means", () => {
+    const odd = stats(
+      played(contract(0, 0, 100), { success: true, takerPoints: 127 }),
+      played(contract(0, 0, 110), { success: false, takerPoints: 101 }),
+      played(contract(0, 0, 130), { success: true, takerPoints: 150 }),
+    );
+    expect(odd).toMatchObject({ medianBid: 110, averageSuccessfulBid: 115, averageFailedBid: 110, averageSuccessfulMargin: 24 });
+    expect(stats(played(contract(0, 0, 100)), played(contract(0, 0, 110)), played(contract(0, 0, 120)), played(contract(0, 0, 130))).medianBid).toBe(115);
+  });
+
+  it("builds every exact bid value and the three bid zones without empty 0% rates", () => {
+    const result = stats(...([80, 90, 100, 110, 120, 130, 140, 150, 160] as const)
+      .map((value, index) => played(contract(0, 0, value), { success: index < 5 })));
+    expect(result.bidValues.map(({ value, contracts, successes }) => ({ value, contracts, successes }))).toEqual([
+      { value: 80, contracts: 1, successes: 1 }, { value: 90, contracts: 1, successes: 1 },
+      { value: 100, contracts: 1, successes: 1 }, { value: 110, contracts: 1, successes: 1 },
+      { value: 120, contracts: 1, successes: 1 }, { value: 130, contracts: 1, successes: 0 },
+      { value: 140, contracts: 1, successes: 0 }, { value: 150, contracts: 1, successes: 0 },
+      { value: 160, contracts: 1, successes: 0 },
+    ]);
+    expect(result.contractZones).toEqual([
+      { label: "Prudent", range: "80–100", contracts: 3, successRate: 100 },
+      { label: "Intermédiaire", range: "110–120", contracts: 2, successRate: 100 },
+      { label: "Agressif", range: "130–160", contracts: 4, successRate: 0 },
+    ]);
+    expect(calculateDetailedPlayerStats([]).bidValues[0].successRate).toBeNull();
+  });
+
+  it("classifies 1–9, 10–19 and 20+ point falls using real points below the bid", () => {
+    const result = stats(
+      played(contract(0, 0, 110), { success: false, takerPoints: 101 }),
+      played(contract(0, 0, 110), { success: false, takerPoints: 100 }),
+      played(contract(0, 0, 120), { success: false, takerPoints: 100 }),
+      played(contract(0, 0, 100), { success: false, takerPoints: 105 }), // Failed for another rule, not below the bid.
+    );
+    expect(result.fallTotal).toBe(3);
+    expect(result.fallBands).toEqual([
+      { label: "Serrées", contracts: 1, share: 33 },
+      { label: "Moyennes", contracts: 1, share: 33 },
+      { label: "Grosses", contracts: 1, share: 33 },
+    ]);
+    expect(calculateDetailedPlayerStats([]).fallBands.every((band) => band.share === null)).toBe(true);
+  });
+
+  it("measures 120+ and 130+ among my classical bids only", () => {
+    const result = stats(
+      played(contract(0, 0, 100)), played(contract(0, 0, 120)),
+      played(contract(0, 0, 130)), played(contract(0, 0, 160)),
+      played(contract(0, 2, 160)),
+      played({ kind: "capot", value: 250, teamId: 0, playerId: 0, status: "normal" }),
+    );
+    expect(result).toMatchObject({ personalAtLeast120Rate: 75, personalAtLeast130Rate: 50 });
+  });
+
+  it("measures defense's known last tricks while excluding old unknown results", () => {
+    const result = stats(
+      played(contract(1, 1), { tenDeDerTeam: 0 }),
+      played(contract(1, 3), { tenDeDerTeam: 1 }),
+      played(contract(1, 1)),
+      played(contract(0, 0), { tenDeDerTeam: 0 }),
+    );
+    expect(result).toMatchObject({ defenseTenDeDerRate: 50, tenDeDerRate: 100 });
+    expect(stats(played(contract(1, 1))).defenseTenDeDerRate).toBeNull();
+  });
+
+  it("normalizes achieved capots per 100 known rounds and avoids an unknown zero", () => {
+    const result = stats(
+      played(contract(0, 0), { capotTeam: 0 }),
+      { kind: "all-pass", roundScore: { 0: 0, 1: 0 } },
+      played(contract(1, 1)),
+      played(contract(0, 2)),
+    );
+    expect(result).toMatchObject({ capotsMade: 1, rounds: 4, capotsPer100Rounds: 25 });
+    expect(calculateDetailedPlayerStats([game([])]).capotsPer100Rounds).toBeNull();
+  });
+
+  it("measures winning personal Coinche gaps and successful personal contracts under Coinche", () => {
+    const result = stats(
+      played(contract(1, 1, 120, { status: "coinched", coinchedBy: 0 }), { success: false, takerPoints: 94 }),
+      played(contract(1, 1, 110, { status: "coinched", coinchedBy: 0 }), { success: false, takerPoints: 100 }),
+      played(contract(1, 1, 100, { status: "coinched", coinchedBy: 2 }), { success: false, takerPoints: 80 }),
+      played(contract(0, 0, 110, { status: "coinched", coinchedBy: 1 }), { success: true, takerPoints: 128 }),
+      played(contract(0, 2, 120, { status: "coinched", coinchedBy: 3 }), { success: true, takerPoints: 140 }),
+      played(contract(0, 0, 100, { status: "surcoinched", coinchedBy: 1, surcoinchedBy: 0 }), { success: true, takerPoints: 150 }),
+    );
+    expect(result).toMatchObject({ coinchesDeclared: 2, coincheSuccessRate: 100, winningCoincheAverageGap: 18,
+      personalCoinchedSuccessMargin: 18 });
+  });
+
+  it("keeps suit averages separate from no-trump and all-trump", () => {
+    const result = stats(
+      played(contract(0, 0, 100, { trump: "hearts" })),
+      played(contract(0, 2, 120, { trump: "hearts" }), { success: false }),
+      played(contract(0, 0, 130, { trump: undefined, contractMode: { kind: "no-trump" } })),
+      played(contract(0, 2, 140, { trump: undefined, contractMode: { kind: "all-trump" } }), { success: false }),
+    );
+    expect(result.suits.find((suit) => suit.suit === "hearts")).toMatchObject({ contracts: 2, share: 100, successRate: 50, averageBid: 110 });
+    expect(result.specialModes).toEqual([
+      { mode: "no-trump", contracts: 1, successRate: 100, averageBid: 130 },
+      { mode: "all-trump", contracts: 1, successRate: 0, averageBid: 140 },
+    ]);
+    expect(stats(played(contract(0, 0))).specialModes).toEqual([]);
+  });
+
+  it("uses all available games below 20 and presents recent results chronologically", () => {
+    const games = [
+      { ...game([played(contract(0, 0))], 0, true), finishedAt: "2026-09-17T12:00:00Z" },
+      { ...game([played(contract(1, 1), { success: false })], 0, false), finishedAt: "2026-09-15T12:00:00Z" },
+      { ...game([played(contract(0, 2), { success: false })], 0, true), finishedAt: "2026-09-16T12:00:00Z" },
+    ];
+    expect(calculateDetailedPlayerStats(games).recentForm).toEqual({
+      sampleSize: 3, wins: 2, winrate: 67, attackSuccessRate: 50, defenseSuccessRate: 100,
+      results: [false, true, true],
+    });
+  });
+
+  it("limits recent form to the newest 20 of more than 20 games", () => {
+    const games = Array.from({ length: 22 }, (_, index) => ({
+      ...game([played(contract(0, 0), { success: index >= 2 })], 0, index >= 2),
+      finishedAt: new Date(Date.UTC(2026, 8, 1 + index)).toISOString(),
+    })).reverse();
+    const result = calculateDetailedPlayerStats(games);
+    expect(result).toMatchObject({ total: 22, winrate: 91, recentForm: { sampleSize: 20, wins: 20, winrate: 100, attackSuccessRate: 100 } });
+    expect(result.recentForm.results).toEqual(Array.from({ length: 20 }, () => true));
+  });
+
+  it("compares the first and last 50 contract rounds only with at least 100", () => {
+    const first = Array.from({ length: 50 }, (_, index) => played(contract(0, 0, 100), { success: index < 30 }));
+    const last = Array.from({ length: 50 }, (_, index) => played(contract(0, 0, 120), { success: index < 40 }));
+    const result = calculateDetailedPlayerStats([game([...first, ...last])]);
+    expect(result.progression).toEqual({
+      first: { rounds: 50, attackSuccessRate: 60, averageBid: 100 },
+      recent: { rounds: 50, attackSuccessRate: 80, averageBid: 120 },
+    });
+    expect(calculateDetailedPlayerStats([game([...first, ...last.slice(0, 49)])]).progression).toBeNull();
+  });
+
+  it("keeps every numeric metric finite for empty and historical inputs", () => {
+    const visit = (value: unknown): void => {
+      if (typeof value === "number") expect(Number.isFinite(value)).toBe(true);
+      else if (value && typeof value === "object") Object.values(value).forEach(visit);
+    };
+    visit(calculateDetailedPlayerStats([]));
+    visit(calculateDetailedPlayerStats([game([])]));
+    visit(stats(played(contract(0, 0)), played(contract(1, 1), { success: false })));
+  });
+
+  it("renders exact bid counts and omits the incomplete-archives message", () => {
+    const data = calculateDetailedPlayerStats([game([played(contract(0, 0, 110))]), game([])]);
+    vi.stubGlobal("React", React);
+    let markup: string;
+    try { markup = renderToStaticMarkup(React.createElement(DetailedStatsDashboard, { stats: data })); }
+    finally { vi.unstubAllGlobals(); }
+    expect(markup).toContain("Contrat 110 : 100 %, 1 réussi sur 1");
+    expect(markup).toContain("1/1");
+    expect(markup).not.toContain("sans détail de manches");
   });
 });
