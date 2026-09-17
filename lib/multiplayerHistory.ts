@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { GameEndReason, GameState, TeamId } from "@/engine/types";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
+import { calculateDetailedPlayerStats, multiplayerGamesForDetailedStats } from "@/lib/detailedPlayerStats";
 
 export type MultiplayerArchiveGame = {
   id: string;
@@ -142,12 +143,12 @@ export function multiplayerEndLabel(game: MultiplayerHistoryGame): string {
 }
 
 export function calculateMultiplayerStats(games: MultiplayerHistoryGame[]): MultiplayerStats {
-  const wins = games.filter(didViewerWin).length;
+  const shared = calculateDetailedPlayerStats(multiplayerGamesForDetailedStats(games));
   return {
-    total: games.length,
-    wins,
-    losses: games.length - wins,
-    winrate: percent(wins, games.length),
+    total: shared.total,
+    wins: shared.wins,
+    losses: shared.losses,
+    winrate: shared.winrate ?? 0,
     scoreWins: games.filter((game) => didViewerWin(game) && game.end_reason === "score").length,
     forfeitWins: games.filter((game) => didViewerWin(game) && game.end_reason === "forfeit").length,
     forfeitLosses: games.filter((game) => !didViewerWin(game) && game.forfeiting_team === viewerTeam(game)).length,
@@ -160,10 +161,6 @@ export function calculateMultiplayerStats(games: MultiplayerHistoryGame[]): Mult
 function average(values: number[]): number {
   if (values.length === 0) return 0;
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
-}
-
-function percent(count: number, total: number): number {
-  return total > 0 ? Math.round((count / total) * 100) : 0;
 }
 
 function mostFrequent(names: string[]): string[] {

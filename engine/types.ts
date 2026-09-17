@@ -150,6 +150,8 @@ export type RoundResult =
       belotePointsByTeam: Record<TeamId, number>;
       totalPointsByTeam: Record<TeamId, number>;
       capotTeam: TeamId | null;
+      /** Winner of the eighth trick; absent in older archives and early-ended rounds. */
+      tenDeDerTeam?: TeamId;
       /** Derived from completed tricks; optional only for historical snapshots. */
       tricksWonByPlayer?: Record<PlayerId, number>;
       contractSucceeded: boolean;

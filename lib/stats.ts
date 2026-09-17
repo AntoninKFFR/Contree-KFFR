@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import type { GameState } from "@/engine/types";
+import { calculateDetailedPlayerStats, soloGamesForDetailedStats } from "@/lib/detailedPlayerStats";
 export { scoringModeLabel } from "@/lib/productGame";
 
 export type GameRow = {
@@ -41,21 +42,19 @@ export async function getUserGames(supabase: SupabaseClient, userId: string) {
 }
 
 export function calculateStats(games: GameRow[]): UserStats {
-  const total = games.length;
-  const wins = games.filter((game) => game.won).length;
-  const losses = total - wins;
+  const shared = calculateDetailedPlayerStats(soloGamesForDetailedStats(games));
 
   return {
     averageBotScore: average(games.map((game) => game.bot_score)),
     averagePlayerScore: average(games.map((game) => game.player_score)),
-    bestStreak: bestStreak(games),
-    currentStreak: currentStreak(games),
-    losses,
+    bestStreak: shared.bestStreak,
+    currentStreak: shared.currentStreak,
+    losses: shared.losses,
     madePointsWinrate: winrateForMode(games, "made-points"),
     announcedPointsWinrate: winrateForMode(games, "announced-points"),
-    total,
-    winrate: percent(wins, total),
-    wins,
+    total: shared.total,
+    winrate: shared.winrate ?? 0,
+    wins: shared.wins,
   };
 }
 
@@ -75,40 +74,6 @@ function average(values: Array<number | null>) {
 
   const total = validValues.reduce((sum, value) => sum + value, 0);
   return Math.round(total / validValues.length);
-}
-
-function bestStreak(games: GameRow[]) {
-  let best = 0;
-  let current = 0;
-
-  for (const game of chronologicalGames(games)) {
-    if (game.won) {
-      current += 1;
-      best = Math.max(best, current);
-    } else {
-      current = 0;
-    }
-  }
-
-  return best;
-}
-
-function currentStreak(games: GameRow[]) {
-  let streak = 0;
-
-  for (const game of games) {
-    if (!game.won) {
-      break;
-    }
-
-    streak += 1;
-  }
-
-  return streak;
-}
-
-function chronologicalGames(games: GameRow[]) {
-  return [...games].reverse();
 }
 
 function percent(count: number, total: number) {

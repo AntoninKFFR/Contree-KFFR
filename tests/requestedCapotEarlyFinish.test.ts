@@ -168,6 +168,7 @@ describe("requested capot early completion", () => {
     });
     expect(finished.roundHistory).toHaveLength(1);
     expect(finished.roundHistory[0].result).toEqual(finished.result);
+    expect(finished.roundHistory[0].result).not.toHaveProperty("tenDeDerTeam");
   });
 
   it("keeps announcements and Belote already acquired under the active ruleset", () => {
@@ -205,6 +206,7 @@ describe("requested capot early completion", () => {
     expect(finished.completedTricks).toHaveLength(8);
     expect(finished.result).toMatchObject({
       contractSucceeded: true, capotTeam: 0, multiplier: 1,
+      tenDeDerTeam: 0,
       roundScore: { 0: 500, 1: 0 },
     });
   });

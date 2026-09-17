@@ -568,6 +568,8 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
           belotePointsByTeam: belote.pointsByTeam,
         })
       : null;
+  // Only the eighth trick determines the 10 de der. An early failed Capot has no known last trick.
+  if (result?.kind === "played" && isLastTrick) result.tenDeDerTeam = winnerTeam;
 
   const nextLeader = nextActivePlayer(state, ((winnerId + 3) % 4) as PlayerId);
   const roundEndMessage = requestedCapotFailed

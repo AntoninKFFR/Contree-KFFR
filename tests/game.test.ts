@@ -171,6 +171,7 @@ describe("game", () => {
     });
     expect(afterPlayer3.totalScore).toEqual({ 0: 242, 1: 0 });
     expect(afterPlayer3.roundHistory).toHaveLength(1);
+    expect(afterPlayer3.roundHistory[0].result).toMatchObject({ tenDeDerTeam: 1 });
     expect(afterPlayer3.currentPlayerId).toBe(1);
   });
 

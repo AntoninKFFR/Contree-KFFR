@@ -5,17 +5,17 @@ import { useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { ensureProfile, saveProfileUsername } from "@/lib/profiles";
 import {
-  calculateMultiplayerStats,
   getUserMultiplayerGames,
   type MultiplayerHistoryGame,
 } from "@/lib/multiplayerHistory";
 import {
-  calculateStats,
   formatDate,
   getUserGames,
   scoringModeLabel,
   type GameRow,
 } from "@/lib/stats";
+import { calculateDetailedPlayerStats, multiplayerGamesForDetailedStats, soloGamesForDetailedStats } from "@/lib/detailedPlayerStats";
+import { DetailedStatsDashboard } from "@/components/profile/DetailedStatsDashboard";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import {
   AppEyebrow,
@@ -39,6 +39,7 @@ export default function ProfilePage() {
   const [isSavingUsername, setIsSavingUsername] = useState(false);
   const [identityMessage, setIdentityMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [statsMode, setStatsMode] = useState<"solo" | "multiplayer">("solo");
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -105,11 +106,8 @@ export default function ProfilePage() {
     };
   }, []);
 
-  const stats = useMemo(() => calculateStats(games), [games]);
-  const multiplayerStats = useMemo(
-    () => calculateMultiplayerStats(multiplayerGames),
-    [multiplayerGames],
-  );
+  const soloStats = useMemo(() => calculateDetailedPlayerStats(soloGamesForDetailedStats(games)), [games]);
+  const multiplayerStats = useMemo(() => calculateDetailedPlayerStats(multiplayerGamesForDetailedStats(multiplayerGames)), [multiplayerGames]);
   const recentGames = useMemo(() => games.slice(0, 5), [games]);
 
   async function handleSaveUsername() {
@@ -181,43 +179,15 @@ export default function ProfilePage() {
         {!username ? <p className="mt-3 text-sm text-stone-300">Choisis un pseudo pour jouer en multijoueur.</p> : null}
       </AppSurface>
 
-      <AppSurface>
-        <AppEyebrow>Statistiques solo</AppEyebrow>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        <StatCard label="Parties" value={stats.total} />
-        <StatCard label="Victoires" value={stats.wins} />
-        <StatCard label="Défaites" value={stats.losses} />
-        </div>
-      </AppSurface>
-
-      <section className="grid gap-3 lg:grid-cols-2">
-        <StatsDetails title="Winrate" summary={`${stats.winrate}%`}>
-          <DetailRow label="Global" value={`${stats.winrate}%`} />
-        </StatsDetails>
-
-        <StatsDetails title="Série" summary={`${stats.currentStreak} en cours`}>
-          <DetailRow label="Série en cours" value={stats.currentStreak} />
-          <DetailRow label="Meilleure série" value={stats.bestStreak} />
-        </StatsDetails>
-      </section>
-
-      <AppSurface>
-        <AppEyebrow>Statistiques multijoueur</AppEyebrow>
-        <div className="mt-3 grid gap-3 sm:grid-cols-4">
-          <StatCard label="Parties" value={multiplayerStats.total} />
-          <StatCard label="Victoires" value={multiplayerStats.wins} />
-          <StatCard label="Défaites" value={multiplayerStats.losses} />
-          <StatCard label="Taux de victoire" value={`${multiplayerStats.winrate}%`} />
-        </div>
-        <div className="mt-4 grid gap-2 text-sm text-stone-300 sm:grid-cols-2">
-          <DetailRow label="Victoires au score" value={multiplayerStats.scoreWins} />
-          <DetailRow label="Victoires par abandon adverse" value={multiplayerStats.forfeitWins} />
-          <DetailRow label="Défaites par abandon" value={multiplayerStats.forfeitLosses} />
-          <DetailRow label="Score moyen de l'équipe" value={multiplayerStats.averageTeamScore} />
-          <DetailRow label="Partenaire(s) fréquent(s)" value={multiplayerStats.frequentPartners.join(", ") || "—"} />
-          <DetailRow label="Adversaire(s) fréquent(s)" value={multiplayerStats.frequentOpponents.join(", ") || "—"} />
-        </div>
-      </AppSurface>
+      <div aria-label="Mode des statistiques" className="flex gap-2" role="tablist">
+        <button aria-controls="player-stats-panel" aria-selected={statsMode === "solo"} className={statsMode === "solo" ? appPrimaryActionClass : appSecondaryActionClass} id="solo-stats-tab" onClick={() => setStatsMode("solo")} role="tab" type="button">Solo</button>
+        <button aria-controls="player-stats-panel" aria-selected={statsMode === "multiplayer"} className={statsMode === "multiplayer" ? appPrimaryActionClass : appSecondaryActionClass} id="multiplayer-stats-tab" onClick={() => setStatsMode("multiplayer")} role="tab" type="button">Multijoueur</button>
+      </div>
+      <div aria-labelledby={statsMode === "solo" ? "solo-stats-tab" : "multiplayer-stats-tab"} id="player-stats-panel" role="tabpanel">
+        {pageState === "loading" ? <AppSurface>Chargement des statistiques...</AppSurface>
+          : errorMessage ? <AppSurface>Impossible de charger les statistiques : {errorMessage}</AppSurface>
+            : <DetailedStatsDashboard stats={statsMode === "solo" ? soloStats : multiplayerStats} />}
+      </div>
 
       <AppSurface>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -306,52 +276,6 @@ function GameList({
 
 function ProfileShell({ children }: { children: React.ReactNode }) {
   return <AppPage>{children}</AppPage>;
-}
-
-function StatCard({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.045] p-4 shadow-inner">
-      <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{label}</p>
-      <p className="mt-1 text-2xl font-black text-stone-50">{value}</p>
-    </div>
-  );
-}
-
-function StatsDetails({
-  children,
-  summary,
-  title,
-}: {
-  children: React.ReactNode;
-  summary: string;
-  title: string;
-}) {
-  return (
-    <details className="coinche-app-surface group rounded-2xl border p-4 shadow-lg backdrop-blur-sm">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{title}</p>
-          <p className="mt-1 text-2xl font-black text-stone-50">{summary}</p>
-        </div>
-        <span className="rounded-full border border-white/15 px-2.5 py-1 text-xs font-semibold text-stone-300 group-open:hidden">
-          Ouvrir
-        </span>
-        <span className="hidden rounded-full border border-white/15 px-2.5 py-1 text-xs font-semibold text-stone-300 group-open:inline">
-          Fermer
-        </span>
-      </summary>
-      <div className="mt-4 space-y-2 border-t border-white/10 pt-3">{children}</div>
-    </details>
-  );
-}
-
-function DetailRow({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-stone-400">{label}</span>
-      <span className="font-bold text-stone-100">{value}</span>
-    </div>
-  );
 }
 
 function StatusCard({ children, title }: { children: React.ReactNode; title: string }) {
