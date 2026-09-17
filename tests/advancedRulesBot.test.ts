@@ -4,6 +4,7 @@ import { chooseAdvancedRulesBid } from "@/bots/strategy/advancedRulesBidding";
 import { chooseAdvancedRulesCard } from "@/bots/strategy/advancedRulesCard";
 import { createInitialGame, makeBid, playCard, playableCardsForCurrentPlayer } from "@/engine/game";
 import { createDeck } from "@/engine/cards";
+import { inactivePlayerId } from "@/engine/activePlayers";
 import type { Card, ContractMode, GameState, PlayerId } from "@/engine/types";
 import { createTestRuleset } from "@/tests/helpers/rulesets";
 
@@ -19,11 +20,11 @@ const dominantTA = [c("J", "clubs"), c("9", "clubs"), c("J", "diamonds"), c("9",
 const weak = [c("7", "clubs"), c("8", "clubs"), c("7", "diamonds"), c("8", "diamonds"),
   c("7", "hearts"), c("8", "hearts"), c("7", "spades"), c("8", "spades")];
 
-function biddingState(hand: Card[], options: { sa?: boolean; ta?: boolean; capot?: boolean; generale?: boolean; generaleTA?: boolean; announcements?: boolean } = {}) {
+function biddingState(hand: Card[], options: { sa?: boolean; ta?: boolean; capot?: boolean; generale?: boolean; generaleSA?: boolean; generaleTA?: boolean; announcements?: boolean } = {}) {
   const ruleset = createTestRuleset({
     bidding: { allowNoTrump: options.sa ?? false, allowAllTrump: options.ta ?? false,
       allowCapot: options.capot ?? true, allowGenerale: options.generale ?? false,
-      generaleAllowAllTrump: options.generaleTA ?? false },
+      generaleAllowNoTrump: options.generaleSA ?? false, generaleAllowAllTrump: options.generaleTA ?? false },
     announcements: { enabled: options.announcements ?? false, tierce: options.announcements ?? false,
       fifty: options.announcements ?? false, hundred: options.announcements ?? false,
       squares: options.announcements ?? false },
@@ -123,6 +124,70 @@ describe("advanced rules bidding", () => {
       .toMatchObject({ action: "generale", contractMode: TA });
   });
 
+  it("chooses legal Capot modes only with complete control or a matching public partner signal", () => {
+    const noTrumpCapot = [c("A", "clubs"), c("10", "clubs"), c("K", "clubs"), c("Q", "clubs"),
+      c("A", "diamonds"), c("10", "diamonds"), c("K", "diamonds"), c("Q", "diamonds")];
+    const allTrumpCapot = [c("J", "clubs"), c("9", "clubs"), c("A", "clubs"), c("10", "clubs"),
+      c("J", "diamonds"), c("9", "diamonds"), c("A", "diamonds"), c("10", "diamonds")];
+    expect(chooseAdvancedRulesBid(biddingState(noTrumpCapot, { sa: true })))
+      .toMatchObject({ action: "capot", contractMode: SA });
+    expect(chooseAdvancedRulesBid(biddingState(allTrumpCapot, { ta: true })))
+      .toMatchObject({ action: "capot", contractMode: TA });
+    expect(chooseAdvancedRulesBid(biddingState(noTrumpCapot, { sa: false })).action).not.toBe("capot");
+    const almost = [...noTrumpCapot.slice(0, 7), c("7", "hearts")];
+    expect(chooseAdvancedRulesBid(biddingState(almost, { sa: true })).action).not.toBe("capot");
+    const withPartner = { ...biddingState(almost, { sa: true }), bids: [
+      { playerId: 2 as PlayerId, action: "bid" as const, value: 110 as const, contractMode: SA },
+    ] };
+    expect(chooseAdvancedRulesBid(withPartner)).toMatchObject({ action: "capot", contractMode: SA });
+  });
+
+  it("rejects an almost Générale, permits configured modes, and keeps the partner inactive", () => {
+    const nearlySure = [c("J", "clubs"), c("9", "clubs"), c("A", "clubs"), c("10", "clubs"), c("Q", "clubs"),
+      c("A", "diamonds"), c("A", "hearts"), c("A", "spades")];
+    expect(chooseAdvancedRulesBid(biddingState(nearlySure, { generale: true })).action).not.toBe("generale");
+    const allTrumpGenerale = [c("J", "clubs"), c("9", "clubs"), c("J", "diamonds"), c("9", "diamonds"),
+      c("J", "hearts"), c("9", "hearts"), c("J", "spades"), c("9", "spades")];
+    expect(chooseAdvancedRulesBid(biddingState(allTrumpGenerale, { ta: true, generale: true })).action).not.toBe("generale");
+    expect(chooseAdvancedRulesBid(biddingState(allTrumpGenerale, { ta: true, generale: true, generaleTA: true })))
+      .toMatchObject({ action: "generale", contractMode: TA });
+    const noTrumpGenerale = [c("A", "clubs"), c("10", "clubs"), c("K", "clubs"), c("Q", "clubs"),
+      c("A", "diamonds"), c("10", "diamonds"), c("K", "diamonds"), c("Q", "diamonds")];
+    expect(chooseAdvancedRulesBid(biddingState(noTrumpGenerale, { sa: true, generale: true, generaleSA: true })))
+      .toMatchObject({ action: "generale", contractMode: SA });
+    const sureSuit = [c("J", "clubs"), c("9", "clubs"), c("A", "clubs"), c("10", "clubs"), c("K", "clubs"),
+      c("A", "diamonds"), c("A", "hearts"), c("A", "spades")];
+    let state = biddingState(sureSuit, { generale: true });
+    const otherCards = createDeck().filter((card) => !sureSuit.some((held) => held.rank === card.rank && held.suit === card.suit));
+    state = { ...state, hands: { 0: sureSuit, 1: otherCards.slice(0, 8), 2: otherCards.slice(8, 16), 3: otherCards.slice(16) } };
+    state = makeBid(state, 0, { action: "generale", trump: "clubs" });
+    for (let index = 0; index < 3; index += 1) state = makeBid(state, state.currentPlayerId, { action: "pass" });
+    expect(inactivePlayerId(state)).toBe(2);
+    const inactiveHand = [...state.hands[2]];
+    let actions = 0;
+    while (state.phase === "playing" && actions < 24) {
+      expect(state.currentPlayerId).not.toBe(2);
+      const card = chooseAdvancedRulesCard(state);
+      expect(playableCardsForCurrentPlayer(state)).toContainEqual(card);
+      state = playCard(state, state.currentPlayerId, card);
+      actions += 1;
+    }
+    expect(state.phase).toBe("finished");
+    expect(state.hands[2]).toEqual(inactiveHand);
+    expect(state.result).toMatchObject({ kind: "played", contractSucceeded: true, tricksWonByPlayer: { 0: 8 } });
+  }, 20_000);
+
+  it("does not Surcoinche a partner's Générale based on the inactive partner's own hand", () => {
+    const masters = [c("J", "clubs"), c("9", "clubs"), c("A", "clubs"), c("10", "clubs"), c("K", "clubs"),
+      c("A", "diamonds"), c("A", "hearts"), c("A", "spades")];
+    const base = biddingState(masters, { generale: true });
+    const partner = { ...base, currentPlayerId: 2 as PlayerId, hands: { ...base.hands, 2: masters }, bids: [
+      { playerId: 0 as PlayerId, action: "generale" as const, value: 500, trump: "clubs" as const },
+      { playerId: 1 as PlayerId, action: "coinche" as const },
+    ] };
+    expect(chooseAdvancedRulesBid(partner).action).toBe("pass");
+  });
+
   it("can Coinche SA and Surcoinche TA with demonstrated controls", () => {
     const defense = { ...biddingState(strongSA, { sa: true }), currentPlayerId: 1 as PlayerId,
       hands: { ...biddingState(strongSA, { sa: true }).hands, 1: strongSA },
@@ -137,6 +202,34 @@ describe("advanced rules bidding", () => {
       hands: { ...biddingState(dominantTA, { ta: true }).hands, 1: dominantTA },
       bids: [{ playerId: 0 as PlayerId, action: "bid" as const, value: 100 as const, contractMode: TA }] };
     expect(chooseAdvancedRulesBid(allTrumpDefense).action).toBe("coinche");
+  });
+
+  it("refuses speculative suit Coinche while keeping a well-controlled high-contract Coinche", () => {
+    const sideControls = [c("7", "hearts"), c("8", "hearts"), c("A", "clubs"), c("10", "clubs"),
+      c("A", "diamonds"), c("10", "diamonds"), c("A", "spades"), c("10", "spades")];
+    const robustDefense = [c("J", "hearts"), c("9", "hearts"), c("A", "clubs"), c("10", "clubs"),
+      c("A", "diamonds"), c("10", "diamonds"), c("7", "spades"), c("8", "spades")];
+    const against = (hand: Card[], value: 80 | 140) => ({ ...biddingState(hand),
+      currentPlayerId: 1 as PlayerId, hands: { ...biddingState(hand).hands, 1: hand },
+      bids: [{ playerId: 0 as PlayerId, action: "bid" as const, value, trump: "hearts" as const }] });
+    expect(chooseAdvancedRulesBid(against(sideControls, 140)).action).not.toBe("coinche");
+    expect(chooseAdvancedRulesBid(against(robustDefense, 80)).action).not.toBe("coinche");
+    expect(chooseAdvancedRulesBid(against(robustDefense, 140)).action).toBe("coinche");
+  });
+
+  it("can Coinche a Capot or Générale when a defensive trick is independently controlled", () => {
+    const defense = [c("J", "hearts"), c("9", "hearts"), c("A", "clubs"), c("10", "clubs"),
+      c("K", "diamonds"), c("7", "diamonds"), c("8", "spades"), c("7", "spades")];
+    for (const kind of ["capot", "generale"] as const) {
+      const base = biddingState(defense, { capot: true, generale: true });
+      const state = { ...base, currentPlayerId: 1 as PlayerId,
+        hands: { ...base.hands, 1: defense }, bids: [
+          kind === "generale"
+            ? { playerId: 0 as PlayerId, action: "generale" as const, value: 500, trump: "hearts" as const }
+            : { playerId: 0 as PlayerId, action: "capot" as const, trump: "hearts" as const },
+        ] };
+      expect(chooseAdvancedRulesBid(state).action).toBe("coinche");
+    }
   });
 
   it("never selects disabled special contracts", () => {

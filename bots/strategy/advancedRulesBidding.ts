@@ -32,6 +32,12 @@ function canDefendWithCoinche(state: GameState, mode: ContractMode, value: numbe
   const defensiveTricks = estimateDefensiveTricks(hand, mode);
   if (kind === "generale") return defensiveTricks >= 1.65;
   if (kind === "capot") return defensiveTricks >= 1.4;
+  if (mode.kind === "suit") {
+    const trumpRanks = new Set(hand.filter((card) => card.suit === mode.suit).map((card) => card.rank));
+    // Six classical Coinches in 500 paired games produced only one set.
+    // Require control of the declared trump and several independent tricks.
+    return value >= 120 && trumpRanks.has("J") && trumpRanks.has("9") && defensiveTricks >= 4.5;
+  }
   // A failed Coinche doubles the taker's reward. A few isolated Aces are not
   // enough: require roughly four credible defensive controls even at 160.
   const pressure = Math.max(0, value - 80) / 80;
@@ -40,7 +46,9 @@ function canDefendWithCoinche(state: GameState, mode: ContractMode, value: numbe
 
 function canRiskSurcoinche(state: GameState, mode: ContractMode, value: number, kind: string): boolean {
   const hand = state.hands[state.currentPlayerId];
-  if (kind === "generale") return Boolean(evaluateCapotHand(hand, mode));
+  // The partner sits out a Générale: its own masters cannot secure the taker's eight tricks.
+  if (kind === "generale") return getCurrentContract(state)?.playerId === state.currentPlayerId
+    && Boolean(evaluateCapotHand(hand, mode));
   if (kind === "capot") return Boolean(evaluateCapotHand(hand, mode));
   if (mode.kind !== "suit") {
     const evaluation = evaluateAdvancedModeHand(hand, mode, state);
@@ -115,6 +123,7 @@ export function chooseAdvancedRulesBid(state: GameState): AdvancedBotBid {
       const partnerMode = partnerSignal?.action === "bid" ? resolveContractMode(partnerSignal) : null;
       if (!partnerSignal || partnerSignal.action !== "bid" || partnerSignal.value < 110
         || !partnerMode || modeKey(partnerMode) !== modeKey(mode)) return null;
+      if (mode.kind === "suit" && hand.filter((card) => card.suit === mode.suit).length < 4) return null;
       const assessment = assessCapotHand(hand, mode);
       return assessment.sureWinners >= 7 && assessment.gaps <= 1 ? assessment : null;
     }).find((value) => value !== null);

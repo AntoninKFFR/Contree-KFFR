@@ -153,6 +153,9 @@ export function assessCapotHand(hand: Card[], mode: ContractMode): CapotEvaluati
 
 export function evaluateCapotHand(hand: Card[], mode: ContractMode): CapotEvaluation | null {
   if (hand.length !== 8) return null;
+  // Side-suit masters can be cut in a suit contract. A solo Capot needs
+  // enough top trumps to remove that risk before cashing the side Aces.
+  if (mode.kind === "suit" && suitCards(hand, mode.suit).length < 5) return null;
   const assessment = assessCapotHand(hand, mode);
   return assessment.sureWinners === 8 && assessment.gaps === 0 ? assessment : null;
 }

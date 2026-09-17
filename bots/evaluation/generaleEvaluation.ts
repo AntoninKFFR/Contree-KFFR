@@ -10,11 +10,7 @@ export type GeneraleEvaluation = {
 
 function suitCandidate(hand: Card[], suit: Suit): GeneraleEvaluation | null {
   const trumps = hand.filter((card) => card.suit === suit);
-  const sideCards = hand.filter((card) => card.suit !== suit);
-  const ranks = new Set(trumps.map((card) => card.rank));
-  const absoluteTrumpControl = ranks.has("J") && ranks.has("9") && ranks.has("A");
-  const sideCardsAreMasters = sideCards.every((card) => card.rank === "A");
-  if (trumps.length < 5 || !absoluteTrumpControl || !sideCardsAreMasters) return null;
+  if (trumps.length < 5 || !evaluateCapotHand(hand, { kind: "suit", suit })) return null;
   return {
     contractMode: { kind: "suit", suit },
     confidence: Math.min(0.99, 0.9 + (trumps.length - 5) * 0.03),
