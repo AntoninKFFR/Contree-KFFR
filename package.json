@@ -28,6 +28,7 @@
     "benchmark:auction-doctrine-v3-1-smoke": "vite-node --config vitest.config.ts scripts/benchmarkAuctionDoctrineV31Smoke.ts",
     "benchmark:ffb-recalibration": "vite-node --config vitest.config.ts scripts/recalibrateBotsFfb.ts",
     "benchmark:ffb-merge": "vite-node --config vitest.config.ts scripts/mergeFfbScreening.ts",
+    "benchmark:advanced-rules": "vite-node --config vitest.config.ts scripts/benchmarkAdvancedRules.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

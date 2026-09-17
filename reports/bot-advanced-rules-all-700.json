@@ -1,0 +1,1288 @@
+{
+  "generatedAt": "2026-09-17T19:04:28.074Z",
+  "reference": "official V3.1 + current special dispatch",
+  "candidate": "advanced_rules_v4_experimental",
+  "variants": {
+    "classic-reference": {
+      "seedBase": 20260917,
+      "pairedSeeds": 50,
+      "games": 100,
+      "official": {
+        "games": 100,
+        "wins": 52,
+        "winRate": 0.52,
+        "averageScore": 898.1,
+        "averageDifferential": 22.7,
+        "rounds": 649,
+        "contracts": {
+          "suit": {
+            "requested": 324,
+            "succeeded": 244
+          },
+          "no-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "all-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "capot": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 100.9,
+        "averageFailedContractShortfall": 15.53,
+        "defenseRounds": 325,
+        "defensiveSets": 85,
+        "defensiveSetRate": 0.26,
+        "successfulCoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 0,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "fifty": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "hundred": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "square": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "attackTrumpLeads": 573,
+        "voluntaryDefenseTrumpLeads": 86,
+        "defensiveSetAfterTrumpLead": 32,
+        "bidMs": {
+          "mean": 0.06,
+          "p95": 0.1,
+          "p99": 0.15
+        },
+        "cardMs": {
+          "mean": 31.39,
+          "p95": 99.27,
+          "p99": 105.27
+        },
+        "cpuMsPerGame": 3279.66
+      },
+      "candidate": {
+        "games": 100,
+        "wins": 48,
+        "winRate": 0.48,
+        "averageScore": 875.4,
+        "averageDifferential": -22.7,
+        "rounds": 649,
+        "contracts": {
+          "suit": {
+            "requested": 325,
+            "succeeded": 240
+          },
+          "no-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "all-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "capot": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 1,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 100.86,
+        "averageFailedContractShortfall": 16.21,
+        "defenseRounds": 324,
+        "defensiveSets": 80,
+        "defensiveSetRate": 0.25,
+        "successfulCoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 0,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "fifty": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "hundred": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "square": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "attackTrumpLeads": 548,
+        "voluntaryDefenseTrumpLeads": 1,
+        "defensiveSetAfterTrumpLead": 1,
+        "bidMs": {
+          "mean": 0.07,
+          "p95": 0.12,
+          "p99": 0.18
+        },
+        "cardMs": {
+          "mean": 31.65,
+          "p95": 99.27,
+          "p99": 105.23
+        },
+        "cpuMsPerGame": 3303.81
+      }
+    },
+    "announcements": {
+      "seedBase": 20261917,
+      "pairedSeeds": 50,
+      "games": 100,
+      "official": {
+        "games": 100,
+        "wins": 50,
+        "winRate": 0.5,
+        "averageScore": 850.5,
+        "averageDifferential": -35.8,
+        "rounds": 581,
+        "contracts": {
+          "suit": {
+            "requested": 290,
+            "succeeded": 222
+          },
+          "no-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "all-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "capot": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 100.45,
+        "averageFailedContractShortfall": 18.41,
+        "defenseRounds": 291,
+        "defensiveSets": 63,
+        "defensiveSetRate": 0.22,
+        "successfulCoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 6900,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 65,
+            "succeeded": 62
+          },
+          "fifty": {
+            "requested": 18,
+            "succeeded": 18
+          },
+          "hundred": {
+            "requested": 2,
+            "succeeded": 2
+          },
+          "square": {
+            "requested": 2,
+            "succeeded": 2
+          }
+        },
+        "attackTrumpLeads": 531,
+        "voluntaryDefenseTrumpLeads": 83,
+        "defensiveSetAfterTrumpLead": 24,
+        "bidMs": {
+          "mean": 0.04,
+          "p95": 0.07,
+          "p99": 0.09
+        },
+        "cardMs": {
+          "mean": 30.81,
+          "p95": 100.02,
+          "p99": 106.47
+        },
+        "cpuMsPerGame": 2883.9
+      },
+      "candidate": {
+        "games": 100,
+        "wins": 50,
+        "winRate": 0.5,
+        "averageScore": 886.3,
+        "averageDifferential": 35.8,
+        "rounds": 581,
+        "contracts": {
+          "suit": {
+            "requested": 290,
+            "succeeded": 227
+          },
+          "no-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "all-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "capot": {
+            "requested": 1,
+            "succeeded": 1
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 2,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 101.13,
+        "averageFailedContractShortfall": 16.65,
+        "defenseRounds": 290,
+        "defensiveSets": 68,
+        "defensiveSetRate": 0.23,
+        "successfulCoinches": {
+          "suit": 2,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 7080,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 69,
+            "succeeded": 67
+          },
+          "fifty": {
+            "requested": 20,
+            "succeeded": 20
+          },
+          "hundred": {
+            "requested": 2,
+            "succeeded": 2
+          },
+          "square": {
+            "requested": 2,
+            "succeeded": 2
+          }
+        },
+        "attackTrumpLeads": 520,
+        "voluntaryDefenseTrumpLeads": 0,
+        "defensiveSetAfterTrumpLead": 0,
+        "bidMs": {
+          "mean": 0.06,
+          "p95": 0.1,
+          "p99": 0.13
+        },
+        "cardMs": {
+          "mean": 30.89,
+          "p95": 99.83,
+          "p99": 106.45
+        },
+        "cpuMsPerGame": 2878.29
+      }
+    },
+    "no-trump": {
+      "seedBase": 20262917,
+      "pairedSeeds": 50,
+      "games": 100,
+      "official": {
+        "games": 100,
+        "wins": 42,
+        "winRate": 0.42,
+        "averageScore": 794.8,
+        "averageDifferential": -111.4,
+        "rounds": 640,
+        "contracts": {
+          "suit": {
+            "requested": 274,
+            "succeeded": 190
+          },
+          "no-trump": {
+            "requested": 52,
+            "succeeded": 11
+          },
+          "all-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "capot": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 101.47,
+        "averageFailedContractShortfall": 21.18,
+        "defenseRounds": 314,
+        "defensiveSets": 97,
+        "defensiveSetRate": 0.31,
+        "successfulCoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 0,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "fifty": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "hundred": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "square": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "attackTrumpLeads": 476,
+        "voluntaryDefenseTrumpLeads": 86,
+        "defensiveSetAfterTrumpLead": 37,
+        "bidMs": {
+          "mean": 0.04,
+          "p95": 0.08,
+          "p99": 0.1
+        },
+        "cardMs": {
+          "mean": 28.49,
+          "p95": 98.55,
+          "p99": 105.07
+        },
+        "cpuMsPerGame": 2920.18
+      },
+      "candidate": {
+        "games": 100,
+        "wins": 58,
+        "winRate": 0.58,
+        "averageScore": 906.2,
+        "averageDifferential": 111.4,
+        "rounds": 640,
+        "contracts": {
+          "suit": {
+            "requested": 299,
+            "succeeded": 207
+          },
+          "no-trump": {
+            "requested": 15,
+            "succeeded": 10
+          },
+          "all-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "capot": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 100.83,
+        "averageFailedContractShortfall": 19.42,
+        "defenseRounds": 326,
+        "defensiveSets": 125,
+        "defensiveSetRate": 0.38,
+        "successfulCoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 0,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "fifty": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "hundred": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "square": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "attackTrumpLeads": 514,
+        "voluntaryDefenseTrumpLeads": 2,
+        "defensiveSetAfterTrumpLead": 2,
+        "bidMs": {
+          "mean": 0.07,
+          "p95": 0.11,
+          "p99": 0.17
+        },
+        "cardMs": {
+          "mean": 28.96,
+          "p95": 98.48,
+          "p99": 104.96
+        },
+        "cpuMsPerGame": 2962.32
+      }
+    },
+    "all-trump": {
+      "seedBase": 20263917,
+      "pairedSeeds": 50,
+      "games": 100,
+      "official": {
+        "games": 100,
+        "wins": 32,
+        "winRate": 0.32,
+        "averageScore": 736.4,
+        "averageDifferential": -259,
+        "rounds": 580,
+        "contracts": {
+          "suit": {
+            "requested": 197,
+            "succeeded": 132
+          },
+          "no-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "all-trump": {
+            "requested": 48,
+            "succeeded": 31
+          },
+          "capot": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 101.76,
+        "averageFailedContractShortfall": 19.3,
+        "defenseRounds": 335,
+        "defensiveSets": 76,
+        "defensiveSetRate": 0.23,
+        "successfulCoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 0,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "fifty": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "hundred": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "square": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "attackTrumpLeads": 347,
+        "voluntaryDefenseTrumpLeads": 60,
+        "defensiveSetAfterTrumpLead": 25,
+        "bidMs": {
+          "mean": 0.04,
+          "p95": 0.07,
+          "p99": 0.09
+        },
+        "cardMs": {
+          "mean": 23.49,
+          "p95": 95.07,
+          "p99": 103.4
+        },
+        "cpuMsPerGame": 2178.11
+      },
+      "candidate": {
+        "games": 100,
+        "wins": 68,
+        "winRate": 0.68,
+        "averageScore": 995.4,
+        "averageDifferential": 259,
+        "rounds": 580,
+        "contracts": {
+          "suit": {
+            "requested": 226,
+            "succeeded": 159
+          },
+          "no-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "all-trump": {
+            "requested": 109,
+            "succeeded": 100
+          },
+          "capot": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 2,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 102.06,
+        "averageFailedContractShortfall": 20.36,
+        "defenseRounds": 245,
+        "defensiveSets": 82,
+        "defensiveSetRate": 0.33,
+        "successfulCoinches": {
+          "suit": 1,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 0,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "fifty": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "hundred": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "square": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "attackTrumpLeads": 399,
+        "voluntaryDefenseTrumpLeads": 1,
+        "defensiveSetAfterTrumpLead": 1,
+        "bidMs": {
+          "mean": 0.06,
+          "p95": 0.1,
+          "p99": 0.15
+        },
+        "cardMs": {
+          "mean": 23.4,
+          "p95": 94.96,
+          "p99": 103.36
+        },
+        "cpuMsPerGame": 2171.12
+      }
+    },
+    "capot-expanded": {
+      "seedBase": 20264917,
+      "pairedSeeds": 50,
+      "games": 100,
+      "official": {
+        "games": 100,
+        "wins": 28,
+        "winRate": 0.28,
+        "averageScore": 721.5,
+        "averageDifferential": -240.5,
+        "rounds": 587,
+        "contracts": {
+          "suit": {
+            "requested": 168,
+            "succeeded": 124
+          },
+          "no-trump": {
+            "requested": 44,
+            "succeeded": 15
+          },
+          "all-trump": {
+            "requested": 45,
+            "succeeded": 32
+          },
+          "capot": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 101.48,
+        "averageFailedContractShortfall": 19.38,
+        "defenseRounds": 330,
+        "defensiveSets": 69,
+        "defensiveSetRate": 0.21,
+        "successfulCoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 0,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "fifty": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "hundred": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "square": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "attackTrumpLeads": 304,
+        "voluntaryDefenseTrumpLeads": 51,
+        "defensiveSetAfterTrumpLead": 14,
+        "bidMs": {
+          "mean": 0.03,
+          "p95": 0.07,
+          "p99": 0.09
+        },
+        "cardMs": {
+          "mean": 21.63,
+          "p95": 94.57,
+          "p99": 103.62
+        },
+        "cpuMsPerGame": 2033.36
+      },
+      "candidate": {
+        "games": 100,
+        "wins": 72,
+        "winRate": 0.72,
+        "averageScore": 962,
+        "averageDifferential": 240.5,
+        "rounds": 587,
+        "contracts": {
+          "suit": {
+            "requested": 232,
+            "succeeded": 176
+          },
+          "no-trump": {
+            "requested": 16,
+            "succeeded": 13
+          },
+          "all-trump": {
+            "requested": 82,
+            "succeeded": 72
+          },
+          "capot": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 101.55,
+        "averageFailedContractShortfall": 16.26,
+        "defenseRounds": 257,
+        "defensiveSets": 86,
+        "defensiveSetRate": 0.33,
+        "successfulCoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 0,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "fifty": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "hundred": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "square": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "attackTrumpLeads": 401,
+        "voluntaryDefenseTrumpLeads": 0,
+        "defensiveSetAfterTrumpLead": 0,
+        "bidMs": {
+          "mean": 0.06,
+          "p95": 0.1,
+          "p99": 0.18
+        },
+        "cardMs": {
+          "mean": 21.93,
+          "p95": 93.82,
+          "p99": 103.34
+        },
+        "cpuMsPerGame": 2057.92
+      }
+    },
+    "generale": {
+      "seedBase": 20265917,
+      "pairedSeeds": 50,
+      "games": 100,
+      "official": {
+        "games": 100,
+        "wins": 52,
+        "winRate": 0.52,
+        "averageScore": 893.8,
+        "averageDifferential": 17.5,
+        "rounds": 653,
+        "contracts": {
+          "suit": {
+            "requested": 334,
+            "succeeded": 253
+          },
+          "no-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "all-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "capot": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 100.57,
+        "averageFailedContractShortfall": 16.75,
+        "defenseRounds": 319,
+        "defensiveSets": 78,
+        "defensiveSetRate": 0.24,
+        "successfulCoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 0,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "fifty": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "hundred": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "square": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "attackTrumpLeads": 590,
+        "voluntaryDefenseTrumpLeads": 85,
+        "defensiveSetAfterTrumpLead": 35,
+        "bidMs": {
+          "mean": 0.05,
+          "p95": 0.08,
+          "p99": 0.15
+        },
+        "cardMs": {
+          "mean": 34,
+          "p95": 107.17,
+          "p99": 127.56
+        },
+        "cpuMsPerGame": 3530.13
+      },
+      "candidate": {
+        "games": 100,
+        "wins": 48,
+        "winRate": 0.48,
+        "averageScore": 876.3,
+        "averageDifferential": -17.5,
+        "rounds": 653,
+        "contracts": {
+          "suit": {
+            "requested": 319,
+            "succeeded": 241
+          },
+          "no-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "all-trump": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "capot": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 4,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 100.56,
+        "averageFailedContractShortfall": 17.79,
+        "defenseRounds": 334,
+        "defensiveSets": 81,
+        "defensiveSetRate": 0.24,
+        "successfulCoinches": {
+          "suit": 2,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 0,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "fifty": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "hundred": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "square": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "attackTrumpLeads": 541,
+        "voluntaryDefenseTrumpLeads": 0,
+        "defensiveSetAfterTrumpLead": 0,
+        "bidMs": {
+          "mean": 0.07,
+          "p95": 0.11,
+          "p99": 0.19
+        },
+        "cardMs": {
+          "mean": 33.75,
+          "p95": 107.1,
+          "p99": 127.91
+        },
+        "cpuMsPerGame": 3515.33
+      }
+    },
+    "all-compatible": {
+      "seedBase": 20266917,
+      "pairedSeeds": 50,
+      "games": 100,
+      "official": {
+        "games": 100,
+        "wins": 26,
+        "winRate": 0.26,
+        "averageScore": 764.3,
+        "averageDifferential": -272.3,
+        "rounds": 556,
+        "contracts": {
+          "suit": {
+            "requested": 138,
+            "succeeded": 101
+          },
+          "no-trump": {
+            "requested": 40,
+            "succeeded": 20
+          },
+          "all-trump": {
+            "requested": 56,
+            "succeeded": 38
+          },
+          "capot": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 102.61,
+        "averageFailedContractShortfall": 24.8,
+        "defenseRounds": 322,
+        "defensiveSets": 66,
+        "defensiveSetRate": 0.2,
+        "successfulCoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 6270,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 42,
+            "succeeded": 35
+          },
+          "fifty": {
+            "requested": 9,
+            "succeeded": 7
+          },
+          "hundred": {
+            "requested": 1,
+            "succeeded": 1
+          },
+          "square": {
+            "requested": 5,
+            "succeeded": 5
+          }
+        },
+        "attackTrumpLeads": 247,
+        "voluntaryDefenseTrumpLeads": 49,
+        "defensiveSetAfterTrumpLead": 16,
+        "bidMs": {
+          "mean": 0.05,
+          "p95": 0.09,
+          "p99": 0.14
+        },
+        "cardMs": {
+          "mean": 24.94,
+          "p95": 110.99,
+          "p99": 128.1
+        },
+        "cpuMsPerGame": 2200.93
+      },
+      "candidate": {
+        "games": 100,
+        "wins": 74,
+        "winRate": 0.74,
+        "averageScore": 1036.6,
+        "averageDifferential": 272.3,
+        "rounds": 556,
+        "contracts": {
+          "suit": {
+            "requested": 220,
+            "succeeded": 167
+          },
+          "no-trump": {
+            "requested": 11,
+            "succeeded": 11
+          },
+          "all-trump": {
+            "requested": 91,
+            "succeeded": 78
+          },
+          "capot": {
+            "requested": 0,
+            "succeeded": 0
+          },
+          "generale": {
+            "requested": 0,
+            "succeeded": 0
+          }
+        },
+        "coinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "averageContract": 102.2,
+        "averageFailedContractShortfall": 16.44,
+        "defenseRounds": 234,
+        "defensiveSets": 75,
+        "defensiveSetRate": 0.32,
+        "successfulCoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "surcoinches": {
+          "suit": 0,
+          "no-trump": 0,
+          "all-trump": 0,
+          "capot": 0,
+          "generale": 0
+        },
+        "announcementPoints": 7310,
+        "takerAnnouncements": {
+          "tierce": {
+            "requested": 76,
+            "succeeded": 70
+          },
+          "fifty": {
+            "requested": 14,
+            "succeeded": 14
+          },
+          "hundred": {
+            "requested": 3,
+            "succeeded": 3
+          },
+          "square": {
+            "requested": 9,
+            "succeeded": 9
+          }
+        },
+        "attackTrumpLeads": 408,
+        "voluntaryDefenseTrumpLeads": 0,
+        "defensiveSetAfterTrumpLead": 0,
+        "bidMs": {
+          "mean": 0.1,
+          "p95": 0.18,
+          "p99": 0.35
+        },
+        "cardMs": {
+          "mean": 25.6,
+          "p95": 110.27,
+          "p99": 128.08
+        },
+        "cpuMsPerGame": 2263.45
+      }
+    }
+  }
+}
