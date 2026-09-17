@@ -6,6 +6,7 @@ import { resolveContractMode } from "@/engine/contractMode";
 import type { Card, GameState, PlayerId, Suit, TeamId } from "@/engine/types";
 import { getBotProfile } from "@/bots/profiles";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
+import { chooseAdvancedModeCard } from "@/bots/strategy/advancedModeCard";
 import { buildTrickKnowledge, type TrickKnowledge } from "@/bots/strategy/trickKnowledge";
 import { inactivePlayerId } from "@/engine/activePlayers";
 
@@ -798,4 +799,80 @@ export function chooseMonteCarloV2CardToPlay(
       score: scoreCandidateV2(state, candidate, samplesPerCandidate, baseSeed),
     }))
     .sort((first, second) => second.score - first.score)[0].card;
+}
+
+function advancedRollout(state: GameState): GameState {
+  let next = state;
+  let guard = 0;
+  while (next.phase === "playing" && guard < 40) {
+    const mode = resolveContractMode(next);
+    const card = mode?.kind === "no-trump" || mode?.kind === "all-trump"
+      ? chooseAdvancedModeCard(next)
+      : chooseProfileCardToPlay(next, getBotProfile("main"));
+    next = playCard(next, next.currentPlayerId, card);
+    guard += 1;
+  }
+  return next;
+}
+
+function advancedUtility(state: GameState, teamId: TeamId): number {
+  const result = state.result;
+  if (result?.kind !== "played") return teamScore(state, teamId);
+  const opponent = teamId === 0 ? 1 : 0;
+  const differential = result.roundScore[teamId] - result.roundScore[opponent];
+  const winner = result.contractSucceeded ? result.contract.teamId : (result.contract.teamId === 0 ? 1 : 0);
+  if (result.contract.kind === "capot" || result.contract.kind === "generale") {
+    // Capot means eight team tricks; Générale means eight tricks by its taker.
+    // A single defensive trick is therefore decisive, regardless of raw points.
+    return (winner === teamId ? 1800 : -1800) + differential;
+  }
+  const contractWeight = result.contract.status === "surcoinched" ? 2.2
+    : result.contract.status === "coinched" ? 1.6 : 1;
+  return differential + (winner === teamId ? 90 : -90) * contractWeight;
+}
+
+/** Contract-aware Monte Carlo for experimental advanced-rule play. */
+export function chooseAdvancedMonteCarloCardToPlay(
+  state: GameState,
+  options: MonteCarloOptions = {},
+): Card {
+  const mode = resolveContractMode(state);
+  if (!mode) throw new Error("Contract mode required for Monte Carlo.");
+  const legal = playableCardsForCurrentPlayer(state);
+  const heuristic = mode.kind === "suit"
+    ? chooseProfileCardToPlay(state, getBotProfile("main"))
+    : chooseAdvancedModeCard(state);
+  if (legal.length <= 1 || (state.completedTricks.length < 3 && mode.kind === "suit"
+    && state.contract?.kind !== "capot" && state.contract?.kind !== "generale")) return heuristic;
+  const byPoints = [...legal].sort((a, b) => cardPoints(a, mode) - cardPoints(b, mode));
+  const candidates = uniqueCards([
+    heuristic,
+    byPoints[0], byPoints.at(-1)!,
+    ...legal.filter((card) => card.rank === (mode.kind === "no-trump" ? "A" : "J")).slice(0, 1),
+  ]).slice(0, MAX_CANDIDATES);
+  const samples = Math.max(1, Math.floor((options.totalBudget ?? 40) / candidates.length));
+  const seed = hashVisibleState(state);
+  const team = playerTeam(state.currentPlayerId);
+  const chosen = candidates.map((card) => {
+    let score = 0;
+    let completed = 0;
+    for (let sample = 0; sample < samples; sample += 1) {
+      const plausible = createPlausibleStateV2(state, createSeededRandom(seed + sample));
+      if (!plausible) continue;
+      const finalState = advancedRollout(playCard(plausible, plausible.currentPlayerId, card));
+      score += advancedUtility(finalState, team);
+      completed += 1;
+    }
+    return { card, score: completed ? score / completed : Number.NEGATIVE_INFINITY };
+  }).sort((a, b) => b.score - a.score)[0].card;
+  if (state.currentTrick.cards.length === 0 && mode.kind !== "suit") {
+    const masters = buildTrickKnowledge(state).masterCardsBySuit;
+    const safeMaster = masters[heuristic.suit];
+    if (mode.kind === "all-trump" && state.contract?.teamId === team
+      && heuristic.rank === "J" && state.hands[state.currentPlayerId].some((card) =>
+        card.suit === heuristic.suit && card.rank === "9")) return heuristic;
+    if (safeMaster && sameCard(heuristic, safeMaster) && cardPoints(chosen, mode) >= 4
+      && !sameCard(chosen, masters[chosen.suit] ?? chosen)) return heuristic;
+  }
+  return chosen;
 }

@@ -1,8 +1,10 @@
-import { canCoinche, canSurcoinche } from "@/engine/bidding";
+import { canBidCapot, canBidGenerale, canBidGeneraleMode, canCoinche, canSurcoinche, getAvailableBidValues } from "@/engine/bidding";
+import { resolveContractMode } from "@/engine/contractMode";
+import { resolveGameRules } from "@/engine/rulesets/resolve";
 import { createInitialGame, getCurrentContract, makeBid, playCard, startNextRound } from "@/engine/game";
 import { createSeededRandom } from "@/engine/random";
 import { playerTeam } from "@/engine/rules";
-import type { Bid, BidValue, GameState, PlayerId, RoundResult, TeamId } from "@/engine/types";
+import type { Bid, BidValue, GameSettings, GameState, PlayerId, RoundResult, TeamId } from "@/engine/types";
 import { chooseStrategyBid, chooseStrategyCardWithTrace, type BotStrategyDefinition, type StrategyBid } from "@/simulation/botRegistry";
 import type { BotDecisionTraceV3 } from "@/bots/strategy/monteCarloV3CardStrategy";
 
@@ -96,17 +98,33 @@ export type TournamentResult = {
 
 export function normalizeStrategyBid(state: GameState, decision: StrategyBid): StrategyBid {
   const contract = getCurrentContract(state);
-  if (decision.action === "coinche") return contract && canCoinche(state.currentPlayerId, contract) ? decision : { action: "pass" };
-  if (decision.action === "surcoinche") return contract && canSurcoinche(state.currentPlayerId, contract) ? decision : { action: "pass" };
-  if (decision.action !== "bid" || !decision.value || !decision.trump) return { action: "pass" };
-  if (contract && (contract.status !== "normal" || decision.value <= contract.value)) return { action: "pass" };
+  const bidding = resolveGameRules(state.settings).bidding;
+  if (decision.action === "coinche") return contract && canCoinche(state.currentPlayerId, contract, bidding) ? decision : { action: "pass" };
+  if (decision.action === "surcoinche") return contract && canSurcoinche(state.currentPlayerId, contract, bidding) ? decision : { action: "pass" };
+  if (decision.action === "capot" || decision.action === "generale") {
+    const mode = resolveContractMode(decision);
+    const modeAllowed = mode?.kind === "no-trump" ? bidding.allowNoTrump
+      : mode?.kind === "all-trump" ? bidding.allowAllTrump : Boolean(mode);
+    const legal = decision.action === "capot"
+      ? canBidCapot(contract, bidding)
+      : canBidGenerale(contract, bidding) && Boolean(mode && canBidGeneraleMode(mode, bidding));
+    return mode && modeAllowed && legal ? decision : { action: "pass" };
+  }
+  if (decision.action !== "bid" || !decision.value || (!decision.trump && !decision.contractMode)) return { action: "pass" };
+  if (!getAvailableBidValues(contract, bidding).includes(decision.value)) return { action: "pass" };
+  const mode = resolveContractMode(decision);
+  if (mode?.kind === "no-trump" && !bidding.allowNoTrump) return { action: "pass" };
+  if (mode?.kind === "all-trump" && !bidding.allowAllTrump) return { action: "pass" };
   return decision;
 }
 
 export function applyStrategyBid(state: GameState, decision: StrategyBid): GameState {
   const normalized = normalizeStrategyBid(state, decision);
-  if (normalized.action === "bid" && normalized.value && normalized.trump) {
-    return makeBid(state, state.currentPlayerId, { action: "bid", value: normalized.value, trump: normalized.trump });
+  if (normalized.action === "bid" && normalized.value) {
+    return makeBid(state, state.currentPlayerId, { action: "bid", value: normalized.value, ...(normalized.contractMode ? { contractMode: normalized.contractMode } : { trump: normalized.trump! }) });
+  }
+  if (normalized.action === "capot" || normalized.action === "generale") {
+    return makeBid(state, state.currentPlayerId, { action: normalized.action, contractMode: resolveContractMode(normalized)! });
   }
   if (normalized.action === "coinche") return makeBid(state, state.currentPlayerId, { action: "coinche" });
   if (normalized.action === "surcoinche") return makeBid(state, state.currentPlayerId, { action: "surcoinche" });
@@ -128,6 +146,7 @@ export function playTournamentGame({
   onCardDecision,
   onBidDecision,
   seatStrategies,
+  settings,
 }: {
   seed: number;
   teamStrategies: Record<TeamId, BotStrategyDefinition>;
@@ -136,9 +155,10 @@ export function playTournamentGame({
   onCardDecision?: (state: GameState, strategy: BotStrategyDefinition, card: ReturnType<typeof chooseStrategyCardWithTrace>["card"], elapsedMs: number, trace?: BotDecisionTraceV3) => void;
   onBidDecision?: (state: GameState, strategy: BotStrategyDefinition, decision: StrategyBid) => void;
   seatStrategies?: Partial<Record<PlayerId, BotStrategyDefinition>>;
+  settings?: Partial<GameSettings>;
 }): TournamentGame {
   const random = createSeededRandom(seed);
-  let state = createInitialGame(random, { scoringMode: CANONICAL_SCORING_MODE, targetScore });
+  let state = createInitialGame(random, { scoringMode: CANONICAL_SCORING_MODE, targetScore, ...settings });
   const rounds: TournamentRound[] = [];
   const timings: DecisionTiming[] = [];
   while (state.phase !== "game-over" && rounds.length < maxRounds) {

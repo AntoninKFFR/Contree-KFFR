@@ -6,16 +6,20 @@ import { chooseHumanDoctrineBid, type HumanDoctrineOptions } from "@/bots/strate
 import { chooseHumanDoctrineV2Bid, type HumanDoctrineV2Options } from "@/bots/strategy/humanDoctrineV2";
 import { chooseHumanDoctrineV3Bid } from "@/bots/strategy/humanDoctrineV3";
 import { chooseHumanDoctrineV31Bid } from "@/bots/strategy/humanDoctrineV31";
+import { chooseAdvancedRulesBid } from "@/bots/strategy/advancedRulesBidding";
+import { chooseAdvancedRulesCard } from "@/bots/strategy/advancedRulesCard";
+import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { chooseMonteCarloCardToPlay, chooseMonteCarloV2CardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
 import { chooseMonteCarloV3Decision, V3_1_OPTIONS, type BotDecisionTraceV3, type MonteCarloV3Options } from "@/bots/strategy/monteCarloV3CardStrategy";
 import { chooseCardToPlay as chooseLegacyCard, chooseSimpleBid as chooseLegacyBid } from "@/bots/heuristicBot 2";
-import type { BidValue, Card, GameState, Suit } from "@/engine/types";
+import type { BidValue, Card, ContractMode, GameState, Suit } from "@/engine/types";
 
 export type StrategyBid = {
-  action: "pass" | "bid" | "coinche" | "surcoinche";
+  action: "pass" | "bid" | "capot" | "generale" | "coinche" | "surcoinche";
   value?: BidValue;
   trump?: Suit;
+  contractMode?: ContractMode;
 };
 
 export type BotBiddingStrategyId =
@@ -57,6 +61,8 @@ export type BiddingEngine =
   | { kind: "human-doctrine-v2"; options: HumanDoctrineV2Options }
   | { kind: "human-doctrine-v3" }
   | { kind: "human-doctrine-v3-1" }
+  | { kind: "advanced-rules" }
+  | { kind: "official-rules-baseline" }
   | { kind: "legacy" };
 
 export type CardEngine =
@@ -64,6 +70,8 @@ export type CardEngine =
   | { kind: "monte-carlo-v1" }
   | { kind: "monte-carlo-v2" }
   | { kind: "monte-carlo-v3"; options?: MonteCarloV3Options }
+  | { kind: "advanced-rules" }
+  | { kind: "official-rules-baseline" }
   | { kind: "legacy" };
 
 export type BotStrategyDefinition = {
@@ -186,11 +194,29 @@ export const HUMAN_DOCTRINE_V3_1_STRATEGY = createHybridStrategy("human_doctrine
   status: "active",
 });
 
+export const ADVANCED_RULES_STRATEGY: BotStrategyDefinition = {
+  id: "advanced_rules_v4_experimental",
+  label: "V3.1 étendue aux règles avancées (expérimental)",
+  status: "experimental",
+  bidding: { kind: "advanced-rules" },
+  card: { kind: "advanced-rules" },
+};
+
+export const OFFICIAL_RULES_BASELINE_STRATEGY: BotStrategyDefinition = {
+  id: "official_rules_baseline",
+  label: "Bot officiel actuel (référence)",
+  status: "diagnostic",
+  bidding: { kind: "official-rules-baseline" },
+  card: { kind: "official-rules-baseline" },
+};
+
 export const ACTIVE_BOT_STRATEGIES: BotStrategyDefinition[] = [
   ...(Object.keys(BOT_PROFILES) as BotProfileId[]).map(activeDefinition),
   HUMAN_DOCTRINE_V1_STRATEGY,
   HUMAN_DOCTRINE_V3_STRATEGY,
   HUMAN_DOCTRINE_V3_1_STRATEGY,
+  ADVANCED_RULES_STRATEGY,
+  OFFICIAL_RULES_BASELINE_STRATEGY,
 ];
 
 export const LEGACY_BOT_STRATEGIES: BotStrategyDefinition[] = [
@@ -243,6 +269,8 @@ export function composeStrategy(
 }
 
 export function chooseStrategyBid(state: GameState, strategy: BotStrategyDefinition): StrategyBid {
+  if (strategy.bidding.kind === "official-rules-baseline") return chooseBotBid(state);
+  if (strategy.bidding.kind === "advanced-rules") return chooseAdvancedRulesBid(state);
   if (strategy.bidding.kind === "legacy") return chooseLegacyBid(state.hands[state.currentPlayerId]);
   if (strategy.bidding.kind === "bidding-v2") return chooseBiddingV2(state);
   if (strategy.bidding.kind === "human-doctrine-v1") {
@@ -275,6 +303,8 @@ export function chooseStrategyCardWithTrace(
   strategy: BotStrategyDefinition,
 ): { card: Card; trace?: BotDecisionTraceV3 } {
   switch (strategy.card.kind) {
+    case "official-rules-baseline": return { card: chooseBotCard(state) };
+    case "advanced-rules": return { card: chooseAdvancedRulesCard(state) };
     case "legacy": return { card: chooseLegacyCard(state) };
     case "monte-carlo-v1": return { card: chooseMonteCarloCardToPlay(state) };
     case "monte-carlo-v2": return { card: chooseMonteCarloV2CardToPlay(state) };

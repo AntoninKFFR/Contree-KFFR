@@ -1,217 +1,37 @@
-# Strategie des bots
+# Stratégie des bots Contrée KFFR
 
-Cette version garde des bots simples et lisibles. Ils n'utilisent pas de machine learning.
+Les bots utilisent des heuristiques explicites et des simulations Monte Carlo. Ils ne font pas de machine learning et ne lisent pas les mains cachées réelles.
 
-Le bot principal utilise maintenant une approche hybride:
+## Profil officiel et variante avancée
 
-- heuristique classique pour les annonces et les coups simples;
-- Monte Carlo pour certains coups de carte importants ou ambigus.
+`OFFICIAL_BOT_PROFILE_ID` vaut `human_doctrine_v3_1_conversation_mc_v1`. En Contrée classique, les enchères viennent de Human Doctrine V3.1 et le jeu de carte de Monte Carlo V1, avec un repli heuristique. Cette combinaison reste celle de Solo et du Multiplayer.
 
-## Profils disponibles
+`advanced_rules_v4_experimental` est une stratégie distincte dans le registre de simulation. Elle étend V3.1 aux règles avancées sans promotion automatique. Les benchmarks appariés et une validation humaine sur la preview sont requis avant de changer le profil officiel.
 
-L'application web utilise un bot principal unique: `main_montecarlo_v2`. Il garde les annonces du bot principal, puis utilise Monte Carlo seulement pour certains choix de carte.
+## Choix du contrat
 
-Dans l'application web, les bots utilisent toujours ce profil officiel. Les autres profils ne sont pas melanges dans une partie web: ils servent uniquement aux simulations, aux comparaisons et au tuning.
+V3.1 conserve la conversation d'enchères à la couleur : fondation J/9, longueur d'atout, contrôles extérieurs, message du partenaire et plafond intrinsèque. V4 compare ce candidat aux modes Sans Atout et Tout Atout seulement s'ils sont autorisés par `resolveGameRules(state.settings)`.
 
-Les profils ci-dessous restent disponibles pour le simulateur et le tuning.
+En Sans Atout, V4 valorise les As, les 10 protégés, les séquences et les longueurs avec contrôle. Des couleurs sans As ou un 10 exposé diminuent la confiance. En Tout Atout, chaque couleur utilise la hiérarchie J, 9, As, 10 ; les J/9 associés et les contrôles répartis comptent davantage que la somme brute des points. La force de chaque mode donne un plafond : une main suffisante pour 80 ne peut pas surenchérir à 140 sans contrôle supplémentaire. À force proche, la couleur et la conversation V3.1 restent prioritaires.
 
-- `main`: ancien bot principal heuristique. Il reste utile comme reference et fallback.
-- `main_montecarlo`: premiere version Monte Carlo, gardee pour comparer les benchmarks.
-- `main_montecarlo_v2`: bot principal actuel de l'application web. Plus prudent sur les mondes simules et plus sensible au contrat.
-- `prudent`: annonce seulement avec une main assez sure, evite les surencheres risquees, coinche rarement et economise davantage les grosses cartes.
-- `balanced`: profil de reference. Il ressemble au prudent, mais garde un peu plus d'initiative pour annoncer et prendre la main.
-- `aggressive`: annonce plus facilement que les autres, mais reste limite pour eviter les contrats trop suicidaires.
+Les annonces de la main propre sont calculées par le détecteur du moteur. Tierce, cinquante, cent et carré sont pris en compte uniquement si les règles les activent. Le bonus est décoté, car les annonces adverses peuvent les battre ; il est plus fort quand elles comptent réellement pour la réussite du contrat. La Belote/Rebelote connue apporte un faible bonus quand le ruleset l'autorise et la compte pour le contrat. Aucune action artificielle « annoncer » n'est ajoutée : le moteur détecte ces événements pendant le jeu.
 
-Dans une simulation, une equipe utilise un profil. Exemple: equipe 0 en `balanced` contre equipe 1 en `aggressive`.
+## Capot, Générale, Coinche
 
-## Monte Carlo V1 et V2
+V4 ne demande Capot seule que si les huit cartes sont dans des séquences maîtresses sans trou selon le mode. Sept maîtres personnels et un seul trou peuvent aussi suffire si le partenaire a annoncé au moins 110 dans le même mode : son message public apporte alors la pièce manquante probable. Cette exigence évite de transformer une main simplement riche en Capot. Générale conserve son évaluateur séparé, très conservateur : le moteur exige que le preneur gagne personnellement huit plis et rend son partenaire inactif. Les deux actions respectent les drapeaux du ruleset.
 
-`main_montecarlo` est la V1. Elle retire les cartes visibles, repartit les cartes inconnues entre les autres joueurs, simule des fins de manche, puis choisit la carte avec le meilleur score moyen.
+Pour Coinche, V4 estime des plis défensifs crédibles à partir des maîtres et du contrôle d'atout ; la hauteur du contrat module le seuil. Pour Surcoinche, elle exige une marge au-dessus du contrat, ou une main de Capot/Générale très forte. Ces vérifications fonctionnent aussi en Sans Atout et Tout Atout. Les actions interdites par le ruleset sont refusées avant l'envoi au moteur.
 
-`main_montecarlo_v2` garde cette idee, mais ajoute trois ameliorations simples:
+## Jeu de carte
 
-- si un joueur n'a pas fourni une couleur, les simulations evitent de lui redonner cette couleur;
-- les cartes fortes sont reparties avec un leger biais coherent avec le contrat, sans connaitre les vraies mains;
-- le score d'une simulation valorise davantage la reussite du contrat ou la chute du contrat adverse.
+En contrat couleur ordinaire, V4 conserve Monte Carlo V1. Le choix d'une entame atout volontaire en défense est corrigé après l'évaluation : avec des couleurs de remplacement raisonnables, elle est écartée. Une coupe, une fourniture ou une montée imposée par les règles n'est jamais pénalisée. Tard dans la manche, une entame atout redevient possible si le défenseur détient l'atout maître, au moins deux atouts et qu'au plus un atout inconnu reste hors de sa main. L'attaquant peut toujours tirer atout avec contrôle.
 
-La V2 declenche aussi Monte Carlo surtout quand le pli contient des points, quand une carte peut gagner ou perdre le pli, ou quand le contrat devient critique. Sur les coups evidents, elle garde l'heuristique.
+En Sans Atout, le bot joue les maîtres visibles, protège les 10 et cherche à affranchir les couleurs. En Tout Atout, il lit les maîtres J/9 dans chaque couleur. Les deux modes utilisent la liste de cartes légales du moteur, la main propre et les cartes déjà jouées. Un Monte Carlo de budget inférieur à la version classique examine les coups ambigus ; les rollouts ne reçoivent que des répartitions plausibles des cartes inconnues.
 
-## Bot principal de l'application web
+L'utilité interne Monte Carlo suit le contrat : réussite et marge en points pour un contrat ordinaire, succès du contrat avec poids accru après Coinche/Surcoinche, tous les plis du camp pour Capot, et huit plis personnels du preneur pour Générale. En défense de Capot, un seul pli suffit à faire chuter le contrat. Le scoring réel du moteur reste inchangé.
 
-Le bot principal est volontairement proche de `prudent`.
+## Limites et validation
 
-Il garde les points forts du prudent:
+La prédiction des annonces du partenaire reste volontairement absente : sa main est cachée. L'évaluateur Capot peut manquer une occasion fondée sur des cartes du partenaire. Les mondes Monte Carlo sont échantillonnés et leurs continuations restent heuristiques ; un excellent coup tactique peut échapper à cette approximation. V4 demeure expérimentale tant que les simulations par ruleset et la relecture humaine ne justifient pas sa promotion.
 
-- il evite les contrats trop fragiles;
-- il coinche seulement avec une vraie marge;
-- il preserve ses grosses cartes;
-- il limite les grosses chutes.
-
-Il a juste un peu plus d'initiative:
-
-- il annonce un peu plus facilement quand la main est solide;
-- il accepte certaines surencheres raisonnables;
-- il prend plus volontiers un pli gagnable quand le cout reste faible.
-
-L'objectif est simple: avoir un bot coherent pour jouer dans l'interface, sans melanger plusieurs personnalites dans une meme partie.
-
-## Strategie d'annonces
-
-Le bot evalue sa main pour chaque couleur d'atout possible.
-
-Pour chaque couleur, il regarde:
-
-- le nombre d'atouts;
-- les gros atouts: Valet, 9 et As d'atout;
-- les As hors atout;
-- les 10 hors atout;
-- les couleurs courtes;
-- les couleurs vides;
-- les points reels de la main.
-
-Ensuite il fabrique trois idees simples:
-
-- potentiel offensif: est-ce que la main peut gagner des plis;
-- securite: est-ce que le contrat semble solide;
-- potentiel de coupe: est-ce que la main pourra couper plus tard.
-
-Le total donne un score. Plus le score est haut, plus le bot peut annoncer haut.
-
-Les seuils sont volontairement simples:
-
-- score faible: passe;
-- score correct: annonce 80 ou 90;
-- score fort: annonce 100, 110 ou 120;
-- score tres fort: peut monter encore.
-
-Le profil modifie ces seuils. Le prudent demande le plus de securite. L'equilibre reste proche du prudent, mais accepte un peu plus d'initiative. L'agressif accepte encore plus de risque, mais ses annonces sont maintenant freinees pour eviter de monter trop haut trop souvent.
-
-## Annonces en equipe
-
-Le bot principal joue davantage en partenariat.
-
-Quand son partenaire a deja annonce une couleur, le bot principal considere cette annonce comme une information utile:
-
-- il valorise les cartes qui soutiennent la couleur du partenaire;
-- il prefere souvent relancer dans la meme couleur;
-- il evite de changer d'atout juste parce que sa main a une autre couleur correcte;
-- il change de couleur seulement si sa propre couleur est nettement meilleure.
-
-Exemple simple: si le partenaire annonce a coeur, et que le bot a plusieurs coeurs utiles, il va plutot soutenir coeur. Il ne partira a pique que si sa main a pique est vraiment beaucoup plus forte.
-
-Cette logique evite un probleme classique chez les bots simples: chacun joue son propre jeu, sans respecter l'information donnee par le partenaire.
-
-## Partance
-
-La partance signifie ici: parler en premier dans la manche.
-
-Le bot principal donne un petit bonus a une bonne main de partance. L'idee est simple:
-
-- parler en premier permet parfois d'imposer une couleur;
-- une bonne main peut meriter d'ouvrir un peu plus facilement;
-- mais le bonus reste faible pour eviter les annonces folles.
-
-Quand une annonce est deja ouverte, le bot principal redevient plus discipline. Il ne repond pas comme s'il etait seul: il regarde le contrat deja pose, le partenaire, et le risque de surenchere.
-
-## Surenchere
-
-Quand un contrat existe deja, le bot ne peut annoncer que plus haut.
-
-Il compare:
-
-- la force estimee de sa main;
-- la hauteur du contrat actuel;
-- le risque accepte par son profil.
-
-Un bot prudent abandonne plus vite si le contrat est deja haut. L'equilibre peut monter quand sa main suit vraiment. L'agressif accepte plus souvent de monter, mais il doit maintenant avoir une vraie marge avant de surencherir.
-
-## Coinche
-
-Pour coincher, le bot regarde sa main contre l'atout adverse.
-
-Il coinche seulement si sa defense semble assez forte par rapport au contrat annonce. Une coinche est consideree comme reussie dans les statistiques si le contrat adverse chute.
-
-Le prudent a besoin d'une marge importante. L'equilibre garde aussi une marge assez forte. L'agressif a une marge plus petite, mais elle reste suffisante pour eviter de coincher trop souvent avec une defense fragile.
-
-## Surcoinche
-
-La surcoinche est autorisee par le moteur.
-
-Le bot surcoinche si son equipe a le contrat, que l'adversaire a coinche, et que sa main semble assez forte pour accepter le risque. Cette action reste rare, surtout avec le profil prudent.
-
-## Strategie de jeu des cartes
-
-Le bot ne choisit jamais une carte illegale. Il demande d'abord au moteur la liste des cartes jouables.
-
-Ensuite il applique des principes simples:
-
-- si le partenaire gagne deja le pli, il joue une carte peu couteuse;
-- si l'adversaire gagne, il essaie de gagner avec la carte utile la moins chere;
-- s'il ne peut pas gagner, il jette une carte peu utile;
-- il evite de gaspiller les gros atouts sans raison;
-- il protege les points importants;
-- s'il attaque, il peut prendre un peu plus l'initiative;
-- s'il defend, il cherche surtout a faire chuter le contrat adverse.
-
-## Jeu en equipe
-
-Le bot principal evite de jouer comme s'il etait seul.
-
-Il applique trois idees simples:
-
-- si le partenaire gagne deja le pli, ne pas l'ecraser inutilement;
-- si le pli du partenaire contient deja des points, il peut ajouter une carte a points, mais sans sacrifier un gros atout;
-- si l'adversaire gagne un pli important, il essaie de reprendre avec la carte gagnante la moins chere.
-
-Le but n'est pas que le bot gagne tous les plis lui-meme. Le but est que son camp marque ou fasse chuter le contrat adverse.
-
-## Plan de jeu en attaque
-
-Quand le camp du bot a le contrat, le bot principal cherche d'abord a securiser le contrat.
-
-S'il commence un pli et qu'il controle suffisamment l'atout, il peut tirer un gros atout. L'objectif est de faire tomber les atouts adverses avant d'encaisser des As ou des cartes maitresses.
-
-Pourquoi? Parce qu'un As hors atout peut etre coupe plus tard si les adversaires n'ont plus la couleur. Tirer atout avant peut reduire ce risque.
-
-Mais ce n'est pas automatique:
-
-- si le bot ne controle pas assez l'atout, il ne force pas cette ligne;
-- en debut de manche, il peut quand meme encaisser un As, car les autres joueurs ont souvent encore la couleur;
-- s'il n'a pas de ligne claire, il revient a une carte economique.
-
-## Plan de jeu en defense
-
-Quand le camp adverse a le contrat, le bot principal cherche a faire chuter.
-
-Il evite de tirer atout pour l'attaquant sans raison. En defense, tirer atout peut parfois aider le camp qui a annonce.
-
-Il prefere souvent:
-
-- garder des atouts pour couper plus tard;
-- jouer une couleur courte pour preparer une coupe;
-- casser le rythme de l'attaque;
-- prendre un pli important avec la carte gagnante la moins chere.
-
-## Jouer les As au bon moment
-
-Le bot principal comprend une idee simple: au debut d'une manche, jouer un As est souvent moins risque.
-
-Au debut, les joueurs ont plus souvent encore la couleur. Donc l'As a plus de chances de passer sans etre coupe.
-
-Plus tard, le risque de coupe augmente. Le bot devient alors plus prudent avec ses As hors atout, surtout si son camp ne controle pas l'atout.
-
-## Differences entre profils au jeu de la carte
-
-Le prudent preserve plus ses cartes fortes. Il gagne le pli quand c'est utile, mais evite les prises de risque gratuites.
-
-L'agressif met plus de pression. Quand son equipe attaque, il peut mener plus fort et utiliser plus vite les cartes de controle, mais il preserve maintenant un peu plus ses grosses cartes qu'avant.
-
-L'equilibre reste entre les deux. C'est le profil a utiliser comme point de comparaison.
-
-## Ou lire le code
-
-- `bots/profiles.ts`: valeurs des profils.
-- `bots/evaluation/handEvaluation.ts`: evaluation d'une main.
-- `bots/strategy/biddingStrategy.ts`: annonces, surencheres, coinches et surcoinches.
-- `bots/strategy/cardStrategy.ts`: choix de la carte a jouer.
-- `bots/simpleBot.ts`: compatibilite avec l'application web.
+Le harness `npm run benchmark:advanced-rules -- --pairs=2` joue des seeds appariées avec inversion des camps. Les sept configurations, fréquences de contrats, annonces, Coinches, entames atout défensives et temps de décision sont décrits dans `reports/bot-advanced-rules.md`. Les tests ciblés sont dans `tests/advancedRulesBot.test.ts`.
