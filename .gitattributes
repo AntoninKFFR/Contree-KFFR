@@ -1,0 +1,5 @@
+# Normalise les fins de ligne : LF dans le dépôt et dans l'arbre de travail,
+# sur toutes les plateformes. Évite que Windows (core.autocrlf) checkoute des
+# fichiers en CRLF, ce qui faisait échouer localement des tests lisant des .sql
+# (assertions sur des "\n"). Les fichiers binaires sont auto-détectés et ignorés.
+* text=auto eol=lf
