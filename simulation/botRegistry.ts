@@ -202,6 +202,14 @@ export const ADVANCED_RULES_STRATEGY: BotStrategyDefinition = {
   card: { kind: "advanced-rules" },
 };
 
+export const ADVANCED_RULES_V4_STRATEGY: BotStrategyDefinition = {
+  id: "advanced_rules_v4",
+  label: "V4 règles avancées",
+  status: "active",
+  bidding: { kind: "advanced-rules" },
+  card: { kind: "advanced-rules" },
+};
+
 export const OFFICIAL_RULES_BASELINE_STRATEGY: BotStrategyDefinition = {
   id: "official_rules_baseline",
   label: "Bot officiel actuel (référence)",
@@ -215,6 +223,7 @@ export const ACTIVE_BOT_STRATEGIES: BotStrategyDefinition[] = [
   HUMAN_DOCTRINE_V1_STRATEGY,
   HUMAN_DOCTRINE_V3_STRATEGY,
   HUMAN_DOCTRINE_V3_1_STRATEGY,
+  ADVANCED_RULES_V4_STRATEGY,
   ADVANCED_RULES_STRATEGY,
   OFFICIAL_RULES_BASELINE_STRATEGY,
 ];

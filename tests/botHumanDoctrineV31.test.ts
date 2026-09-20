@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
-import { chooseBotBid } from "@/bots/simpleBot";
 import { chooseHumanDoctrineV31Bid } from "@/bots/strategy/humanDoctrineV31";
 import type { Bid, Card, GameState, PlayerId, Suit } from "@/engine/types";
 import { findBotStrategy } from "@/simulation/botRegistry";
@@ -149,7 +147,7 @@ describe("Auction Doctrine V3.1 targeted refinements", () => {
     if (decision.action === "bid") expect(decision.value).toBeGreaterThanOrEqual(120);
   });
 
-  it("is the official bidding strategy while retaining Monte Carlo V1 cards", () => {
+  it("remains registered as the V3.1 rollback strategy with Monte Carlo V1 cards", () => {
     const hand = [
       c("9", "diamonds"), c("10", "diamonds"),
       c("7", "hearts"), c("8", "hearts"), c("7", "spades"),
@@ -157,12 +155,11 @@ describe("Auction Doctrine V3.1 targeted refinements", () => {
     ];
     const state = stateWith(hand);
 
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_1_conversation_mc_v1");
-    expect(findBotStrategy(OFFICIAL_BOT_PROFILE_ID)).toMatchObject({
+    expect(findBotStrategy("human_doctrine_v3_1_conversation_mc_v1")).toMatchObject({
       status: "active",
       bidding: { kind: "human-doctrine-v3-1" },
       card: { kind: "monte-carlo-v1" },
     });
-    expect(chooseBotBid(state)).toEqual({ action: "pass" });
+    expect(chooseHumanDoctrineV31Bid(state).action).toBe("pass");
   });
 });

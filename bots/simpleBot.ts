@@ -15,8 +15,11 @@ import { resolveContractMode } from "@/engine/contractMode";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import { evaluateAllTrumpHand, evaluateNoTrumpHand } from "@/bots/evaluation/contractModeEvaluation";
 import { evaluateGenerale } from "@/bots/evaluation/generaleEvaluation";
+import { chooseAdvancedRulesBid } from "@/bots/strategy/advancedRulesBidding";
+import { chooseAdvancedRulesCard } from "@/bots/strategy/advancedRulesCard";
 
 export function chooseBotCard(state: GameState): Card {
+  if (OFFICIAL_BOT_PROFILE_ID === "advanced_rules_v4") return chooseAdvancedRulesCard(state);
   if (
     OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_1_conversation_mc_v1"
     || OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_conversation_mc_v1"
@@ -30,6 +33,7 @@ export function chooseBotCard(state: GameState): Card {
 type OfficialBotBid =
   | { action: "pass" | "coinche" | "surcoinche" }
   | { action: "bid"; value: BidValue; trump?: Suit; contractMode?: ContractMode }
+  | { action: "capot"; contractMode: ContractMode }
   | { action: "generale"; contractMode: ContractMode };
 
 function chooseSpecialContractBid(state: GameState): OfficialBotBid | null {
@@ -99,6 +103,9 @@ export function chooseBotBidWithTrace(state: GameState): {
   bid: OfficialBotBid;
   biddingTrace?: HumanDoctrineV3Trace;
 } {
+  if (OFFICIAL_BOT_PROFILE_ID === "advanced_rules_v4") {
+    return { bid: chooseAdvancedRulesBid(state) };
+  }
   const special = chooseSpecialContractBid(state);
   if (special) return { bid: special };
   if (OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_1_conversation_mc_v1") {

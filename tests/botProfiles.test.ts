@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EXPERIMENTAL_BOT_PROFILE_IDS, getBotProfile, OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
-import { chooseBotBid } from "@/bots/simpleBot";
+import { EXPERIMENTAL_BOT_PROFILE_IDS, getBotProfile } from "@/bots/profiles";
 import { findBotStrategy } from "@/simulation/botRegistry";
 import { chooseProfileBid, chooseProfileBidFromHand } from "@/bots/strategy/biddingStrategy";
 import type { Card, GameState } from "@/engine/types";
@@ -76,15 +75,13 @@ describe("bot profiles", () => {
     };
 
     expect(chooseProfileBid(state, getBotProfile("main")).action).toBe("surcoinche");
-    expect(chooseBotBid(state)).toEqual({ action: "pass" });
   });
 
-  it("promotes V3.1 by product decision while keeping historical profiles available", () => {
+  it("keeps the V3.1 rollback strategy and historical profiles available", () => {
     expect(EXPERIMENTAL_BOT_PROFILE_IDS).toContain("main_montecarlo_v3");
     expect(EXPERIMENTAL_BOT_PROFILE_IDS).toContain("main_montecarlo_v3_1");
     expect(EXPERIMENTAL_BOT_PROFILE_IDS).not.toContain("hybrid_legacy_v1");
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_1_conversation_mc_v1");
-    expect(findBotStrategy(OFFICIAL_BOT_PROFILE_ID)).toMatchObject({
+    expect(findBotStrategy("human_doctrine_v3_1_conversation_mc_v1")).toMatchObject({
       status: "active",
       bidding: { kind: "human-doctrine-v3-1" },
       card: { kind: "monte-carlo-v1" },

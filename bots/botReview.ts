@@ -32,6 +32,7 @@ export const BOT_REVIEW_MODE_ENABLED = isBotReviewModeEnabled();
 export type BotReviewBidDecision =
   | { action: "pass" | "coinche" | "surcoinche" }
   | { action: "bid"; value: NonNullable<Extract<Bid, { action: "bid" }>["value"]>; trump?: Suit; contractMode?: ContractMode }
+  | { action: "capot"; contractMode: ContractMode }
   | { action: "generale"; contractMode: ContractMode };
 
 export type BotReviewKnowledgeV1 = {
@@ -67,10 +68,10 @@ export type BotReviewScenarioV1 = {
   chosenBid: BotReviewBidDecision | null;
   inactivePlayerId?: PlayerId | null;
   tricksWonByPlayer?: Record<PlayerId, number>;
-  decisionEngine: "legacy_heuristic" | "human_doctrine_v2_comm" | "auction_doctrine_v3" | "auction_doctrine_v3_1" | "montecarlo_v1";
+  decisionEngine: "legacy_heuristic" | "human_doctrine_v2_comm" | "auction_doctrine_v3" | "auction_doctrine_v3_1" | "montecarlo_v1" | "advanced_rules_v4";
   elapsedMs: number;
   trace: {
-    source: "legacy-heuristic" | "human-doctrine-v2-communication" | "auction-doctrine-v3-conversation" | "monte-carlo-v1";
+    source: "legacy-heuristic" | "human-doctrine-v2-communication" | "auction-doctrine-v3-conversation" | "monte-carlo-v1" | "advanced-rules-v4";
     knowledge?: BotReviewKnowledgeV1;
     bidding?: HumanDoctrineV2Trace | HumanDoctrineV3Trace | HumanDoctrineV31Trace;
   };
@@ -293,11 +294,13 @@ export function captureBotReviewScenario(
     && "doctrineVersion" in options.biddingTrace
     && options.biddingTrace.doctrineVersion === "3.1",
   );
+  const botProfile = options.botProfile ?? OFFICIAL_BOT_PROFILE_ID;
+  const isAdvancedV4 = botProfile === "advanced_rules_v4";
   return {
     version: 1,
     decisionId: `r${state.roundNumber}-t${trickNumber}-p${playerId}-d${options.decisionNumber}`,
     capturedAt: options.capturedAt ?? new Date().toISOString(),
-    botProfile: options.botProfile ?? OFFICIAL_BOT_PROFILE_ID,
+    botProfile,
     playerId,
     phase: state.phase,
     roundNumber: state.roundNumber,
@@ -319,7 +322,9 @@ export function captureBotReviewScenario(
     chosenBid: options.chosenBid ? { ...options.chosenBid } : null,
     inactivePlayerId: inactivePlayerId(state),
     tricksWonByPlayer: tricksWonByPlayer(state.completedTricks),
-    decisionEngine: isCardDecision
+    decisionEngine: isAdvancedV4
+      ? "advanced_rules_v4"
+      : isCardDecision
       ? "montecarlo_v1"
       : isV3Bidding
         ? isV31Bidding ? "auction_doctrine_v3_1" : "auction_doctrine_v3"
@@ -328,7 +333,9 @@ export function captureBotReviewScenario(
           : "legacy_heuristic",
     elapsedMs: options.elapsedMs,
     trace: {
-      source: isCardDecision
+      source: isAdvancedV4
+        ? "advanced-rules-v4"
+        : isCardDecision
         ? "monte-carlo-v1"
         : isV3Bidding
           ? "auction-doctrine-v3-conversation"

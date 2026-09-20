@@ -225,6 +225,8 @@ export function applySingleBotTurn(state: GameState, players: RoomPlayerRow[]): 
     const bid = chooseBotBid(state);
     const action: RoomPlayerAction = bid.action === "bid"
       ? { type: "bid", value: bid.value, trump: bid.trump, contractMode: bid.contractMode }
+      : bid.action === "capot"
+        ? { type: "capot", contractMode: bid.contractMode }
       : bid.action === "generale"
         ? { type: "generale", contractMode: bid.contractMode }
         : { type: bid.action };
