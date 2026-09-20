@@ -3,7 +3,7 @@ import { getAvailableBidValues } from "@/engine/bidding";
 import { getCurrentContract, playableCardsForCurrentPlayer } from "@/engine/game";
 import { cardPoints, playerTeam } from "@/engine/rules";
 import type { BidValue, Card, GameState, PlayerId, Suit } from "@/engine/types";
-import { evaluateHand as evaluateLegacyHand } from "@/bots/heuristicBot 2";
+import { evaluateHand as evaluateLegacyHand } from "@/bots/legacyHeuristicBot";
 import { getPlayedTrumps, inferVoidSuitsByPlayer } from "@/bots/strategy/trickKnowledge";
 
 export type HumanTrumpStructure =

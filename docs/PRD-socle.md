@@ -221,10 +221,9 @@ que la main du bot et l'historique public des enchères.
   ne constituent pas la configuration produit courante.
 - Les contrats exceptionnels restent rares en parties aléatoires. Les scénarios déterministes couvrent
   Capot, Générale, Coinche et Surcoinche, tandis que le suivi statistique reste utile après promotion.
-- `bots/heuristicBot 2.ts` (nom de fichier contenant un espace) est **load-bearing** : il est importé
-  par `bots/simpleBot.ts`, `bots/strategy/humanDoctrine.ts`, `simulation/botRegistry.ts` et
-  `scripts/diagnoseHumanDoctrineBidding.ts`. Il ne doit pas être supprimé sans renommage préalable.
-  `bots/simpleBot 2.ts`, en revanche, n'est importé nulle part.
+- `bots/legacyHeuristicBot.ts` conserve l'implémentation heuristique historique utilisée par
+  `bots/simpleBot.ts`, `bots/strategy/humanDoctrine.ts`, `simulation/botRegistry.ts` et
+  `scripts/diagnoseHumanDoctrineBidding.ts`. Son nom explicite la distingue de `bots/heuristicBot.ts`.
 
 ---
 
@@ -488,8 +487,8 @@ de la CI normale.
 | 2 | Résolu : `BOT_STRATEGY.md` et le code désignent `advanced_rules_v4` comme bot de production | `BOT_STRATEGY.md` et `bots/profiles.ts` | Résolu |
 | 3 | Résolu : la migration rétroactive de création de `games` a été ajoutée par la PR #3 | `supabase/migrations/20260901000000_create_solo_games_table.sql` | Résolu |
 | 4 | Résolu : la CI exécute `typecheck`, `lint`, la suite Vitest normale, le build et les smoke tests ; les benchmarks lourds restent séparés | `.github/workflows/e2e-smoke.yml` | Résolu |
-| 5 | `bots/simpleBot 2.ts` n'est importé nulle part — fichier mort | `bots/simpleBot 2.ts` | Faible |
-| 6 | `bots/heuristicBot 2.ts` est importé par quatre modules malgré un nom de fichier contenant un espace : à renommer, pas à supprimer | `bots/simpleBot.ts`, `humanDoctrine.ts`, `botRegistry.ts`, `diagnoseHumanDoctrineBidding.ts` | Moyenne |
+| 5 | Résolu : le fichier mort `bots/simpleBot 2.ts`, sans aucun import, a été supprimé | `bots/` | Résolu |
+| 6 | Résolu : le module historique load-bearing a été renommé `legacyHeuristicBot.ts` et ses quatre imports ont été mis à jour | `bots/legacyHeuristicBot.ts`, `bots/simpleBot.ts`, `humanDoctrine.ts`, `botRegistry.ts`, `diagnoseHumanDoctrineBidding.ts` | Résolu |
 | 7 | Les anciens rapports restent figés et doivent être lus avec l'identifiant de stratégie qu'ils mesurent | `reports/`, `bots/profiles.ts` | Faible |
 | 8 | Résolu : `CONTRIBUTING.md` est sur `main` depuis la PR #1 | `CONTRIBUTING.md` | Résolu |
 | 9 | Une vingtaine de scripts de benchmark coexistent sans marquage actif/obsolète | `scripts/`, `package.json` | Faible |
@@ -527,5 +526,5 @@ Les trois coutures les plus prometteuses pour des extensions futures sont `toPla
 décision des bots (explicabilité). Elles existent déjà et n'ont pas été conçues pour l'interface : les
 exposer est un travail d'intégration, pas de conception.
 
-Les dettes à traiter en priorité sont maintenant le renommage sûr de `heuristicBot 2.ts` (#6) et la
-réduction de la concentration de logique dans `RoomPageClient.tsx` (#10).
+La principale dette technique à traiter en priorité est maintenant la réduction de la concentration
+de logique dans `RoomPageClient.tsx` (#10).
