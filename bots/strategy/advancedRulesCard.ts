@@ -1,5 +1,5 @@
 import { chooseAdvancedMonteCarloCardToPlay, chooseMonteCarloCardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
-import { getMasterCardsStillOutBySuit, getRemainingTrumps } from "@/bots/strategy/trickKnowledge";
+import { buildTrickKnowledge, getMasterCardsStillOutBySuit, getRemainingTrumps } from "@/bots/strategy/trickKnowledge";
 import { playableCardsForCurrentPlayer } from "@/engine/game";
 import { resolveContractMode } from "@/engine/contractMode";
 import { cardPoints, cardStrength, playerTeam } from "@/engine/rules";
@@ -35,6 +35,29 @@ function bestDefensiveAlternative(state: GameState, cards: Card[], trump: Suit):
   })[0];
 }
 
+export function avoidLeadingUnderSafeOwnAce(state: GameState, chosen: Card): Card {
+  const mode = resolveContractMode(state);
+  const contract = state.contract;
+  if (state.phase !== "playing" || mode?.kind !== "suit" || !contract
+    || state.currentTrick.cards.length !== 0
+    || contract.kind === "capot" || contract.kind === "generale"
+    || contract.status !== "normal"
+    || contract.teamId !== playerTeam(state.currentPlayerId)
+    || chosen.suit === mode.suit || chosen.rank === "A") return chosen;
+
+  const ace = playableCardsForCurrentPlayer(state).find(
+    (card) => card.suit === chosen.suit && card.rank === "A",
+  );
+  if (!ace) return chosen;
+
+  const knowledge = buildTrickKnowledge(state);
+  const risk = knowledge.cutRiskBySuit[chosen.suit];
+  if (!sameCard(ace, knowledge.masterCardsBySuit[chosen.suit])
+    || risk.level === "high" || risk.knownVoidOpponents.length > 0) return chosen;
+
+  return ace;
+}
+
 /** Experimental card choice, preserving the proven V1 path for ordinary suit contracts. */
 export function chooseAdvancedRulesCard(state: GameState): Card {
   const mode = resolveContractMode(state);
@@ -63,6 +86,8 @@ export function chooseAdvancedRulesCard(state: GameState): Card {
   const chosen = mode.kind !== "suit" || objectiveIsSpecial
     ? chooseAdvancedMonteCarloCardToPlay(state)
     : chooseMonteCarloCardToPlay(state);
+  const attackingLead = avoidLeadingUnderSafeOwnAce(state, chosen);
+  if (!sameCard(attackingLead, chosen)) return attackingLead;
   if (mode.kind !== "suit" || !contract || state.currentTrick.cards.length !== 0
     || contract.teamId === playerTeam(state.currentPlayerId) || chosen.suit !== mode.suit) return chosen;
 
