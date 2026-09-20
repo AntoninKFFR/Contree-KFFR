@@ -11,6 +11,7 @@ import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { FinishedRoomCard } from "@/components/multiplayer/FinishedRoomCard";
 import { LobbyHeader, LobbyRulesDialog, LobbyTable, WaitingArea } from "@/components/multiplayer/RoomLobby";
+import { useMultiplayerRoomActions } from "@/components/multiplayer/useMultiplayerRoomActions";
 import { errorMessage, useMultiplayerRoomSync } from "@/components/multiplayer/useMultiplayerRoomSync";
 import { useMultiplayerRoomTimers } from "@/components/multiplayer/useMultiplayerRoomTimers";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
@@ -33,10 +34,10 @@ import { resolveRoomRules } from "@/engine/rulesets/room";
 import type { BidValue, Card, ContractMode } from "@/engine/types";
 import { handWithoutPendingCard, visiblePendingCard, type PendingLocalPlay } from "@/lib/multiplayerOptimisticPlay";
 import { loginPath } from "@/lib/authRedirect";
-import { MultiplayerApiError, sendRoomIntent, sendRoomIntentWithLobbyRetry } from "@/lib/multiplayerApi";
+import { MultiplayerApiError, sendRoomIntent } from "@/lib/multiplayerApi";
 import type { RoomPlayerAction, RoomPlayerRow } from "@/lib/roomTypes";
 import { getSupabaseClient } from "@/lib/supabaseClient";
-import { normalizeMultiplayerTablePreferences, type MultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
+import { normalizeMultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 
 function roomIdFromParams(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) return value[0] ?? null;
@@ -61,29 +62,18 @@ export default function MultiplayerRoomPage() {
     setRoomWithPlayers,
     viewerSeatIndex,
   } = useMultiplayerRoomSync(roomId);
-  const [isJoiningSeat, setIsJoiningSeat] = useState(false);
-  const [isLeavingSeat, setIsLeavingSeat] = useState(false);
   const [isPlayingCard, setIsPlayingCard] = useState(false);
   const [pendingLocalPlay, setPendingLocalPlay] = useState<PendingLocalPlay | null>(null);
   const actionInFlightRef = useRef(false);
-  const [isForfeiting, setIsForfeiting] = useState(false);
   const [isForfeitConfirmationOpen, setIsForfeitConfirmationOpen] = useState(false);
   const [isHostTransferOpen, setIsHostTransferOpen] = useState(false);
   const [hostTransferSeat, setHostTransferSeat] = useState<RoomPlayerRow["seat_index"] | null>(null);
-  const [isTransferringHost, setIsTransferringHost] = useState(false);
-  const [takeoverSeatInFlight, setTakeoverSeatInFlight] = useState<RoomPlayerRow["seat_index"] | null>(null);
-  const [isStartingNextRound, setIsStartingNextRound] = useState(false);
-  const [isResettingRoom, setIsResettingRoom] = useState(false);
-  const [isStartingGame, setIsStartingGame] = useState(false);
-  const [isUpdatingReady, setIsUpdatingReady] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [rulesDraft, setRulesDraft] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
-  const [isUpdatingRules, setIsUpdatingRules] = useState(false);
-  const [isUpdatingTablePreferences, setIsUpdatingTablePreferences] = useState(false);
   const [rulesChangedNotice, setRulesChangedNotice] = useState(false);
   const previousRulesKeyRef = useRef<string | null>(null);
   const currentSeat = useMemo(() => {
@@ -201,6 +191,47 @@ export default function MultiplayerRoomPage() {
       gameState?.phase === "finished" &&
       displayedRoomStatus !== "finished",
   );
+  const {
+    handleEnableBotTakeover,
+    handleForfeitGame,
+    handleJoinSeat,
+    handleLeaveSeat,
+    handleRematch,
+    handleStartGame,
+    handleStartNextRound,
+    handleToggleReady,
+    handleTransferHost,
+    handleUpdateRules,
+    handleUpdateTablePreferences,
+    isForfeiting,
+    isJoiningSeat,
+    isLeavingSeat,
+    isResettingRoom,
+    isStartingGame,
+    isStartingNextRound,
+    isTransferringHost,
+    isUpdatingReady,
+    isUpdatingRules,
+    isUpdatingTablePreferences,
+    takeoverSeatInFlight,
+  } = useMultiplayerRoomActions({
+    canShowNextRoundButton,
+    canStartGame,
+    currentSeat,
+    hostTransferSeat,
+    isHost,
+    profileUsername,
+    roomWithPlayers,
+    rulesDraft,
+    session,
+    setError,
+    setHostTransferSeat,
+    setIsForfeitConfirmationOpen,
+    setIsHostTransferOpen,
+    setIsRulesOpen,
+    setPageState,
+    setRoomWithPlayers,
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -225,203 +256,6 @@ export default function MultiplayerRoomPage() {
       window.removeEventListener("resize", update);
     };
   }, []);
-
-  async function handleToggleReady() {
-    const supabase = getSupabaseClient();
-
-    if (!supabase || !roomWithPlayers || !session || !currentSeat) return;
-
-    setIsUpdatingReady(true);
-    setError(null);
-
-    try {
-      const nextRoom = await sendRoomIntentWithLobbyRetry(
-        roomWithPlayers.room.id,
-        roomWithPlayers.room.state_version,
-        { type: "set-ready", ready: !currentSeat.is_ready },
-        session,
-      );
-      setRoomWithPlayers(nextRoom);
-      setPageState("ready");
-    } catch (readyError) {
-      setError(errorMessage(readyError));
-    } finally {
-      setIsUpdatingReady(false);
-    }
-  }
-
-  async function handleJoinSeat(seatIndex: RoomPlayerRow["seat_index"]) {
-    const supabase = getSupabaseClient();
-
-    if (!supabase || !roomWithPlayers || !session || !profileUsername || isJoiningSeat) return;
-
-    setIsJoiningSeat(true);
-    setError(null);
-
-    try {
-      const nextRoom = await sendRoomIntentWithLobbyRetry(
-        roomWithPlayers.room.id,
-        roomWithPlayers.room.state_version,
-        { type: "join-seat", seatIndex },
-        session,
-      );
-
-      setRoomWithPlayers(nextRoom);
-      setPageState("ready");
-    } catch (joinError) {
-      setError(errorMessage(joinError));
-    } finally {
-      setIsJoiningSeat(false);
-    }
-  }
-
-  async function handleLeaveSeat() {
-    const supabase = getSupabaseClient();
-
-    if (!supabase || !roomWithPlayers || !session || !currentSeat || isLeavingSeat) return;
-
-    setIsLeavingSeat(true);
-    setError(null);
-
-    try {
-      const nextRoom = await sendRoomIntentWithLobbyRetry(
-        roomWithPlayers.room.id,
-        roomWithPlayers.room.state_version,
-        { type: "leave-seat" },
-        session,
-      );
-
-      setRoomWithPlayers(nextRoom);
-      setPageState("ready");
-    } catch (leaveError) {
-      setError(errorMessage(leaveError));
-    } finally {
-      setIsLeavingSeat(false);
-    }
-  }
-
-  async function handleStartGame() {
-    const supabase = getSupabaseClient();
-
-    if (!supabase || !roomWithPlayers || !isHost || !canStartGame) return;
-
-    setIsStartingGame(true);
-    setError(null);
-
-    try {
-      if (!session) return;
-      const nextRoom = await sendRoomIntent(
-        roomWithPlayers.room.id,
-        roomWithPlayers.room.state_version,
-        { type: "start-game" },
-        session,
-      );
-      setRoomWithPlayers(nextRoom);
-      setPageState("ready");
-    } catch (startError) {
-      setError(errorMessage(startError));
-    } finally {
-      setIsStartingGame(false);
-    }
-  }
-
-  async function handleUpdateRules() {
-    if (!roomWithPlayers || !session || !isHost || roomWithPlayers.room.status !== "lobby") return;
-    setIsUpdatingRules(true);
-    setError(null);
-    try {
-      const nextRoom = await sendRoomIntentWithLobbyRetry(roomWithPlayers.room.id, roomWithPlayers.room.state_version, { type: "update-room-rules", rules: rulesDraft }, session);
-      setRoomWithPlayers(nextRoom);
-      setIsRulesOpen(false);
-    } catch (rulesError) {
-      setError(errorMessage(rulesError));
-    } finally {
-      setIsUpdatingRules(false);
-    }
-  }
-
-  async function handleUpdateTablePreferences(settings: MultiplayerTablePreferences) {
-    if (!roomWithPlayers || !session || !isHost || isUpdatingTablePreferences) return;
-    setIsUpdatingTablePreferences(true);
-    setError(null);
-    try {
-      const nextRoom = await sendRoomIntent(
-        roomWithPlayers.room.id,
-        roomWithPlayers.room.state_version,
-        { type: "update-room-presentation", settings },
-        session,
-      );
-      setRoomWithPlayers(nextRoom);
-    } catch (preferencesError) {
-      setError(errorMessage(preferencesError));
-    } finally {
-      setIsUpdatingTablePreferences(false);
-    }
-  }
-
-  async function handleEnableBotTakeover(seatIndex: RoomPlayerRow["seat_index"]) {
-    if (!roomWithPlayers || !session || !isHost || takeoverSeatInFlight !== null) return;
-
-    setTakeoverSeatInFlight(seatIndex);
-    setError(null);
-    try {
-      const nextRoom = await sendRoomIntent(
-        roomWithPlayers.room.id,
-        roomWithPlayers.room.state_version,
-        { type: "enable-bot-takeover", seatIndex },
-        session,
-      );
-      setRoomWithPlayers(nextRoom);
-      setPageState("ready");
-    } catch (takeoverError) {
-      setError(errorMessage(takeoverError));
-    } finally {
-      setTakeoverSeatInFlight(null);
-    }
-  }
-
-  async function handleTransferHost() {
-    if (!roomWithPlayers || !session || !isHost || hostTransferSeat === null || isTransferringHost) return;
-    setIsTransferringHost(true);
-    setError(null);
-    try {
-      const nextRoom = await sendRoomIntent(
-        roomWithPlayers.room.id,
-        roomWithPlayers.room.state_version,
-        { type: "transfer-host", targetSeatIndex: hostTransferSeat },
-        session,
-      );
-      setRoomWithPlayers(nextRoom);
-      setPageState("ready");
-      setIsHostTransferOpen(false);
-      setHostTransferSeat(null);
-    } catch (transferError) {
-      setError(errorMessage(transferError));
-    } finally {
-      setIsTransferringHost(false);
-    }
-  }
-
-  async function handleForfeitGame() {
-    if (!roomWithPlayers || !session || isForfeiting) return;
-    setIsForfeiting(true);
-    setError(null);
-    try {
-      const nextRoom = await sendRoomIntent(
-        roomWithPlayers.room.id,
-        roomWithPlayers.room.state_version,
-        { type: "forfeit-game" },
-        session,
-      );
-      setRoomWithPlayers(nextRoom);
-      setPageState("ready");
-    } catch (forfeitError) {
-      setError(errorMessage(forfeitError));
-    } finally {
-      setIsForfeiting(false);
-      setIsForfeitConfirmationOpen(false);
-    }
-  }
 
   async function handleRoomPlayerAction(action: RoomPlayerAction) {
     const supabase = getSupabaseClient();
@@ -491,63 +325,6 @@ export default function MultiplayerRoomPage() {
 
   function handleSurcoinche() {
     void handleRoomPlayerAction({ type: "surcoinche" });
-  }
-
-  async function handleRematch() {
-    const supabase = getSupabaseClient();
-
-    if (!supabase || !roomWithPlayers || !session || isResettingRoom) return;
-
-    setIsResettingRoom(true);
-    setError(null);
-
-    try {
-      const nextRoom = await sendRoomIntent(
-        roomWithPlayers.room.id,
-        roomWithPlayers.room.state_version,
-        { type: "rematch" },
-        session,
-      );
-      setRoomWithPlayers(nextRoom);
-      setPageState("ready");
-    } catch (resetError) {
-      setError(errorMessage(resetError));
-    } finally {
-      setIsResettingRoom(false);
-    }
-  }
-
-  async function handleStartNextRound() {
-    const supabase = getSupabaseClient();
-
-    if (
-      !supabase ||
-      !roomWithPlayers ||
-      !session ||
-      !currentSeat ||
-      !canShowNextRoundButton ||
-      isStartingNextRound
-    ) {
-      return;
-    }
-
-    setIsStartingNextRound(true);
-    setError(null);
-
-    try {
-      const nextRoom = await sendRoomIntent(
-        roomWithPlayers.room.id,
-        roomWithPlayers.room.state_version,
-        { type: "next-round" },
-        session,
-      );
-      setRoomWithPlayers(nextRoom);
-      setPageState("ready");
-    } catch (nextRoundError) {
-      setError(errorMessage(nextRoundError));
-    } finally {
-      setIsStartingNextRound(false);
-    }
   }
 
   const isPlayingLayout = displayedRoomStatus === "playing";
