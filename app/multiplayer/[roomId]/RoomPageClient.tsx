@@ -11,8 +11,9 @@ import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { FinishedRoomCard } from "@/components/multiplayer/FinishedRoomCard";
 import { LobbyHeader, LobbyRulesDialog, LobbyTable, WaitingArea } from "@/components/multiplayer/RoomLobby";
+import { useMultiplayerGameActions } from "@/components/multiplayer/useMultiplayerGameActions";
 import { useMultiplayerRoomActions } from "@/components/multiplayer/useMultiplayerRoomActions";
-import { errorMessage, useMultiplayerRoomSync } from "@/components/multiplayer/useMultiplayerRoomSync";
+import { useMultiplayerRoomSync } from "@/components/multiplayer/useMultiplayerRoomSync";
 import { useMultiplayerRoomTimers } from "@/components/multiplayer/useMultiplayerRoomTimers";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import {
@@ -31,12 +32,10 @@ import { resolveGameRules } from "@/engine/rulesets/resolve";
 import { rulesetToCustomInput, type CustomRulesetInput } from "@/engine/rulesets/custom";
 import { CONTREE_KFFR_RULESET } from "@/engine/rulesets/presets";
 import { resolveRoomRules } from "@/engine/rulesets/room";
-import type { BidValue, Card, ContractMode } from "@/engine/types";
-import { handWithoutPendingCard, visiblePendingCard, type PendingLocalPlay } from "@/lib/multiplayerOptimisticPlay";
+import type { Card } from "@/engine/types";
+import { handWithoutPendingCard, visiblePendingCard } from "@/lib/multiplayerOptimisticPlay";
 import { loginPath } from "@/lib/authRedirect";
-import { MultiplayerApiError, sendRoomIntent } from "@/lib/multiplayerApi";
-import type { RoomPlayerAction, RoomPlayerRow } from "@/lib/roomTypes";
-import { getSupabaseClient } from "@/lib/supabaseClient";
+import type { RoomPlayerRow } from "@/lib/roomTypes";
 import { normalizeMultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 
 function roomIdFromParams(value: string | string[] | undefined): string | null {
@@ -62,9 +61,6 @@ export default function MultiplayerRoomPage() {
     setRoomWithPlayers,
     viewerSeatIndex,
   } = useMultiplayerRoomSync(roomId);
-  const [isPlayingCard, setIsPlayingCard] = useState(false);
-  const [pendingLocalPlay, setPendingLocalPlay] = useState<PendingLocalPlay | null>(null);
-  const actionInFlightRef = useRef(false);
   const [isForfeitConfirmationOpen, setIsForfeitConfirmationOpen] = useState(false);
   const [isHostTransferOpen, setIsHostTransferOpen] = useState(false);
   const [hostTransferSeat, setHostTransferSeat] = useState<RoomPlayerRow["seat_index"] | null>(null);
@@ -130,7 +126,6 @@ export default function MultiplayerRoomPage() {
       roomWithPlayers.players.every((player) => player.kind !== "human" || player.is_ready),
   );
   const playerView = roomWithPlayers?.game ?? null;
-  const visiblePendingCardValue = visiblePendingCard(pendingLocalPlay, roomWithPlayers?.room.state_version ?? null, playerView?.hand ?? null);
   const gameState = playerView;
   const displayedRoomStatus =
     roomWithPlayers?.room.status === "finished" && gameState?.phase !== "game-over"
@@ -185,6 +180,27 @@ export default function MultiplayerRoomPage() {
         gameRules?.cardPlay,
       )
     : [];
+  const {
+    handleBid,
+    handleCapot,
+    handleCoinche,
+    handleGenerale,
+    handlePass,
+    handlePlayCard,
+    handleSurcoinche,
+    isPlayingCard,
+    pendingLocalPlay,
+  } = useMultiplayerGameActions({
+    canBid,
+    canPlayCard,
+    loadRoom,
+    roomWithPlayers,
+    session,
+    setError,
+    setPageState,
+    setRoomWithPlayers,
+  });
+  const visiblePendingCardValue = visiblePendingCard(pendingLocalPlay, roomWithPlayers?.room.state_version ?? null, playerView?.hand ?? null);
 
   const canShowNextRoundButton = Boolean(
     roomWithPlayers?.room.status === "playing" &&
@@ -257,74 +273,9 @@ export default function MultiplayerRoomPage() {
     };
   }, []);
 
-  async function handleRoomPlayerAction(action: RoomPlayerAction) {
-    const supabase = getSupabaseClient();
-    const isCardAction = action.type === "play-card";
-
-    if (
-      !supabase ||
-      !roomWithPlayers ||
-      !session ||
-      (isCardAction ? !canPlayCard : !canBid) || actionInFlightRef.current
-    ) {
-      return;
-    }
-
-    actionInFlightRef.current = true;
-    setIsPlayingCard(true);
-    if (isCardAction) setPendingLocalPlay({ card: action.card, version: roomWithPlayers.room.state_version });
-    setError(null);
-
-    try {
-      const nextRoom = await sendRoomIntent(
-        roomWithPlayers.room.id,
-        roomWithPlayers.room.state_version,
-        { type: "game-action", action },
-        session,
-      );
-      setRoomWithPlayers((current) => current && current.room.state_version > nextRoom.room.state_version ? current : nextRoom);
-      setPageState("ready");
-    } catch (playError) {
-      setError(errorMessage(playError));
-      if (playError instanceof MultiplayerApiError && playError.status === 409) void loadRoom({ silent: true });
-    } finally {
-      actionInFlightRef.current = false;
-      setPendingLocalPlay(null);
-      setIsPlayingCard(false);
-    }
-  }
-
-  function handlePlayCard(card: Card) {
-    void handleRoomPlayerAction({ type: "play-card", card });
-  }
-
   function illegalCardMessage(card: Card): string {
     if (!playerView || !currentMode || !gameRules) return "Cette carte n'est pas jouable.";
     return explainIllegalCard({ hand: playerView.hand, trick: playerView.currentTrick, card, playerId: playerView.viewerPlayerId, mode: currentMode, rules: gameRules.cardPlay }) ?? "Cette carte n'est pas jouable.";
-  }
-
-  function handleBid(value: BidValue, contractMode: ContractMode) {
-    void handleRoomPlayerAction({ type: "bid", value, contractMode });
-  }
-
-  function handleCapot(contractMode: ContractMode) {
-    void handleRoomPlayerAction({ type: "capot", contractMode });
-  }
-
-  function handleGenerale(contractMode: ContractMode) {
-    void handleRoomPlayerAction({ type: "generale", contractMode });
-  }
-
-  function handlePass() {
-    void handleRoomPlayerAction({ type: "pass" });
-  }
-
-  function handleCoinche() {
-    void handleRoomPlayerAction({ type: "coinche" });
-  }
-
-  function handleSurcoinche() {
-    void handleRoomPlayerAction({ type: "surcoinche" });
   }
 
   const isPlayingLayout = displayedRoomStatus === "playing";
