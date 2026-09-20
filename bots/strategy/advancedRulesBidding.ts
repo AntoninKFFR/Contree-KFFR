@@ -54,6 +54,7 @@ function canRiskSurcoinche(state: GameState, mode: ContractMode, value: number, 
     const evaluation = evaluateAdvancedModeHand(hand, mode, state);
     return evaluation.ceiling !== null && evaluation.ceiling >= value + 20 && evaluation.dangerousHoles <= 1;
   }
+  if (evaluateCapotHand(hand, mode)) return true;
   const suit = chooseHumanDoctrineV31Bid(state);
   return suit.trace.trump === mode.suit
     && suit.trace.intrinsicCeiling !== null
