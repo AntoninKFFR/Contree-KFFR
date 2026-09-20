@@ -41,6 +41,18 @@ export function chooseAdvancedRulesCard(state: GameState): Card {
   if (state.phase !== "playing" || !mode) throw new Error("Playing contract required.");
   const contract = state.contract;
   if (mode.kind === "suit" && contract && state.currentTrick.cards.length === 0
+    && (contract.kind === "capot" || contract.kind === "generale")
+    && contract.teamId === playerTeam(state.currentPlayerId)
+    && (contract.kind !== "generale" || contract.playerId === state.currentPlayerId)) {
+    const trumps = state.hands[state.currentPlayerId].filter((card) => card.suit === mode.suit);
+    const remainingOutsideHand = getRemainingTrumps(state).length - trumps.length;
+    const master = getMasterCardsStillOutBySuit(state)[mode.suit];
+    // With an all-tricks objective, cash the certain master trump first until
+    // opposing trumps are exhausted; otherwise a side master can be cut.
+    if (remainingOutsideHand > 0 && master
+      && playableCardsForCurrentPlayer(state).some((card) => sameCard(card, master))) return master;
+  }
+  if (mode.kind === "suit" && contract && state.currentTrick.cards.length === 0
     && contract.teamId !== playerTeam(state.currentPlayerId)) {
     const master = getMasterCardsStillOutBySuit(state)[mode.suit];
     if (master && playableCardsForCurrentPlayer(state).some((card) => sameCard(card, master))
