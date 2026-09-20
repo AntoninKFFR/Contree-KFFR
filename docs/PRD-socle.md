@@ -492,7 +492,7 @@ de la CI normale.
 | 7 | Les anciens rapports restent figés et doivent être lus avec l'identifiant de stratégie qu'ils mesurent | `reports/`, `bots/profiles.ts` | Faible |
 | 8 | Résolu : `CONTRIBUTING.md` est sur `main` depuis la PR #1 | `CONTRIBUTING.md` | Résolu |
 | 9 | Une vingtaine de scripts de benchmark coexistent sans marquage actif/obsolète | `scripts/`, `package.json` | Faible |
-| 10 | `RoomPageClient.tsx` concentre ~40 Ko de logique client | `app/multiplayer/[roomId]/RoomPageClient.tsx` | Moyenne |
+| 10 | Découpage engagé : les composants de présentation du lobby et de fin de partie sont extraits, mais la logique client reste concentrée dans `RoomPageClient.tsx` | `app/multiplayer/[roomId]/RoomPageClient.tsx`, `components/multiplayer/` | Moyenne |
 
 `RULES.md`, `docs/CUSTOM_GAMES.md`, `docs/PLAYER_PREFERENCES.md`, `engine/rulesets/README.md`,
 `docs/QA_MATRIX.md` et `docs/E2E_TESTING.md` sont en revanche **à jour** et fidèles au code.
