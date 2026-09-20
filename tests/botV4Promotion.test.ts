@@ -3,7 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import { OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
-import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
+import {
+  chooseBotBid,
+  chooseBotCard,
+  chooseV31RulesBaselineBid,
+  chooseV31RulesBaselineCard,
+} from "@/bots/simpleBot";
 import { chooseAdvancedRulesCard } from "@/bots/strategy/advancedRulesCard";
 import { createDeck } from "@/engine/cards";
 import { createInitialGame, makeBid } from "@/engine/game";
@@ -11,7 +16,13 @@ import type { BidValue, Card, ContractMode, GameState, PlayerId } from "@/engine
 import type { RoomPlayerRow } from "@/lib/roomTypes";
 import { fillEmptySeatsWithOfficialBots } from "@/lib/server/multiplayerService";
 import { applySingleBotTurn } from "@/lib/server/multiplayerGame";
-import { findBotStrategy } from "@/simulation/botRegistry";
+import {
+  ADVANCED_RULES_STRATEGY,
+  chooseStrategyBid,
+  chooseStrategyCard,
+  findBotStrategy,
+  OFFICIAL_RULES_BASELINE_STRATEGY,
+} from "@/simulation/botRegistry";
 import { createTestRuleset } from "@/tests/helpers/rulesets";
 
 const card = (rank: Card["rank"], suit: Card["suit"]): Card => ({ rank, suit });
@@ -103,6 +114,27 @@ describe("advanced rules V4 product promotion", () => {
       bidding: { kind: "human-doctrine-v3-1" },
       card: { kind: "monte-carlo-v1" },
     });
+  });
+
+  it("keeps the historical benchmark baseline independent from the V4 product router", () => {
+    const perfectSuit = [card("J", "clubs"), card("9", "clubs"), card("A", "clubs"), card("10", "clubs"),
+      card("K", "clubs"), card("A", "diamonds"), card("A", "hearts"), card("A", "spades")];
+    const state = biddingState(0, perfectSuit);
+    const product = chooseBotBid(state);
+    const candidate = chooseStrategyBid(state, ADVANCED_RULES_STRATEGY);
+    const baseline = chooseStrategyBid(state, OFFICIAL_RULES_BASELINE_STRATEGY);
+
+    expect(OFFICIAL_BOT_PROFILE_ID).toBe("advanced_rules_v4");
+    expect(ADVANCED_RULES_STRATEGY.id).toBe("advanced_rules_v4_experimental");
+    expect(product).toMatchObject({ action: "capot" });
+    expect(candidate).toEqual(product);
+    expect(baseline).toEqual(chooseV31RulesBaselineBid(state));
+    expect(baseline.action).not.toBe("capot");
+    expect(baseline).not.toEqual(product);
+
+    const cardState = playingState(perfectSuit, 0);
+    expect(chooseStrategyCard(cardState, OFFICIAL_RULES_BASELINE_STRATEGY))
+      .toEqual(chooseV31RulesBaselineCard(cardState));
   });
 
   it("routes product bids through V4 for No Trump and All Trump", () => {

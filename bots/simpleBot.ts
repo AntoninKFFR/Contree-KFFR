@@ -18,11 +18,17 @@ import { evaluateGenerale } from "@/bots/evaluation/generaleEvaluation";
 import { chooseAdvancedRulesBid } from "@/bots/strategy/advancedRulesBidding";
 import { chooseAdvancedRulesCard } from "@/bots/strategy/advancedRulesCard";
 
+export function chooseV31RulesBaselineCard(state: GameState): Card {
+  return chooseMonteCarloCardToPlay(state);
+}
+
 export function chooseBotCard(state: GameState): Card {
   if (OFFICIAL_BOT_PROFILE_ID === "advanced_rules_v4") return chooseAdvancedRulesCard(state);
+  if (OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_1_conversation_mc_v1") {
+    return chooseV31RulesBaselineCard(state);
+  }
   if (
-    OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_1_conversation_mc_v1"
-    || OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_conversation_mc_v1"
+    OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_conversation_mc_v1"
     || OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v1_mc_v1"
     || OFFICIAL_BOT_PROFILE_ID === "hybrid_legacy_v1"
   ) return chooseMonteCarloCardToPlay(state);
@@ -99,6 +105,20 @@ function normalizeBotBid(
   } as const;
 }
 
+function chooseV31RulesBaselineBidWithTrace(state: GameState): {
+  bid: OfficialBotBid;
+  biddingTrace?: HumanDoctrineV3Trace;
+} {
+  const special = chooseSpecialContractBid(state);
+  if (special) return { bid: special };
+  const decision = chooseHumanDoctrineV31Bid(state);
+  return { bid: normalizeBotBid(state, decision), biddingTrace: decision.trace };
+}
+
+export function chooseV31RulesBaselineBid(state: GameState): OfficialBotBid {
+  return chooseV31RulesBaselineBidWithTrace(state).bid;
+}
+
 export function chooseBotBidWithTrace(state: GameState): {
   bid: OfficialBotBid;
   biddingTrace?: HumanDoctrineV3Trace;
@@ -106,12 +126,11 @@ export function chooseBotBidWithTrace(state: GameState): {
   if (OFFICIAL_BOT_PROFILE_ID === "advanced_rules_v4") {
     return { bid: chooseAdvancedRulesBid(state) };
   }
+  if (OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_1_conversation_mc_v1") {
+    return chooseV31RulesBaselineBidWithTrace(state);
+  }
   const special = chooseSpecialContractBid(state);
   if (special) return { bid: special };
-  if (OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_1_conversation_mc_v1") {
-    const decision = chooseHumanDoctrineV31Bid(state);
-    return { bid: normalizeBotBid(state, decision), biddingTrace: decision.trace };
-  }
   if (OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_conversation_mc_v1") {
     const decision = chooseHumanDoctrineV3Bid(state);
     return { bid: normalizeBotBid(state, decision), biddingTrace: decision.trace };

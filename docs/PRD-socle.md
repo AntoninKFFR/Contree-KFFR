@@ -480,12 +480,12 @@ la CI. Voir §8.
 |---|---|---|---|
 | 1 | `README.md` décrit une « V1 » obsolète : bot officiel `main`, profils `main`/`prudent`/`balanced`/`aggressive`, aucune mention de SA/TA, générale, annonces, rulesets, préférences, e2e | `README.md` | Moyenne |
 | 2 | Résolu : `BOT_STRATEGY.md` et le code désignent `advanced_rules_v4` comme bot de production | `BOT_STRATEGY.md` et `bots/profiles.ts` | Résolu |
-| 3 | La table `games` n'a aucune migration de création : un environnement vierge n'est pas reconstructible depuis le dépôt | `supabase/migrations/` | Haute |
-| 4 | La CI n'exécute ni `typecheck`, ni `lint`, ni `test` | `.github/workflows/e2e-smoke.yml` | Haute |
+| 3 | Résolu : la migration rétroactive de création de `games` a été ajoutée par la PR #3 | `supabase/migrations/20260901000000_create_solo_games_table.sql` | Résolu |
+| 4 | La CI exécute `typecheck`, `lint`, le build et les smoke tests depuis la PR #4 ; `npm test` reste à câbler séparément des benchmarks lourds | `.github/workflows/e2e-smoke.yml` | Moyenne |
 | 5 | `bots/simpleBot 2.ts` n'est importé nulle part — fichier mort | `bots/simpleBot 2.ts` | Faible |
 | 6 | `bots/heuristicBot 2.ts` est importé par quatre modules malgré un nom de fichier contenant un espace : à renommer, pas à supprimer | `bots/simpleBot.ts`, `humanDoctrine.ts`, `botRegistry.ts`, `diagnoseHumanDoctrineBidding.ts` | Moyenne |
 | 7 | Les anciens rapports restent figés et doivent être lus avec l'identifiant de stratégie qu'ils mesurent | `reports/`, `bots/profiles.ts` | Faible |
-| 8 | `CONTRIBUTING.md` n'est pas encore sur `main` (branche `chore/add-contributing-guide`) au moment de la rédaction | branche non mergée | Faible — en cours |
+| 8 | Résolu : `CONTRIBUTING.md` est sur `main` depuis la PR #1 | `CONTRIBUTING.md` | Résolu |
 | 9 | Une vingtaine de scripts de benchmark coexistent sans marquage actif/obsolète | `scripts/`, `package.json` | Faible |
 | 10 | `RoomPageClient.tsx` concentre ~40 Ko de logique client | `app/multiplayer/[roomId]/RoomPageClient.tsx` | Moyenne |
 
@@ -501,13 +501,11 @@ la CI. Voir §8.
    classements, statistiques comparables et contenus pédagogiques à venir ?
 2. **Quel suivi post-promotion pour V4 ?** Les tests déterministes couvrent les modes avancés ; les
    futurs benchmarks doivent continuer à publier l'identifiant exact et les règles utilisées.
-3. **La CI doit-elle bloquer sur `typecheck` / `lint` / `test` ?** Recommandation : oui, avant d'ouvrir
-   le développement à des agents de code qui ouvriront des PR en volume.
-4. **Comment reconstruire `games` ?** Une migration rétroactive `create table if not exists` alignée sur
-   le schéma réel est le correctif le plus simple.
-5. **Quel niveau de confidentialité pour `NEXT_PUBLIC_BOT_REVIEW_MODE` en production ?** Le flag est
+3. **Comment câbler `npm test` à la CI sans mêler les benchmarks lourds ?** `typecheck`, `lint`, le build
+   et les smoke tests sont déjà bloquants ; la suite Vitest doit rester distincte des commandes de benchmark.
+4. **Quel niveau de confidentialité pour `NEXT_PUBLIC_BOT_REVIEW_MODE` en production ?** Le flag est
    côté client ; son périmètre d'exposition mérite d'être tranché avant l'ouverture au grand public.
-6. **Les statistiques doivent-elles rester comparables entre rulesets ?** Un tableau de bord mélangeant
+5. **Les statistiques doivent-elles rester comparables entre rulesets ?** Un tableau de bord mélangeant
    des parties jouées sous des règles différentes produit des agrégats difficiles à interpréter.
 
 ---
@@ -525,7 +523,6 @@ Les trois coutures les plus prometteuses pour des extensions futures sont `toPla
 décision des bots (explicabilité). Elles existent déjà et n'ont pas été conçues pour l'interface : les
 exposer est un travail d'intégration, pas de conception.
 
-Les quatre dettes à traiter en priorité, parce qu'elles pénalisent directement le travail à plusieurs
-et avec des agents de code, sont : la migration manquante de `games` (#3), le durcissement de la CI
-(#4), le merge de `CONTRIBUTING.md` (#8) et la réduction de la concentration de logique dans
-`RoomPageClient.tsx` (#10).
+Les dettes à traiter en priorité sont maintenant la mise à jour du `README.md` (#1), l'ajout de la suite
+Vitest à la CI sans y mêler les benchmarks lourds (#4), le renommage sûr de `heuristicBot 2.ts` (#6)
+et la réduction de la concentration de logique dans `RoomPageClient.tsx` (#10).
