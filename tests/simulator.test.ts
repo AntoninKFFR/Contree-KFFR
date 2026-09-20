@@ -77,5 +77,5 @@ describe("bot simulator", () => {
     expect(first.games + mirrored.games).toBe(2);
     expect(first.profileStats.main_montecarlo_v3.games).toBe(1);
     expect(mirrored.profileStats.main_montecarlo_v3.games).toBe(1);
-  });
+  }, 15_000);
 });

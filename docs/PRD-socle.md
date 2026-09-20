@@ -468,15 +468,15 @@ préférences, les statistiques et plusieurs comportements d'interface.
 navigateur. Projets `smoke` et `multiplayer` séparés. Documentation dans `docs/E2E_TESTING.md`.
 
 **Intégration continue.** `.github/workflows/e2e-smoke.yml` s'exécute sur chaque pull request et sur
-chaque push vers `main` : `npm ci`, `npm run typecheck`, `npm run lint`, installation de Chromium,
-`npm run build`, puis `npm run test:e2e:smoke`.
+chaque push vers `main` : `npm ci`, `npm run typecheck`, `npm run lint`, `npm test`, installation de
+Chromium, `npm run build`, puis `npm run test:e2e:smoke`.
 
 **Audit qualité.** `docs/QA_MATRIX.md` (matrice de couverture par domaine, statuts ✅ / ⚠️ / ❌) et
 `docs/QA_FINDINGS.md` (findings avec gravité, reproduction, correctif et tests ajoutés).
 
-**Limite connue — la CI ne joue pas encore la suite Vitest.** `typecheck`, `lint`, le build et le
-smoke e2e sont bloquants. `npm test` reste exigé localement par `CONTRIBUTING.md` ; son intégration à
-la CI doit rester distincte des benchmarks lourds. Voir §8.
+**Checks bloquants.** La CI exécute `typecheck`, `lint`, la suite Vitest normale (`npm test`), le build
+et le smoke e2e. Les scripts `benchmark:*`, `simulate:*` et `diagnose:*` restent volontairement hors
+de la CI normale.
 
 ---
 
@@ -487,7 +487,7 @@ la CI doit rester distincte des benchmarks lourds. Voir §8.
 | 1 | Résolu : `README.md` décrit le produit actuel, son architecture, le bot officiel et le workflow de validation | `README.md` | Résolu |
 | 2 | Résolu : `BOT_STRATEGY.md` et le code désignent `advanced_rules_v4` comme bot de production | `BOT_STRATEGY.md` et `bots/profiles.ts` | Résolu |
 | 3 | Résolu : la migration rétroactive de création de `games` a été ajoutée par la PR #3 | `supabase/migrations/20260901000000_create_solo_games_table.sql` | Résolu |
-| 4 | La CI exécute `typecheck`, `lint`, le build et les smoke tests depuis la PR #4 ; `npm test` reste à câbler séparément des benchmarks lourds | `.github/workflows/e2e-smoke.yml` | Moyenne |
+| 4 | Résolu : la CI exécute `typecheck`, `lint`, la suite Vitest normale, le build et les smoke tests ; les benchmarks lourds restent séparés | `.github/workflows/e2e-smoke.yml` | Résolu |
 | 5 | `bots/simpleBot 2.ts` n'est importé nulle part — fichier mort | `bots/simpleBot 2.ts` | Faible |
 | 6 | `bots/heuristicBot 2.ts` est importé par quatre modules malgré un nom de fichier contenant un espace : à renommer, pas à supprimer | `bots/simpleBot.ts`, `humanDoctrine.ts`, `botRegistry.ts`, `diagnoseHumanDoctrineBidding.ts` | Moyenne |
 | 7 | Les anciens rapports restent figés et doivent être lus avec l'identifiant de stratégie qu'ils mesurent | `reports/`, `bots/profiles.ts` | Faible |
@@ -507,11 +507,9 @@ la CI doit rester distincte des benchmarks lourds. Voir §8.
    classements, statistiques comparables et contenus pédagogiques à venir ?
 2. **Quel suivi post-promotion pour V4 ?** Les tests déterministes couvrent les modes avancés ; les
    futurs benchmarks doivent continuer à publier l'identifiant exact et les règles utilisées.
-3. **Comment câbler `npm test` à la CI sans mêler les benchmarks lourds ?** `typecheck`, `lint`, le build
-   et les smoke tests sont déjà bloquants ; la suite Vitest doit rester distincte des commandes de benchmark.
-4. **Quel niveau de confidentialité pour `NEXT_PUBLIC_BOT_REVIEW_MODE` en production ?** Le flag est
+3. **Quel niveau de confidentialité pour `NEXT_PUBLIC_BOT_REVIEW_MODE` en production ?** Le flag est
    côté client ; son périmètre d'exposition mérite d'être tranché avant l'ouverture au grand public.
-5. **Les statistiques doivent-elles rester comparables entre rulesets ?** Un tableau de bord mélangeant
+4. **Les statistiques doivent-elles rester comparables entre rulesets ?** Un tableau de bord mélangeant
    des parties jouées sous des règles différentes produit des agrégats difficiles à interpréter.
 
 ---
@@ -529,6 +527,5 @@ Les trois coutures les plus prometteuses pour des extensions futures sont `toPla
 décision des bots (explicabilité). Elles existent déjà et n'ont pas été conçues pour l'interface : les
 exposer est un travail d'intégration, pas de conception.
 
-Les dettes à traiter en priorité sont maintenant l'ajout de la suite Vitest à la CI sans y mêler les
-benchmarks lourds (#4), le renommage sûr de `heuristicBot 2.ts` (#6) et la réduction de la
-concentration de logique dans `RoomPageClient.tsx` (#10).
+Les dettes à traiter en priorité sont maintenant le renommage sûr de `heuristicBot 2.ts` (#6) et la
+réduction de la concentration de logique dans `RoomPageClient.tsx` (#10).
