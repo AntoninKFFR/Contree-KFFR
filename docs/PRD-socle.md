@@ -5,7 +5,7 @@
 > Il ne contient aucune fonctionnalité future : les modules à venir font l'objet de PRD dédiés
 > (`docs/PRD-<module>.md`), qui s'appuient sur ce socle.
 >
-> Référence de rédaction : commit `1c8d8b4` (`feat(auth): add Google sign-in through Supabase`), branche `main`.
+> Référence de rédaction : état courant de la branche `main`, vérifié contre le code et les migrations versionnées.
 > Chaque affirmation est ancrée dans un fichier du dépôt. Les points non vérifiables sont signalés comme tels.
 
 ---
@@ -186,7 +186,13 @@ en multijoueur.
 V4. `bots/simpleBot.ts` est l'**unique point d'entrée** du produit (`chooseBotBid`,
 `chooseBotBidWithTrace`, `chooseBotCard`), utilisé à la fois par le solo
 (`app/solo/SoloPageClient.tsx`) et par le serveur multijoueur (`lib/server/multiplayerGame.ts`).
-La stratégie V3.1 reste enregistrée pour un rollback par changement de cette seule constante.
+La stratégie V3.1 reste enregistrée pour un rollback par changement de cette seule constante et sert
+de baseline historique explicite aux benchmarks. Cette baseline ne dépend pas du profil officiel.
+
+**Corrections de jeu de cartes V4.** En défense, V4 évite les entames volontaires à l'atout sans
+justification tactique. En attaque, il évite aussi de jouer sous son propre As maître encore sûr
+lorsqu'aucune coupe adverse n'est connue publiquement. `BOT_STRATEGY.md` reste la référence détaillée
+pour les doctrines, les cas déterministes et les mesures.
 
 **Connaissance de table.** `bots/strategy/trickKnowledge.ts` reconstruit, à partir du seul état public,
 les couleurs dont chaque joueur est coupé (déduites des défausses), les atouts joués et restants, la
@@ -318,6 +324,10 @@ normalisés vers un type commun `PlayerStatsGame` avant calcul.
 tri de la main, taille et style des cartes, thème de tapis, thème clair/sombre, audio et musique de
 fond avec contrôle de volume dans la barre de navigation.
 
+En tri couleur/valeur, les couleurs présentes sont disposées en alternant rouge et noir lorsque
+c'est possible, tout en respectant au mieux l'ordre de couleurs choisi. Ce calcul porte uniquement
+sur la copie de présentation : il ne modifie ni la main du moteur ni la préférence persistée.
+
 **Garantie d'isolation.** Les `PlayerPreferences` ne sont jamais ajoutées à une room, un `GameState`,
 une `PlayerGameView` ou une action réseau. Stockage local versionné
 (`coinche:player-preferences:v1`).
@@ -411,12 +421,9 @@ Fonctions SQL principales : `commit_room_state`, `commit_timed_out_turn`, `move_
 `is_room_member`, `is_multiplayer_game_participant`, `is_username_taken`,
 `create_profile_for_auth_user`.
 
-> **Dette identifiée — la table `games` n'a pas de migration de création.** Les migrations ne
-> contiennent que des `alter table public.games`
-> (`20260913010000_custom_game_rules.sql`, `20260913030000_generale_history.sql`). La table a donc été
-> créée hors migration, probablement à la main dans l'interface Supabase, avant l'adoption du
-> workflow décrit dans `CONTRIBUTING.md`. **Conséquence : un environnement Supabase vierge ne peut pas
-> être reconstruit à partir du dépôt.** Voir §8.
+La table `games` est créée par la migration rétroactive
+`20260901000000_create_solo_games_table.sql`. Un environnement Supabase vierge peut donc reconstruire
+ce socle à partir des migrations versionnées avant d'appliquer ses évolutions ultérieures.
 
 ---
 
@@ -451,7 +458,7 @@ Fonctions SQL principales : `commit_room_state`, `commit_timed_out_turn`, `move_
 
 ## 7. Qualité et tests
 
-**Vitest — tests unitaires et d'intégration.** Environ 70 fichiers dans `tests/`, couvrant le moteur
+**Vitest — tests unitaires et d'intégration.** La suite dans `tests/` couvre le moteur
 (règles, scoring, belote, annonces, générale, rulesets), les bots et leurs doctrines successives, le
 serveur multijoueur (validation d'état, transfert d'hôte, forfaits, timer, sièges atomiques), les
 préférences, les statistiques et plusieurs comportements d'interface.
@@ -461,16 +468,15 @@ préférences, les statistiques et plusieurs comportements d'interface.
 navigateur. Projets `smoke` et `multiplayer` séparés. Documentation dans `docs/E2E_TESTING.md`.
 
 **Intégration continue.** `.github/workflows/e2e-smoke.yml` s'exécute sur chaque pull request et sur
-chaque push vers `main` : `npm ci`, installation de Chromium, `npm run build`, puis
-`npm run test:e2e:smoke`.
+chaque push vers `main` : `npm ci`, `npm run typecheck`, `npm run lint`, installation de Chromium,
+`npm run build`, puis `npm run test:e2e:smoke`.
 
 **Audit qualité.** `docs/QA_MATRIX.md` (matrice de couverture par domaine, statuts ✅ / ⚠️ / ❌) et
 `docs/QA_FINDINGS.md` (findings avec gravité, reproduction, correctif et tests ajoutés).
 
-**Limite connue — la CI ne joue pas les tests unitaires.** Le workflow exécute le build et le smoke
-e2e, mais ni `npm run typecheck`, ni `npm run lint`, ni `npm test`. Ces trois commandes ne sont
-exigées qu'en local, par convention (`CONTRIBUTING.md` §5). Une régression du moteur peut donc passer
-la CI. Voir §8.
+**Limite connue — la CI ne joue pas encore la suite Vitest.** `typecheck`, `lint`, le build et le
+smoke e2e sont bloquants. `npm test` reste exigé localement par `CONTRIBUTING.md` ; son intégration à
+la CI doit rester distincte des benchmarks lourds. Voir §8.
 
 ---
 
@@ -478,7 +484,7 @@ la CI. Voir §8.
 
 | # | Constat | Fichier(s) | Gravité |
 |---|---|---|---|
-| 1 | `README.md` décrit une « V1 » obsolète : bot officiel `main`, profils `main`/`prudent`/`balanced`/`aggressive`, aucune mention de SA/TA, générale, annonces, rulesets, préférences, e2e | `README.md` | Moyenne |
+| 1 | Résolu : `README.md` décrit le produit actuel, son architecture, le bot officiel et le workflow de validation | `README.md` | Résolu |
 | 2 | Résolu : `BOT_STRATEGY.md` et le code désignent `advanced_rules_v4` comme bot de production | `BOT_STRATEGY.md` et `bots/profiles.ts` | Résolu |
 | 3 | Résolu : la migration rétroactive de création de `games` a été ajoutée par la PR #3 | `supabase/migrations/20260901000000_create_solo_games_table.sql` | Résolu |
 | 4 | La CI exécute `typecheck`, `lint`, le build et les smoke tests depuis la PR #4 ; `npm test` reste à câbler séparément des benchmarks lourds | `.github/workflows/e2e-smoke.yml` | Moyenne |
@@ -523,6 +529,6 @@ Les trois coutures les plus prometteuses pour des extensions futures sont `toPla
 décision des bots (explicabilité). Elles existent déjà et n'ont pas été conçues pour l'interface : les
 exposer est un travail d'intégration, pas de conception.
 
-Les dettes à traiter en priorité sont maintenant la mise à jour du `README.md` (#1), l'ajout de la suite
-Vitest à la CI sans y mêler les benchmarks lourds (#4), le renommage sûr de `heuristicBot 2.ts` (#6)
-et la réduction de la concentration de logique dans `RoomPageClient.tsx` (#10).
+Les dettes à traiter en priorité sont maintenant l'ajout de la suite Vitest à la CI sans y mêler les
+benchmarks lourds (#4), le renommage sûr de `heuristicBot 2.ts` (#6) et la réduction de la
+concentration de logique dans `RoomPageClient.tsx` (#10).
