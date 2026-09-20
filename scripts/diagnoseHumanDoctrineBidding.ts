@@ -1,4 +1,4 @@
-import { chooseSimpleBid as chooseLegacyBid } from "@/bots/heuristicBot 2";
+import { chooseSimpleBid as chooseLegacyBid } from "@/bots/legacyHeuristicBot";
 import {
   HUMAN_DOCTRINE_DEFAULT_OPTIONS,
   chooseHumanDoctrineBid,

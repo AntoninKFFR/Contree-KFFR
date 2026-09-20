@@ -5,7 +5,7 @@ import { chooseProfileBid } from "@/bots/strategy/biddingStrategy";
 import { chooseHumanDoctrineBid } from "@/bots/strategy/humanDoctrine";
 import { chooseHumanDoctrineV3Bid, type HumanDoctrineV3Trace } from "@/bots/strategy/humanDoctrineV3";
 import { chooseHumanDoctrineV31Bid } from "@/bots/strategy/humanDoctrineV31";
-import { chooseSimpleBid as chooseLegacyBid } from "@/bots/heuristicBot 2";
+import { chooseSimpleBid as chooseLegacyBid } from "@/bots/legacyHeuristicBot";
 import { canBidGenerale, canCoinche, canSurcoinche } from "@/engine/bidding";
 import { getCurrentContract } from "@/engine/game";
 import { isBotSeat, SOLO_SEAT_ASSIGNMENTS, type SeatAssignments } from "@/engine/seats";

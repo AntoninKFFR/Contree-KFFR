@@ -12,7 +12,7 @@ import { chooseV31RulesBaselineBid, chooseV31RulesBaselineCard } from "@/bots/si
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { chooseMonteCarloCardToPlay, chooseMonteCarloV2CardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
 import { chooseMonteCarloV3Decision, V3_1_OPTIONS, type BotDecisionTraceV3, type MonteCarloV3Options } from "@/bots/strategy/monteCarloV3CardStrategy";
-import { chooseCardToPlay as chooseLegacyCard, chooseSimpleBid as chooseLegacyBid } from "@/bots/heuristicBot 2";
+import { chooseCardToPlay as chooseLegacyCard, chooseSimpleBid as chooseLegacyBid } from "@/bots/legacyHeuristicBot";
 import type { BidValue, Card, ContractMode, GameState, Suit } from "@/engine/types";
 
 export type StrategyBid = {
