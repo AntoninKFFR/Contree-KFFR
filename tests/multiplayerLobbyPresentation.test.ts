@@ -1,7 +1,8 @@
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FinishedRoomCard, LobbyHeader, LobbyRulesDialog, LobbyTable, WaitingArea } from "@/app/multiplayer/[roomId]/RoomPageClient";
+import { FinishedRoomCard } from "@/components/multiplayer/FinishedRoomCard";
+import { LobbyHeader, LobbyRulesDialog, LobbyTable, WaitingArea } from "@/components/multiplayer/RoomLobby";
 import { CONTREE_KFFR_RULESET } from "@/engine/rulesets/presets";
 import { rulesetToCustomInput } from "@/engine/rulesets/custom";
 import type { RoomPlayerView } from "@/lib/roomTypes";

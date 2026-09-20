@@ -36,8 +36,9 @@ describe("explicit host transfer", () => {
   it("uses the authoritative RPC and removes the ambiguous claim control from the UI", () => {
     const service = readFileSync("lib/server/multiplayerService.ts", "utf8");
     const client = readFileSync("app/multiplayer/[roomId]/RoomPageClient.tsx", "utf8");
+    const lobby = readFileSync("components/multiplayer/RoomLobby.tsx", "utf8");
     expect(service).toContain('.rpc("transfer_room_host"');
-    expect(client).toContain("Transférer l&apos;hôte");
+    expect(lobby).toContain("Transférer l&apos;hôte");
     expect(client).not.toContain("Devenir hôte");
     expect(client).not.toContain('{ type: "claim-host" }');
   });
