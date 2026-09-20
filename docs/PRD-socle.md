@@ -492,7 +492,7 @@ de la CI normale.
 | 7 | Les anciens rapports restent figés et doivent être lus avec l'identifiant de stratégie qu'ils mesurent | `reports/`, `bots/profiles.ts` | Faible |
 | 8 | Résolu : `CONTRIBUTING.md` est sur `main` depuis la PR #1 | `CONTRIBUTING.md` | Résolu |
 | 9 | Une vingtaine de scripts de benchmark coexistent sans marquage actif/obsolète | `scripts/`, `package.json` | Faible |
-| 10 | Découpage engagé : phase 1, composants de présentation du lobby et de fin de partie extraits ; phase 2, synchronisation auth / Realtime / présence extraite ; phase 3, tick serveur/bot et countdown extraits ; phase 4A, actions room/lobby extraites. Les actions gameplay et l'optimistic play restent concentrés dans `RoomPageClient.tsx` | `app/multiplayer/[roomId]/RoomPageClient.tsx`, `components/multiplayer/` | Moyenne |
+| 10 | Résolu : phase 1, composants de présentation du lobby et de fin de partie extraits ; phase 2, synchronisation auth / Realtime / présence extraite ; phase 3, tick serveur/bot et countdown extraits ; phase 4A, actions room/lobby extraites ; phase 4B, actions gameplay et état optimiste extraits. `RoomPageClient.tsx` orchestre désormais les valeurs dérivées et le rendu | `app/multiplayer/[roomId]/RoomPageClient.tsx`, `components/multiplayer/` | Résolu |
 
 `RULES.md`, `docs/CUSTOM_GAMES.md`, `docs/PLAYER_PREFERENCES.md`, `engine/rulesets/README.md`,
 `docs/QA_MATRIX.md` et `docs/E2E_TESTING.md` sont en revanche **à jour** et fidèles au code.
@@ -526,5 +526,5 @@ Les trois coutures les plus prometteuses pour des extensions futures sont `toPla
 décision des bots (explicabilité). Elles existent déjà et n'ont pas été conçues pour l'interface : les
 exposer est un travail d'intégration, pas de conception.
 
-La principale dette technique à traiter en priorité est maintenant la réduction de la concentration
-de logique dans `RoomPageClient.tsx` (#10).
+Le découpage de `RoomPageClient.tsx` est achevé : la page conserve l'orchestration des valeurs
+dérivées et du rendu, tandis que la synchronisation, les timers et les actions sont isolés dans des hooks.
