@@ -1,117 +1,85 @@
-# Coinche / Contree V1
+# KFFR Contrée
 
-Application pédagogique en Next.js, TypeScript et Tailwind.
+KFFR Contrée est une application web de Coinche / Contrée à quatre joueurs. Elle propose un mode Solo contre trois bots, des parties multijoueurs autoritaires côté serveur, des règles versionnées, des bots avancés et un historique avec statistiques détaillées.
 
-## Ce que contient la V1
+## Fonctionnalités actuelles
 
-- 1 joueur humain contre 3 bots
-- Distribution de 32 cartes
-- Tours de jeu
-- Gestion des plis
-- Score des cartes et bonus du dernier pli
-- Annonces, coinche et surcoinche
-- Partie complète en plusieurs manches
-- Score total et historique des manches
-- Moteur de jeu séparé de l'interface
-- Tests unitaires sur les règles importantes
-- Bot principal officiel `main` utilise par l'application web
-- Profils secondaires disponibles pour les simulations
+- Solo contre trois bots et multijoueur à quatre sièges.
+- Création et accès aux tables par code, ajout de bots, reprise d'un siège et reconnexion.
+- Règles configurables et figées au démarrage de la partie.
+- Contrats à la couleur, Sans Atout et Tout Atout.
+- Coinche, Surcoinche, Capot et Générale lorsque le ruleset les autorise.
+- Annonces et Belote selon les règles choisies.
+- Historique des parties solo et multijoueurs.
+- Statistiques détaillées par contrat, couleur, résultat et période.
+- Authentification par email ou Google, avec pseudo de profil unique.
+- Préférences locales pour le rythme, l'affichage, le son et l'accessibilité.
+- Bot officiel `advanced_rules_v4` pour le Solo et le Multiplayer.
 
-## Structure
+Le preset Contrée KFFR fournit les règles par défaut. Certaines options avancées, comme Sans Atout, Tout Atout, Générale ou les annonces, restent désactivées dans ce preset et peuvent être activées dans une partie personnalisée.
 
-- `app/`: pages Next.js et styles globaux.
-- `components/`: composants React simples pour afficher la table, la main et le score.
-- `engine/`: logique pure du jeu, sans React.
-- `bots/`: profils, annonces et choix automatique des cartes des bots.
-- `simulation/`: lancement de parties automatiques entre bots et statistiques.
-- `scripts/`: commandes terminal, dont la simulation des bots.
-- `tests/`: tests unitaires du moteur.
-- `RULES.md`: hypothèses de règles retenues pour cette V1.
-- `BOT_STRATEGY.md`: explication simple de la strategie des bots.
-- `TRAINING.md`: explication simple pour lancer et lire les simulations.
+## Architecture
 
-## Lancer le projet
+- `engine/` : moteur de jeu pur, indépendant de React et du réseau.
+- `bots/` : profils, enchères, choix de cartes et traces de décision.
+- `simulation/` : harnais de simulation et mesures hors ligne.
+- `lib/server/` : autorité multijoueur, validation des actions et persistance.
+- `app/` : routes et écrans Next.js.
+- `components/` : composants React partagés.
+- `supabase/migrations/` : schéma Supabase entièrement versionné.
 
-Installe d'abord Node.js si la commande `node --version` ne fonctionne pas.
+Le serveur conserve l'état multijoueur complet et n'envoie à chaque navigateur qu'une `PlayerGameView` filtrée. Les secrets Supabase restent dans les routes serveur. Toute évolution du schéma passe par une nouvelle migration suivie dans Git.
 
-Puis lance:
+## Bot officiel
+
+`bots/profiles.ts` définit `OFFICIAL_BOT_PROFILE_ID = "advanced_rules_v4"`. `bots/simpleBot.ts` constitue le point d'entrée commun utilisé par le Solo et le Multiplayer.
+
+La stratégie V3.1 reste enregistrée comme solution de repli et comme référence historique des benchmarks. Les détails des doctrines, des profils et de leur validation sont dans [BOT_STRATEGY.md](BOT_STRATEGY.md).
+
+## Installation locale
+
+Prérequis : Node.js 22 et npm.
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
-Ouvre ensuite l'adresse indiquée par Next.js, généralement `http://localhost:3000`.
+Renseigne dans `.env.local` les variables clientes Supabase indiquées par `.env.example` ainsi que `SUPABASE_SECRET_KEY` pour les opérations serveur. Le fallback historique `SUPABASE_SERVICE_ROLE_KEY` reste accepté. `.env.local` est ignoré par Git : aucun secret ne doit être ajouté au dépôt ou à un commit.
 
-## Backend multijoueur
+L'application est ensuite disponible à l'adresse affichée par Next.js, généralement `http://localhost:3000`.
 
-Le multijoueur est server-authoritative. Copie `.env.example` vers `.env.local`, renseigne les
-identifiants Supabase, puis applique les migrations versionnées du dossier `supabase/migrations`.
-La clé serveur `SUPABASE_SECRET_KEY` est privilégiée par les Route Handlers Next.js, avec
-`SUPABASE_SERVICE_ROLE_KEY` comme fallback de compatibilité. Ces clés restent côté serveur et ne
-doivent jamais être préfixées par `NEXT_PUBLIC_`.
+## Validation
 
-Le `GameState` complet est stocké dans `room_game_states`, une table sans permission ni policy
-pour `anon` ou `authenticated`. Le navigateur reçoit uniquement sa `PlayerGameView`; Realtime ne
-sert qu'à déclencher une nouvelle lecture authentifiée auprès de l'API Next.js.
+Avant une livraison :
 
-### Identité des comptes
+```bash
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run test:e2e:smoke
+```
 
-La migration `20260916000000_account_profile_identity.sql` conserve les profils existants, garantit
-l'unicité et la validation de `profiles.username`, limite la lecture et l'écriture du profil à son
-propriétaire via RLS, puis crée le profil lors de l'inscription à partir des métadonnées Auth.
-Un compte ancien sans pseudo peut le renseigner une fois dans `/profile`. Le pseudo du profil est
-la seule identité utilisée par le serveur lors de la création ou de la prise d'un siège en lobby ;
-les noms déjà enregistrés dans une partie restent des snapshots. Après déploiement de la migration,
-autorise `/auth/callback` dans les URL de redirection Supabase pour la confirmation par email.
+Les benchmarks de bots sont des commandes séparées dans `scripts/`. Ils ne font pas partie de la suite Vitest ni du smoke test.
 
-### Connexion Google
+## Supabase et migrations
 
-Active le fournisseur Google dans Supabase Auth et renseigne son Client ID et son Client Secret
-dans le tableau de bord Supabase. Dans Google Auth Platform, utilise l'URL de callback indiquée
-par Supabase comme URI de redirection autorisée et ajoute les origines de l'application. Dans
-Supabase Auth > URL Configuration, autorise `/auth/callback**` pour chaque origine utilisée
-(locale et hébergée), afin d'accepter le paramètre `?next=`. L'application construit cette URL depuis l'origine courante et conserve
-`?next=` ; aucun identifiant Google ni secret ne va dans le dépôt.
-
-Pour appliquer et vérifier cette migration sur le projet Supabase lié :
+Le schéma partagé ne doit jamais être modifié manuellement. Ajoute chaque changement dans un nouveau fichier de `supabase/migrations/`, puis applique et vérifie les migrations sur le projet lié :
 
 ```bash
 supabase db push
 supabase migration list
 ```
 
-## Préférences joueur
+## Documentation utile
 
-Les réglages de confort sont locaux à chaque navigateur et restent séparés des règles partagées de
-la partie. Leur architecture, leur stockage et leurs garanties d'isolation sont décrits dans
-[`docs/PLAYER_PREFERENCES.md`](docs/PLAYER_PREFERENCES.md).
-
-## Lancer les tests
-
-```bash
-npm test
-```
-
-Pour relancer les tests automatiquement pendant que tu modifies le moteur:
-
-```bash
-npm run test:watch
-```
-
-## Simuler des bots
-
-Pour comparer les profils de bots sans ouvrir l'interface web:
-
-```bash
-npm run simulate:bots -- --games=1000 --team0=main --team1=aggressive
-```
-
-Profils disponibles:
-
-- `main`
-- `prudent`
-- `balanced`
-- `aggressive`
-
-L'application web utilise toujours `main`. Les autres profils servent au simulateur et au benchmarking. Lis `TRAINING.md` pour comprendre les statistiques affichees.
+- [Règles du preset par défaut](RULES.md)
+- [Stratégie des bots](BOT_STRATEGY.md)
+- [Parties personnalisées](docs/CUSTOM_GAMES.md)
+- [Préférences joueur](docs/PLAYER_PREFERENCES.md)
+- [Tests end-to-end](docs/E2E_TESTING.md)
+- [Matrice de qualité](docs/QA_MATRIX.md)
+- [Socle produit](docs/PRD-socle.md)
+- [Guide de contribution](CONTRIBUTING.md)
