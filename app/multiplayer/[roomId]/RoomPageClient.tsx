@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
 import { GameTopBar, type GameMenuAction } from "@/components/GameTopBar";
@@ -12,6 +11,7 @@ import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { FinishedRoomCard } from "@/components/multiplayer/FinishedRoomCard";
 import { LobbyHeader, LobbyRulesDialog, LobbyTable, WaitingArea } from "@/components/multiplayer/RoomLobby";
+import { errorMessage, useMultiplayerRoomSync } from "@/components/multiplayer/useMultiplayerRoomSync";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import {
   appDangerActionClass,
@@ -30,27 +30,13 @@ import { rulesetToCustomInput, type CustomRulesetInput } from "@/engine/rulesets
 import { CONTREE_KFFR_RULESET } from "@/engine/rulesets/presets";
 import { resolveRoomRules } from "@/engine/rulesets/room";
 import type { BidValue, Card, ContractMode } from "@/engine/types";
-import { PRESENCE_HEARTBEAT_INTERVAL_MS } from "@/lib/multiplayerPresence";
 import { handWithoutPendingCard, visiblePendingCard, type PendingLocalPlay } from "@/lib/multiplayerOptimisticPlay";
 import { loginPath } from "@/lib/authRedirect";
-import { ensureProfile } from "@/lib/profiles";
-import { fetchRoomView, MultiplayerApiError, sendPresenceHeartbeat, sendRoomIntent, sendRoomIntentWithLobbyRetry, sendRoomTick } from "@/lib/multiplayerApi";
-import type { RoomPlayerAction, RoomPlayerRow, MultiplayerRoomView } from "@/lib/roomTypes";
-import { subscribeToRoomRealtime } from "@/lib/roomRealtime";
+import { MultiplayerApiError, sendRoomIntent, sendRoomIntentWithLobbyRetry, sendRoomTick } from "@/lib/multiplayerApi";
+import type { RoomPlayerAction, RoomPlayerRow } from "@/lib/roomTypes";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { MULTIPLAYER_TICK_INTERVAL_MS, botPacingDelayMs } from "@/lib/multiplayerTurnTimer";
 import { normalizeMultiplayerTablePreferences, type MultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
-
-type PageState = "loading" | "ready" | "signed-out" | "unavailable" | "missing";
-
-type LoadRoomOptions = {
-  silent?: boolean;
-};
-
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Action impossible pour le moment.";
-}
 
 function roomIdFromParams(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) return value[0] ?? null;
@@ -61,7 +47,20 @@ export default function MultiplayerRoomPage() {
   const { preferences } = usePlayerPreferences();
   const params = useParams();
   const roomId = roomIdFromParams(params.roomId);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    accessToken,
+    error,
+    loadRoom,
+    localDisplayName,
+    pageState,
+    profileUsername,
+    roomWithPlayers,
+    session,
+    setError,
+    setPageState,
+    setRoomWithPlayers,
+    viewerSeatIndex,
+  } = useMultiplayerRoomSync(roomId);
   const [isJoiningSeat, setIsJoiningSeat] = useState(false);
   const [isLeavingSeat, setIsLeavingSeat] = useState(false);
   const [isPlayingCard, setIsPlayingCard] = useState(false);
@@ -77,14 +76,9 @@ export default function MultiplayerRoomPage() {
   const [isResettingRoom, setIsResettingRoom] = useState(false);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [isUpdatingReady, setIsUpdatingReady] = useState(false);
-  const [pageState, setPageState] = useState<PageState>("loading");
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
-  const [localDisplayName, setLocalDisplayName] = useState("Joueur");
-  const [profileUsername, setProfileUsername] = useState<string | null>(null);
-  const [roomWithPlayers, setRoomWithPlayers] = useState<MultiplayerRoomView | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [countdownNowMs, setCountdownNowMs] = useState<number | null>(null);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -93,9 +87,6 @@ export default function MultiplayerRoomPage() {
   const [isUpdatingTablePreferences, setIsUpdatingTablePreferences] = useState(false);
   const [rulesChangedNotice, setRulesChangedNotice] = useState(false);
   const previousRulesKeyRef = useRef<string | null>(null);
-  const accessToken = session?.access_token ?? null;
-  const viewerSeatIndex = roomWithPlayers?.viewerSeatIndex ?? null;
-
   const currentSeat = useMemo(() => {
     if (!roomWithPlayers || roomWithPlayers.viewerSeatIndex === null) return null;
     return roomWithPlayers.players.find(
@@ -242,117 +233,6 @@ export default function MultiplayerRoomPage() {
     };
   }, []);
 
-  const loadRoom = useCallback(async (options: LoadRoomOptions = {}) => {
-    const supabase = getSupabaseClient();
-
-    if (!supabase) {
-      setPageState("unavailable");
-      return;
-    }
-
-    if (!roomId) {
-      setPageState("missing");
-      return;
-    }
-
-    if (!options.silent) {
-      setPageState("loading");
-      setError(null);
-    }
-
-    const { data } = await supabase.auth.getSession();
-    const nextSession = data.session;
-    setSession(nextSession);
-
-    if (!nextSession) {
-      setPageState("signed-out");
-      return;
-    }
-
-    const profileName = await ensureProfile(supabase, nextSession.user);
-    setProfileUsername(profileName);
-    setLocalDisplayName(profileName ?? "Profil sans pseudo");
-
-    try {
-      const nextRoom = await fetchRoomView(roomId, nextSession);
-      setRoomWithPlayers((current) => current && current.room.id === nextRoom.room.id
-        && current.room.state_version > nextRoom.room.state_version ? current : nextRoom);
-      setError(null);
-      setPageState("ready");
-    } catch (loadError) {
-      setRoomWithPlayers(null);
-      setError(errorMessage(loadError));
-      setPageState("missing");
-    }
-  }, [roomId]);
-
-  useEffect(() => {
-    const supabase = getSupabaseClient();
-
-    loadRoom();
-
-    if (!supabase) return;
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      loadRoom();
-    });
-
-    return () => subscription.unsubscribe();
-  }, [loadRoom]);
-
-  useEffect(() => {
-    const supabase = getSupabaseClient();
-
-    if (!supabase || !roomId) return;
-
-    return subscribeToRoomRealtime(supabase, roomId, () => loadRoom({ silent: true }));
-  }, [loadRoom, roomId]);
-
-  useEffect(() => {
-    if (!roomId || !accessToken || viewerSeatIndex === null) return;
-
-    let active = true;
-    let inFlight = false;
-    const heartbeat = async () => {
-      if (inFlight) return;
-      inFlight = true;
-      try {
-        const nextRoom = await sendPresenceHeartbeat(roomId, { access_token: accessToken });
-        if (active) {
-          setRoomWithPlayers((current) =>
-            current && current.room.state_version > nextRoom.room.state_version
-              ? current
-              : nextRoom);
-          setPageState("ready");
-        }
-      } catch {
-        // A later heartbeat or visibility event will retry after transient connectivity failures.
-      } finally {
-        inFlight = false;
-      }
-    };
-
-    void heartbeat();
-    const intervalId = window.setInterval(heartbeat, PRESENCE_HEARTBEAT_INTERVAL_MS);
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") void heartbeat();
-    };
-    const handleReturn = () => void heartbeat();
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleReturn);
-    window.addEventListener("online", handleReturn);
-
-    return () => {
-      active = false;
-      window.clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("focus", handleReturn);
-      window.removeEventListener("online", handleReturn);
-    };
-  }, [accessToken, roomId, viewerSeatIndex]);
-
   useEffect(() => {
     if (
       !roomId ||
@@ -394,7 +274,7 @@ export default function MultiplayerRoomPage() {
       active = false;
       window.clearTimeout(timerId);
     };
-  }, [accessToken, roomId, roomWithPlayers, tablePreferences, viewerSeatIndex]);
+  }, [accessToken, roomId, roomWithPlayers, setRoomWithPlayers, tablePreferences, viewerSeatIndex]);
 
   useEffect(() => {
     if (!roomWithPlayers?.room.turn_deadline_at) {
