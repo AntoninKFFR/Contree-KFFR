@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { evaluateAdvancedModeHand, evaluateCapotHand, ruleBonusForHand } from "@/bots/evaluation/advancedRulesEvaluation";
 import { chooseAdvancedRulesBid } from "@/bots/strategy/advancedRulesBidding";
-import { chooseAdvancedRulesCard } from "@/bots/strategy/advancedRulesCard";
+import { avoidLeadingUnderSafeOwnAce, chooseAdvancedRulesCard } from "@/bots/strategy/advancedRulesCard";
+import { chooseMonteCarloCardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
+import { buildTrickKnowledge } from "@/bots/strategy/trickKnowledge";
 import { createInitialGame, makeBid, playCard, playableCardsForCurrentPlayer } from "@/engine/game";
 import { createDeck } from "@/engine/cards";
 import { inactivePlayerId } from "@/engine/activePlayers";
@@ -40,6 +42,42 @@ function playMode(mode: ContractMode, hand: Card[], player: PlayerId = 0): GameS
   let next = makeBid(state, 0, bid);
   for (let count = 0; count < 3; count += 1) next = makeBid(next, next.currentPlayerId, { action: "pass" });
   return { ...next, currentPlayerId: player, hands: { ...next.hands, [player]: hand } };
+}
+
+function secondTrickTakerLeadState(startingPlayerId: PlayerId = 0): GameState {
+  const botHand = [c("A", "hearts"), c("Q", "hearts"), c("A", "spades"), c("8", "spades"),
+    c("A", "clubs"), c("9", "clubs"), c("7", "clubs"), c("9", "hearts")];
+  const openingCards = [c("A", "diamonds"), c("9", "diamonds"), c("K", "diamonds")];
+  const reserved = [...botHand, ...openingCards];
+  const remaining = createDeck().filter((card) => !reserved.some(
+    (held) => held.rank === card.rank && held.suit === card.suit,
+  ));
+  let cursor = 0;
+  const take = () => {
+    const cards = remaining.slice(cursor, cursor + 7);
+    cursor += 7;
+    return cards;
+  };
+  const initial = createInitialGame(() => 0.34);
+  const botPlayerId = ((startingPlayerId + 1) % 4) as PlayerId;
+  const thirdPlayerId = ((startingPlayerId + 2) % 4) as PlayerId;
+  const fourthPlayerId = ((startingPlayerId + 3) % 4) as PlayerId;
+  const hands = { 0: [] as Card[], 1: [] as Card[], 2: [] as Card[], 3: [] as Card[] };
+  hands[startingPlayerId] = [openingCards[0], ...take()];
+  hands[botPlayerId] = botHand;
+  hands[thirdPlayerId] = [openingCards[1], ...take()];
+  hands[fourthPlayerId] = [openingCards[2], ...take()];
+  let state: GameState = { ...initial, currentPlayerId: startingPlayerId, startingPlayerId,
+    currentTrick: { leaderId: startingPlayerId, cards: [] }, hands };
+  state = makeBid(state, startingPlayerId, { action: "pass" });
+  state = makeBid(state, botPlayerId, { action: "bid", value: 90, trump: "hearts" });
+  for (let count = 0; count < 3; count += 1) {
+    state = makeBid(state, state.currentPlayerId, { action: "pass" });
+  }
+  state = playCard(state, startingPlayerId, c("A", "diamonds"));
+  state = playCard(state, botPlayerId, c("9", "hearts"));
+  state = playCard(state, thirdPlayerId, c("9", "diamonds"));
+  return playCard(state, fourthPlayerId, c("K", "diamonds"));
 }
 
 describe("advanced rules bidding", () => {
@@ -241,6 +279,52 @@ describe("advanced rules bidding", () => {
 });
 
 describe("advanced rules card play", () => {
+  it("cashes its safe master Ace instead of leading low underneath it as taker", () => {
+    const state = secondTrickTakerLeadState(1);
+    expect(state).toMatchObject({
+      currentPlayerId: 2,
+      contract: { playerId: 2, teamId: 0, value: 90, trump: "hearts", status: "normal" },
+      currentTrick: { leaderId: 2, cards: [] },
+    });
+    expect(state.hands[2]).toEqual(expect.arrayContaining([
+      c("A", "hearts"), c("Q", "hearts"), c("A", "spades"), c("8", "spades"),
+      c("A", "clubs"), c("9", "clubs"), c("7", "clubs"),
+    ]));
+    expect(chooseMonteCarloCardToPlay(state)).toEqual(c("8", "spades"));
+    expect(chooseAdvancedRulesCard(state)).toEqual(c("A", "spades"));
+  });
+
+  it("does not force the Ace when an opponent is publicly known void in that suit", () => {
+    const state = secondTrickTakerLeadState(1);
+    const voidTrick = {
+      leaderId: 0 as PlayerId,
+      cards: [
+        { playerId: 0 as PlayerId, card: c("10", "spades") },
+        { playerId: 1 as PlayerId, card: c("7", "hearts") },
+        { playerId: 2 as PlayerId, card: c("K", "spades") },
+        { playerId: 3 as PlayerId, card: c("Q", "spades") },
+      ],
+      winnerId: 1 as PlayerId,
+      points: 17,
+    };
+    const completedTricks = [voidTrick, ...state.completedTricks];
+    const botHand = state.hands[2].filter((card) => !(card.rank === "7" && card.suit === "clubs"));
+    const visible = [...botHand, ...completedTricks.flatMap((trick) => trick.cards.map((played) => played.card))];
+    const hidden = createDeck().filter((card) => !visible.some(
+      (known) => known.rank === card.rank && known.suit === card.suit,
+    ));
+    const knownCutState = { ...state, completedTricks, trickPoints: { 0: 29, 1: 17 }, hands: {
+      0: hidden.slice(0, 6),
+      1: hidden.slice(6, 12),
+      2: botHand,
+      3: hidden.slice(12, 18),
+    } };
+
+    expect(buildTrickKnowledge(knownCutState).cutRiskBySuit.spades.knownVoidOpponents).toEqual([1]);
+    expect(avoidLeadingUnderSafeOwnAce(knownCutState, c("8", "spades")))
+      .toEqual(c("8", "spades"));
+  });
+
   it("uses visible master ordering in SA and TA, always returning a legal card", () => {
     for (const [mode, hand, rank] of [[SA, strongSA, "A"], [TA, strongTA, "J"]] as const) {
       const state = playMode(mode, hand);
