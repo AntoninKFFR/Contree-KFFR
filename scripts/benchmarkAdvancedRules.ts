@@ -227,4 +227,4 @@ for (const [variantIndex, entry] of variants.entries()) {
     candidate: finalize(metrics[ADVANCED_RULES_STRATEGY.id]),
   };
 }
-console.log(JSON.stringify({ generatedAt: new Date().toISOString(), reference: "official V3.1 + current special dispatch", candidate: ADVANCED_RULES_STRATEGY.id, variants: result }, null, 2));
+console.log(JSON.stringify({ generatedAt: new Date().toISOString(), reference: "historical V3.1 + pre-V4 special dispatch", candidate: ADVANCED_RULES_STRATEGY.id, variants: result }, null, 2));

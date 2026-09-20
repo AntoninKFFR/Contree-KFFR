@@ -16,7 +16,8 @@ export type OfficialBotProfileId =
   | BotProfileId
   | "human_doctrine_v1_mc_v1"
   | "human_doctrine_v3_conversation_mc_v1"
-  | "human_doctrine_v3_1_conversation_mc_v1";
+  | "human_doctrine_v3_1_conversation_mc_v1"
+  | "advanced_rules_v4";
 
 export type BotProfile = {
   id: string;
@@ -165,7 +166,7 @@ export const BOT_PROFILES: Record<BotProfileId, BotProfile> = {
   },
 };
 
-export const OFFICIAL_BOT_PROFILE_ID: OfficialBotProfileId = "human_doctrine_v3_1_conversation_mc_v1";
+export const OFFICIAL_BOT_PROFILE_ID: OfficialBotProfileId = "advanced_rules_v4";
 
 export const EXPERIMENTAL_BOT_PROFILE_IDS: BotProfileId[] = [
   "main_montecarlo_v3",

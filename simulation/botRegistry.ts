@@ -8,7 +8,7 @@ import { chooseHumanDoctrineV3Bid } from "@/bots/strategy/humanDoctrineV3";
 import { chooseHumanDoctrineV31Bid } from "@/bots/strategy/humanDoctrineV31";
 import { chooseAdvancedRulesBid } from "@/bots/strategy/advancedRulesBidding";
 import { chooseAdvancedRulesCard } from "@/bots/strategy/advancedRulesCard";
-import { chooseBotBid, chooseBotCard } from "@/bots/simpleBot";
+import { chooseV31RulesBaselineBid, chooseV31RulesBaselineCard } from "@/bots/simpleBot";
 import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { chooseMonteCarloCardToPlay, chooseMonteCarloV2CardToPlay } from "@/bots/strategy/monteCarloCardStrategy";
 import { chooseMonteCarloV3Decision, V3_1_OPTIONS, type BotDecisionTraceV3, type MonteCarloV3Options } from "@/bots/strategy/monteCarloV3CardStrategy";
@@ -202,9 +202,17 @@ export const ADVANCED_RULES_STRATEGY: BotStrategyDefinition = {
   card: { kind: "advanced-rules" },
 };
 
+export const ADVANCED_RULES_V4_STRATEGY: BotStrategyDefinition = {
+  id: "advanced_rules_v4",
+  label: "V4 règles avancées",
+  status: "active",
+  bidding: { kind: "advanced-rules" },
+  card: { kind: "advanced-rules" },
+};
+
 export const OFFICIAL_RULES_BASELINE_STRATEGY: BotStrategyDefinition = {
   id: "official_rules_baseline",
-  label: "Bot officiel actuel (référence)",
+  label: "Baseline historique V3.1 + rules dispatch",
   status: "diagnostic",
   bidding: { kind: "official-rules-baseline" },
   card: { kind: "official-rules-baseline" },
@@ -215,6 +223,7 @@ export const ACTIVE_BOT_STRATEGIES: BotStrategyDefinition[] = [
   HUMAN_DOCTRINE_V1_STRATEGY,
   HUMAN_DOCTRINE_V3_STRATEGY,
   HUMAN_DOCTRINE_V3_1_STRATEGY,
+  ADVANCED_RULES_V4_STRATEGY,
   ADVANCED_RULES_STRATEGY,
   OFFICIAL_RULES_BASELINE_STRATEGY,
 ];
@@ -269,7 +278,7 @@ export function composeStrategy(
 }
 
 export function chooseStrategyBid(state: GameState, strategy: BotStrategyDefinition): StrategyBid {
-  if (strategy.bidding.kind === "official-rules-baseline") return chooseBotBid(state);
+  if (strategy.bidding.kind === "official-rules-baseline") return chooseV31RulesBaselineBid(state);
   if (strategy.bidding.kind === "advanced-rules") return chooseAdvancedRulesBid(state);
   if (strategy.bidding.kind === "legacy") return chooseLegacyBid(state.hands[state.currentPlayerId]);
   if (strategy.bidding.kind === "bidding-v2") return chooseBiddingV2(state);
@@ -303,7 +312,7 @@ export function chooseStrategyCardWithTrace(
   strategy: BotStrategyDefinition,
 ): { card: Card; trace?: BotDecisionTraceV3 } {
   switch (strategy.card.kind) {
-    case "official-rules-baseline": return { card: chooseBotCard(state) };
+    case "official-rules-baseline": return { card: chooseV31RulesBaselineCard(state) };
     case "advanced-rules": return { card: chooseAdvancedRulesCard(state) };
     case "legacy": return { card: chooseLegacyCard(state) };
     case "monte-carlo-v1": return { card: chooseMonteCarloCardToPlay(state) };

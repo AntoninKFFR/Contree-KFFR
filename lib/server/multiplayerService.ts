@@ -31,6 +31,25 @@ import { cleanUsername, validateUsername } from "@/lib/profiles";
 const ROOM_COLUMNS = "id,code,status,host_user_id,active_game_id,scoring_mode,target_score,ruleset_id,ruleset_version,ruleset_snapshot,presentation_settings,game_phase,state_version,turn_deadline_at,created_at,updated_at,started_at,finished_at";
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
+export function fillEmptySeatsWithOfficialBots(
+  players: RoomPlayerRow[],
+  now: string,
+): RoomPlayerRow[] {
+  const availableNames = BOT_NAME_POOL.filter(
+    (name) => !players.some((player) => player.display_name === name),
+  );
+  return players.map((player, index) => player.kind === "empty" ? {
+    ...player,
+    kind: "bot" as const,
+    bot_profile_id: OFFICIAL_BOT_PROFILE_ID,
+    display_name: availableNames.shift() ?? `Bot ${index + 1}`,
+    is_ready: true,
+    is_connected: true,
+    bot_takeover: false,
+    last_seen_at: now,
+  } : player);
+}
+
 export async function resolveRoomUsername(userId: string): Promise<string> {
   const { data, error } = await getSupabaseAdmin().from("profiles").select("username").eq("id", userId).maybeSingle();
   if (error) throw new MultiplayerError("Impossible de vérifier ton pseudo pour le moment.", 503, "profile_unavailable");
@@ -470,14 +489,7 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
     requireHost(current.room, userId);
     if (current.room.status !== "lobby") throw new MultiplayerError("La table n'est pas dans le lobby.", 409);
     if (current.players.some((p) => p.kind === "human" && !p.is_ready)) throw new MultiplayerError("Tous les joueurs humains doivent être prêts.");
-    const availableNames = BOT_NAME_POOL.filter(
-      (name) => !current.players.some((player) => player.display_name === name),
-    );
-    const players = current.players.map((p, index) => p.kind === "empty" ? {
-      ...p, kind: "bot" as const, bot_profile_id: OFFICIAL_BOT_PROFILE_ID,
-      display_name: availableNames.shift() ?? `Bot ${index + 1}`,
-      is_ready: true, is_connected: true, bot_takeover: false, last_seen_at: now,
-    } : p);
+    const players = fillEmptySeatsWithOfficialBots(current.players, now);
     const names = Object.fromEntries(players.map((p) => [p.seat_index, p.display_name ?? `Joueur ${p.seat_index + 1}`])) as GameState["playerNames"];
     const storedRules = resolveRoomRules(current.room);
     const state = {

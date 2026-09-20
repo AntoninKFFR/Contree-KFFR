@@ -2,11 +2,11 @@
 
 Les bots utilisent des heuristiques explicites et des simulations Monte Carlo. Ils ne font pas de machine learning et ne lisent pas les mains cachées réelles.
 
-## Profil officiel et variante avancée
+## Profil officiel et références historiques
 
-`OFFICIAL_BOT_PROFILE_ID` vaut `human_doctrine_v3_1_conversation_mc_v1`. En Contrée classique, les enchères viennent de Human Doctrine V3.1 et le jeu de carte de Monte Carlo V1, avec un repli heuristique. Cette combinaison reste celle de Solo et du Multiplayer.
+`OFFICIAL_BOT_PROFILE_ID` vaut `advanced_rules_v4`. `bots/simpleBot.ts` route les enchères et le jeu de carte du Solo et du Multiplayer vers les moteurs Advanced Rules V4. Les actions avancées `capot`, `generale`, `coinche` et `surcoinche` sont transmises telles quelles au moteur.
 
-`advanced_rules_v4_experimental` est une stratégie distincte dans le registre de simulation. Elle étend V3.1 aux règles avancées sans promotion automatique. Les benchmarks appariés et une validation humaine sur la preview sont requis avant de changer le profil officiel.
+Le registre conserve `advanced_rules_v4_experimental` comme alias des benchmarks historiques et `human_doctrine_v3_1_conversation_mc_v1` comme référence de repli. Un rollback produit tient au changement d'une constante dans `bots/profiles.ts` vers cet identifiant V3.1.
 
 ## Choix du contrat
 
@@ -32,6 +32,6 @@ L'utilité interne Monte Carlo suit le contrat : réussite et marge en points po
 
 ## Limites et validation
 
-La prédiction des annonces du partenaire reste volontairement absente : sa main est cachée. L'évaluateur Capot peut manquer une occasion fondée sur des cartes du partenaire. Les mondes Monte Carlo sont échantillonnés et leurs continuations restent heuristiques ; un excellent coup tactique peut échapper à cette approximation. V4 demeure expérimentale tant que les simulations par ruleset et la relecture humaine ne justifient pas sa promotion.
+La prédiction des annonces du partenaire reste volontairement absente : sa main est cachée. L'évaluateur Capot peut manquer une occasion fondée sur des cartes du partenaire. Les mondes Monte Carlo sont échantillonnés et leurs continuations restent heuristiques ; un excellent coup tactique peut échapper à cette approximation. V4 est le profil produit ; l'identifiant suffixé `_experimental` reste disponible uniquement pour reproduire les mesures antérieures à la promotion.
 
 Le harness `npm run benchmark:advanced-rules -- --pairs=2` joue des seeds appariées avec inversion des camps. Les sept configurations, fréquences de contrats, annonces, Coinches, entames atout défensives et temps de décision sont décrits dans `reports/bot-advanced-rules.md`. Les tests ciblés sont dans `tests/advancedRulesBot.test.ts`.

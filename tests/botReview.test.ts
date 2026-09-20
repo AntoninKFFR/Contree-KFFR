@@ -14,6 +14,7 @@ import {
 import { chooseBotBidWithTrace, chooseBotCard } from "@/bots/simpleBot";
 import { chooseHumanDoctrineV2Bid } from "@/bots/strategy/humanDoctrineV2";
 import { chooseHumanDoctrineV3Bid } from "@/bots/strategy/humanDoctrineV3";
+import { chooseHumanDoctrineV31Bid } from "@/bots/strategy/humanDoctrineV31";
 import { cardId } from "@/engine/cards";
 import { createInitialGame, makeBid, playCard, playableCardsForCurrentPlayer } from "@/engine/game";
 import { createSeededRandom } from "@/engine/random";
@@ -55,7 +56,8 @@ describe("human bot decision review", () => {
     expect(scenario.version).toBe(1);
     expect(scenario.chosenCard).toEqual(chosenCard);
     expect(scenario.legalCards.map(cardId)).toEqual(playableCardsForCurrentPlayer(state).map(cardId));
-    expect(scenario.decisionEngine).toBe("montecarlo_v1");
+    expect(scenario.decisionEngine).toBe("advanced_rules_v4");
+    expect(scenario.trace.source).toBe("advanced-rules-v4");
     expect(scenario.trace.knowledge).toBeDefined();
     expect(parsed).not.toHaveProperty("hands");
     expect(json).not.toContain('"hands"');
@@ -85,7 +87,7 @@ describe("human bot decision review", () => {
     expect(stateAfterDecision.hands[scenario.playerId].map(cardId)).not.toContain(cardId(chosenCard));
   });
 
-  it("reconstructs a Bot Lab position and reproduces the official Monte Carlo V1 card choice", () => {
+  it("reconstructs a Bot Lab position and reproduces the official V4 card choice", () => {
     const state = playingState(8101);
     const chosenCard = chooseBotCard(state);
     const scenario = captureBotReviewScenario(state, {
@@ -103,7 +105,7 @@ describe("human bot decision review", () => {
     expect(chooseBotCard(reconstructed)).toEqual(chosenCard);
   });
 
-  it("keeps Monte Carlo V1 executable with announcements enabled in the GameState", () => {
+  it("keeps V4 executable with announcements enabled in the GameState", () => {
     let state = createInitialGame(
       createSeededRandom(8106),
       createGameSettings({ ruleset: rulesetWithAnnouncements }),
@@ -120,14 +122,19 @@ describe("human bot decision review", () => {
     expect(next.announcements?.declaredPlayerIds).toContain(state.currentPlayerId);
   });
 
-  it("captures the official V3.1 bidding trace and rejects a forged illegal chosen card", () => {
+  it("captures the V3.1 rollback trace and rejects a forged illegal chosen card", () => {
     const bidding = createInitialGame(createSeededRandom(8102));
-    const { bid: chosenBid, biddingTrace } = chooseBotBidWithTrace(bidding);
+    const decision = chooseHumanDoctrineV31Bid(bidding);
+    const chosenBid = decision.action === "bid"
+      ? { action: "bid" as const, value: decision.value, trump: decision.trump }
+      : { action: "pass" as const };
+    const biddingTrace = decision.trace;
     const bidScenario = captureBotReviewScenario(bidding, {
       decisionNumber: 1,
       elapsedMs: 0.1,
       chosenBid,
       biddingTrace,
+      botProfile: "human_doctrine_v3_1_conversation_mc_v1",
     });
     expect(botReviewScenarioToGameState(bidScenario)).toMatchObject({
       phase: "bidding",
@@ -245,8 +252,8 @@ describe("human bot decision review", () => {
     expect(history[0]).not.toBe(firstScenario);
     expect(history[0].ownHand.map(cardId)).toEqual(firstState.hands[firstState.currentPlayerId].map(cardId));
     expect(history[1].ownHand.map(cardId)).toEqual(secondState.hands[secondState.currentPlayerId].map(cardId));
-    expect(history[0].trace.bidding).toMatchObject({ version: 3 });
-    expect(history[1].trace.bidding).toMatchObject({ version: 3 });
+    expect(history[0]).toMatchObject({ botProfile: "advanced_rules_v4", decisionEngine: "advanced_rules_v4" });
+    expect(history[1]).toMatchObject({ botProfile: "advanced_rules_v4", decisionEngine: "advanced_rules_v4" });
 
     const capped = Array.from({ length: BOT_REVIEW_HISTORY_LIMIT + 1 }, (_, index) => ({
       ...firstScenario,

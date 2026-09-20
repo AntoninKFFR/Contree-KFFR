@@ -2,7 +2,8 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { captureBotReviewScenario, createBotReviewBundle, isBotReviewModeEnabled } from "@/bots/botReview";
-import { chooseBotBidWithTrace, chooseBotCard } from "@/bots/simpleBot";
+import { chooseBotCard } from "@/bots/simpleBot";
+import { chooseHumanDoctrineV31Bid } from "@/bots/strategy/humanDoctrineV31";
 import {
   SoloBotHandsPanel,
   sortCardsForAnalysis,
@@ -100,14 +101,19 @@ describe("solo bot hand analysis", () => {
     expect(markup).toContain(`data-card-id="${cardId(chosenCard)}" data-chosen="true"`);
   });
 
-  it("renders every available official V3.1 auction diagnostic", () => {
+  it("renders every available V3.1 rollback auction diagnostic", () => {
     const state = createInitialGame(createSeededRandom(8203));
-    const { bid, biddingTrace } = chooseBotBidWithTrace(state);
+    const decision = chooseHumanDoctrineV31Bid(state);
+    const bid = decision.action === "bid"
+      ? { action: "bid" as const, value: decision.value, trump: decision.trump }
+      : { action: "pass" as const };
+    const biddingTrace = decision.trace;
     const scenario = captureBotReviewScenario(state, {
       decisionNumber: 2,
       elapsedMs: 1,
       chosenBid: bid,
       biddingTrace,
+      botProfile: "human_doctrine_v3_1_conversation_mc_v1",
     });
     const markup = renderToStaticMarkup(React.createElement(BotReviewPanel, {
       onClose: () => undefined,

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
 import {
   chooseHumanDoctrineV3Bid,
   classifyTrumpFoundation,
@@ -226,6 +225,5 @@ describe("Auction Doctrine V3 conversation", () => {
       bidding: { kind: "human-doctrine-v3" },
       card: { kind: "monte-carlo-v1" },
     });
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_1_conversation_mc_v1");
   });
 });

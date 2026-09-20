@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
 import {
   HUMAN_DOCTRINE_V2_110,
   analyzeAuctionContext,
@@ -210,13 +209,12 @@ describe("human doctrine V2 communicative bidding", () => {
     }));
   });
 
-  it("registers the communication variant as experimental with MC V1 while V3 is official", () => {
+  it("registers the communication variant as experimental with MC V1", () => {
     expect(findBotStrategy("human_doctrine_v2_comm_mc_v1")).toMatchObject({
       status: "experimental",
       bidding: { kind: "human-doctrine-v2", options: { allow110: true, communication: true } },
       card: { kind: "monte-carlo-v1" },
     });
-    expect(OFFICIAL_BOT_PROFILE_ID).toBe("human_doctrine_v3_1_conversation_mc_v1");
     expect(analyzeAuctionContext(stateWith({ hand: jackOnlyStrong })).publicBids).toEqual([]);
   });
 

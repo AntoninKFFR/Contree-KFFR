@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { chooseBotCard } from "@/bots/simpleBot";
 import {
   getMonteCarloV2Candidates,
   chooseMonteCarloCardToPlay,
@@ -9,6 +8,7 @@ import { chooseMonteCarloBid } from "@/bots/strategy/monteCarloBiddingStrategy";
 import type { Card, GameState } from "@/engine/types";
 import { playableCardsForCurrentPlayer } from "@/engine/game";
 import { createGameSettings } from "@/engine/rulesets/resolve";
+import { chooseStrategyCard, findBotStrategy } from "@/simulation/botRegistry";
 import {
   freeDiscardVariant,
   mustUndertrumpVariant,
@@ -122,14 +122,15 @@ describe("monte carlo bot", () => {
     );
   });
 
-  it("uses Monte Carlo V1 for the promoted official web bot card choice", () => {
+  it("keeps Monte Carlo V1 on the V3.1 rollback strategy", () => {
     const state = stateForMonteCarlo([
       card("J", "hearts"),
       card("9", "hearts"),
       card("A", "diamonds"),
     ]);
 
-    expect(chooseBotCard(state)).toEqual(chooseMonteCarloCardToPlay(state));
+    expect(chooseStrategyCard(state, findBotStrategy("human_doctrine_v3_1_conversation_mc_v1")))
+      .toEqual(chooseMonteCarloCardToPlay(state));
   });
 
   it("never returns a card illegal under the current GameState ruleset", () => {

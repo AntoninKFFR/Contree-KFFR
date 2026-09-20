@@ -182,10 +182,11 @@ en multijoueur.
 `composeStrategy`) et distingue les stratégies `active` des `experimental`.
 
 **Bot de production.** `bots/profiles.ts` expose
-`OFFICIAL_BOT_PROFILE_ID = "human_doctrine_v3_1_conversation_mc_v1"` : enchères par la doctrine
-conversationnelle V3.1, cartes par Monte Carlo V1. `bots/simpleBot.ts` est l'**unique point d'entrée**
-du produit (`chooseBotBid`, `chooseBotBidWithTrace`, `chooseBotCard`), utilisé à la fois par le solo
+`OFFICIAL_BOT_PROFILE_ID = "advanced_rules_v4"` : enchères et cartes par les moteurs Advanced Rules
+V4. `bots/simpleBot.ts` est l'**unique point d'entrée** du produit (`chooseBotBid`,
+`chooseBotBidWithTrace`, `chooseBotCard`), utilisé à la fois par le solo
 (`app/solo/SoloPageClient.tsx`) et par le serveur multijoueur (`lib/server/multiplayerGame.ts`).
+La stratégie V3.1 reste enregistrée pour un rollback par changement de cette seule constante.
 
 **Connaissance de table.** `bots/strategy/trickKnowledge.ts` reconstruit, à partir du seul état public,
 les couleurs dont chaque joueur est coupé (déduites des défausses), les atouts joués et restants, la
@@ -210,12 +211,10 @@ que la main du bot et l'historique public des enchères.
 
 **Limites connues.**
 
-- `BOT_STRATEGY.md` est **périmé** : il décrit `main_montecarlo_v2` comme bot de production. Voir §8.
-- `reports/auction-doctrine-v3.md` promeut `human_doctrine_v3_conversation_mc_v1`, alors que le code
-  tourne sur `human_doctrine_v3_1_conversation_mc_v1`. La promotion de la V3.1 n'a pas de rapport de
-  décision associé — seul un benchmark « smoke » existe
-  (`scripts/benchmarkAuctionDoctrineV31Smoke.ts`).
-- Aucun bot ne demande volontairement le capot : `StrategyBid` ne propose pas cette action.
+- Les rapports sous `reports/` décrivent les décisions et mesures historiques de leurs versions ; ils
+  ne constituent pas la configuration produit courante.
+- Les contrats exceptionnels restent rares en parties aléatoires. Les scénarios déterministes couvrent
+  Capot, Générale, Coinche et Surcoinche, tandis que le suivi statistique reste utile après promotion.
 - `bots/heuristicBot 2.ts` (nom de fichier contenant un espace) est **load-bearing** : il est importé
   par `bots/simpleBot.ts`, `bots/strategy/humanDoctrine.ts`, `simulation/botRegistry.ts` et
   `scripts/diagnoseHumanDoctrineBidding.ts`. Il ne doit pas être supprimé sans renommage préalable.
@@ -480,13 +479,13 @@ la CI. Voir §8.
 | # | Constat | Fichier(s) | Gravité |
 |---|---|---|---|
 | 1 | `README.md` décrit une « V1 » obsolète : bot officiel `main`, profils `main`/`prudent`/`balanced`/`aggressive`, aucune mention de SA/TA, générale, annonces, rulesets, préférences, e2e | `README.md` | Moyenne |
-| 2 | `BOT_STRATEGY.md` annonce `main_montecarlo_v2` comme bot de production ; le code utilise `human_doctrine_v3_1_conversation_mc_v1` | `BOT_STRATEGY.md` vs `bots/profiles.ts` | Haute — induit en erreur tout nouvel arrivant et tout agent de code |
-| 3 | La table `games` n'a aucune migration de création : un environnement vierge n'est pas reconstructible depuis le dépôt | `supabase/migrations/` | Haute |
-| 4 | La CI n'exécute ni `typecheck`, ni `lint`, ni `test` | `.github/workflows/e2e-smoke.yml` | Haute |
+| 2 | Résolu : `BOT_STRATEGY.md` et le code désignent `advanced_rules_v4` comme bot de production | `BOT_STRATEGY.md` et `bots/profiles.ts` | Résolu |
+| 3 | Résolu : la migration rétroactive de création de `games` a été ajoutée par la PR #3 | `supabase/migrations/20260901000000_create_solo_games_table.sql` | Résolu |
+| 4 | La CI exécute `typecheck`, `lint`, le build et les smoke tests depuis la PR #4 ; `npm test` reste à câbler séparément des benchmarks lourds | `.github/workflows/e2e-smoke.yml` | Moyenne |
 | 5 | `bots/simpleBot 2.ts` n'est importé nulle part — fichier mort | `bots/simpleBot 2.ts` | Faible |
 | 6 | `bots/heuristicBot 2.ts` est importé par quatre modules malgré un nom de fichier contenant un espace : à renommer, pas à supprimer | `bots/simpleBot.ts`, `humanDoctrine.ts`, `botRegistry.ts`, `diagnoseHumanDoctrineBidding.ts` | Moyenne |
-| 7 | La promotion de la V3.1 comme bot officiel n'a pas de rapport de décision, contrairement à la V3 | `reports/`, `bots/profiles.ts` | Moyenne |
-| 8 | `CONTRIBUTING.md` n'est pas encore sur `main` (branche `chore/add-contributing-guide`) au moment de la rédaction | branche non mergée | Faible — en cours |
+| 7 | Les anciens rapports restent figés et doivent être lus avec l'identifiant de stratégie qu'ils mesurent | `reports/`, `bots/profiles.ts` | Faible |
+| 8 | Résolu : `CONTRIBUTING.md` est sur `main` depuis la PR #1 | `CONTRIBUTING.md` | Résolu |
 | 9 | Une vingtaine de scripts de benchmark coexistent sans marquage actif/obsolète | `scripts/`, `package.json` | Faible |
 | 10 | `RoomPageClient.tsx` concentre ~40 Ko de logique client | `app/multiplayer/[roomId]/RoomPageClient.tsx` | Moyenne |
 
@@ -500,15 +499,13 @@ la CI. Voir §8.
 1. **Le preset est-il le règlement officiel du produit, ou seulement un défaut ?** Le produit expose une
    combinatoire de règles. Faut-il définir une variante canonique, seule utilisée pour les
    classements, statistiques comparables et contenus pédagogiques à venir ?
-2. **Faut-il un rapport de décision pour la V3.1 ?** La discipline de mesure appliquée jusqu'à la V3 n'a
-   pas été tenue pour la promotion actuelle.
-3. **La CI doit-elle bloquer sur `typecheck` / `lint` / `test` ?** Recommandation : oui, avant d'ouvrir
-   le développement à des agents de code qui ouvriront des PR en volume.
-4. **Comment reconstruire `games` ?** Une migration rétroactive `create table if not exists` alignée sur
-   le schéma réel est le correctif le plus simple.
-5. **Quel niveau de confidentialité pour `NEXT_PUBLIC_BOT_REVIEW_MODE` en production ?** Le flag est
+2. **Quel suivi post-promotion pour V4 ?** Les tests déterministes couvrent les modes avancés ; les
+   futurs benchmarks doivent continuer à publier l'identifiant exact et les règles utilisées.
+3. **Comment câbler `npm test` à la CI sans mêler les benchmarks lourds ?** `typecheck`, `lint`, le build
+   et les smoke tests sont déjà bloquants ; la suite Vitest doit rester distincte des commandes de benchmark.
+4. **Quel niveau de confidentialité pour `NEXT_PUBLIC_BOT_REVIEW_MODE` en production ?** Le flag est
    côté client ; son périmètre d'exposition mérite d'être tranché avant l'ouverture au grand public.
-6. **Les statistiques doivent-elles rester comparables entre rulesets ?** Un tableau de bord mélangeant
+5. **Les statistiques doivent-elles rester comparables entre rulesets ?** Un tableau de bord mélangeant
    des parties jouées sous des règles différentes produit des agrégats difficiles à interpréter.
 
 ---
@@ -526,6 +523,6 @@ Les trois coutures les plus prometteuses pour des extensions futures sont `toPla
 décision des bots (explicabilité). Elles existent déjà et n'ont pas été conçues pour l'interface : les
 exposer est un travail d'intégration, pas de conception.
 
-Les quatre dettes à traiter en priorité, parce qu'elles pénalisent directement le travail à plusieurs
-et avec des agents de code, sont : la mise à jour de `BOT_STRATEGY.md` (#2), la migration manquante de
-`games` (#3), le durcissement de la CI (#4) et le merge de `CONTRIBUTING.md` (#8).
+Les dettes à traiter en priorité sont maintenant la mise à jour du `README.md` (#1), l'ajout de la suite
+Vitest à la CI sans y mêler les benchmarks lourds (#4), le renommage sûr de `heuristicBot 2.ts` (#6)
+et la réduction de la concentration de logique dans `RoomPageClient.tsx` (#10).
