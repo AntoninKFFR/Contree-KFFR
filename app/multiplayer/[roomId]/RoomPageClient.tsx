@@ -12,6 +12,7 @@ import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { FinishedRoomCard } from "@/components/multiplayer/FinishedRoomCard";
 import { LobbyHeader, LobbyRulesDialog, LobbyTable, WaitingArea } from "@/components/multiplayer/RoomLobby";
 import { errorMessage, useMultiplayerRoomSync } from "@/components/multiplayer/useMultiplayerRoomSync";
+import { useMultiplayerRoomTimers } from "@/components/multiplayer/useMultiplayerRoomTimers";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import {
   appDangerActionClass,
@@ -32,10 +33,9 @@ import { resolveRoomRules } from "@/engine/rulesets/room";
 import type { BidValue, Card, ContractMode } from "@/engine/types";
 import { handWithoutPendingCard, visiblePendingCard, type PendingLocalPlay } from "@/lib/multiplayerOptimisticPlay";
 import { loginPath } from "@/lib/authRedirect";
-import { MultiplayerApiError, sendRoomIntent, sendRoomIntentWithLobbyRetry, sendRoomTick } from "@/lib/multiplayerApi";
+import { MultiplayerApiError, sendRoomIntent, sendRoomIntentWithLobbyRetry } from "@/lib/multiplayerApi";
 import type { RoomPlayerAction, RoomPlayerRow } from "@/lib/roomTypes";
 import { getSupabaseClient } from "@/lib/supabaseClient";
-import { MULTIPLAYER_TICK_INTERVAL_MS, botPacingDelayMs } from "@/lib/multiplayerTurnTimer";
 import { normalizeMultiplayerTablePreferences, type MultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 
 function roomIdFromParams(value: string | string[] | undefined): string | null {
@@ -79,7 +79,6 @@ export default function MultiplayerRoomPage() {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
-  const [countdownNowMs, setCountdownNowMs] = useState<number | null>(null);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [rulesDraft, setRulesDraft] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
@@ -107,6 +106,14 @@ export default function MultiplayerRoomPage() {
     }),
     [storedAutoCollectTricks, storedTableSpeed, storedTrickDisplayMs],
   );
+  const { turnSecondsRemaining } = useMultiplayerRoomTimers({
+    accessToken,
+    roomId,
+    roomWithPlayers,
+    setRoomWithPlayers,
+    tablePreferences,
+    viewerSeatIndex,
+  });
   const lobbyRules = useMemo(() => roomWithPlayers ? resolveRoomRules(roomWithPlayers.room) : CONTREE_KFFR_RULESET, [roomWithPlayers]);
   useEffect(() => {
     if (!roomWithPlayers || roomWithPlayers.room.status !== "lobby") return;
@@ -135,20 +142,6 @@ export default function MultiplayerRoomPage() {
   const playerView = roomWithPlayers?.game ?? null;
   const visiblePendingCardValue = visiblePendingCard(pendingLocalPlay, roomWithPlayers?.room.state_version ?? null, playerView?.hand ?? null);
   const gameState = playerView;
-  const deadlineMs = roomWithPlayers?.room.turn_deadline_at
-    ? Date.parse(roomWithPlayers.room.turn_deadline_at)
-    : Number.NaN;
-  const timedPlayer = playerView
-    ? roomWithPlayers?.players.find((player) => player.seat_index === playerView.currentPlayerId)
-    : undefined;
-  const turnSecondsRemaining =
-    countdownNowMs !== null &&
-    Number.isFinite(deadlineMs) &&
-    timedPlayer?.kind === "human" &&
-    !timedPlayer.bot_takeover &&
-    (playerView?.phase === "bidding" || playerView?.phase === "playing")
-      ? Math.max(0, Math.ceil((deadlineMs - countdownNowMs) / 1000))
-      : null;
   const displayedRoomStatus =
     roomWithPlayers?.room.status === "finished" && gameState?.phase !== "game-over"
       ? "playing"
@@ -232,59 +225,6 @@ export default function MultiplayerRoomPage() {
       window.removeEventListener("resize", update);
     };
   }, []);
-
-  useEffect(() => {
-    if (
-      !roomId ||
-      !accessToken ||
-      viewerSeatIndex === null ||
-      roomWithPlayers?.room.status !== "playing"
-    ) return;
-
-    let active = true;
-    let timerId: number;
-    const game = roomWithPlayers.game;
-    const seat = game ? roomWithPlayers.players.find((player) => player.seat_index === game.currentPlayerId) : null;
-    const botTurn = game && (game.phase === "bidding" || game.phase === "playing")
-      && (seat?.kind === "bot" || seat?.bot_takeover);
-    const updatedAt = Date.parse(roomWithPlayers.room.updated_at);
-    const dueAt = botTurn && Number.isFinite(updatedAt)
-      ? updatedAt + botPacingDelayMs(game.phase as "bidding" | "playing", game.currentTrick.cards.length, game.completedTricks.length, tablePreferences)
-      : null;
-    const tick = async () => {
-      try {
-        const nextRoom = await sendRoomTick(roomId, { access_token: accessToken });
-        if (active) {
-          setRoomWithPlayers((current) =>
-            current && current.room.state_version >= nextRoom.room.state_version
-              ? current
-              : nextRoom);
-        }
-      } catch {
-        // Another member or the next scheduled check can advance the room.
-      } finally {
-        if (active) timerId = window.setTimeout(tick, botTurn ? 500 : MULTIPLAYER_TICK_INTERVAL_MS);
-      }
-    };
-
-    timerId = window.setTimeout(tick, dueAt === null
-      ? MULTIPLAYER_TICK_INTERVAL_MS
-      : Math.max(0, dueAt - Date.now()) + 30);
-    return () => {
-      active = false;
-      window.clearTimeout(timerId);
-    };
-  }, [accessToken, roomId, roomWithPlayers, setRoomWithPlayers, tablePreferences, viewerSeatIndex]);
-
-  useEffect(() => {
-    if (!roomWithPlayers?.room.turn_deadline_at) {
-      setCountdownNowMs(null);
-      return;
-    }
-    setCountdownNowMs(Date.now());
-    const intervalId = window.setInterval(() => setCountdownNowMs(Date.now()), 1_000);
-    return () => window.clearInterval(intervalId);
-  }, [roomWithPlayers?.room.turn_deadline_at]);
 
   async function handleToggleReady() {
     const supabase = getSupabaseClient();
