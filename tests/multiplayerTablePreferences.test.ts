@@ -150,6 +150,7 @@ describe("atomic persistence and client synchronization", () => {
   const sql = readFileSync("supabase/migrations/20260915000000_multiplayer_table_pacing.sql", "utf8");
   const service = readFileSync("lib/server/multiplayerService.ts", "utf8");
   const client = readFileSync("app/multiplayer/[roomId]/RoomPageClient.tsx", "utf8");
+  const roomSync = readFileSync("components/multiplayer/useMultiplayerRoomSync.ts", "utf8");
   const api = readFileSync("lib/multiplayerApi.ts", "utf8");
 
   it("CAS-updates only presentation settings and the room version through a host-authorized RPC", () => {
@@ -163,7 +164,8 @@ describe("atomic persistence and client synchronization", () => {
 
   it("applies the room value to GameTable and relies on existing room Realtime", () => {
     expect(client).toContain("trickPresentationPolicy={{ autoCollect: tablePreferences.autoCollectTricks");
-    expect(client).toContain("subscribeToRoomRealtime");
+    expect(client).toContain("useMultiplayerRoomSync(roomId)");
+    expect(roomSync).toContain("subscribeToRoomRealtime");
   });
 
   it("writes the shared slow default when creating a room", () => {
