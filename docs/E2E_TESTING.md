@@ -72,7 +72,14 @@ Ne jamais mettre leurs valeurs dans Git, une commande copiée dans un ticket, un
 - action hors tour et carte absente refusées sans changement de version ;
 - enchères SA puis TA selon le joueur actif réel, trois passes et un pli complet ;
 - fermeture/recréation d'un contexte avec son `storageState` en mémoire, session/siège/main restaurés sans duplication ;
+- fermeture réelle d'un `BrowserContext`, puis projection hors ligne après le timeout produit de 60 secondes ;
+- activation du bot temporaire par l'hôte sur le siège humain conservé, et progression observée via le tick HTTP réel ;
+- reconnexion humaine avec le même `storageState`, heartbeat immédiat, même siège et arrêt automatique du takeover ;
+- fin par abandon, apparition de l'archive multijoueur dans l'historique du participant avec partenaires et adversaires cohérents ;
+- rematch depuis la room terminée, conservation des sièges humains, reset du ready/takeover et retour au lobby sans démarrage automatique ;
 - nettoyage limité à l'id exact créé : forfeit si la partie a commencé, ou libération séquentielle des sièges au lobby.
+
+Ces scénarios authentifiés restent des validations manuelles locales. Ils nécessitent quatre comptes dédiés et ne sont pas exécutés dans la CI publique.
 
 La base actuelle ne fournit pas d'API de suppression de room utilisateur. Le cleanup ne fait donc jamais de wildcard ni de suppression privilégiée : il termine ou vide uniquement la table créée par le test. Les noms `E2E_` permettent de reconnaître les données techniques.
 

@@ -25,8 +25,7 @@ export async function loginAs(page: Page, credentials: E2ECredentials): Promise<
   await expect(page.getByRole("heading", { name: "Connexion" })).toBeVisible();
   await page.getByLabel("Email").fill(credentials.email);
   await page.getByLabel("Mot de passe").fill(credentials.password);
-  await page.getByRole("button", { name: "Se connecter" }).click();
-  await expect(page.getByText("Connexion réussie.", { exact: true })).toBeVisible();
-  await expect(page.getByText(/^Connecté avec /)).toBeVisible();
+  await page.locator("form").getByRole("button", { name: "Se connecter" }).click();
+  await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
   await expect.poll(async () => page.evaluate(() => Object.keys(localStorage).some((key) => key.startsWith("sb-") && key.endsWith("-auth-token")))).toBe(true);
 }

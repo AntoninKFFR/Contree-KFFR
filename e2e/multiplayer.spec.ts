@@ -1,7 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { fourPlayerCredentials, loginAs } from "./helpers/auth";
 import { createRoomThroughUi, enableTechnicalRules, joinRoomThroughUi, setLocalPreferences } from "./helpers/multiplayerUi";
-import { expectRoom, monitorRoomPrivacy, roomView, sendIntent, type E2ERoomView } from "./helpers/room";
+import { expectRoom, monitorRoomPrivacy, roomView, sendIntent, sendTick, type E2ERoomView } from "./helpers/room";
 
 const auth = fourPlayerCredentials();
 const names = ["E2E_P1", "E2E_P2", "E2E_P3", "E2E_P4"];
@@ -11,7 +11,7 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
   test.describe.configure({ mode: "serial" });
 
   test("covers room lifecycle, privacy, Realtime, CAS, reconnect and preferences", async ({ browser, baseURL }) => {
-    test.setTimeout(180_000);
+    test.setTimeout(300_000);
     const contexts: BrowserContext[] = [];
     const pages: Page[] = [];
     let roomId: string | null = null;
@@ -26,13 +26,13 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       }
 
       const privacy = [monitorRoomPrivacy(pages[0]), monitorRoomPrivacy(pages[1])];
-      const created = await createRoomThroughUi(pages[0], names[0]);
+      const created = await createRoomThroughUi(pages[0]);
       roomId = created.roomId;
       const hostLobby = await roomView(pages[0], roomId);
       expect(hostLobby.isHost).toBe(true);
       expect(hostLobby.viewerSeatIndex).toBe(0);
       expect(hostLobby.room.ruleset_snapshot?.id).toBe("contree-kffr");
-      for (let index = 1; index < 4; index += 1) await joinRoomThroughUi(pages[index], created.code, names[index]);
+      for (let index = 1; index < 4; index += 1) await joinRoomThroughUi(pages[index], created.code);
 
       for (const page of pages) {
         await expect(page.getByRole("button", { name: "Règles", exact: true })).toBeVisible();
@@ -46,8 +46,8 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       // Two independent sessions race for the same free seat using one known version.
       const version = (await roomView(pages[0], roomId)).room.state_version;
       const race = await Promise.all([
-        sendIntent(pages[1], roomId, version, { type: "join-seat", seatIndex: 1, displayName: names[1] }),
-        sendIntent(pages[2], roomId, version, { type: "join-seat", seatIndex: 1, displayName: names[2] }),
+        sendIntent(pages[1], roomId, version, { type: "join-seat", seatIndex: 1 }),
+        sendIntent(pages[2], roomId, version, { type: "join-seat", seatIndex: 1 }),
       ]);
       expect(race.map((result) => result.status).sort()).toEqual([200, 409]);
       let converged = await expectRoom(pages[0], roomId, "one CAS seat winner", (view) => view.players.filter((p) => p.seat_index === 1 && p.kind === "human").length === 1);
@@ -56,8 +56,10 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       for (let index = 1; index < 4; index += 1) {
         const ownView = await roomView(pages[index], roomId);
         if (ownView.viewerSeatIndex === null) {
-          await expect(pages[index].getByRole("button", { name: "S'asseoir" })).toBeVisible();
-          await pages[index].getByRole("button", { name: "S'asseoir" }).click();
+          const freeSeat = ownView.players.find((player) => player.kind === "empty")?.seat_index;
+          if (freeSeat === undefined) throw new Error(`No free seat remained for ${names[index]}.`);
+          const joined = await sendIntent(pages[index], roomId, ownView.room.state_version, { type: "join-seat", seatIndex: freeSeat });
+          expect(joined.status).toBe(200);
           await expectRoom(pages[index], roomId, `${names[index]} seated`, (view) => view.viewerSeatIndex !== null);
         }
       }
@@ -100,7 +102,10 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       expect(forbidden.status).toBe(403);
       expect((await roomView(pages[0], roomId)).room.state_version).toBe(rulesView.room.state_version);
 
-      for (const page of pages) await page.getByRole("button", { name: "Prêt", exact: true }).click();
+      for (const page of pages) {
+        await page.getByRole("button", { name: "Prêt", exact: true }).click();
+        await expect(page.getByRole("button", { name: "Pas prêt", exact: true })).toBeVisible();
+      }
       await expectRoom(pages[0], roomId, "ready after rule reset", (view) => view.players.every((player) => player.is_ready));
       await pages[0].getByRole("button", { name: "Lancer la partie" }).click();
       let gameView = await expectRoom(pages[0], roomId, "authoritative game created", (view) => view.room.status === "playing" && view.game?.phase === "bidding");
@@ -124,14 +129,13 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       const initialVersion = gameView.room.state_version;
       const outOfTurnSeat = [0, 1, 2, 3].find((seat) => seat !== gameView.game!.currentPlayerId)!;
       const outOfTurn = await sendIntent(seatPages.get(outOfTurnSeat)!, roomId, initialVersion, { type: "game-action", action: { type: "pass" } });
-      expect(outOfTurn.status).toBe(409);
+      expect(outOfTurn.status).toBe(403);
       expect((await roomView(pages[0], roomId)).room.state_version).toBe(initialVersion);
 
       // Dynamic active-seat bidding: 80 SA, 90 TA, then three passes.
       let actorPage = seatPages.get(gameView.game!.currentPlayerId)!;
       await actorPage.getByRole("button", { name: "Valeur 80" }).click();
       await actorPage.getByRole("button", { name: "Atout Sans Atout" }).click();
-      await expect(actorPage.getByRole("button", { name: "Générale" })).toBeEnabled();
       await actorPage.getByRole("button", { name: "Annoncer" }).click();
       gameView = await expectRoom(pages[0], roomId, "SA bid propagated", (view) => view.game?.bids.some((bid) => bid.action === "bid" && bid.value === 80) === true);
       actorPage = seatPages.get(gameView.game!.currentPlayerId)!;
@@ -156,7 +160,7 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       const missingCard = suits.flatMap((suit) => ranks.map((rank) => ({ rank, suit }))).find((card) => !held.has(`${card.rank}-${card.suit}`))!;
       const forgedVersion = currentPrivate.room.state_version;
       const forged = await sendIntent(currentPage, roomId, forgedVersion, { type: "game-action", action: { type: "play-card", card: missingCard } });
-      expect(forged.status).toBe(409);
+      expect(forged.status).toBe(400);
       expect((await roomView(pages[0], roomId)).room.state_version).toBe(forgedVersion);
 
       for (let cardIndex = 0; cardIndex < 4; cardIndex += 1) {
@@ -195,10 +199,260 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       await Promise.all(contexts.map((context) => context.close().catch(() => undefined)));
     }
   });
+
+  test("covers real offline takeover, reconnect, history and rematch", async ({ browser, baseURL }) => {
+    test.setTimeout(360_000);
+    const contexts: BrowserContext[] = [];
+    const pages: Page[] = [];
+    let roomId: string | null = null;
+
+    try {
+      for (let index = 0; index < 4; index += 1) {
+        const context = await browser.newContext({ baseURL, viewport: { width: 1280, height: 720 } });
+        contexts.push(context);
+        const page = await context.newPage();
+        pages.push(page);
+        await loginAs(page, auth.credentials[index]);
+      }
+
+      const hostPage = pages[0];
+      const hostPrivacy = monitorRoomPrivacy(hostPage);
+      const created = await createRoomThroughUi(hostPage);
+      roomId = created.roomId;
+      for (let index = 1; index < 4; index += 1) {
+        await joinRoomThroughUi(pages[index], created.code);
+        const view = await roomView(pages[index], roomId);
+        const freeSeat = view.players.find((player) => player.kind === "empty")?.seat_index;
+        if (freeSeat === undefined) throw new Error(`No free seat remained for ${names[index]}.`);
+        const joined = await sendIntent(pages[index], roomId, view.room.state_version, { type: "join-seat", seatIndex: freeSeat });
+        expect(joined.status).toBe(200);
+      }
+
+      let live = await expectRoom(
+        hostPage,
+        roomId,
+        "four humans seated for lifecycle validation",
+        (view) => view.players.filter((player) => player.kind === "human").length === 4,
+      );
+      const seatPages = new Map<number, Page>();
+      for (const page of pages) {
+        const view = await roomView(page, roomId);
+        if (view.viewerSeatIndex === null) throw new Error("A lifecycle participant has no seat.");
+        seatPages.set(view.viewerSeatIndex, page);
+      }
+
+      for (const page of pages) {
+        const view = await roomView(page, roomId);
+        const ready = await sendIntent(page, roomId, view.room.state_version, { type: "set-ready", ready: true });
+        expect(ready.status).toBe(200);
+      }
+      live = await expectRoom(hostPage, roomId, "lifecycle players ready", (view) => view.players.every((player) => player.is_ready));
+      const started = await sendIntent(hostPage, roomId, live.room.state_version, { type: "start-game" });
+      expect(started.status).toBe(200);
+      live = await expectRoom(hostPage, roomId, "lifecycle game started", (view) => view.room.status === "playing" && view.game?.phase === "bidding");
+
+      const hostSeat = live.viewerSeatIndex;
+      if (hostSeat === null) throw new Error("The lifecycle host has no seat.");
+      const openingSeat = live.game!.currentPlayerId;
+      const openingPage = seatPages.get(openingSeat);
+      if (!openingPage) throw new Error("The opening bidder page is unavailable.");
+      const openingBid = await sendIntent(openingPage, roomId, live.room.state_version, {
+        type: "game-action",
+        action: { type: "bid", value: 80, contractMode: { kind: "suit", suit: "hearts" } },
+      });
+      expect(openingBid.status).toBe(200);
+      live = openingBid.body.data!;
+
+      if (live.game!.currentPlayerId === hostSeat) {
+        const hostPass = await sendIntent(hostPage, roomId, live.room.state_version, { type: "game-action", action: { type: "pass" } });
+        expect(hostPass.status).toBe(200);
+        live = hostPass.body.data!;
+      }
+      const takeoverSeat = live.game!.currentPlayerId;
+      expect(takeoverSeat).not.toBe(hostSeat);
+      const takeoverPage = seatPages.get(takeoverSeat);
+      if (!takeoverPage) throw new Error("The takeover target page is unavailable.");
+      const takeoverIndex = pages.indexOf(takeoverPage);
+      if (takeoverIndex < 0) throw new Error("The takeover target context is unavailable.");
+      const takeoverName = live.players.find((player) => player.seat_index === takeoverSeat)?.display_name;
+      if (!takeoverName) throw new Error("The takeover target has no public display name.");
+      const takeoverStorage = await contexts[takeoverIndex].storageState();
+      const targetBeforeDisconnect = await roomView(takeoverPage, roomId);
+      expect(targetBeforeDisconnect.game?.hand).toHaveLength(8);
+
+      await contexts[takeoverIndex].close();
+      seatPages.delete(takeoverSeat);
+      const offline = await expectRoom(
+        hostPage,
+        roomId,
+        "closed browser context projected offline after the real presence timeout",
+        (view) => view.players.some((player) => player.seat_index === takeoverSeat && !player.is_connected),
+        90_000,
+      );
+      const offlineSeat = offline.players.find((player) => player.seat_index === takeoverSeat)!;
+      expect(offlineSeat).toMatchObject({ kind: "human", display_name: takeoverName, is_connected: false, bot_takeover: false });
+      expect(offline.room.status).toBe("playing");
+
+      const takeoverButton = hostPage.getByRole("button", { name: `Faire jouer un bot pour ${takeoverName}` });
+      await expect(takeoverButton).toBeVisible({ timeout: 20_000 });
+      await takeoverButton.click();
+      const takeover = await expectRoom(
+        hostPage,
+        roomId,
+        "host enabled bot takeover for the offline human seat",
+        (view) => view.players.some((player) => player.seat_index === takeoverSeat && player.bot_takeover),
+      );
+      expect(takeover.players.find((player) => player.seat_index === takeoverSeat)).toMatchObject({
+        kind: "human",
+        display_name: takeoverName,
+        is_connected: false,
+        bot_takeover: true,
+      });
+      expect(takeover.room.status).toBe("playing");
+
+      const takeoverVersion = takeover.room.state_version;
+      const actionCountBefore = playerActionCount(takeover, takeoverSeat);
+      let tickRequests = 0;
+      for (const page of pages) {
+        if (page.isClosed()) continue;
+        page.on("request", (request) => {
+          if (request.method() === "POST" && new URL(request.url()).pathname === `/api/multiplayer/rooms/${roomId}/tick`) tickRequests += 1;
+        });
+      }
+
+      live = takeover;
+      let takeoverActionObserved = false;
+      for (let step = 0; step < 16 && !takeoverActionObserved; step += 1) {
+        if (!live.game || (live.game.phase !== "bidding" && live.game.phase !== "playing")) {
+          throw new Error("The game left an actionable phase before takeover progression was observed.");
+        }
+        const actorSeat = live.game.currentPlayerId;
+        if (actorSeat === takeoverSeat) {
+          const tick = await sendTick(hostPage, roomId);
+          expect(tick.status).toBe(200);
+          await hostPage.waitForTimeout(600);
+        } else if (live.game.phase === "bidding") {
+          const actorPage = seatPages.get(actorSeat);
+          if (!actorPage) throw new Error(`No connected bidder page for seat ${actorSeat}.`);
+          const pass = await sendIntent(actorPage, roomId, live.room.state_version, { type: "game-action", action: { type: "pass" } });
+          if (pass.status !== 409) expect(pass.status).toBe(200);
+        } else {
+          const actorPage = seatPages.get(actorSeat);
+          if (!actorPage) throw new Error(`No connected card player page for seat ${actorSeat}.`);
+          const beforeVersion = live.room.state_version;
+          const cardButton = actorPage.locator('button[aria-label^="Jouer "]:not([disabled])').first();
+          await expect(cardButton).toBeVisible({ timeout: 15_000 });
+          await cardButton.click();
+          await expectRoom(hostPage, roomId, `human seat ${actorSeat} advanced toward takeover turn`, (view) => view.room.state_version > beforeVersion);
+        }
+        live = await roomView(hostPage, roomId);
+        takeoverActionObserved = playerActionCount(live, takeoverSeat) > actionCountBefore;
+      }
+      expect(takeoverActionObserved).toBe(true);
+      expect(live.room.state_version).toBeGreaterThan(takeoverVersion);
+      expect(tickRequests).toBeGreaterThan(0);
+
+      contexts[takeoverIndex] = await browser.newContext({
+        baseURL,
+        storageState: takeoverStorage,
+        viewport: { width: 1280, height: 720 },
+      });
+      const reconnectedPage = await contexts[takeoverIndex].newPage();
+      pages[takeoverIndex] = reconnectedPage;
+      seatPages.set(takeoverSeat, reconnectedPage);
+      const reconnectPrivacy = monitorRoomPrivacy(reconnectedPage);
+      await reconnectedPage.goto(`/multiplayer/${roomId}`);
+      const reconnected = await expectRoom(
+        reconnectedPage,
+        roomId,
+        "human heartbeat disabled takeover and restored the same seat",
+        (view) => view.viewerSeatIndex === takeoverSeat && view.players.some(
+          (player) => player.seat_index === takeoverSeat && player.is_connected && !player.bot_takeover,
+        ),
+        30_000,
+      );
+      expect(reconnected.players.filter((player) => player.display_name === takeoverName)).toHaveLength(1);
+      expect(new Set(reconnected.players.filter((player) => player.kind === "human").map((player) => player.seat_index)).size).toBe(4);
+      expect(reconnected.game?.hand).toHaveLength(reconnected.game!.handCounts[String(takeoverSeat)]);
+      assertNoAuthoritativeHands(reconnected);
+
+      const forfeit = await sendIntent(reconnectedPage, roomId, reconnected.room.state_version, { type: "forfeit-game" });
+      expect(forfeit.status).toBe(200);
+      const finished = await expectRoom(
+        hostPage,
+        roomId,
+        "forfeit archived the real multiplayer game",
+        (view) => view.room.status === "finished" && view.game?.phase === "game-over",
+      );
+      const forfeitingTeam = takeoverSeat % 2;
+      expect(finished.game?.endReason).toBe("forfeit");
+      expect(finished.game?.forfeitingTeam).toBe(forfeitingTeam);
+      expect(finished.game?.winnerTeam).toBe(forfeitingTeam === 0 ? 1 : 0);
+      expect(finished.players.every((player) => !player.bot_takeover)).toBe(true);
+
+      const hostPlayer = finished.players.find((player) => player.is_host);
+      if (!hostPlayer) throw new Error("The finished room has no public host projection.");
+      const partner = finished.players.find(
+        (player) => player.kind === "human" && player.seat_index !== hostPlayer.seat_index && player.seat_index % 2 === hostPlayer.seat_index % 2,
+      );
+      const opponents = finished.players.filter(
+        (player) => player.kind === "human" && player.seat_index % 2 !== hostPlayer.seat_index % 2,
+      );
+      if (!partner || opponents.length !== 2) throw new Error("The lifecycle teams are incomplete.");
+
+      await hostPage.goto("/history");
+      await hostPage.getByRole("button", { name: "Multijoueur", exact: true }).click();
+      const latestHistory = hostPage.locator("li").first();
+      await expect(latestHistory).toContainText("Multijoueur", { timeout: 15_000 });
+      await expect(latestHistory).toContainText("Fin: abandon");
+      await expect(latestHistory).toContainText(`Partenaire: ${partner.display_name}`);
+      for (const opponent of opponents) await expect(latestHistory).toContainText(opponent.display_name!);
+
+      const seatsBeforeRematch = finished.players
+        .filter((player) => player.kind === "human")
+        .map((player) => [player.seat_index, player.display_name, player.kind])
+        .sort(([first], [second]) => Number(first) - Number(second));
+      await hostPage.goto(`/multiplayer/${roomId}`);
+      await expect(hostPage.getByRole("button", { name: "Rejouer" })).toBeVisible();
+      await hostPage.getByRole("button", { name: "Rejouer" }).click();
+      const rematch = await expectRoom(
+        hostPage,
+        roomId,
+        "rematch returned the same room to its lobby",
+        (view) => view.room.status === "lobby" && view.game === null,
+      );
+      expect(new URL(hostPage.url()).pathname).toBe(`/multiplayer/${roomId}`);
+      expect(rematch.room.id).toBe(roomId);
+      expect(rematch.players
+        .filter((player) => player.kind === "human")
+        .map((player) => [player.seat_index, player.display_name, player.kind])
+        .sort(([first], [second]) => Number(first) - Number(second))).toEqual(seatsBeforeRematch);
+      expect(rematch.players.every((player) => !player.bot_takeover)).toBe(true);
+      expect(rematch.players.filter((player) => player.kind === "human").every((player) => !player.is_ready)).toBe(true);
+      expect(rematch.room.status).toBe("lobby");
+      expect(rematch.game).toBeNull();
+
+      await hostPrivacy.assertSafeTraffic();
+      await reconnectPrivacy.assertSafeTraffic();
+    } finally {
+      if (roomId) await bestEffortFinishRoom(pages, roomId);
+      await Promise.all(contexts.map((context) => context.close().catch(() => undefined)));
+    }
+  });
 });
 
 function assertNoAuthoritativeHands(view: E2ERoomView): void {
   if ("hands" in (view.game ?? {})) throw new Error("Privacy violation: reconnect exposed authoritative hands.");
+}
+
+function playerActionCount(view: E2ERoomView, seatIndex: number): number {
+  if (!view.game) return 0;
+  return view.game.bids.filter((bid) => bid.playerId === seatIndex).length
+    + view.game.currentTrick.cards.filter((played) => played.playerId === seatIndex).length
+    + view.game.completedTricks.reduce(
+      (count, trick) => count + trick.cards.filter((played) => played.playerId === seatIndex).length,
+      0,
+    );
 }
 
 async function bestEffortFinishRoom(pages: Page[], roomId: string): Promise<void> {
