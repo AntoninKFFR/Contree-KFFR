@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { ensureProfile } from "@/lib/profiles";
 import { createMultiplayerRoom, findMultiplayerRoom } from "@/lib/multiplayerApi";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { ReceivedInvitations } from "@/components/multiplayer/ReceivedInvitations";
+import { declineGameInvitation, fetchGameInvitations, gameInvitationRoomPath, resolveGameInvitation, socialErrorMessage, SocialApiError, type GameInvitationsSnapshot } from "@/lib/socialApi";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
@@ -35,6 +37,25 @@ export default function MultiplayerPage() {
   const [rules, setRules] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [invitations, setInvitations] = useState<GameInvitationsSnapshot | null>(null);
+  const [invitationsError, setInvitationsError] = useState<string | null>(null);
+  const [invitationMessage, setInvitationMessage] = useState<string | null>(null);
+  const [pendingInvitation, setPendingInvitation] = useState<string | null>(null);
+  const invitationSequence = useRef(0);
+  const pendingInvitationRef = useRef<string | null>(null);
+
+  const refreshInvitations = useCallback(async (activeSession: Session) => {
+    const sequence = ++invitationSequence.current;
+    try {
+      const nextInvitations = await fetchGameInvitations(activeSession);
+      if (sequence !== invitationSequence.current) return;
+      setInvitations(nextInvitations);
+      setInvitationsError(null);
+    } catch (error) {
+      if (sequence !== invitationSequence.current) return;
+      setInvitationsError(socialErrorMessage(error));
+    }
+  }, []);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -54,7 +75,11 @@ export default function MultiplayerPage() {
       if (isCancelled) return;
 
       const nextSession = data.session;
+      invitationSequence.current += 1;
       setSession(nextSession);
+      setInvitations(null);
+      setInvitationsError(null);
+      setInvitationMessage(null);
 
       if (!nextSession) {
         setPageState("signed-out");
@@ -79,9 +104,58 @@ export default function MultiplayerPage() {
 
     return () => {
       isCancelled = true;
+      invitationSequence.current += 1;
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!session || pageState !== "ready") return;
+    void refreshInvitations(session);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void refreshInvitations(session);
+    };
+    const interval = window.setInterval(refreshWhenVisible, 30_000);
+    window.addEventListener("focus", refreshWhenVisible);
+    window.addEventListener("online", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshWhenVisible);
+      window.removeEventListener("online", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [pageState, refreshInvitations, session]);
+
+  async function handleInvitationAction(id: string, action: "join" | "decline") {
+    if (!session || pendingInvitationRef.current) return;
+    pendingInvitationRef.current = id;
+    setPendingInvitation(id);
+    setInvitationMessage(null);
+    try {
+      if (action === "join") {
+        const resolution = await resolveGameInvitation(id, session);
+        if (resolution.state === "joinable" && resolution.roomId) {
+          router.push(gameInvitationRoomPath(resolution.roomId, id));
+          return;
+        }
+        await refreshInvitations(session);
+        setInvitationMessage("Cette invitation n’est plus disponible.");
+      } else {
+        await declineGameInvitation(id, session);
+        await refreshInvitations(session);
+        setInvitationMessage("Invitation refusée.");
+      }
+    } catch (error) {
+      if (error instanceof SocialApiError && [404, 409].includes(error.status)) await refreshInvitations(session);
+      setInvitationMessage(action === "join" && error instanceof SocialApiError && [404, 409].includes(error.status)
+        ? "Cette invitation n’est plus disponible."
+        : socialErrorMessage(error));
+    } finally {
+      pendingInvitationRef.current = null;
+      setPendingInvitation(null);
+    }
+  }
 
   async function handleCreateRoom(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -165,8 +239,8 @@ export default function MultiplayerPage() {
         ) : null}
 
         {pageState === "ready" ? (
-          <div className="grid items-start gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-            <AppSurface className="lg:p-6">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <AppSurface className="h-full lg:p-6">
               <div className="flex items-center justify-between gap-3"><div><AppEyebrow>Nouvelle partie</AppEyebrow><h2 className="mt-1 text-2xl font-black text-[#f4ead0]">Créer une table</h2></div><span aria-hidden="true" className="coinche-ui-kicker text-3xl opacity-60">♣</span></div>
               <form className="mt-5 flex flex-col gap-3" onSubmit={handleCreateRoom}>
                 <p className="text-sm text-stone-300">Tu joues en tant que <strong>{username}</strong>.</p>
@@ -183,7 +257,7 @@ export default function MultiplayerPage() {
               </form>
             </AppSurface>
 
-            <AppSurface className="lg:mt-8">
+            <AppSurface className="h-full lg:p-6">
               <div><AppEyebrow>Invitation</AppEyebrow><h2 className="mt-1 text-xl font-black text-[#f4ead0]">Rejoindre une table</h2></div>
               <form className="mt-5 flex flex-col gap-3" onSubmit={handleJoinRoom}>
 
@@ -209,6 +283,18 @@ export default function MultiplayerPage() {
               </form>
             </AppSurface>
           </div>
+        ) : null}
+        {pageState === "ready" && session ? (
+          <ReceivedInvitations
+            currentUserId={session.user.id}
+            error={invitationsError}
+            invitations={invitations}
+            message={invitationMessage}
+            onDecline={(id) => void handleInvitationAction(id, "decline")}
+            onJoin={(id) => void handleInvitationAction(id, "join")}
+            onRetry={() => void refreshInvitations(session)}
+            pendingInvitation={pendingInvitation}
+          />
         ) : null}
         {isRulesOpen ? <AccessibleDialog footer={<button className={`${appPrimaryActionClass} w-full sm:w-auto`} type="button" onClick={() => setIsRulesOpen(false)}>Valider les règles</button>} onClose={() => setIsRulesOpen(false)} stableHeight title="Règles de la table"><RulesetConfigurator value={rules} onChange={setRules} /></AccessibleDialog> : null}
         {isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost: false }} onClose={() => setIsSettingsOpen(false)} /> : null}
