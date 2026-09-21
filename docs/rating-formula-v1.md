@@ -85,6 +85,6 @@ Son équipe est outsider à cause de la cote du bot ; il perd peu si elle perd e
 
 ## Application, invariants et version
 
-Le delta est calculé exclusivement depuis les entrées du départ. À la fin, `rating_after_apply = rating_before_apply + delta`, où `rating_before_apply` est le **courant** au moment du verrouillage. Exemple : snapshot 1 200, courant 1 215 après une autre partie, delta +12 ⇒ 1 227. Incrémenter `rated_games` même si delta arrondi à zéro ; `peak_rating = max(ancien pic, nouveau rating)`.
+Le delta est calculé exclusivement depuis les entrées du départ. La fin autoritaire crée d'abord un `rating_match pending` avec l'archive ; le calcul intervient dans une transaction ultérieure `pending → applied`. À cette application, `rating_after_apply = rating_before_apply + delta`, où `rating_before_apply` est le **courant** au moment du verrouillage. Exemple : snapshot 1 200, courant 1 215 après une autre partie, delta +12 ⇒ 1 227. Incrémenter `rated_games` même si delta arrondi à zéro ; `peak_rating = max(ancien pic, nouveau rating)`. Une erreur laisse le match `pending` pour retry et ne rouvre pas la partie.
 
 Les anciens matches conservent `formula_version = 1` et leurs cotes bot/coefficients/K snapshots. Modifier coefficients, calibrage ou seuils K demandera une nouvelle version explicite pour les nouveaux matches ; jamais de recalcul silencieux de l'historique. Les seuils de **rang** sont indépendants de cette formule.
