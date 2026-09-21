@@ -37,6 +37,7 @@ describe("voluntary multiplayer forfeit", () => {
   it("lets a human forfeit only their own team and gives victory to the opponent", () => {
     const state = { ...createInitialGame(() => 0.1), totalScore: { 0: 120, 1: 240 } };
     const result = forfeitRoom({ room: room(), players: players(), state, userId: "user-2", nowMs: NOW_MS });
+    expect(result.forfeitingSeatIndex).toBe(2);
     expect(result.state).toMatchObject({
       phase: "game-over", winnerTeam: 1, endReason: "forfeit", forfeitingTeam: 0,
     });

@@ -16,6 +16,7 @@ export type MultiplayerArchiveGame = {
   winner_team: TeamId;
   end_reason: GameEndReason;
   forfeiting_team: TeamId | null;
+  forfeiting_seat_index?: RoomPlayerRow["seat_index"] | null;
   round_count: number;
   ruleset_id?: string | null;
   ruleset_version?: number | null;
@@ -65,6 +66,7 @@ export function buildMultiplayerArchive(input: {
   state: GameState;
   players: RoomPlayerRow[];
   finishedAt: string;
+  forfeitingSeatIndex?: RoomPlayerRow["seat_index"] | null;
 }): MultiplayerArchive | null {
   if (input.state.phase !== "game-over" || input.state.winnerTeam === null) return null;
   const endReason = input.state.endReason ?? "score";
@@ -81,6 +83,7 @@ export function buildMultiplayerArchive(input: {
       winner_team: input.state.winnerTeam,
       end_reason: endReason,
       forfeiting_team: endReason === "forfeit" ? input.state.forfeitingTeam ?? null : null,
+      forfeiting_seat_index: endReason === "forfeit" ? input.forfeitingSeatIndex ?? null : null,
       round_count: input.state.roundNumber,
       ruleset_id: input.state.settings.ruleset?.id ?? input.room.ruleset_id ?? null,
       ruleset_version: input.state.settings.ruleset?.version ?? input.room.ruleset_version ?? null,

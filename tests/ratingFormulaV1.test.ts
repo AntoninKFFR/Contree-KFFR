@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
 import { BOT_RATING_FALLBACK, resolveBotRating } from "@/lib/server/botRatings";
 import {
-  eloDelta, expectedScore, kFactor, ratingRank, redistributeForfeit,
+  effectiveRatingDelta, eloDelta, expectedScore, kFactor, ratingRank, redistributeForfeit,
   reliabilityFactor, roundHalfAwayFromZero, teamStrength,
 } from "@/lib/rating/formulaV1";
 
@@ -58,6 +58,15 @@ describe("Elo V1", () => {
       .toEqual({ forfeiterDelta: -16, partnerDelta: null });
     expect(redistributeForfeit(-1, { kind: "human", normalDelta: -1 }))
       .toEqual({ forfeiterDelta: -2, partnerDelta: 0 });
+  });
+
+  it("floors the applied rating at zero without changing the theoretical formula", () => {
+    expect(effectiveRatingDelta(5, -16)).toBe(-5);
+    expect(effectiveRatingDelta(0, -14)).toBe(0);
+    expect(effectiveRatingDelta(1215, 12)).toBe(12);
+    const forfeited = redistributeForfeit(-16, { kind: "human", normalDelta: -16 });
+    expect(effectiveRatingDelta(5, forfeited.forfeiterDelta)).toBe(-5);
+    expect(effectiveRatingDelta(5, forfeited.partnerDelta!)).toBe(-5);
   });
 });
 

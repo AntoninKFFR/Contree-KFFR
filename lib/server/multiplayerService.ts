@@ -2,6 +2,7 @@ import "server-only";
 import { OFFICIAL_BOT_PROFILE_ID } from "@/bots/profiles";
 import { createInitialGame } from "@/engine/game";
 import { normalizeGameSettings } from "@/engine/rulesets/resolve";
+import { CONTREE_KFFR_RULESET } from "@/engine/rulesets/presets";
 import { buildRoomRulesFields, resolveRoomRules } from "@/engine/rulesets/room";
 import { BOT_NAME_POOL } from "@/engine/players";
 import type { GameState } from "@/engine/types";
@@ -27,9 +28,35 @@ import {
 import { getSupabaseAdmin } from "./supabaseAdmin";
 import { DEFAULT_MULTIPLAYER_TABLE_PREFERENCES, normalizeMultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 import { cleanUsername, validateUsername } from "@/lib/profiles";
+import { resolveBotRating } from "./botRatings";
 
 const ROOM_COLUMNS = "id,code,status,host_user_id,active_game_id,scoring_mode,target_score,ruleset_id,ruleset_version,ruleset_snapshot,presentation_settings,game_phase,state_version,turn_deadline_at,created_at,updated_at,started_at,finished_at";
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+async function applyRatingAfterFinish(gameId: string): Promise<void> {
+  console.info("multiplayer finish committed", { source_game_id: gameId });
+  try {
+    const { data, error } = await getSupabaseAdmin().rpc("apply_rating_match", {
+      p_source_game_id: gameId,
+    });
+    if (error) throw error;
+    console.info("rating apply result", { source_game_id: gameId, status: data });
+  } catch (error) {
+    console.error("rating apply failed", { source_game_id: gameId, error });
+  }
+}
+
+function ratingBotSeats(players: RoomPlayerRow[]) {
+  return players.filter((seat) => seat.kind === "bot").map((seat) => {
+    const snapshot = resolveBotRating(seat.bot_profile_id ?? undefined);
+    return {
+      seat_index: seat.seat_index,
+      bot_profile_id: snapshot.botProfileId,
+      bot_version: snapshot.botVersion,
+      bot_rating_snapshot: snapshot.botRating,
+    };
+  });
+}
 
 export function fillEmptySeatsWithOfficialBots(
   players: RoomPlayerRow[],
@@ -155,6 +182,7 @@ async function commit(
   nowMs = Date.now(),
   hostUserId: string | null | undefined = undefined,
   activeGameId: string | undefined = undefined,
+  forfeitingSeatIndex: RoomPlayerRow["seat_index"] | null = null,
 ): Promise<void> {
   const resolvedGameId = activeGameId ?? room.active_game_id ?? (state?.phase === "game-over" ? crypto.randomUUID() : null);
   const archive = state?.phase === "game-over" && resolvedGameId
@@ -164,9 +192,11 @@ async function commit(
         state,
         players: timerPlayers,
         finishedAt: new Date(nowMs).toISOString(),
+        forfeitingSeatIndex,
       })
     : null;
-  const { data, error } = await getSupabaseAdmin().rpc("commit_room_state", {
+  const startingGame = room.status === "lobby" && status === "playing" && activeGameId !== undefined;
+  const { data, error } = await getSupabaseAdmin().rpc(startingGame ? "start_multiplayer_game" : "commit_room_state", {
     p_room_id: room.id,
     p_expected_version: room.state_version,
     p_state: state,
@@ -180,9 +210,14 @@ async function commit(
     p_update_active_game: activeGameId !== undefined || (state?.phase === "game-over" && room.active_game_id === null),
     p_archive_game: archive?.game ?? null,
     p_archive_players: archive?.players ?? null,
+    ...(startingGame ? {
+      p_official_ruleset: CONTREE_KFFR_RULESET,
+      p_rating_bots: ratingBotSeats(timerPlayers),
+    } : {}),
   });
   if (error) throw error;
   if (data !== true) throw new MultiplayerError("La partie a changé. Recharge la table puis réessaie.", 409, "version_conflict");
+  if (archive) await applyRatingAfterFinish(resolvedGameId!);
 }
 
 async function commitLobbySeatMove(input: {
@@ -276,6 +311,7 @@ async function commitBotTakeover(input: {
       "takeover_conflict",
     );
   }
+  if (archive) await applyRatingAfterFinish(gameId!);
 }
 
 async function commitTimedOutTurn(input: {
@@ -303,6 +339,7 @@ async function commitTimedOutTurn(input: {
     p_archive_players: archive?.players ?? null,
   });
   if (error) throw error;
+  if (data === true && archive) await applyRatingAfterFinish(gameId!);
   return data === true;
 }
 
@@ -438,6 +475,8 @@ export async function executeIntent(roomId: string, userId: string, expectedVers
       result.players,
       nowMs,
       result.nextHostUserId,
+      undefined,
+      result.forfeitingSeatIndex,
     );
   } else if (intent.type === "update-room-rules") {
     const prepared = prepareRoomRulesUpdate({ ...current, userId, rules: intent.rules });
