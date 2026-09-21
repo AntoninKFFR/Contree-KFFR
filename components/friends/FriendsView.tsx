@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { SocialSearchResult, SocialSnapshot } from "@/lib/socialApi";
+import type { GameInvitationsSnapshot, SocialSearchResult, SocialSnapshot } from "@/lib/socialApi";
 import {
   AppEyebrow,
   AppPage,
@@ -17,6 +17,8 @@ type FriendsViewProps = {
   snapshot: SocialSnapshot | null;
   pageError?: string | null;
   actionMessage?: string | null;
+  gameInvitations?: GameInvitationsSnapshot | null;
+  currentUserId?: string | null;
   query: string;
   searchResults: SocialSearchResult[];
   searchState: "idle" | "loading" | "ready" | "error";
@@ -27,6 +29,9 @@ type FriendsViewProps = {
   onSend?: (userId: string) => void;
   onAccept?: (requestId: string) => void;
   onDecline?: (requestId: string) => void;
+  onCancelGameInvitation?: (invitationId: string) => void;
+  onDeclineGameInvitation?: (invitationId: string) => void;
+  onJoinGameInvitation?: (invitationId: string) => void;
   onCancel?: (requestId: string) => void;
   onRemove?: (userId: string, username: string) => void;
   onAnswerRequest?: (requestId: string) => void;
@@ -74,6 +79,15 @@ export function FriendsView(props: FriendsViewProps) {
         </p>
         {props.actionMessage ? <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2 text-sm text-[var(--text-primary)]" role="status">{props.actionMessage}</p> : null}
       </AppSurface>
+
+      <GameInvitationsSection
+        currentUserId={props.currentUserId}
+        invitations={props.gameInvitations}
+        onCancel={props.onCancelGameInvitation}
+        onDecline={props.onDeclineGameInvitation}
+        onJoin={props.onJoinGameInvitation}
+        pendingAction={props.pendingAction}
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <SocialSection count={snapshot.counts.friends} title="Mes amis">
@@ -159,6 +173,82 @@ export function FriendsView(props: FriendsViewProps) {
       </div>
     </AppPage>
   );
+}
+
+function GameInvitationsSection({
+  currentUserId,
+  invitations,
+  onCancel,
+  onDecline,
+  onJoin,
+  pendingAction,
+}: {
+  currentUserId?: string | null;
+  invitations?: GameInvitationsSnapshot | null;
+  onCancel?: (invitationId: string) => void;
+  onDecline?: (invitationId: string) => void;
+  onJoin?: (invitationId: string) => void;
+  pendingAction?: string | null;
+}) {
+  if (!invitations || !currentUserId) return null;
+  const received = invitations.invitations.filter(
+    (invitation) => invitation.status === "pending" && invitation.inviteeId === currentUserId,
+  );
+  const sent = invitations.invitations.filter(
+    (invitation) => invitation.status === "pending" && invitation.inviterId === currentUserId,
+  );
+  return (
+    <AppSurface>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-black text-[var(--text-primary)]">Invitations de partie</h2>
+        <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs font-black text-[var(--text-secondary)]">
+          {invitations.counts.receivedPending}
+        </span>
+      </div>
+      {received.length === 0 && sent.length === 0 ? <EmptyText>Aucune invitation de partie en attente.</EmptyText> : null}
+      {received.length > 0 ? (
+        <ul className="space-y-2">
+          {received.map((invitation) => {
+            const pending = pendingAction === `game-invitation:${invitation.id}`;
+            return (
+              <li className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3" key={invitation.id}>
+                <div>
+                  <PlayerName username={invitation.otherUsername} />
+                  <p className="mt-0.5 text-xs text-[var(--text-secondary)]">Table {invitation.roomCode} · expire {formatInvitationExpiry(invitation.expiresAt)}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button className={appPrimaryActionClass} disabled={pending} onClick={() => onJoin?.(invitation.id)} type="button">{pending ? "Vérification…" : "Rejoindre"}</button>
+                  <button className={appSecondaryActionClass} disabled={pending} onClick={() => onDecline?.(invitation.id)} type="button">Refuser</button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+      {sent.length > 0 ? (
+        <div className={received.length > 0 ? "mt-4 border-t border-white/10 pt-4" : ""}>
+          <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-[var(--text-secondary)]">Envoyées</p>
+          <ul className="space-y-2">
+            {sent.map((invitation) => {
+              const pending = pendingAction === `game-invitation:${invitation.id}`;
+              return (
+                <li className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3" key={invitation.id}>
+                  <div><PlayerName username={invitation.otherUsername} /><p className="mt-0.5 text-xs text-[var(--text-secondary)]">Table {invitation.roomCode}</p></div>
+                  <button className={appSecondaryActionClass} disabled={pending} onClick={() => onCancel?.(invitation.id)} type="button">{pending ? "Annulation…" : "Annuler"}</button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+    </AppSurface>
+  );
+}
+
+function formatInvitationExpiry(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "bientôt";
+  return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
 function SocialSection({ children, count, title }: { children: React.ReactNode; count?: number; title: string }) {

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { FriendsView } from "@/components/friends/FriendsView";
-import type { SocialSnapshot } from "@/lib/socialApi";
+import type { GameInvitationsSnapshot, SocialSnapshot } from "@/lib/socialApi";
 
 vi.stubGlobal("React", React);
 const noop = () => undefined;
@@ -81,6 +81,40 @@ describe("friends page", () => {
     expect(client).toContain("await refreshSnapshot(session)");
     expect(client).toContain("window.confirm");
     expect(client).toContain("30_000");
+  });
+
+  it("shows received and sent game invitations with join, decline and cancel actions", () => {
+    const invitations: GameInvitationsSnapshot = {
+      invitations: [
+        { id: "g1", roomId: "room-1", roomCode: "ABCDEF", inviterId: "alice", inviteeId: "viewer", otherUsername: "Alice", status: "pending", createdAt: "2026-09-21T10:00:00Z", expiresAt: "2026-09-21T10:30:00Z", resolvedAt: null },
+        { id: "g2", roomId: "room-2", roomCode: "GHIJKL", inviterId: "viewer", inviteeId: "bob", otherUsername: "Bob", status: "pending", createdAt: "2026-09-21T10:00:00Z", expiresAt: "2026-09-21T10:30:00Z", resolvedAt: null },
+      ],
+      counts: { receivedPending: 1, sentPending: 1 },
+    };
+    const markup = renderToStaticMarkup(React.createElement(FriendsView, {
+      state: "ready",
+      snapshot: emptySnapshot,
+      gameInvitations: invitations,
+      currentUserId: "viewer",
+      query: "",
+      searchResults: [],
+      searchState: "idle",
+    }));
+    expect(markup).toContain("Invitations de partie");
+    expect(markup).toContain("Table ABCDEF");
+    expect(markup).toContain("Rejoindre");
+    expect(markup).toContain("Refuser");
+    expect(markup).toContain("Envoyées");
+    expect(markup).toContain("Annuler");
+  });
+
+  it("resolves before navigation and accepts only from the seated room view", () => {
+    const friendsClient = readFileSync("app/friends/FriendsPageClient.tsx", "utf8");
+    const roomClient = readFileSync("app/multiplayer/[roomId]/RoomPageClient.tsx", "utf8");
+    expect(friendsClient).toContain("await resolveGameInvitation(invitationId, session)");
+    expect(friendsClient).toContain("router.push(gameInvitationRoomPath(resolution.roomId, invitationId))");
+    expect(roomClient).toContain("roomWithPlayers.viewerSeatIndex === null");
+    expect(roomClient).toContain("acceptGameInvitation(invitationId, session)");
   });
 
   it("adds Friends to the drawer only when a session exists", () => {

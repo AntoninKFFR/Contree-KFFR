@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
@@ -10,7 +10,8 @@ import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { FinishedRoomCard } from "@/components/multiplayer/FinishedRoomCard";
-import { LobbyHeader, LobbyRulesDialog, LobbyTable, WaitingArea } from "@/components/multiplayer/RoomLobby";
+import { GameInvitationDialog } from "@/components/multiplayer/GameInvitationDialog";
+import { canInviteFriendsFromRoom, LobbyHeader, LobbyRulesDialog, LobbyTable, WaitingArea } from "@/components/multiplayer/RoomLobby";
 import { useMultiplayerGameActions } from "@/components/multiplayer/useMultiplayerGameActions";
 import { useMultiplayerRoomActions } from "@/components/multiplayer/useMultiplayerRoomActions";
 import { useMultiplayerRoomSync } from "@/components/multiplayer/useMultiplayerRoomSync";
@@ -37,6 +38,7 @@ import { handWithoutPendingCard, visiblePendingCard } from "@/lib/multiplayerOpt
 import { loginPath } from "@/lib/authRedirect";
 import type { RoomPlayerRow } from "@/lib/roomTypes";
 import { normalizeMultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
+import { acceptGameInvitation, socialErrorMessage } from "@/lib/socialApi";
 
 function roomIdFromParams(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) return value[0] ?? null;
@@ -46,7 +48,10 @@ function roomIdFromParams(value: string | string[] | undefined): string | null {
 export default function MultiplayerRoomPage() {
   const { preferences } = usePlayerPreferences();
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const roomId = roomIdFromParams(params.roomId);
+  const invitationId = searchParams.get("invitation");
   const {
     accessToken,
     error,
@@ -63,6 +68,7 @@ export default function MultiplayerRoomPage() {
   } = useMultiplayerRoomSync(roomId);
   const [isForfeitConfirmationOpen, setIsForfeitConfirmationOpen] = useState(false);
   const [isHostTransferOpen, setIsHostTransferOpen] = useState(false);
+  const [isInviteFriendsOpen, setIsInviteFriendsOpen] = useState(false);
   const [hostTransferSeat, setHostTransferSeat] = useState<RoomPlayerRow["seat_index"] | null>(null);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
@@ -72,6 +78,7 @@ export default function MultiplayerRoomPage() {
   const [rulesDraft, setRulesDraft] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
   const [rulesChangedNotice, setRulesChangedNotice] = useState(false);
   const previousRulesKeyRef = useRef<string | null>(null);
+  const acceptedInvitationAttemptRef = useRef<string | null>(null);
   const currentSeat = useMemo(() => {
     if (!roomWithPlayers || roomWithPlayers.viewerSeatIndex === null) return null;
     return roomWithPlayers.players.find(
@@ -125,6 +132,7 @@ export default function MultiplayerRoomPage() {
       roomWithPlayers.room.status === "lobby" &&
       roomWithPlayers.players.every((player) => player.kind !== "human" || player.is_ready),
   );
+  const canInviteFriends = canInviteFriendsFromRoom(roomWithPlayers);
   const playerView = roomWithPlayers?.game ?? null;
   const gameState = playerView;
   const displayedRoomStatus =
@@ -201,6 +209,23 @@ export default function MultiplayerRoomPage() {
     setRoomWithPlayers,
   });
   const visiblePendingCardValue = visiblePendingCard(pendingLocalPlay, roomWithPlayers?.room.state_version ?? null, playerView?.hand ?? null);
+
+  useEffect(() => {
+    if (
+      !invitationId ||
+      !roomId ||
+      !session ||
+      !roomWithPlayers ||
+      roomWithPlayers.viewerSeatIndex === null ||
+      acceptedInvitationAttemptRef.current === invitationId
+    ) {
+      return;
+    }
+    acceptedInvitationAttemptRef.current = invitationId;
+    acceptGameInvitation(invitationId, session)
+      .then(() => router.replace(`/multiplayer/${encodeURIComponent(roomId)}`, { scroll: false }))
+      .catch((acceptError) => setError(socialErrorMessage(acceptError)));
+  }, [invitationId, roomId, roomWithPlayers, router, session, setError]);
 
   const canShowNextRoundButton = Boolean(
     roomWithPlayers?.room.status === "playing" &&
@@ -358,6 +383,7 @@ export default function MultiplayerRoomPage() {
             {displayedRoomStatus === "lobby" ? (
               <>
                 <LobbyHeader
+                  canInviteFriends={canInviteFriends}
                   canStartGame={canStartGame}
                   canTransferHost={hostTransferCandidates.length > 0}
                   code={roomWithPlayers.room.code}
@@ -365,6 +391,7 @@ export default function MultiplayerRoomPage() {
                   isHost={isHost}
                   isStartingGame={isStartingGame}
                   isUpdatingReady={isUpdatingReady}
+                  onInviteFriends={() => setIsInviteFriendsOpen(true)}
                   onOpenPreferences={() => setIsSettingsOpen(true)}
                   onOpenRules={() => { if (isHost) setRulesDraft(rulesetToCustomInput(lobbyRules)); setIsRulesOpen(true); }}
                   onReady={handleToggleReady}
@@ -402,6 +429,7 @@ export default function MultiplayerRoomPage() {
               </>
             ) : null}
             {isRulesOpen && displayedRoomStatus === "lobby" ? <LobbyRulesDialog isHost={isHost} isUpdatingRules={isUpdatingRules} onClose={() => setIsRulesOpen(false)} onSave={() => void handleUpdateRules()} onRulesDraftChange={setRulesDraft} rulesDraft={rulesDraft} ruleset={lobbyRules} /> : null}
+            {isInviteFriendsOpen && canInviteFriends && session && roomId ? <GameInvitationDialog onClose={() => setIsInviteFriendsOpen(false)} roomId={roomId} session={session} /> : null}
             {isHostTransferOpen && isHost ? <AccessibleDialog description="Choisis un joueur connecté. Le transfert est immédiat." footer={<button className={`${appPrimaryActionClass} w-full sm:w-auto`} disabled={!selectedHostTransferPlayer || isTransferringHost} type="button" onClick={() => void handleTransferHost()}>{isTransferringHost ? "Transfert…" : selectedHostTransferPlayer ? `Confirmer pour ${selectedHostTransferPlayer.display_name}` : "Choisir un joueur"}</button>} onClose={() => { if (!isTransferringHost) setIsHostTransferOpen(false); }} title="Transférer l'hôte" width="medium"><div className="grid gap-2 overflow-y-auto p-4 sm:p-6">{hostTransferCandidates.map((player) => <button aria-pressed={hostTransferSeat === player.seat_index} className={`rounded-xl border px-4 py-3 text-left font-semibold transition ${hostTransferSeat === player.seat_index ? "border-amber-300/50 bg-amber-200/15 text-amber-950" : "border-stone-300 bg-white/70 text-stone-800 hover:bg-white"}`} key={player.seat_index} onClick={() => setHostTransferSeat(player.seat_index)} type="button">{player.display_name}</button>)}</div></AccessibleDialog> : null}
 
             {displayedRoomStatus === "playing" && playerView ? (

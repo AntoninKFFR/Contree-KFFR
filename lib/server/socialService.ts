@@ -2,9 +2,17 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import {
+  parseGameInvitationMutationResult,
+  parseGameInvitationResolution,
+  parseGameInvitationsSnapshot,
+  parseInvitableFriends,
   parseSocialMutationResult,
   parseSocialSearchResults,
   parseSocialSnapshot,
+  type GameInvitationMutationResult,
+  type GameInvitationResolution,
+  type GameInvitationsSnapshot,
+  type InvitableFriend,
   type SocialMutationResult,
   type SocialSearchResult,
   type SocialSnapshot,
@@ -54,6 +62,17 @@ export function parseFriendRequestBody(value: unknown): { recipientId: string } 
   return { recipientId: parseSocialUuid(record.recipientId, "Joueur") };
 }
 
+export function parseGameInvitationBody(value: unknown): { inviteeId: string } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new SocialServerError("Requête invalide.", 400, "invalid_body");
+  }
+  const record = value as Record<string, unknown>;
+  if (Object.keys(record).some((key) => key !== "inviteeId")) {
+    throw new SocialServerError("Requête invalide.", 400, "invalid_body");
+  }
+  return { inviteeId: parseSocialUuid(record.inviteeId, "Joueur") };
+}
+
 export async function readSocialJson(request: Request): Promise<unknown> {
   const announcedLength = Number(request.headers.get("content-length") ?? 0);
   if (Number.isFinite(announcedLength) && announcedLength > 2_048) {
@@ -77,7 +96,7 @@ export function mapSocialRpcError(error: RpcError): SocialServerError {
   if (code === "42501") {
     return new SocialServerError("Action non autorisée.", 403, "access_denied");
   }
-  const known = rpcMessage.match(/authentication_required|username_required|invalid_prefix|invalid_recipient|invalid_friend|recipient_unavailable|request_not_found|request_conflict|request_cooldown/)?.[0];
+  const known = rpcMessage.match(/authentication_required|username_required|invalid_prefix|invalid_recipient|invalid_friend|invalid_invitee|recipient_unavailable|request_not_found|request_conflict|request_cooldown|not_friends|room_unavailable|invitation_not_found|invitation_conflict|seat_required/)?.[0];
   switch (known) {
     case "authentication_required":
       return new SocialServerError("Authentication required.", 401, known);
@@ -85,13 +104,20 @@ export function mapSocialRpcError(error: RpcError): SocialServerError {
       return new SocialServerError("Choisis d’abord ton pseudo.", 403, known);
     case "recipient_unavailable":
     case "request_not_found":
+    case "invitation_not_found":
       return new SocialServerError("Ressource introuvable.", 404, known);
     case "request_conflict":
     case "request_cooldown":
+    case "room_unavailable":
+    case "invitation_conflict":
+    case "seat_required":
       return new SocialServerError("La situation vient de changer.", 409, known);
+    case "not_friends":
+      return new SocialServerError("Action non autorisée.", 403, known);
     case "invalid_prefix":
     case "invalid_recipient":
     case "invalid_friend":
+    case "invalid_invitee":
       return new SocialServerError("Requête invalide.", 400, known);
     default:
       return new SocialServerError("Erreur serveur.", 500, "social_rpc_error");
@@ -148,6 +174,37 @@ export function mutateFriendRequest(
 
 export function deleteFriend(request: Request, userId: string): Promise<SocialMutationResult> {
   return callRpc(request, "remove_friend", { p_other_user_id: userId }, parseSocialMutationResult);
+}
+
+export function getGameInvitations(request: Request): Promise<GameInvitationsSnapshot> {
+  return callRpc(request, "get_my_game_invitations", undefined, parseGameInvitationsSnapshot);
+}
+
+export function getInvitableFriends(request: Request, roomId: string): Promise<InvitableFriend[]> {
+  return callRpc(request, "list_invitable_friends", { p_room_id: roomId }, parseInvitableFriends);
+}
+
+export function sendRoomGameInvitation(
+  request: Request,
+  roomId: string,
+  inviteeId: string,
+): Promise<GameInvitationMutationResult> {
+  return callRpc(request, "send_game_invitation", {
+    p_room_id: roomId,
+    p_invitee_id: inviteeId,
+  }, parseGameInvitationMutationResult);
+}
+
+export function resolveRoomGameInvitation(request: Request, invitationId: string): Promise<GameInvitationResolution> {
+  return callRpc(request, "resolve_game_invitation", { p_invitation_id: invitationId }, parseGameInvitationResolution);
+}
+
+export function mutateGameInvitation(
+  request: Request,
+  action: "accept" | "decline" | "cancel",
+  invitationId: string,
+): Promise<GameInvitationMutationResult> {
+  return callRpc(request, `${action}_game_invitation`, { p_invitation_id: invitationId }, parseGameInvitationMutationResult);
 }
 
 export function socialApiFailure(error: unknown, route: string, action: string) {
