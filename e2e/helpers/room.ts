@@ -7,8 +7,12 @@ export type E2EPlayerView = {
   handCounts: Record<string, number>;
   bids: Array<{ action: string; playerId: number; value?: number }>;
   currentTrick: { cards: Array<{ playerId: number; card: { rank: string; suit: string } }> };
-  completedTricks: Array<{ cards: unknown[] }>;
+  completedTricks: Array<{ cards: Array<{ playerId: number; card: { rank: string; suit: string } }> }>;
   contract: { contractMode?: { kind: string }; value: number } | null;
+  totalScore: Record<string, number>;
+  winnerTeam: number | null;
+  endReason: "score" | "forfeit" | null;
+  forfeitingTeam: number | null;
 };
 
 export type E2ERoomView = {
@@ -20,7 +24,15 @@ export type E2ERoomView = {
     target_score: number;
     ruleset_snapshot?: { id: string; bidding: { allowNoTrump: boolean; allowAllTrump: boolean; allowGenerale: boolean } } | null;
   };
-  players: Array<{ seat_index: number; display_name: string | null; kind: string; is_ready: boolean }>;
+  players: Array<{
+    seat_index: number;
+    display_name: string | null;
+    kind: string;
+    is_ready: boolean;
+    is_connected: boolean;
+    bot_takeover: boolean;
+    is_host: boolean;
+  }>;
   isHost: boolean;
   viewerSeatIndex: number | null;
   game: E2EPlayerView | null;
@@ -74,13 +86,20 @@ export function sendIntent(page: Page, roomId: string, expectedVersion: number, 
   });
 }
 
+export function sendTick(page: Page, roomId: string) {
+  return authenticatedRoomRequest(page, `/api/multiplayer/rooms/${encodeURIComponent(roomId)}/tick`, {
+    method: "POST",
+  });
+}
+
 export async function expectRoom(
   page: Page,
   roomId: string,
   label: string,
   predicate: (view: E2ERoomView) => boolean,
+  timeout = 15_000,
 ): Promise<E2ERoomView> {
-  await expect.poll(async () => predicate(await roomView(page, roomId)), { message: label, timeout: 15_000 }).toBe(true);
+  await expect.poll(async () => predicate(await roomView(page, roomId)), { message: label, timeout }).toBe(true);
   return roomView(page, roomId);
 }
 

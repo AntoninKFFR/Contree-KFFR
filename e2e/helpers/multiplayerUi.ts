@@ -1,27 +1,35 @@
 import { expect, type Page } from "@playwright/test";
 
-export async function createRoomThroughUi(page: Page, displayName: string): Promise<{ code: string; roomId: string }> {
+export async function createRoomThroughUi(page: Page): Promise<{ code: string; roomId: string }> {
   await page.goto("/multiplayer");
-  const section = page.getByRole("heading", { name: "Créer une table" }).locator("..");
+  const section = page.locator("section").filter({ has: page.getByRole("heading", { name: "Créer une table" }) });
   await expect(section).toBeVisible();
-  await section.getByLabel("Nom affiché").fill(displayName);
+  const responsePromise = page.waitForResponse(
+    (response) => response.request().method() === "POST" && new URL(response.url()).pathname === "/api/multiplayer/rooms",
+    { timeout: 30_000 },
+  );
   await section.getByRole("button", { name: "Créer la table" }).click();
-  await expect(page).toHaveURL(/\/multiplayer\/[0-9a-f-]+$/i);
+  expect((await responsePromise).status()).toBe(200);
+  await expect(page).toHaveURL(/\/multiplayer\/[0-9a-f-]+$/i, { timeout: 15_000 });
   const roomId = new URL(page.url()).pathname.split("/").at(-1)!;
   const code = (await page.locator("h1.font-mono").innerText()).trim();
   expect(code).toMatch(/^[A-Z0-9]+$/);
-  await expect(page.getByText(/Statut: en attente/)).toBeVisible();
+  await expect(page.getByText(/^en attente ·/)).toBeVisible();
   return { code, roomId };
 }
 
-export async function joinRoomThroughUi(page: Page, code: string, displayName: string): Promise<void> {
+export async function joinRoomThroughUi(page: Page, code: string): Promise<void> {
   await page.goto("/multiplayer");
-  const section = page.getByRole("heading", { name: "Rejoindre une table" }).locator("..");
+  const section = page.locator("section").filter({ has: page.getByRole("heading", { name: "Rejoindre une table" }) });
   await expect(section).toBeVisible();
-  await section.getByLabel("Nom affiché").fill(displayName);
   await section.getByLabel("Code de table").fill(code);
+  const responsePromise = page.waitForResponse(
+    (response) => response.request().method() === "POST" && new URL(response.url()).pathname === "/api/multiplayer/rooms",
+    { timeout: 30_000 },
+  );
   await section.getByRole("button", { name: "Rejoindre la table" }).click();
-  await expect(page).toHaveURL(/\/multiplayer\/[0-9a-f-]+$/i);
+  expect((await responsePromise).status()).toBe(200);
+  await expect(page).toHaveURL(/\/multiplayer\/[0-9a-f-]+$/i, { timeout: 15_000 });
   await expect(page.getByRole("heading", { name: code })).toBeVisible();
 }
 
@@ -36,7 +44,7 @@ export async function setLocalPreferences(
   await dialog.getByLabel("Taille des cartes").selectOption(values.cardSize);
   await dialog.getByRole("button", { name: "AFFICHAGE" }).click();
   await dialog.getByLabel("Tapis de jeu").selectOption(values.theme);
-  await dialog.getByRole("button", { name: "Fermer Préférences" }).click();
+  await dialog.getByRole("button", { name: "Fermer les préférences" }).click();
   await expect(dialog).toBeHidden();
 }
 
