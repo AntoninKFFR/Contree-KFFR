@@ -2,10 +2,10 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FinishedRoomCard } from "@/components/multiplayer/FinishedRoomCard";
-import { LobbyHeader, LobbyRulesDialog, LobbyTable, WaitingArea } from "@/components/multiplayer/RoomLobby";
+import { canInviteFriendsFromRoom, LobbyHeader, LobbyRulesDialog, LobbyTable, WaitingArea } from "@/components/multiplayer/RoomLobby";
 import { CONTREE_KFFR_RULESET } from "@/engine/rulesets/presets";
 import { rulesetToCustomInput } from "@/engine/rulesets/custom";
-import type { RoomPlayerView } from "@/lib/roomTypes";
+import type { MultiplayerRoomView, RoomPlayerView } from "@/lib/roomTypes";
 
 vi.mock("server-only", () => ({}));
 beforeEach(() => vi.stubGlobal("React", React));
@@ -20,9 +20,9 @@ const players: RoomPlayerView[] = [0, 1, 2, 3].map((seat) => ({
 
 function header(isHost: boolean) {
   return renderToStaticMarkup(React.createElement(LobbyHeader, {
-    canStartGame: true, canTransferHost: true, code: "BTFTHZ", currentSeat: players[0],
+    canInviteFriends: true, canStartGame: true, canTransferHost: true, code: "BTFTHZ", currentSeat: players[0],
     isHost, isStartingGame: false, isUpdatingReady: false,
-    onOpenPreferences: () => undefined, onOpenRules: () => undefined,
+    onInviteFriends: () => undefined, onOpenPreferences: () => undefined, onOpenRules: () => undefined,
     onReady: () => undefined, onRefresh: () => undefined,
     onStartGame: () => undefined, onTransferHost: () => undefined,
     scoringMode: "ffb", status: "lobby", targetScore: 1000,
@@ -37,10 +37,19 @@ describe("compact multiplayer lobby and finish", () => {
     expect(host.indexOf("Préférences")).toBeLessThan(host.indexOf("Règles"));
     expect(host.indexOf("Règles")).toBeLessThan(host.indexOf("Rafraîchir"));
     expect(host).toContain("Lancer la partie");
+    expect(host).toContain("Inviter des amis");
     expect(host).not.toContain("Règles de la table");
     const guest = header(false);
     expect(guest).toContain(">Règles</button>");
     expect(guest).not.toContain("Transférer l");
+  });
+
+  it("offers invitations only to a seated human in a lobby with a free seat", () => {
+    const room = { room: { status: "lobby" }, viewerSeatIndex: 0, players } as MultiplayerRoomView;
+    expect(canInviteFriendsFromRoom(room)).toBe(true);
+    expect(canInviteFriendsFromRoom({ ...room, viewerSeatIndex: null })).toBe(false);
+    expect(canInviteFriendsFromRoom({ ...room, room: { ...room.room, status: "playing" } })).toBe(false);
+    expect(canInviteFriendsFromRoom({ ...room, players: players.map((player) => ({ ...player, kind: "human" })) })).toBe(false);
   });
 
   it("lets the felt fill the available lobby space and keeps all four seats", () => {

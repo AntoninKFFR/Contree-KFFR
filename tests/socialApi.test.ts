@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   fetchSocialSnapshot,
+  gameInvitationRoomPath,
+  parseGameInvitationMutationResult,
+  parseGameInvitationResolution,
+  parseGameInvitationsSnapshot,
+  parseInvitableFriends,
   parseSocialMutationResult,
   parseSocialSearchResults,
   parseSocialSnapshot,
@@ -32,6 +37,43 @@ describe("social API client", () => {
   it("rejects oversized searches and inconsistent snapshots", () => {
     expect(() => parseSocialSearchResults(Array.from({ length: 11 }, (_, index) => ({ user_id: String(index), username: "A" })))).toThrow("Invalid social search results");
     expect(() => parseSocialSnapshot({ friends: [], received: [], sent: [], counts: { friends: 1, received: 0, sent: 0 } })).toThrow("Inconsistent");
+  });
+
+  it("normalizes game invitations without leaking third-party details", () => {
+    expect(parseInvitableFriends([{ user_id: "friend-1", username: "Alice" }])).toEqual([
+      { userId: "friend-1", username: "Alice" },
+    ]);
+    expect(parseGameInvitationMutationResult({
+      status: "already_invited",
+      id: "hidden-invitation",
+      inviter_id: "hidden-inviter",
+    })).toEqual({ status: "already_invited" });
+    expect(parseGameInvitationResolution({ state: "joinable", room_id: "room-1" })).toEqual({
+      state: "joinable",
+      roomId: "room-1",
+    });
+    expect(gameInvitationRoomPath("room-1", "invitation-1")).toBe("/multiplayer/room-1?invitation=invitation-1");
+  });
+
+  it("parses received and sent invitation counts from the RPC payload", () => {
+    expect(parseGameInvitationsSnapshot({
+      invitations: [{
+        id: "invitation-1",
+        room_id: "room-1",
+        room_code: "ABCDEF",
+        inviter_id: "user-a",
+        invitee_id: "user-b",
+        other_username: "Alice",
+        status: "pending",
+        created_at: "2026-09-21T10:00:00Z",
+        expires_at: "2026-09-21T10:30:00Z",
+        resolved_at: null,
+      }],
+      counts: { received_pending: 1, sent_pending: 0 },
+    })).toMatchObject({
+      invitations: [{ roomId: "room-1", roomCode: "ABCDEF", otherUsername: "Alice" }],
+      counts: { receivedPending: 1, sentPending: 0 },
+    });
   });
 
   it("sends the bearer token and maps a successful snapshot", async () => {

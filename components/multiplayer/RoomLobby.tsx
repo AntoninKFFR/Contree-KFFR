@@ -15,6 +15,12 @@ function statusLabel(status: MultiplayerRoomView["room"]["status"]): string {
   return "annulée";
 }
 
+export function canInviteFriendsFromRoom(room: MultiplayerRoomView | null): boolean {
+  if (!room || room.room.status !== "lobby" || room.viewerSeatIndex === null) return false;
+  const viewer = room.players.find((player) => player.seat_index === room.viewerSeatIndex);
+  return viewer?.kind === "human" && room.players.some((player) => player.kind === "empty");
+}
+
 const LOBBY_SEAT_POSITIONS: Record<
   RoomPlayerRow["seat_index"],
   {
@@ -64,10 +70,11 @@ export function LobbyRulesDialog({
 }
 
 export function LobbyHeader({
-  canStartGame, canTransferHost, code, currentSeat, isHost, isStartingGame, isUpdatingReady,
-  onOpenPreferences, onOpenRules, onReady, onRefresh, onStartGame, onTransferHost,
+  canInviteFriends, canStartGame, canTransferHost, code, currentSeat, isHost, isStartingGame, isUpdatingReady,
+  onInviteFriends, onOpenPreferences, onOpenRules, onReady, onRefresh, onStartGame, onTransferHost,
   scoringMode, status, targetScore,
 }: {
+  canInviteFriends: boolean;
   canStartGame: boolean;
   canTransferHost: boolean;
   code: string;
@@ -75,6 +82,7 @@ export function LobbyHeader({
   isHost: boolean;
   isStartingGame: boolean;
   isUpdatingReady: boolean;
+  onInviteFriends: () => void;
   onOpenPreferences: () => void;
   onOpenRules: () => void;
   onReady: () => void;
@@ -95,6 +103,7 @@ export function LobbyHeader({
         <button className={appSecondaryActionClass} onClick={onOpenPreferences} type="button">Préférences</button>
         <button className={appSecondaryActionClass} onClick={onOpenRules} type="button">Règles</button>
         <button className={appSecondaryActionClass} onClick={onRefresh} type="button">Rafraîchir</button>
+        {canInviteFriends ? <button className={appSecondaryActionClass} onClick={onInviteFriends} type="button">Inviter des amis</button> : null}
         <button className={appPrimaryActionClass} disabled={!currentSeat || isUpdatingReady} onClick={onReady} type="button">{currentSeat?.is_ready ? "Pas prêt" : "Prêt"}</button>
         {isHost ? <>
           <button className={appSecondaryActionClass} disabled={!canTransferHost} onClick={onTransferHost} type="button">Transférer l&apos;hôte</button>
