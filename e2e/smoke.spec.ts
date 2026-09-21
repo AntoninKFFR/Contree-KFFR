@@ -299,7 +299,7 @@ test.describe("@smoke public production readiness", () => {
     monitor.assertClean();
   });
 
-  test("home, login, solo, settings and multiplayer render without browser errors", async ({ page }) => {
+  test("home, login, solo, settings, multiplayer and friends render without browser errors", async ({ page }) => {
     const monitor = monitorBrowserErrors(page);
 
     await page.goto("/");
@@ -339,6 +339,9 @@ test.describe("@smoke public production readiness", () => {
     await page.goto("/multiplayer");
     await expect(page.getByRole("heading", { name: "Une table, quatre places" })).toBeVisible();
     await expect(page.getByText(/Connecte-toi|Supabase est indisponible|Créer une table/)).toBeVisible();
+
+    await page.goto("/friends");
+    await expect(page.getByRole("heading", { name: /Non connecté|Service indisponible/ })).toBeVisible();
     monitor.assertClean();
   });
 
@@ -511,7 +514,7 @@ test.describe("@smoke public production readiness", () => {
     test(`critical pages have no horizontal overflow at ${viewport.name}`, async ({ page }) => {
       const monitor = monitorBrowserErrors(page);
       await page.setViewportSize(viewport);
-      for (const path of ["/", "/login", "/solo", "/multiplayer", "/history", "/profile", "/rules"]) {
+      for (const path of ["/", "/login", "/solo", "/multiplayer", "/friends", "/history", "/profile", "/rules"]) {
         await page.goto(path);
         await expect.poll(async () => page.evaluate(() => document.readyState)).toMatch(/interactive|complete/);
         const overflow = await page.evaluate(() => Math.max(document.body.scrollWidth, document.documentElement.scrollWidth) - window.innerWidth);
