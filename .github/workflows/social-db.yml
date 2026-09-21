@@ -1,0 +1,45 @@
+name: Social DB security
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/testSocialDb.mjs"
+      - ".github/workflows/social-db.yml"
+      - "package.json"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/testSocialDb.mjs"
+      - ".github/workflows/social-db.yml"
+      - "package.json"
+
+jobs:
+  local-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+      - run: supabase start
+      - run: supabase db reset --local
+      - name: Test social RLS with local Auth JWTs
+        shell: bash
+        run: |
+          set -a
+          source <(supabase status -o env \
+            --override-name api.url=SOCIAL_TEST_SUPABASE_URL \
+            --override-name auth.anon_key=SOCIAL_TEST_SUPABASE_ANON_KEY \
+            --override-name auth.service_role_key=SOCIAL_TEST_SUPABASE_SERVICE_ROLE_KEY \
+            | grep '^SOCIAL_TEST_')
+          set +a
+          npm run test:db:social
