@@ -31,6 +31,7 @@
     "benchmark:advanced-rules": "vite-node --config vitest.config.ts scripts/benchmarkAdvancedRules.ts",
     "test": "vitest run",
     "test:db:social": "node scripts/testSocialDb.mjs",
+    "test:db:rating": "node scripts/testRatingDb.mjs",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
