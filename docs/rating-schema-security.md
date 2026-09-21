@@ -1,5 +1,7 @@
 # PR A — fondations Elo V1
 
+La mise en œuvre du cycle de vie figure dans [rating-lifecycle.md](rating-lifecycle.md). Cette page décrit la fondation PR A conservée telle quelle.
+
 La migration `20260921010000_rating_schema_security.sql` crée les fondations Elo sans brancher le démarrage, la fin ou l'abandon des parties. Aucun worker, RPC de lecture, leaderboard ou écran n'est ajouté.
 
 ## Schéma

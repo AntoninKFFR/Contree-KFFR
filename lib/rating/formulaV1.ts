@@ -64,6 +64,15 @@ export function eloDelta(input: {
   return roundHalfAwayFromZero(k * reliability * (result - expected));
 }
 
+/** Absolute database floor, applied only after the theoretical V1 delta. */
+export function effectiveRatingDelta(ratingBeforeApply: number, calculatedDelta: number): number {
+  if (!Number.isSafeInteger(ratingBeforeApply) || ratingBeforeApply < 0
+    || !Number.isSafeInteger(calculatedDelta)) {
+    throw new RangeError("Invalid rating application input");
+  }
+  return Math.max(calculatedDelta, ratingBeforeApply === 0 ? 0 : -ratingBeforeApply);
+}
+
 /** normal deltas are rounded before the transfer; a bot contributes no loss. */
 export function redistributeForfeit(
   forfeiterNormalDelta: number,

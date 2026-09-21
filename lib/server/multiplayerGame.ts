@@ -201,6 +201,7 @@ export function forfeitRoom(input: {
   players: RoomPlayerRow[];
   status: "finished";
   nextHostUserId: string | null | undefined;
+  forfeitingSeatIndex: RoomPlayerRow["seat_index"];
 } {
   if (input.room.status !== "playing" || input.state.phase === "game-over") {
     throw new MultiplayerError("La partie est déjà terminée.", 409, "game_already_over");
@@ -211,6 +212,7 @@ export function forfeitRoom(input: {
     state: endGameByForfeit(input.state, playerTeam(seat.seat_index)),
     players,
     status: "finished",
+    forfeitingSeatIndex: seat.seat_index,
     nextHostUserId: input.room.host_user_id === input.userId
       ? nextHostUserId(players, input.userId, input.nowMs)
       : undefined,
