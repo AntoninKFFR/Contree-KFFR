@@ -31,6 +31,10 @@ jobs:
           version: latest
       - run: supabase start
       - run: supabase db reset --local
+      - name: Lint local database schema
+        run: supabase db lint --local --level warning --fail-on error
+      - name: Run local Supabase advisors
+        run: supabase db advisors --local --type all --level warn --fail-on error
       - name: Test social RLS with local Auth JWTs
         shell: bash
         run: |
