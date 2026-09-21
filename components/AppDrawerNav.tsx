@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { href: "/", label: "Accueil" },
   { href: "/solo", label: "Jouer en solo" },
   { href: "/multiplayer", label: "Multijoueur" },
+  { href: "/friends", label: "Amis" },
   { href: "/rules", label: "Règles" },
   { href: "/profile", label: "Profil" },
 ] as const;
@@ -131,6 +132,7 @@ export function AppDrawerNav() {
   if (isGameRoute) return null;
   const contextLabel = pathname === "/" ? "Accueil"
     : pathname === "/multiplayer" ? "Multijoueur"
+    : pathname === "/friends" ? "Amis"
     : pathname === "/rules" ? "Règles"
     : pathname === "/profile" ? "Profil"
     : pathname === "/history" ? "Historique"
@@ -175,7 +177,7 @@ export function AppDrawerNav() {
         </div>
 
         <nav className="flex flex-1 flex-col gap-2 px-4 py-5">
-          {NAV_LINKS.map((link) => {
+          {NAV_LINKS.filter((link) => link.href !== "/friends" || session).map((link) => {
             const isActive =
               pathname === link.href ||
               (link.href !== "/" && pathname?.startsWith(`${link.href}/`));
