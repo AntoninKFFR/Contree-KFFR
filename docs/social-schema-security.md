@@ -2,6 +2,8 @@
 
 La migration `20260921000000_social_schema_security.sql` crée les quatre tables sociales, leurs contraintes, leurs politiques RLS, les fonctions privilégiées `private` et les RPC publiques. Les RPC publiques utilisent le JWT `authenticated` ; aucune route, page, bouton ou publication Realtime sociale n'est ajoutée dans cette PR.
 
+Les quotas SQL lèvent `PT429` pour que PostgREST réponde directement en HTTP 429, y compris quand la RPC est appelée hors des futures routes Next.
+
 ## Vérifier sur une base locale jetable
 
 Une installation Supabase locale avec Docker ou Podman est nécessaire. Ne pas employer le projet Supabase partagé pour ces tests.

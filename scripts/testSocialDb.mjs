@@ -26,10 +26,11 @@ async function rpc(who, name, args = {}) {
   return checked(await who.client.rpc(name, args), name);
 }
 
-async function rejected(promise, pattern) {
+async function rejected(promise, pattern, code = null) {
   const { error } = await promise;
   assert.ok(error, `Expected rejection matching ${pattern}`);
   assert.match(error.message, pattern);
+  if (code) assert.equal(error.code, code);
 }
 
 async function createIdentity(label) {
@@ -142,6 +143,13 @@ async function run() {
   await rejected(a.client.rpc("send_game_invitation", { p_room_id: room, p_invitee_id: f.id }), /not_friends/);
   const invitation = await rpc(a, "send_game_invitation", { p_room_id: room, p_invitee_id: b.id });
   assert.equal(invitation.status, "pending");
+  const received = await rpc(b, "get_my_game_invitations");
+  const sent = await rpc(a, "get_my_game_invitations");
+  assert.equal(received.invitations.some((item) => item.id === invitation.id), true);
+  assert.equal(sent.invitations.some((item) => item.id === invitation.id), true);
+  assert.equal(received.counts.received_pending, 1);
+  assert.equal(sent.counts.sent_pending, 1);
+  assert.equal(JSON.stringify(received).includes("@example.test"), false);
   assert.equal((await rpc(a, "send_game_invitation", { p_room_id: room, p_invitee_id: b.id })).id, invitation.id);
   assert.deepEqual(await rpc(c, "send_game_invitation", { p_room_id: room, p_invitee_id: b.id }), { status: "already_invited" });
   assert.equal(checked(await c.client.from("game_invitations").select("id").eq("id", invitation.id), "third party invitations").length, 0);
@@ -157,6 +165,10 @@ async function run() {
   assert.deepEqual(competingInvites.map(({ data, error }) => error ? error.message : data.status).sort(), ["already_invited", "pending"]);
   assert.equal(checked(await admin.from("game_invitations").select("id").eq("room_id", raceRoom).eq("invitee_id", b.id)
     .eq("status", "pending"), "competing invitations").length, 1);
+  const declineRoom = await createRoom(a, c);
+  const toDecline = await rpc(a, "send_game_invitation", { p_room_id: declineRoom, p_invitee_id: e.id });
+  assert.deepEqual(await rpc(e, "decline_game_invitation", { p_invitation_id: toDecline.id }), { status: "declined" });
+  assert.deepEqual(await rpc(e, "decline_game_invitation", { p_invitation_id: toDecline.id }), { status: "declined" });
   await rejected(c.client.rpc("resolve_game_invitation", { p_invitation_id: invitation.id }), /invitation_not_found/);
   await rejected(c.client.rpc("cancel_game_invitation", { p_invitation_id: invitation.id }), /invitation_not_found/);
   await rejected(a.client.rpc("decline_game_invitation", { p_invitation_id: invitation.id }), /invitation_not_found/);
@@ -204,7 +216,7 @@ async function run() {
   const burstRoom = await createRoom(a, c);
   const burst = await rpc(a, "send_game_invitation", { p_room_id: burstRoom, p_invitee_id: e.id });
   await rpc(a, "cancel_game_invitation", { p_invitation_id: burst.id });
-  await rejected(a.client.rpc("send_game_invitation", { p_room_id: burstRoom, p_invitee_id: e.id }), /rate_limited/);
+  await rejected(a.client.rpc("send_game_invitation", { p_room_id: burstRoom, p_invitee_id: e.id }), /rate_limited/, "PT429");
 
   // SQL quota boundary (19 -> 20 -> rejected) without creating 21 accounts.
   const day = new Date(); day.setUTCHours(0, 0, 0, 0);
@@ -214,20 +226,20 @@ async function run() {
     a.client.rpc("send_friend_request", { p_recipient_id: g.id }),
   ]);
   assert.equal(quotaRequests.filter(({ data }) => data?.status === "pending").length, 1);
-  assert.equal(quotaRequests.filter(({ error }) => /rate_limited/.test(error?.message ?? "")).length, 1);
+  assert.equal(quotaRequests.filter(({ error }) => error?.code === "PT429" && /rate_limited/.test(error.message)).length, 1);
   const minute = new Date(); minute.setUTCSeconds(0, 0);
   checked(await admin.from("social_rate_limits").upsert({ actor_id: b.id, action: "search_minute", scope: "", window_start: minute.toISOString(), count: 10 }), "seed search quota");
-  await rejected(b.client.rpc("search_players_by_username", { p_prefix: "Soc" }), /rate_limited/);
+  await rejected(b.client.rpc("search_players_by_username", { p_prefix: "Soc" }), /rate_limited/, "PT429");
   checked(await admin.from("social_rate_limits").delete().eq("actor_id", b.id).eq("action", "search_minute"), "clear search minute quota");
   checked(await admin.from("social_rate_limits").upsert({ actor_id: b.id, action: "search_day", scope: "", window_start: day.toISOString(), count: 100 }), "seed search day quota");
-  await rejected(b.client.rpc("search_players_by_username", { p_prefix: "Soc" }), /rate_limited/);
+  await rejected(b.client.rpc("search_players_by_username", { p_prefix: "Soc" }), /rate_limited/, "PT429");
   const quotaRoom = await createRoom(a, c);
   checked(await admin.from("social_rate_limits").upsert({ actor_id: a.id, action: "invitation_day", scope: "", window_start: day.toISOString(), count: 19 }), "seed invitation quota");
   const quotaInvite = await rpc(a, "send_game_invitation", { p_room_id: quotaRoom, p_invitee_id: e.id });
   assert.equal(quotaInvite.status, "pending");
   await rejected(admin.from("game_invitations").insert({ room_id: quotaRoom, inviter_id: c.id, invitee_id: e.id }), /game_invitations_one_pending_room_invitee|duplicate key/i);
   const nextQuotaRoom = await createRoom(a, c);
-  await rejected(a.client.rpc("send_game_invitation", { p_room_id: nextQuotaRoom, p_invitee_id: e.id }), /rate_limited/);
+  await rejected(a.client.rpc("send_game_invitation", { p_room_id: nextQuotaRoom, p_invitee_id: e.id }), /rate_limited/, "PT429");
   await rpc(a, "remove_friend", { p_other_user_id: e.id });
   assert.equal(checked(await admin.from("game_invitations").select("status").eq("id", quotaInvite.id).single(), "friend removal cancellation").status, "cancelled");
   await rpc(a, "remove_friend", { p_other_user_id: b.id });

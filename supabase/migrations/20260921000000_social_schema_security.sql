@@ -94,7 +94,7 @@ begin
   on conflict (actor_id, action, scope, window_start)
   do update set count = public.social_rate_limits.count + 1
     where public.social_rate_limits.count < p_limit;
-  if not found then raise exception 'rate_limited' using errcode = 'P0001'; end if;
+  if not found then raise sqlstate 'PT429' using message = 'rate_limited'; end if;
 end;
 $$;
 
@@ -381,7 +381,7 @@ begin
   if exists (select 1 from public.game_invitations where room_id = p_room_id
       and inviter_id = v_actor and invitee_id = p_invitee_id
       and created_at > now() - interval '5 minutes') then
-    raise exception 'rate_limited' using errcode = 'P0001';
+    raise sqlstate 'PT429' using message = 'rate_limited';
   end if;
   perform private.social_charge(v_actor, 'invitation_day', '', pg_catalog.date_trunc('day', now() at time zone 'utc') at time zone 'utc', 20);
   insert into public.game_invitations(room_id, inviter_id, invitee_id)
