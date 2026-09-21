@@ -376,7 +376,7 @@ begin
   loop
     v_result := case when v_seat.team_id = v_match.winner_team then 1 else 0 end;
     v_deltas[v_seat.seat_index + 1] := round(
-      (v_seat.k_factor_snapshot * v_match.reliability_factor
+      (v_seat.k_factor_snapshot::double precision * v_match.reliability_factor::double precision
        * (v_result - v_expected[v_seat.team_id + 1]))::numeric
     )::integer;
   end loop;

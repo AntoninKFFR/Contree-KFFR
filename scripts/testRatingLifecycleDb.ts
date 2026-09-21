@@ -5,6 +5,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { CONTREE_KFFR_RULESET } from "../engine/rulesets/presets";
 import type { GameRulesetSnapshot } from "../engine/rulesets/types";
 import { resolveBotRating } from "../lib/server/botRatings";
+import { eloDelta, expectedScore } from "../lib/rating/formulaV1";
 
 const url = process.env.RATING_TEST_SUPABASE_URL;
 const anonKey = process.env.RATING_TEST_SUPABASE_ANON_KEY;
@@ -50,7 +51,8 @@ function botConfig(players: Array<{ kind: string; seat_index: number; bot_profil
     };
   });
 }
-async function fixture(humanSeats: number[], ruleset: GameRulesetSnapshot = CONTREE_KFFR_RULESET) {
+async function fixture(humanSeats: number[], ruleset: GameRulesetSnapshot = CONTREE_KFFR_RULESET,
+  checkAtomicStart = false) {
   const gameId = randomUUID();
   games.push(gameId);
   const room = checked(await admin.from("rooms").insert({
@@ -82,6 +84,18 @@ async function fixture(humanSeats: number[], ruleset: GameRulesetSnapshot = CONT
     p_official_ruleset: CONTREE_KFFR_RULESET,
     p_rating_bots: botConfig(players),
   };
+  if (checkAtomicStart) {
+    const failedStart = await admin.rpc("start_multiplayer_game", {
+      ...startArgs, p_rating_bots: [],
+    });
+    assert.ok(failedStart.error);
+    const stillLobby = checked(await admin.from("rooms").select("status,active_game_id")
+      .eq("id", room.id).single(), "rolled back start");
+    assert.equal(stillLobby.status, "lobby");
+    assert.equal(stillLobby.active_game_id, null);
+    assert.equal(checked(await admin.from("rating_start_snapshots").select("source_game_id")
+      .eq("source_game_id", gameId), "rolled back snapshot").length, 0);
+  }
   assert.equal(checked(await admin.rpc("start_multiplayer_game", startArgs), "start game"), true);
   const startedRoom = checked(await admin.from("rooms").select("*").eq("id", room.id).single(), "started room");
   assert.equal(startedRoom.status, "playing");
@@ -273,7 +287,7 @@ try {
   assert.equal((await rating(users[0].id)).forfeits, 1);
   assert.equal((await rating(users[2].id)).forfeits, 0);
 
-  const oneHuman = await fixture([0]);
+  const oneHuman = await fixture([0], CONTREE_KFFR_RULESET, true);
   const botSnapshot = checked(await admin.from("rating_start_snapshot_participants")
     .select("*").eq("source_game_id", oneHuman.gameId), "bot snapshot");
   assert.equal(botSnapshot.filter((s) => s.kind === "bot").length, 3);
@@ -287,7 +301,15 @@ try {
   const oneLedger = checked(await admin.from("rating_match_participants")
     .select("*").eq("match_id", oneEnd.matches[0].id).eq("seat_index", 0).single(), "one human ledger");
   assert.equal(oneLedger.forfeited, true);
-  assert.ok(oneLedger.delta <= 0);
+  const botSeatsByIndex = botSnapshot.sort((a, b) => a.seat_index - b.seat_index);
+  const expectedOne = expectedScore(
+    (botSeatsByIndex[0].rating_snapshot + botSeatsByIndex[2].rating_snapshot) / 2,
+    (botSeatsByIndex[1].rating_snapshot + botSeatsByIndex[3].rating_snapshot) / 2,
+  );
+  assert.equal(oneLedger.delta, eloDelta({
+    k: botSeatsByIndex[0].k_factor_snapshot, reliability: 0.2,
+    result: 0, expected: expectedOne,
+  }));
 
   const takeover = await fixture([0]);
   const takeoverEnd = await finish(takeover, 1, null, "takeover");
@@ -321,6 +343,14 @@ try {
   checked(await admin.from("rating_match_participants").update({ result: 1 })
     .eq("match_id", pendingEnd.matches[0].id).eq("seat_index", 0).select("seat_index").single(), "repair result");
   assert.equal(await apply(pending.gameId), "applied");
+
+  const voided = await fixture([0]);
+  const voidEnd = await finish(voided, 0);
+  const beforeVoid = (await rating(users[0].id)).rating;
+  checked(await admin.from("rating_matches").update({ status: "void" })
+    .eq("id", voidEnd.matches[0].id).select("id").single(), "void match");
+  assert.equal(await apply(voided.gameId), "void");
+  assert.equal((await rating(users[0].id)).rating, beforeVoid);
 
   await setRating(users[0].id, 1000);
   const gameA = await fixture([0]);
