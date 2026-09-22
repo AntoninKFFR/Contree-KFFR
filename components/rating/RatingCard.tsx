@@ -1,4 +1,5 @@
 import { AppEyebrow, AppSurface, appSecondaryActionClass } from "@/components/ui/AppShell";
+import { RankEmblem } from "@/components/rating/RankEmblem";
 import { getRatingProgress } from "@/lib/rating/formulaV1";
 import type { RatingSummary } from "@/lib/rating/queries";
 
@@ -32,13 +33,12 @@ export function RatingCard(props: RatingCardProps) {
         <p className="mt-5 text-sm text-[var(--text-secondary)]" role="alert">Impossible de charger le classement pour le moment.</p>
       ) : summary ? (
         <div className="mt-5 space-y-5">
-          <p className="text-4xl font-black tracking-tight text-[var(--text-primary)]">{formatElo(summary.rating)}</p>
-
           {!summary.isRanked && summary.ratedGames < 5 ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3 text-sm font-semibold text-[var(--text-secondary)]">
-                <span>Placement</span>
-                <span>{summary.placementGames}/5</span>
+            <div className="space-y-3 py-2 text-center sm:text-left">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--accent)]">Placement</p>
+                <p className="mt-2 text-3xl font-black text-[var(--text-primary)]">{summary.placementGames} / 5 parties</p>
+                <p className="mt-1 text-xl font-bold text-[var(--text-secondary)]">{formatElo(summary.rating)}</p>
               </div>
               <ProgressBar label="Progression du placement" max={5} value={summary.placementGames} />
               <p className="text-sm text-[var(--text-muted)]">
@@ -48,15 +48,18 @@ export function RatingCard(props: RatingCardProps) {
               </p>
             </div>
           ) : !summary.isRanked ? (
-            <div className="space-y-3">
+            <div className="space-y-3 py-2">
+              <p className="text-3xl font-black tracking-tight text-[var(--text-primary)]">{formatElo(summary.rating)}</p>
               <p className="text-sm text-[var(--text-secondary)]">Ajoute un pseudo pour apparaître dans le classement.</p>
               <a className={appSecondaryActionClass} href="#profile-username">Modifier mon pseudo</a>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                <p className="text-lg font-bold text-[var(--text-primary)]">{summary.rank}</p>
-                <p className="text-sm font-semibold text-[var(--text-secondary)]">#{summary.position} au classement</p>
+            <div className="space-y-5">
+              <div className="flex flex-col items-center text-center">
+                <RankEmblem decorative rating={summary.rating} showDivision size="xl" />
+                <p className="mt-4 text-2xl font-black text-[var(--text-primary)]">{summary.rank}</p>
+                <p className="mt-1 text-3xl font-black tracking-tight text-[var(--text-primary)]">{formatElo(summary.rating)}</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-secondary)]">#{summary.position} au classement</p>
               </div>
               {progress?.nextRank && progress.pointsIntoRank !== null && progress.pointsToNextRank !== null ? (
                 <div className="space-y-2">

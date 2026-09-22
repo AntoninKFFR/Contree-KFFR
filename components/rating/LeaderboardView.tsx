@@ -1,4 +1,5 @@
 import { AppSurface, appSecondaryActionClass } from "@/components/ui/AppShell";
+import { RankEmblem } from "@/components/rating/RankEmblem";
 import type { LeaderboardEntry } from "@/lib/rating/queries";
 
 export type LeaderboardViewProps = {
@@ -25,19 +26,22 @@ export function LeaderboardView({ state, entries, page, hasNext, onPrevious, onN
         <p className="py-6 text-sm text-[var(--text-muted)]">Aucun joueur classé pour le moment.</p>
       ) : (
         <div>
-          <div aria-hidden="true" className="hidden grid-cols-[4rem_minmax(0,1fr)_7rem_minmax(10rem,12rem)] gap-3 border-b border-[var(--border)] px-3 pb-3 text-xs font-bold uppercase tracking-wide text-[var(--text-muted)] sm:grid">
-            <span>#</span><span>Joueur</span><span>Elo</span><span>Rang</span>
+          <div aria-hidden="true" className="hidden grid-cols-[4rem_3.5rem_minmax(0,1fr)_7rem] gap-3 border-b border-[var(--border)] px-3 pb-3 text-xs font-bold uppercase tracking-wide text-[var(--text-muted)] sm:grid">
+            <span>#</span><span aria-hidden="true" /><span>Joueur</span><span>Elo</span>
           </div>
           <ol className="divide-y divide-[var(--border)]">
             {entries.map((entry) => (
               <li
-                className={`grid min-w-0 grid-cols-[3rem_minmax(0,1fr)_auto] gap-x-3 gap-y-1 rounded-xl px-3 py-3 sm:grid-cols-[4rem_minmax(0,1fr)_7rem_minmax(10rem,12rem)] sm:items-center ${entry.position === 1 ? "bg-[var(--accent-soft)]" : ""}`}
+                className={`grid min-w-0 grid-cols-[3rem_3rem_minmax(0,1fr)_auto] items-center gap-x-2 rounded-xl px-3 py-3 sm:grid-cols-[4rem_3.5rem_minmax(0,1fr)_7rem] sm:gap-x-3 ${entry.position === 1 ? "bg-[var(--accent-soft)]" : ""}`}
                 key={entry.username}
               >
                 <span className={`col-start-1 row-start-1 font-bold ${entry.position <= 3 ? "text-[var(--accent)]" : "text-[var(--text-secondary)]"}`}>#{entry.position}</span>
-                <span className="col-start-2 row-start-1 min-w-0 break-words font-semibold text-[var(--text-primary)]">{entry.username}</span>
-                <span className="col-start-3 row-start-1 whitespace-nowrap text-right font-bold tabular-nums text-[var(--text-primary)] sm:text-left">{new Intl.NumberFormat("fr-FR").format(entry.rating)}</span>
-                <span className="col-span-2 col-start-2 row-start-2 text-sm text-[var(--text-secondary)] sm:col-auto sm:row-auto">{entry.rank}</span>
+                <RankEmblem className="col-start-2" decorative rating={entry.rating} size="sm" />
+                <span className="col-start-3 min-w-0">
+                  <span className="block break-words font-semibold text-[var(--text-primary)]">{entry.username}</span>
+                  <span className="block text-xs text-[var(--text-secondary)] sm:text-sm">{entry.rank}</span>
+                </span>
+                <span className="col-start-4 whitespace-nowrap text-right font-bold tabular-nums text-[var(--text-primary)] sm:text-left">{new Intl.NumberFormat("fr-FR").format(entry.rating)} Elo</span>
               </li>
             ))}
           </ol>

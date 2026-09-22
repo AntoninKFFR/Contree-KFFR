@@ -84,6 +84,26 @@ describe("multiplayer presence and reconnection", () => {
     expect(storedPlayers[2]).toMatchObject({ kind: "human", user_id: "user-2", seat_index: 2 });
   });
 
+  it("projects only official human ratings and keeps placement, bots and UUIDs private", () => {
+    const storedPlayers = players(NOW.toISOString());
+    storedPlayers[0] = { ...storedPlayers[0], kind: "bot", display_name: "Bot", bot_profile_id: "advanced_rules_v4" };
+    storedPlayers[2] = { ...storedPlayers[2], bot_takeover: true };
+    const ranked = new Map([["user-2", { is_ranked: true, rating: 1450, rank: "Sait jouer II" }]]);
+    const projected = projectRoomPlayers(storedPlayers, NOW.getTime(), null, ranked);
+    expect(projected[2]).toMatchObject({
+      kind: "human", bot_takeover: true, is_ranked: true, rating: 1450, rank: "Sait jouer II",
+    });
+    expect(projected[0]).toMatchObject({ kind: "bot", is_ranked: false, rating: null, rank: null });
+    expect(projected.some((player) => "user_id" in player || "bot_profile_id" in player)).toBe(false);
+
+    const placement = projectRoomPlayers(storedPlayers, NOW.getTime());
+    expect(placement[2]).toMatchObject({ is_ranked: false, rating: null, rank: null });
+    const forgedPlacement = projectRoomPlayers(storedPlayers, NOW.getTime(), null, new Map([
+      ["user-2", { is_ranked: false, rating: 1023, rank: "Débutant I" }],
+    ]));
+    expect(forgedPlacement[2]).toMatchObject({ is_ranked: false, rating: null, rank: null });
+  });
+
   it("uses last_seen_at rather than a stale is_connected cache value", () => {
     const storedPlayers = players("2026-09-08T23:59:30.000Z");
     storedPlayers[2].is_connected = false;

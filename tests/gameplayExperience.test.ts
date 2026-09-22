@@ -111,6 +111,7 @@ describe("premium gameplay shell", () => {
       seat_index: seat as 0 | 1 | 2 | 3,
       kind: "human", display_name: `P${seat}`, is_ready: true,
       is_connected: true, bot_takeover: false, is_host: seat === 0,
+      is_ranked: false, rating: null, rank: null,
     }));
     const markup = withPreferences(React.createElement(GameTable, {
       state, players, minimalHud: true, showLiveScore: true,
@@ -121,6 +122,26 @@ describe("premium gameplay shell", () => {
     expect(markup).not.toContain("Tour ·");
     expect(markup).not.toMatch(/\d+ cartes?/);
     expect(markup).not.toContain("Points en direct");
+  });
+
+  it("keeps human rank identity on the multiplayer table without ranking bots", () => {
+    const state = createInitialGame(() => 0.1);
+    const players: RoomPlayerView[] = [
+      { seat_index: 0, kind: "human", display_name: "Classé", is_ready: true, is_connected: true,
+        bot_takeover: false, is_host: true, is_ranked: true, rating: 1450, rank: "Sait jouer II" },
+      { seat_index: 1, kind: "bot", display_name: "Bot", is_ready: true, is_connected: true,
+        bot_takeover: false, is_host: false, is_ranked: false, rating: null, rank: null },
+      { seat_index: 2, kind: "human", display_name: "Placement", is_ready: true, is_connected: true,
+        bot_takeover: false, is_host: false, is_ranked: false, rating: null, rank: null },
+      { seat_index: 3, kind: "human", display_name: "Reprise", is_ready: true, is_connected: false,
+        bot_takeover: true, is_host: false, is_ranked: true, rating: 1600, rank: "Capot de Capi IV" },
+    ];
+    const markup = withPreferences(React.createElement(GameTable, { state, players }));
+    expect(markup.match(/data-rank-family=/g)).toHaveLength(2);
+    expect(markup).toContain("Sait jouer II");
+    expect(markup).toContain("Capot de Capi IV");
+    expect(markup).toContain("Placement");
+    expect(markup).toContain("Bot temporaire");
   });
 
   it("keeps only the contract-progress title and primary value", () => {

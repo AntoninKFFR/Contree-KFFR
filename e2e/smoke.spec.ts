@@ -2,6 +2,32 @@ import { expect, test } from "@playwright/test";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 
 test.describe("@smoke public production readiness", () => {
+  test("@smoke rank emblems are optimized transparent PNG assets", async ({ page }) => {
+    await page.goto("/");
+    const assets = await page.evaluate(async () => Promise.all([
+      "/ranks/debutant.png",
+      "/ranks/pas-mauvais.png",
+      "/ranks/sait-jouer.png",
+      "/ranks/capot-de-capi.png",
+    ].map(async (src) => {
+      const image = new Image();
+      image.src = src;
+      await image.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) throw new Error("Canvas unavailable");
+      context.drawImage(image, 0, 0);
+      const cornerAlpha = context.getImageData(0, 0, 1, 1).data[3];
+      const centerAlpha = context.getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1).data[3];
+      return { src, width: image.naturalWidth, height: image.naturalHeight, cornerAlpha, centerAlpha };
+    })));
+    for (const asset of assets) {
+      expect(asset).toMatchObject({ width: 1024, height: 1024, cornerAlpha: 0, centerAlpha: 255 });
+    }
+  });
+
   test("@smoke navbar music volume stays in sync with settings and playback", async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto("/solo");

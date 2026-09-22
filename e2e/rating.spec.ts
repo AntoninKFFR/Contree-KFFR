@@ -113,6 +113,12 @@ test.describe("@multiplayer @rating authenticated Elo lifecycle", () => {
       expect(playing.room.ruleset_snapshot).toEqual(CONTREE_KFFR_RULESET);
       expect(playing.players.filter((player) => player.kind === "human")).toHaveLength(1);
       expect(playing.players.filter((player) => player.kind === "bot")).toHaveLength(3);
+      for (const bot of playing.players.filter((player) => player.kind === "bot")) {
+        expect(bot).toMatchObject({ is_ranked: false, rating: null, rank: null });
+      }
+      expect(playing.players[0]).toMatchObject(before.isRanked
+        ? { is_ranked: true, rating: before.rating, rank: before.rank }
+        : { is_ranked: false, rating: null, rank: null });
       expect(playing.viewerSeatIndex).toBe(0);
       expect((await sendIntent(page, roomId, playing.room.state_version, { type: "forfeit-game" })).status).toBe(200);
       const finished = await expectRoom(page, roomId, "one-human forfeit finished", (view) =>

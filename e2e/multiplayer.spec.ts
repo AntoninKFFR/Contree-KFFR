@@ -67,6 +67,18 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
 
       converged = await expectRoom(pages[0], roomId, "four unique seats", (view) => view.players.filter((p) => p.kind === "human").length === 4);
       expect(new Set(converged.players.map((p) => p.seat_index)).size).toBe(4);
+      for (const player of converged.players) {
+        expect(player).toHaveProperty("is_ranked");
+        expect(player).toHaveProperty("rating");
+        expect(player).toHaveProperty("rank");
+        if (player.is_ranked) {
+          expect(Number.isSafeInteger(player.rating)).toBe(true);
+          expect(player.rank).toMatch(/^(Débutant|Pas mauvais|Sait jouer|Capot de Capi) (V|IV|III|II|I)$/);
+        } else {
+          expect(player.rating).toBeNull();
+          expect(player.rank).toBeNull();
+        }
+      }
       for (const page of pages) for (const name of names) await expect(page.getByText(name, { exact: false }).first()).toBeVisible();
 
       const beforePreferences = (await roomView(pages[0], roomId)).room.state_version;

@@ -354,6 +354,7 @@ export function GameTable({
     const player = players?.find((candidate) => candidate.seat_index === playerId);
     return player?.kind === "human" ? player.is_connected : undefined;
   };
+  const roomPlayerFor = (playerId: PlayerId) => players?.find((candidate) => candidate.seat_index === playerId);
   const takeoverFor = (playerId: PlayerId) =>
     players?.find((candidate) => candidate.seat_index === playerId)?.bot_takeover ?? false;
   const hostFor = (playerId: PlayerId) => players?.find((candidate) => candidate.seat_index === playerId)?.is_host ?? false;
@@ -528,8 +529,11 @@ export function GameTable({
           isConnected={connectionFor(seats.top)}
           isCurrent={state.currentPlayerId === seats.top}
           isHost={hostFor(seats.top)}
+          isRanked={roomPlayerFor(seats.top)?.is_ranked}
           name={nameFor(seats.top)}
           playerId={seats.top}
+          rank={roomPlayerFor(seats.top)?.rank}
+          rating={roomPlayerFor(seats.top)?.rating}
         />
       </div>
       <div className="absolute left-1 top-1/2 -translate-y-1/2 sm:left-3">
@@ -549,8 +553,11 @@ export function GameTable({
           isConnected={connectionFor(seats.left)}
           isCurrent={state.currentPlayerId === seats.left}
           isHost={hostFor(seats.left)}
+          isRanked={roomPlayerFor(seats.left)?.is_ranked}
           name={nameFor(seats.left)}
           playerId={seats.left}
+          rank={roomPlayerFor(seats.left)?.rank}
+          rating={roomPlayerFor(seats.left)?.rating}
         />
       </div>
       <div className="absolute right-1 top-1/2 -translate-y-1/2 sm:right-3">
@@ -570,8 +577,11 @@ export function GameTable({
           isConnected={connectionFor(seats.right)}
           isCurrent={state.currentPlayerId === seats.right}
           isHost={hostFor(seats.right)}
+          isRanked={roomPlayerFor(seats.right)?.is_ranked}
           name={nameFor(seats.right)}
           playerId={seats.right}
+          rank={roomPlayerFor(seats.right)?.rank}
+          rating={roomPlayerFor(seats.right)?.rating}
         />
       </div>
       <div className="coinche-bottom-seat absolute bottom-2 left-1/2 -translate-x-1/2 sm:bottom-3">
@@ -591,8 +601,11 @@ export function GameTable({
           isConnected={connectionFor(seats.bottom)}
           isCurrent={state.currentPlayerId === seats.bottom}
           isHost={hostFor(seats.bottom)}
+          isRanked={roomPlayerFor(seats.bottom)?.is_ranked}
           name={nameFor(seats.bottom)}
           playerId={seats.bottom}
+          rank={roomPlayerFor(seats.bottom)?.rank}
+          rating={roomPlayerFor(seats.bottom)?.rating}
         />
       </div>
     </section>
