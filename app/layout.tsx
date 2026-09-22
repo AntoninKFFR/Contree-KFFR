@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AppDrawerNav } from "@/components/AppDrawerNav";
+import { AppTopNav } from "@/components/AppTopNav";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
 import { MusicProvider } from "@/components/settings/MusicProvider";
 import "./globals.css";
@@ -26,7 +26,7 @@ export default function RootLayout({
         <PlayerPreferencesProvider>
           <MusicProvider>
             <div className="min-h-dvh">
-              <AppDrawerNav />
+              <AppTopNav />
               {children}
             </div>
           </MusicProvider>

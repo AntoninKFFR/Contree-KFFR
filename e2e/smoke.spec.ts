@@ -6,6 +6,7 @@ test.describe("@smoke public production readiness", () => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto("/solo");
     const header = page.locator("header.coinche-game-topbar");
+    await header.getByRole("button", { name: "Contrôles audio" }).click();
     const navbarVolume = header.getByRole("slider", { name: "Volume musique" });
     const audio = page.locator("audio[data-background-music]");
     await expect(navbarVolume).toBeVisible();
@@ -40,8 +41,10 @@ test.describe("@smoke public production readiness", () => {
     await dialog.getByRole("slider", { name: "Volume musique" }).fill("70");
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(0.7);
     await page.keyboard.press("Escape");
+    await header.getByRole("button", { name: "Contrôles audio" }).click();
     await expect(navbarVolume).toHaveValue("70");
     await page.reload();
+    await header.getByRole("button", { name: "Contrôles audio" }).click();
     await expect(navbarVolume).toHaveValue("70");
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(0.7);
     await expect(header.getByRole("button", { name: "Lire la musique" })).toBeVisible();
@@ -50,98 +53,111 @@ test.describe("@smoke public production readiness", () => {
     await expect(navbarVolume).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await page.setViewportSize({ width: 375, height: 667 });
-    await expect(navbarVolume).toBeHidden();
-    for (const name of ["Piste précédente", "Lire la musique", "Piste suivante", "Ouvrir le menu de partie"]) {
-      await expect(header.getByRole("button", { name })).toBeVisible();
-    }
+    await expect(navbarVolume).toBeVisible();
+    await expect(header.getByRole("button", { name: "Ouvrir le menu de partie" })).toBeVisible();
     await expect(header.getByRole("switch", { name: "Activer le thème clair" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 
-  test("@smoke music metadata shows the current song and adjacent track tooltips", async ({ page }) => {
+  test("@smoke audio popover exposes metadata and playback controls", async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto("/");
-    const header = page.locator("header.coinche-game-topbar");
-    const currentTrack = header.locator("[data-current-track]");
+    const header = page.locator("header.coinche-global-header");
+    await expect(header.getByRole("button", { name: "Piste précédente" })).toHaveCount(0);
+    await header.getByRole("button", { name: "Contrôles audio" }).click();
+    const player = header.getByRole("dialog", { name: "Lecteur audio" });
     const previous = header.getByRole("button", { name: "Piste précédente" });
     const next = header.getByRole("button", { name: "Piste suivante" });
     const play = header.getByRole("button", { name: "Lire la musique" });
 
-    await expect(currentTrack).toBeVisible();
-    await expect(currentTrack).toHaveText("Echoes — Allan");
-    await expect(previous).toHaveAttribute("title", "Your way — Allan");
-    await expect(next).toHaveAttribute("title", "Ena — Allan");
-    await expect(play).not.toHaveAttribute("title");
+    await expect(player).toContainText("Echoes");
+    await expect(player).toContainText("Allan");
 
     await previous.click();
-    await expect(currentTrack).toHaveText("Your way — Allan");
-    await expect(next).toHaveAttribute("title", "Echoes — Allan");
+    await expect(player).toContainText("Your way");
     await next.click();
     await next.click();
-    await expect(currentTrack).toHaveText("Ena — Allan");
-    await expect(previous).toHaveAttribute("title", "Echoes — Allan");
-    await expect(next).toHaveAttribute("title", "Estrella — Allan");
+    await expect(player).toContainText("Ena");
 
     await play.click();
-    await expect(header.getByRole("button", { name: "Mettre la musique en pause" })).not.toHaveAttribute("title");
+    await expect(header.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
     await header.getByRole("button", { name: "Mettre la musique en pause" }).click();
-    await expect(header.getByRole("button", { name: "Lire la musique" })).not.toHaveAttribute("title");
+    await expect(header.getByRole("button", { name: "Lire la musique" })).toBeVisible();
 
     for (const viewport of [{ width: 844, height: 390 }, { width: 375, height: 667 }]) {
       await page.setViewportSize(viewport);
-      await expect(currentTrack).toBeHidden();
-      for (const name of ["Piste précédente", "Lire la musique", "Piste suivante", "Ouvrir le menu"]) {
-        await expect(header.getByRole("button", { name })).toBeVisible();
-      }
+      await expect(player).toBeVisible();
+      await expect(header.getByRole("button", { name: "Ouvrir le menu" })).toBeVisible();
       await expect(header.getByRole("switch", { name: "Activer le thème clair" })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     }
+    await page.keyboard.press("Escape");
+    await expect(player).toHaveCount(0);
   });
 
-  test("@smoke unified topbar keeps its controls, context and size in both themes", async ({ page }) => {
+  test("@smoke unified topbar exposes desktop links and a compact mobile panel", async ({ page }) => {
     test.setTimeout(90_000);
-    const header = page.locator("header.coinche-game-topbar");
-    const assertChrome = async (context: string, menu: string) => {
+    const header = page.locator("header.coinche-global-header");
+    const assertChrome = async () => {
       await expect(header).toBeVisible();
-      await expect(header).toHaveCSS("height", "48px");
-      await expect(header.getByText(context, { exact: true })).toBeVisible();
-      for (const name of ["Piste précédente", "Lire la musique", "Piste suivante", menu]) {
-        await expect(header.getByRole("button", { name })).toBeVisible();
-      }
+      await expect(header).toHaveCSS("height", "56px");
+      await expect(header.getByRole("navigation", { name: "Navigation principale" })).toBeVisible();
+      await expect(header.getByRole("link", { name: "Accueil", exact: true })).toBeVisible();
+      await expect(header.getByRole("button", { name: /Jouer/ })).toBeVisible();
+      await expect(header.getByRole("link", { name: "Règles", exact: true })).toBeVisible();
+      await expect(header.getByRole("button", { name: "Contrôles audio" })).toBeVisible();
+      await expect(header.getByRole("button", { name: "Ouvrir le menu" })).toBeHidden();
       await expect(header.getByRole("switch", { name: "Activer le thème clair" })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     };
 
     await page.setViewportSize({ width: 1366, height: 768 });
-    for (const [route, context, menu] of [
-      ["/", "Accueil", "Ouvrir le menu"],
-      ["/rules", "Règles", "Ouvrir le menu"],
-      ["/multiplayer", "Multijoueur", "Ouvrir le menu"],
-      ["/profile", "Profil", "Ouvrir le menu"],
-      ["/history", "Historique", "Ouvrir le menu"],
-      ["/login", "Connexion", "Ouvrir le menu"],
-      ["/solo", "Solo", "Ouvrir le menu de partie"],
-    ] as const) {
+    for (const route of ["/", "/multiplayer", "/leaderboard", "/friends", "/history", "/profile", "/rules", "/login"]) {
       await page.goto(route);
-      await assertChrome(context, menu);
+      await assertChrome();
+      if (route === "/") await expect(header.getByRole("link", { name: "Accueil", exact: true })).toHaveAttribute("aria-current", "page");
+      if (route === "/rules") await expect(header.getByRole("link", { name: "Règles", exact: true })).toHaveAttribute("aria-current", "page");
     }
+    await expect(header.getByRole("link", { name: "Se connecter" })).toHaveAttribute("href", "/login");
+    await expect(header.getByRole("link", { name: "Classement" })).toHaveCount(0);
+    await expect(page.locator(".coinche-app-drawer")).toHaveCount(0);
+    await page.goto("/");
+    const playButton = header.getByRole("button", { name: /Jouer/ });
+    await playButton.hover();
+    const soloLink = header.getByRole("link", { name: "Solo", exact: true });
+    await soloLink.hover();
+    await expect(soloLink).toBeVisible();
+    await expect(soloLink).toBeEnabled();
+    await expect(soloLink).toHaveAttribute("href", "/solo");
+    await expect(header.getByRole("link", { name: "Multijoueur", exact: true })).toHaveAttribute("href", "/multiplayer");
+    await page.keyboard.press("Escape");
+    await expect(soloLink).toHaveCount(0);
+    await page.mouse.move(0, 200);
+    await playButton.click();
+    await expect(soloLink).toBeVisible();
+    await playButton.click();
+    await expect(soloLink).toHaveCount(0);
+    await playButton.click();
+    await page.getByRole("heading", { name: "La contrée, en solo ou entre amis" }).click();
+    await expect(soloLink).toHaveCount(0);
+    await playButton.focus();
+    await page.keyboard.press("Enter");
+    await expect(soloLink).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(soloLink).toHaveCount(0);
 
-    for (const [route, context, menu] of [["/", "Accueil", "Ouvrir le menu"], ["/solo", "Solo", "Ouvrir le menu de partie"]] as const) {
-      await page.goto(route);
-      await page.getByRole("switch", { name: "Activer le thème clair" }).click();
-      await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-      await expect(header.getByText(context, { exact: true })).toBeVisible();
-      await expect(header.getByRole("switch", { name: "Activer le thème sombre" })).toBeVisible();
-      await expect(header.getByRole("button", { name: menu })).toBeVisible();
-      await page.getByRole("switch", { name: "Activer le thème sombre" }).click();
-    }
-
-    for (const viewport of [{ width: 844, height: 390 }, { width: 375, height: 667 }]) {
+    for (const viewport of [{ width: 844, height: 390 }, { width: 390, height: 844 }, { width: 375, height: 667 }]) {
       await page.setViewportSize(viewport);
-      for (const [route, context, menu] of [["/", "Accueil", "Ouvrir le menu"], ["/solo", "Solo", "Ouvrir le menu de partie"]] as const) {
-        await page.goto(route);
-        await assertChrome(context, menu);
-      }
+      await page.goto("/");
+      await expect(header.getByRole("navigation", { name: "Navigation principale" })).toBeHidden();
+      await header.getByRole("button", { name: "Ouvrir le menu" }).click();
+      const mobile = header.getByRole("navigation", { name: "Navigation mobile" });
+      await expect(mobile).toBeVisible();
+      await expect(mobile).toHaveCSS("position", "absolute");
+      await expect(mobile.getByRole("link", { name: "Solo", exact: true })).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(mobile).toHaveCount(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     }
   });
 
@@ -152,8 +168,7 @@ test.describe("@smoke public production readiness", () => {
     await expect(audio).toHaveAttribute("preload", "metadata");
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).src)).toContain("/audio/music/echoes-allan.mp3");
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(true);
-    await page.getByRole("link", { name: "Accueil — KFFR Contrée" }).click();
-    await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(true);
+    await page.getByRole("button", { name: "Contrôles audio" }).click();
     await expect(page.getByRole("button", { name: "Lire la musique" })).toBeVisible();
     await page.getByRole("button", { name: "Piste précédente" }).click();
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).src)).toContain("/audio/music/your-way-allan.mp3");
@@ -174,13 +189,13 @@ test.describe("@smoke public production readiness", () => {
     await expect(page).toHaveURL(/\/rules$/);
     await expect(audio).toHaveCount(1);
     expect(await audio.evaluate((element) => (element as HTMLAudioElement & { musicMarker?: string }).musicMarker)).toBe("same-player");
-    await expect(page.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
     expect(await audio.evaluate((element) => (element as HTMLAudioElement).currentTime)).toBeGreaterThanOrEqual(positionBeforeNavigation);
 
-    await page.getByRole("button", { name: "Ouvrir le menu" }).click();
-    await page.getByRole("link", { name: "Jouer en solo" }).last().click();
+    await page.getByRole("button", { name: /Jouer/ }).click();
+    await page.getByRole("link", { name: "Solo", exact: true }).click();
     await expect(page).toHaveURL(/\/solo$/);
     expect(await audio.evaluate((element) => (element as HTMLAudioElement & { musicMarker?: string }).musicMarker)).toBe("same-player");
+    await page.getByRole("button", { name: "Contrôles audio" }).click();
     await expect(page.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
 
     await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
@@ -192,6 +207,7 @@ test.describe("@smoke public production readiness", () => {
     await dialog.getByRole("checkbox", { name: "Musique" }).uncheck();
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(true);
     await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Contrôles audio" }).click();
     await page.getByRole("button", { name: "Lire la musique" }).click();
     await expect(page.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
     await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
@@ -202,12 +218,14 @@ test.describe("@smoke public production readiness", () => {
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(0.4);
     await expect(dialog.getByRole("checkbox", { name: "Effets sonores" })).not.toBeChecked();
     await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Contrôles audio" }).click();
     await page.getByRole("button", { name: "Mettre la musique en pause" }).click();
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(true);
     await page.getByRole("button", { name: "Lire la musique" }).click();
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(false);
     await page.reload();
     await expect(audio).toHaveCount(1);
+    await page.getByRole("button", { name: "Contrôles audio" }).click();
     await expect(page.getByRole("button", { name: "Lire la musique" })).toBeVisible();
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).paused)).toBe(true);
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(0.4);
@@ -225,11 +243,13 @@ test.describe("@smoke public production readiness", () => {
         await expect(page.getByRole("link", { name: /Voir les règles/ })).toHaveCSS("color", theme === "dark" ? "rgb(222, 216, 201)" : "rgb(36, 53, 43)");
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
         await page.screenshot({ path: `test-results/home-${theme}-${viewport.width}.png`, fullPage: true });
-        await page.getByRole("button", { name: "Ouvrir le menu" }).click();
-        await expect(page.locator(".coinche-nav-kicker")).toHaveCSS("color", theme === "dark" ? "rgb(203, 185, 137)" : "rgb(115, 83, 38)");
+        if (viewport.width < 1120) {
+          await page.getByRole("button", { name: "Ouvrir le menu" }).click();
+          await expect(page.getByRole("navigation", { name: "Navigation mobile" })).toBeVisible();
+          await page.screenshot({ path: `test-results/navigation-${theme}-${viewport.width}.png`, fullPage: true });
+          await page.keyboard.press("Escape");
+        }
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-        await page.screenshot({ path: `test-results/drawer-${theme}-${viewport.width}.png`, fullPage: true });
-        await page.getByRole("button", { name: "Fermer le menu" }).click();
         await page.goto("/multiplayer");
         await expect(page.getByRole("heading", { name: "Une table, quatre places" })).toBeVisible();
         await expect(page.locator(".coinche-app-surface").first()).toHaveCSS("background-color", theme === "dark" ? "rgb(11, 28, 21)" : "rgb(255, 253, 247)");
@@ -313,6 +333,7 @@ test.describe("@smoke public production readiness", () => {
     await expect(page.getByRole("link", { name: "Se connecter" })).toHaveAttribute("href", "/login");
     await expect(page.getByRole("link", { name: "Jouer en solo" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Multijoueur" })).toHaveAttribute("href", "/multiplayer");
+    await expect(page.getByText(/^Connecté :/)).toHaveCount(0);
     await expect(page.getByText("Joue une vraie partie de Contrée, seul ou avec tes proches.")).toHaveCount(0);
     await expect(page.getByRole("region", { name: "Points forts" })).toHaveCount(0);
 
@@ -478,11 +499,11 @@ test.describe("@smoke public production readiness", () => {
 
   test("@smoke KFFR branding is theme-aware, compact and responsive", async ({ page }) => {
     await page.goto("/");
-    const header = page.locator("header.coinche-game-topbar");
+    const header = page.locator("header.coinche-global-header");
     const fullLogo = page.locator(".coinche-brand-logo--full");
     const compactLogo = header.locator(".coinche-brand-logo--compact");
 
-    await expect(header).toHaveCSS("height", "48px");
+    await expect(header).toHaveCSS("height", "56px");
     await expect(fullLogo).toBeVisible();
     await expect(compactLogo).toBeVisible();
     await expect(fullLogo.locator(".coinche-brand-logo__image--dark")).toBeVisible();
@@ -496,7 +517,9 @@ test.describe("@smoke public production readiness", () => {
 
     for (const viewport of [
       { width: 1920, height: 1080 },
-      { width: 1366, height: 768 },
+      { width: 1440, height: 900 },
+      { width: 1280, height: 720 },
+      { width: 390, height: 844 },
       { width: 375, height: 667 },
       { width: 844, height: 390 },
     ]) {
@@ -513,6 +536,10 @@ test.describe("@smoke public production readiness", () => {
   });
 
   for (const viewport of [
+    { name: "wide desktop", width: 1920, height: 1080 },
+    { name: "desktop 1440", width: 1440, height: 900 },
+    { name: "desktop 1280", width: 1280, height: 720 },
+    { name: "mobile 390", width: 390, height: 844 },
     { name: "mobile portrait", width: 375, height: 667 },
     { name: "mobile landscape", width: 844, height: 390 },
     { name: "desktop", width: 1366, height: 768 },

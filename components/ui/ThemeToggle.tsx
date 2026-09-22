@@ -37,9 +37,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       title={targetLabel}
       type="button"
     >
-      <span className="coinche-theme-toggle__icon coinche-theme-toggle__moon"><MoonIcon /></span>
-      <span aria-hidden="true" className="coinche-theme-toggle__thumb" />
-      <span className="coinche-theme-toggle__icon coinche-theme-toggle__sun"><SunIcon /></span>
+      <span className="coinche-theme-toggle__icon">{isLight ? <MoonIcon /> : <SunIcon />}</span>
     </button>
   );
 }

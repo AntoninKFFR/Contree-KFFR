@@ -292,7 +292,7 @@ Le pseudo du profil est **la seule identité utilisée par le serveur** à la cr
 siège ; les noms déjà enregistrés dans une partie restent des snapshots immuables.
 
 **Points d'entrée.** `app/login/page.tsx`, `app/auth/callback/`, `app/profile/page.tsx`,
-`lib/profiles.ts`, `lib/authCallback.ts`, `lib/authRedirect.ts`, `components/AuthStatus.tsx`,
+`lib/profiles.ts`, `lib/authCallback.ts`, `lib/authRedirect.ts`, `components/AppTopNav.tsx`,
 `supabase/migrations/20260916000000_account_profile_identity.sql`.
 
 ---
@@ -342,7 +342,7 @@ Routes existantes : `/` (accueil), `/solo`, `/multiplayer`, `/multiplayer/[roomI
 `/auth/callback`, `/profile`, `/history`, `/rules`.
 
 Composants transverses : `components/ui/AppShell.tsx`, `TopBarChrome.tsx`, `ThemeToggle.tsx`,
-`AccessibleDialog.tsx`, `KffrLogo.tsx`, `components/AppDrawerNav.tsx`, `components/GameTopBar.tsx`,
+`AccessibleDialog.tsx`, `KffrLogo.tsx`, `components/AppTopNav.tsx`, `components/GameTopBar.tsx`,
 `components/MobileLandscapeNotice.tsx`. Identité visuelle KFFR dans `public/brand/`.
 
 ---

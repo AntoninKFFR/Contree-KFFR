@@ -117,10 +117,10 @@ describe("friends page", () => {
     expect(roomClient).toContain("acceptGameInvitation(invitationId, session)");
   });
 
-  it("adds Friends to the drawer only when a session exists", () => {
-    const drawer = readFileSync("components/AppDrawerNav.tsx", "utf8");
-    expect(drawer).toContain('{ href: "/friends", label: "Amis" }');
-    expect(drawer).toContain('{ href: "/leaderboard", label: "Classement" }');
-    expect(drawer).toContain('(link.href !== "/friends" && link.href !== "/leaderboard") || session');
+  it("adds private destinations to the topbar only when a session exists", () => {
+    const topbar = readFileSync("components/AppTopNav.tsx", "utf8");
+    expect(topbar).toContain('{ href: "/friends", label: "Amis" }');
+    expect(topbar).toContain('{ href: "/leaderboard", label: "Classement" }');
+    expect(topbar).toContain("appNavigationLinks(Boolean(session))");
   });
 });

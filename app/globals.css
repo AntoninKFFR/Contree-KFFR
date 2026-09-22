@@ -695,18 +695,16 @@ summary:focus-visible {
 .coinche-dialog-backdrop { background: var(--overlay) !important; }
 
 .coinche-theme-toggle {
-  position: relative;
   display: inline-grid;
-  width: 3.35rem;
+  width: 2rem;
   height: 2rem;
   flex: none;
-  grid-template-columns: 1fr 1fr;
-  align-items: center;
+  place-items: center;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface-muted);
   color: var(--text-muted);
-  box-shadow: inset 0 1px 2px var(--shadow);
+  box-shadow: 0 1px 2px var(--shadow);
   transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
 }
 
@@ -720,28 +718,11 @@ summary:focus-visible {
   outline-offset: 2px;
 }
 
-.coinche-theme-toggle__thumb {
-  position: absolute;
-  left: 0.18rem;
-  width: 1.45rem;
-  height: 1.45rem;
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
-  border-radius: 999px;
-  background: var(--accent);
-  box-shadow: 0 2px 8px var(--shadow);
-  transition: transform 180ms ease;
-}
-
-:root[data-theme="light"] .coinche-theme-toggle__thumb {
-  transform: translateX(1.46rem);
-}
-
 .coinche-theme-toggle__icon {
-  position: relative;
-  z-index: 1;
   display: grid;
   width: 100%;
   place-items: center;
+  color: var(--text-secondary);
   transition: color 150ms ease, transform 150ms ease;
 }
 
@@ -750,29 +731,14 @@ summary:focus-visible {
   height: 0.86rem;
 }
 
-:root[data-theme="dark"] .coinche-theme-toggle__moon,
-:root[data-theme="light"] .coinche-theme-toggle__sun {
-  color: var(--accent-foreground);
-  transform: scale(1.03);
-}
-
-:root[data-theme="dark"] .coinche-theme-toggle__sun,
-:root[data-theme="light"] .coinche-theme-toggle__moon {
-  color: var(--text-muted);
-}
-
-.coinche-global-header,
-.coinche-app-drawer {
+.coinche-global-header {
   border-color: var(--border) !important;
   background: var(--app-header) !important;
   color: var(--text-primary) !important;
 }
 
-.coinche-app-drawer { background: var(--app-sidebar) !important; }
-
 .coinche-panel-kicker { color: var(--panel-kicker); }
 .coinche-game-table .coinche-panel-kicker { color: rgb(234 220 183 / 75%); }
-.coinche-nav-kicker { color: var(--nav-kicker); }
 .coinche-game-nav-kicker { color: var(--game-nav-kicker); }
 .coinche-nav-section-label { color: var(--nav-section-label); }
 
@@ -845,14 +811,59 @@ summary:focus-visible {
   color: var(--nav-active-text);
   box-shadow: var(--nav-active-shadow);
 }
+
+.coinche-popover,
+.coinche-mobile-nav {
+  border-color: var(--border);
+  background: var(--app-sidebar);
+  color: var(--text-primary);
+}
+
+.coinche-topnav-link,
+.coinche-account-link,
+.coinche-mobile-nav-label,
+.coinche-dropdown-link {
+  display: block;
+  border-radius: 0.65rem;
+  padding: 0.48rem 0.7rem;
+  color: var(--nav-link-text);
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.25rem;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.coinche-topnav-link:hover,
+.coinche-account-link:hover,
+.coinche-dropdown-link:hover {
+  background: var(--nav-link-hover-bg);
+  color: var(--text-primary);
+}
+
+.coinche-topnav-link:focus-visible,
+.coinche-account-link:focus-visible,
+.coinche-dropdown-link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.coinche-topnav-link--active {
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+  box-shadow: inset 0 -2px var(--nav-active-border);
+}
+
+.coinche-mobile-nav {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.coinche-mobile-nav-label { color: var(--text-secondary); }
+
+:root[data-theme="light"] .coinche-popover,
+:root[data-theme="light"] .coinche-mobile-nav { background: var(--app-sidebar); }
 :root[data-theme="light"] .coinche-global-header .text-stone-50,
-:root[data-theme="light"] .coinche-global-header .text-stone-100,
-:root[data-theme="light"] .coinche-app-drawer .text-stone-50,
-:root[data-theme="light"] .coinche-app-drawer .text-stone-100 { color: var(--text-primary) !important; }
-:root[data-theme="light"] .coinche-app-drawer .text-stone-200 { color: var(--text-secondary) !important; }
-:root[data-theme="light"] .coinche-app-drawer [class*="border-white"] { border-color: var(--border) !important; }
-:root[data-theme="light"] .coinche-app-drawer [class*="bg-white/"],
-:root[data-theme="light"] .coinche-app-drawer [class*="bg-black/"] { background: var(--surface-muted) !important; }
+:root[data-theme="light"] .coinche-global-header .text-stone-100 { color: var(--text-primary) !important; }
 
 .coinche-game-shell {
   background: var(--app-bg);
@@ -941,10 +952,8 @@ summary:focus-visible {
   color: var(--text-primary);
 }
 
-:root[data-theme="light"] .coinche-global-header .text-\[\#f3ead2\],
-:root[data-theme="light"] .coinche-app-drawer .text-\[\#f3ead2\] { color: var(--text-primary) !important; }
-:root[data-theme="light"] .coinche-global-header [class*="text-white/"],
-:root[data-theme="light"] .coinche-app-drawer [class*="text-white/"] { color: var(--text-secondary) !important; }
+:root[data-theme="light"] .coinche-global-header .text-\[\#f3ead2\] { color: var(--text-primary) !important; }
+:root[data-theme="light"] .coinche-global-header [class*="text-white/"] { color: var(--text-secondary) !important; }
 
 :root[data-theme="light"] .coinche-game-shell > [class*="text-white/"] { color: var(--text-secondary) !important; }
 

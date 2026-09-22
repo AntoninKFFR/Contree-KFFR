@@ -8,16 +8,15 @@ import { clonePlayerPreferences } from "@/lib/preferences/playerPreferences";
 vi.stubGlobal("React", React);
 
 describe("navigation theme toggle", () => {
-  it("renders a keyboard-accessible moon and sun switch", () => {
+  it("renders a compact keyboard-accessible theme switch", () => {
     const markup = renderToStaticMarkup(
       React.createElement(PlayerPreferencesProvider, null, React.createElement(ThemeToggle)),
     );
     expect(markup).toContain('role="switch"');
     expect(markup).toContain('aria-checked="false"');
     expect(markup).toContain('aria-label="Activer le thème clair"');
-    expect(markup.match(/<svg/g)).toHaveLength(2);
-    expect(markup).toContain("coinche-theme-toggle__moon");
-    expect(markup).toContain("coinche-theme-toggle__sun");
+    expect(markup.match(/<svg/g)).toHaveLength(1);
+    expect(markup).toContain("coinche-theme-toggle__icon");
   });
 
   it("reflects the shared light preference without a second state", () => {
