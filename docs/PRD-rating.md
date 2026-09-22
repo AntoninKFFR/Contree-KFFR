@@ -1,6 +1,6 @@
 # PRD — Elo et classement KFFR
 
-> **Statut : spécification V1, documentation uniquement.** Aucun schéma, calcul, endpoint ou écran Elo n'est livré par cette PR. Le détail normatif de la formule est dans [rating-formula-v1.md](rating-formula-v1.md). Base auditée : `main` au 21 septembre 2026.
+> **Statut : référence de la décision produit Elo V1.** Les PR A à D ont livré le schéma, le cycle de vie, la lecture et l'interface. La PR E ajoute les validations finales et l'exploitation ; sa validation E2E authentifiée dépend d'une exécution réelle sur un environnement approuvé. Le détail normatif de la formule est dans [rating-formula-v1.md](rating-formula-v1.md). Base initialement auditée : `main` au 21 septembre 2026.
 
 ## 1. Sources auditées et adaptations à l'existant
 
@@ -143,4 +143,6 @@ Un **seul** classement global : filtrer `rated_games >= 5`, trier `rating DESC`,
 | D | Profil Elo, rang, progression et leaderboard | Un seul rating visible, états placement/erreur accessibles et responsive. |
 | E | E2E rating multi-comptes, audit sécurité final et docs d'exploitation | Parcours à quatre comptes, bots, forfeit, reprise et double appel vérifiés. |
 
-**Décisions V1 validées :** quatre champs publics du leaderboard (pseudo, Elo, rang, position) ; `forfeiting_seat_index` dérivé de l'acteur authentifié ; suppression du rating et anonymisation du ledger à la suppression du compte ; fin de partie indépendante du calcul Elo, avec `pending → applied` idempotent. La formule V1 reste inchangée. L'implémentation devra définir les détails de supervision et de reprise opérateur des `pending`.
+**État PR E :** scénarios à quatre humains et à un humain avec trois bots implémentés ; tests statiques et DB locaux validés par la CI de la PR #30, documentation d'exploitation ajoutée. Tant que `npm run test:e2e:rating` n'a pas réellement tourné avec les huit credentials et `E2E_RATING_MUTATION=1`, l'exécution authentifiée reste **à faire** et le chantier Elo V1 n'est pas déclaré définitivement terminé. Un test skipped ne vaut pas une validation E2E.
+
+**Décisions V1 validées :** quatre champs publics du leaderboard (pseudo, Elo, rang, position) ; `forfeiting_seat_index` dérivé de l'acteur authentifié ; suppression du rating et anonymisation du ledger à la suppression du compte ; fin de partie indépendante du calcul Elo, avec `pending → applied` idempotent. La formule V1 reste inchangée. Le suivi et la reprise opérateur des `pending` sont décrits dans [rating-operations.md](rating-operations.md).

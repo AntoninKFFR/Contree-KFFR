@@ -36,7 +36,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:multiplayer": "playwright test --project=multiplayer",
+    "test:e2e:multiplayer": "playwright test --project=multiplayer --grep-invert @rating",
+    "test:e2e:rating": "playwright test --project=multiplayer --grep @rating",
     "test:e2e:smoke": "playwright test --project=smoke"
   },
   "dependencies": {

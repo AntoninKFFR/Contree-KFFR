@@ -175,6 +175,7 @@ async function run() {
   await rejected(anonymous.rpc("get_my_rating_summary"), /permission|authentication|schema cache/i);
   await rejected(anonymous.rpc("get_rating_leaderboard"), /permission|authentication|schema cache/i);
   await rejected(a.client.rpc("apply_rating_match", { p_source_game_id: randomUUID() }), /permission|denied|schema cache/i);
+  await rejected(anonymous.rpc("apply_rating_match", { p_source_game_id: randomUUID() }), /permission|denied|schema cache/i);
   await rejected(a.client.from("player_ratings").select("*"), /permission|denied/i);
   await rejected(a.client.from("player_ratings").update({ rating: 9999 }).eq("user_id", a.id), /permission|denied/i);
 

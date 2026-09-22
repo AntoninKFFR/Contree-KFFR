@@ -17,11 +17,13 @@ En CI Linux, utiliser `npx playwright install --with-deps chromium`. Le navigate
 npm run test:e2e
 npm run test:e2e:smoke
 npm run test:e2e:multiplayer
+npm run test:e2e:rating
 npm run test:e2e:headed
 ```
 
 - `test:e2e:smoke` : public, sans compte. Il vérifie home, login, solo, paramètres, multijoueur et l'overflow des pages critiques en Chromium.
-- `test:e2e:multiplayer` : quatre comptes et quatre `BrowserContext` indépendants. Il ne fait pas partie de `npm test`.
+- `test:e2e:multiplayer` : quatre comptes et quatre `BrowserContext` indépendants, avec ruleset custom non éligible Elo. Il ne fait pas partie de `npm test`.
+- `test:e2e:rating` : seuls les parcours Elo authentifiés `@rating`. Ils requièrent les huit variables de comptes et `E2E_RATING_MUTATION=1`.
 - `test:e2e` : lance les deux projets ; l'authentifié est skipped proprement si sa configuration est absente.
 
 Le serveur local est démarré automatiquement avec `npm run dev -- --hostname 127.0.0.1`. Pour vérifier explicitement le build, lancer auparavant `npm run build`; le gate de livraison conserve aussi `npm run build` séparément.
@@ -58,6 +60,16 @@ E2E_USER_4_PASSWORD
 Ne jamais mettre leurs valeurs dans Git, une commande copiée dans un ticket, une capture ou un log. Aucun utilisateur n'est créé automatiquement et aucune service key n'est utilisée. Quand une variable manque, Playwright affiche uniquement son nom et skip le scénario authentifié.
 
 `loginAs(page, credentials)` ouvre `/login`, remplit les champs accessibles, attend la confirmation de connexion et vérifie la présence de la session locale. Le projet `multiplayer` désactive volontairement les traces : une trace d'action d'authentification pourrait conserver les arguments de saisie. Les tests ne logguent ni requêtes d'auth, ni tokens, ni bodies sensibles.
+
+## Tests Elo authentifiés
+
+La suite `@rating` exige les huit noms `E2E_USER_1_EMAIL` à `E2E_USER_4_PASSWORD` décrits ci-dessus, ainsi que `E2E_RATING_MUTATION=1`. En l'absence d'une variable, elle est skipped et n'affiche que les noms manquants. La CI publique n'exécute pas cette commande. Les tests multijoueur génériques sont exclus de `test:e2e:rating` et utilisent un ruleset custom ; `test:e2e:multiplayer` exclut les tests `@rating`.
+
+Cette suite joue une partie officielle à quatre humains avec abandon réel, puis une partie officielle à un humain et trois bots. Elle lit les résumés avant/après via les RPC d'un client connecté, attend la disparition des `pending`, compare les deltas calculés depuis les cotes actuelles des comptes et vérifie l'absence de seconde application lors des refreshs. Elle ne suppose ni Elo initial à 1000, ni position précise, ni comptes vierges. Elle ne crée aucun compte, n'utilise aucune clé service dans Playwright et ne supprime aucun rating. Le nettoyage est limité à la room exacte créée par chaque test.
+
+**Exécuter seulement sur un test ou staging approuvé avec des comptes E2E dédiés.** Chaque partie appliquée reste dans leur historique Elo permanent ; après cinq parties, leur pseudo peut apparaître dans le leaderboard. Aucun reset automatique n'est effectué. Ne pas lancer la suite aveuglément sur une production publique. Voir [rating-operations.md](rating-operations.md) pour le suivi des pending.
+
+Avec `E2E_BASE_URL` distant, les deux suites authentifiées qui lisent l'Elo, `npm run test:e2e:multiplayer` et `npm run test:e2e:rating`, nécessitent `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` de **ce même environnement** dans le runner Playwright. Le helper rating refuse d'utiliser le `.env.local` du checkout pour une cible distante, afin de ne pas lire un autre projet par erreur. Pour le serveur local, il peut lire ces deux valeurs publiques dans `.env.local`.
 
 ## Ce que couvre le scénario quatre joueurs
 

@@ -103,6 +103,40 @@ export async function expectRoom(
   return roomView(page, roomId);
 }
 
+export async function bestEffortFinishRoom(pages: Page[], roomId: string): Promise<void> {
+  let isLobby = false;
+  for (const page of pages) {
+    if (page.isClosed()) continue;
+    try {
+      const view = await roomView(page, roomId);
+      if (view.room.status === "lobby") {
+        isLobby = true;
+        break;
+      }
+      if (view.room.status !== "playing") return;
+      if (view.viewerSeatIndex === null) continue;
+      const result = await sendIntent(page, roomId, view.room.state_version, { type: "forfeit-game" });
+      if (result.status === 200) return;
+    } catch {
+      // Try another open participant page in this test.
+    }
+  }
+  if (!isLobby) return;
+
+  for (const page of pages) {
+    if (page.isClosed()) continue;
+    try {
+      const view = await roomView(page, roomId);
+      if (view.room.status !== "lobby") return;
+      if (view.viewerSeatIndex !== null) {
+        await sendIntent(page, roomId, view.room.state_version, { type: "leave-seat" });
+      }
+    } catch {
+      // Cleanup is best-effort and targets only the exact room created by this test.
+    }
+  }
+}
+
 function assertSafePayload(payload: unknown): void {
   let handFields = 0;
   const visit = (value: unknown): void => {

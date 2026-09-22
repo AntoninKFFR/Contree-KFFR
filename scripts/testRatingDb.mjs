@@ -62,7 +62,9 @@ async function run() {
     await rejected(a.client.from(table).insert({}), /permission|denied/i);
     await rejected(anonymous.from(table).insert({}), /permission|denied/i);
     await rejected(a.client.from(table).update(update).eq(key, randomUUID()), /permission|denied/i);
+    await rejected(anonymous.from(table).update(update).eq(key, randomUUID()), /permission|denied/i);
     await rejected(a.client.from(table).delete().eq(key, randomUUID()), /permission|denied/i);
+    await rejected(anonymous.from(table).delete().eq(key, randomUUID()), /permission|denied/i);
   }
   const ownProfiles = checked(await a.client.from("profiles").select("id,username"), "own profile");
   assert.deepEqual(ownProfiles.map((p) => p.id), [a.id]);

@@ -1,7 +1,8 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { fourPlayerCredentials, loginAs } from "./helpers/auth";
 import { createRoomThroughUi, enableTechnicalRules, joinRoomThroughUi, setLocalPreferences } from "./helpers/multiplayerUi";
-import { expectRoom, monitorRoomPrivacy, roomView, sendIntent, sendTick, type E2ERoomView } from "./helpers/room";
+import { ratingSummary, waitForNoPending } from "./helpers/rating";
+import { bestEffortFinishRoom, expectRoom, monitorRoomPrivacy, roomView, sendIntent, sendTick, type E2ERoomView } from "./helpers/room";
 
 const auth = fourPlayerCredentials();
 const names = ["E2E_P1", "E2E_P2", "E2E_P3", "E2E_P4"];
@@ -97,6 +98,7 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
         await expect(page.getByRole("button", { name: "Prêt", exact: true })).toBeVisible();
       }
       const rulesView = await roomView(pages[0], roomId);
+      expect(rulesView.room.ruleset_snapshot?.id).toBe("custom");
       expect(rulesView.room.ruleset_snapshot?.bidding).toMatchObject({ allowNoTrump: true, allowAllTrump: true, allowGenerale: true });
       const forbidden = await sendIntent(pages[1], roomId, rulesView.room.state_version, { type: "update-room-rules", rules: { presetId: "contree-kffr" } });
       expect(forbidden.status).toBe(403);
@@ -215,6 +217,8 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
         await loginAs(page, auth.credentials[index]);
       }
 
+      const ratingsBefore = await Promise.all(pages.map((page, index) => waitForNoPending(page, `generic multiplayer account ${index + 1}`)));
+
       const hostPage = pages[0];
       const hostPrivacy = monitorRoomPrivacy(hostPage);
       const created = await createRoomThroughUi(hostPage);
@@ -234,6 +238,8 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
         "four humans seated for lifecycle validation",
         (view) => view.players.filter((player) => player.kind === "human").length === 4,
       );
+      await enableTechnicalRules(hostPage);
+      expect((await roomView(hostPage, roomId)).room.ruleset_snapshot?.id).toBe("custom");
       const seatPages = new Map<number, Page>();
       for (const page of pages) {
         const view = await roomView(page, roomId);
@@ -389,6 +395,12 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       expect(finished.game?.forfeitingTeam).toBe(forfeitingTeam);
       expect(finished.game?.winnerTeam).toBe(forfeitingTeam === 0 ? 1 : 0);
       expect(finished.players.every((player) => !player.bot_takeover)).toBe(true);
+      const ratingsAfter = await Promise.all(pages.map(ratingSummary));
+      for (let index = 0; index < 4; index += 1) {
+        expect([ratingsAfter[index].rating, ratingsAfter[index].ratedGames, ratingsAfter[index].pendingMatches],
+          `custom multiplayer game changed Elo for account ${index + 1}`)
+          .toEqual([ratingsBefore[index].rating, ratingsBefore[index].ratedGames, 0]);
+      }
 
       const hostPlayer = finished.players.find((player) => player.is_host);
       if (!hostPlayer) throw new Error("The finished room has no public host projection.");
@@ -453,25 +465,4 @@ function playerActionCount(view: E2ERoomView, seatIndex: number): number {
       (count, trick) => count + trick.cards.filter((played) => played.playerId === seatIndex).length,
       0,
     );
-}
-
-async function bestEffortFinishRoom(pages: Page[], roomId: string): Promise<void> {
-  const usable = pages.find((page) => !page.isClosed());
-  if (!usable) return;
-  try {
-    const current = await roomView(usable, roomId);
-    if (current.room.status === "playing") {
-      await sendIntent(usable, roomId, current.room.state_version, { type: "forfeit-game" });
-      return;
-    }
-    if (current.room.status === "lobby") {
-      for (const page of pages) {
-        if (page.isClosed()) continue;
-        const view = await roomView(page, roomId);
-        if (view.viewerSeatIndex !== null) await sendIntent(page, roomId, view.room.state_version, { type: "leave-seat" });
-      }
-    }
-  } catch {
-    // Cleanup is best-effort and targets only the exact room id created by this test.
-  }
 }
