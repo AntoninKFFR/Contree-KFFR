@@ -155,6 +155,7 @@ test.describe("@smoke public production readiness", () => {
       await expect(mobile).toBeVisible();
       await expect(mobile).toHaveCSS("position", "absolute");
       await expect(mobile.getByRole("link", { name: "Solo", exact: true })).toBeVisible();
+      if (viewport.width < 480) await expect(mobile.getByRole("link", { name: "Se connecter" })).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(mobile).toHaveCount(0);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);

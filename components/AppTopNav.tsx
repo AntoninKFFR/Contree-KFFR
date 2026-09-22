@@ -117,7 +117,7 @@ export function AppTopNav() {
         <div id="app-topnav-game-actions" />
         <AudioPopover />
         <ThemeToggle />
-        {session ? <Link className="coinche-account-link max-w-28 truncate" href="/profile">{username ?? "Profil"}</Link> : <Link className="coinche-account-link" href="/login">Se connecter</Link>}
+        {session ? <Link className="coinche-account-link hidden max-w-28 truncate min-[480px]:block" href="/profile">{username ?? "Profil"}</Link> : <Link className="coinche-account-link hidden min-[480px]:block" href="/login">Se connecter</Link>}
         <button aria-controls="mobile-navigation" aria-expanded={mobileOpen} aria-label="Ouvrir le menu" className="coinche-chrome-icon min-[1120px]:hidden" onClick={() => setMobileOpen((value) => !value)} type="button">☰</button>
       </div>
     </div>
@@ -126,6 +126,7 @@ export function AppTopNav() {
       <p className={`coinche-mobile-nav-label ${playActive ? "coinche-topnav-link--active" : ""}`}>Jouer</p>
       <div className="ml-3 grid gap-1 border-l border-[var(--border)] pl-3"><Link className={linkClass("/solo")} href="/solo">Solo</Link><Link className={linkClass("/multiplayer")} href="/multiplayer">Multijoueur</Link></div>
       {links.filter((link) => link.href !== "/").map((link) => <Link aria-current={active(pathname, link.href) ? "page" : undefined} className={linkClass(link.href)} href={link.href} key={link.href}>{link.label}</Link>)}
+      {session ? <Link className={`${linkClass("/profile")} min-[480px]:hidden`} href="/profile">{username ?? "Profil"}</Link> : <Link className={`${linkClass("/login")} min-[480px]:hidden`} href="/login">Se connecter</Link>}
     </nav> : null}
   </header>;
 }
