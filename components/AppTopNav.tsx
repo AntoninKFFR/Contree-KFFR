@@ -70,8 +70,6 @@ export function AppTopNav() {
     return () => { document.removeEventListener("keydown", close); document.removeEventListener("pointerdown", close); };
   }, [mobileOpen, playOpen]);
 
-  const isGameRoute = pathname === "/solo" || /^\/multiplayer\/[^/]+$/.test(pathname);
-  if (isGameRoute) return null;
   const links = appNavigationLinks(Boolean(session));
   const playActive = pathname === "/solo" || pathname.startsWith("/multiplayer");
   const linkClass = (href: string) => `coinche-topnav-link ${active(pathname, href) ? "coinche-topnav-link--active" : ""}`;
@@ -116,9 +114,12 @@ export function AppTopNav() {
         {links.filter((link) => link.href !== "/").map((link) => <Link aria-current={active(pathname, link.href) ? "page" : undefined} className={linkClass(link.href)} href={link.href} key={link.href}>{link.label}</Link>)}
       </nav>
       <div className="flex shrink-0 items-center gap-1.5">
+        <div id="app-topnav-game-actions" />
         <AudioPopover />
         <ThemeToggle />
-        {session ? <Link className="coinche-account-link max-w-28 truncate" href="/profile">{username ?? "Profil"}</Link> : <Link className="coinche-account-link" href="/login">Se connecter</Link>}
+        <div className="hidden min-[480px]:block">
+          {session ? <Link className="coinche-account-link max-w-28 truncate" href="/profile">{username ?? "Profil"}</Link> : <Link className="coinche-account-link" href="/login">Se connecter</Link>}
+        </div>
         <button aria-controls="mobile-navigation" aria-expanded={mobileOpen} aria-label="Ouvrir le menu" className="coinche-chrome-icon min-[1120px]:hidden" onClick={() => setMobileOpen((value) => !value)} type="button">☰</button>
       </div>
     </div>
@@ -127,6 +128,9 @@ export function AppTopNav() {
       <p className={`coinche-mobile-nav-label ${playActive ? "coinche-topnav-link--active" : ""}`}>Jouer</p>
       <div className="ml-3 grid gap-1 border-l border-[var(--border)] pl-3"><Link className={linkClass("/solo")} href="/solo">Solo</Link><Link className={linkClass("/multiplayer")} href="/multiplayer">Multijoueur</Link></div>
       {links.filter((link) => link.href !== "/").map((link) => <Link aria-current={active(pathname, link.href) ? "page" : undefined} className={linkClass(link.href)} href={link.href} key={link.href}>{link.label}</Link>)}
+      <div className="min-[480px]:hidden">
+        {session ? <Link className={linkClass("/profile")} href="/profile">{username ?? "Profil"}</Link> : <Link className={linkClass("/login")} href="/login">Se connecter</Link>}
+      </div>
     </nav> : null}
   </header>;
 }

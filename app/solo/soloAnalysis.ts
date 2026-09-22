@@ -18,10 +18,10 @@ export function shouldShowBotReviewAction(
 
 export function soloMainClassName(analysisDesktop: boolean, mobileLandscape: boolean): string {
   return [
-    "coinche-game-shell h-[calc(100dvh-48px)] min-h-0 overflow-x-hidden overflow-y-auto px-2 py-2 sm:px-3",
+    "coinche-game-shell h-[calc(100dvh-56px)] min-h-0 overflow-x-hidden overflow-y-auto px-2 py-2 sm:px-3",
     analysisDesktop
-      ? "lg:h-auto lg:min-h-[calc(100dvh-48px)] lg:overflow-y-auto"
-      : "lg:h-[calc(100dvh-48px)] lg:overflow-hidden",
+      ? "lg:h-auto lg:min-h-[calc(100dvh-56px)] lg:overflow-y-auto"
+      : "lg:h-[calc(100dvh-56px)] lg:overflow-hidden",
     mobileLandscape ? "overflow-hidden px-0 py-0 sm:px-4" : "",
   ].join(" ");
 }

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { GameTopBar } from "@/components/GameTopBar";
+import { GameMenuPanel } from "@/components/GameMenuPopover";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { IconCloseButton } from "@/components/ui/IconCloseButton";
 
@@ -30,18 +30,17 @@ describe("shared close button", () => {
         title: "Test",
       } as React.ComponentProps<typeof AccessibleDialog>, React.createElement("div")),
     );
-    const gameDrawer = renderToStaticMarkup(React.createElement(GameTopBar, {
-      contextLabel: "Solo",
+    const gameMenu = renderToStaticMarkup(React.createElement(GameMenuPanel, {
       focusMode: false,
       onOpenPreferences: noop,
+      onSelect: noop,
       onToggleFocusMode: noop,
     }));
     expect(dialog).toContain("h-9 w-9");
     expect(dialog).toContain("<svg");
     expect(dialog).not.toContain(">×<");
-    expect(gameDrawer).toContain("coinche-theme-toggle");
-    expect(gameDrawer).toContain("coinche-nav-section-label");
-    expect(gameDrawer).toContain("game-menu-panel");
-    expect(gameDrawer).not.toContain("coinche-app-drawer");
+    expect(gameMenu).toContain("coinche-nav-section-label");
+    expect(gameMenu).toContain("game-menu-panel");
+    expect(gameMenu).not.toContain("coinche-app-drawer");
   });
 });

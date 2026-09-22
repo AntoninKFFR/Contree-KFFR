@@ -76,7 +76,7 @@ test("@smoke round success accent follows dark and light KFFR tokens", async ({ 
 
 test("@smoke a fresh Solo installation selects the slow rhythm", async ({ page }) => {
   await page.goto("/solo");
-  await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+  await page.getByRole("button", { name: "Menu Partie" }).click();
   await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
   await expect(page.getByRole("dialog", { name: "Paramètres" }).getByLabel("Vitesse de jeu", { exact: true })).toHaveValue("slow");
 });

@@ -5,7 +5,7 @@ test.describe("@smoke public production readiness", () => {
   test("@smoke navbar music volume stays in sync with settings and playback", async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto("/solo");
-    const header = page.locator("header.coinche-game-topbar");
+    const header = page.locator("header.coinche-global-header");
     await header.getByRole("button", { name: "Contrôles audio" }).click();
     const navbarVolume = header.getByRole("slider", { name: "Volume musique" });
     const audio = page.locator("audio[data-background-music]");
@@ -32,7 +32,7 @@ test.describe("@smoke public production readiness", () => {
     await expect(header.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
     await header.getByRole("button", { name: "Piste précédente" }).click();
 
-    await header.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await header.getByRole("button", { name: "Menu Partie" }).click();
     await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
     const dialog = page.getByRole("dialog", { name: "Paramètres" });
     await dialog.getByRole("button", { name: "SON" }).click();
@@ -54,7 +54,7 @@ test.describe("@smoke public production readiness", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await page.setViewportSize({ width: 375, height: 667 });
     await expect(navbarVolume).toBeVisible();
-    await expect(header.getByRole("button", { name: "Ouvrir le menu de partie" })).toBeVisible();
+    await expect(header.getByRole("button", { name: "Menu Partie" })).toBeVisible();
     await expect(header.getByRole("switch", { name: "Activer le thème clair" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
@@ -155,10 +155,72 @@ test.describe("@smoke public production readiness", () => {
       await expect(mobile).toBeVisible();
       await expect(mobile).toHaveCSS("position", "absolute");
       await expect(mobile.getByRole("link", { name: "Solo", exact: true })).toBeVisible();
+      if (viewport.width < 480) await expect(mobile.getByRole("link", { name: "Se connecter" })).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(mobile).toHaveCount(0);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     }
+  });
+
+  test("@smoke game routes keep the global topbar and a floating game menu", async ({ page }) => {
+    const header = page.locator("header.coinche-global-header");
+
+    for (const viewport of [
+      { width: 1280, height: 720 },
+      { width: 1440, height: 900 },
+      { width: 1920, height: 1080 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/solo");
+      await expect(header).toBeVisible();
+      await expect(header.getByRole("navigation", { name: "Navigation principale" })).toBeVisible();
+      await expect(page.locator("header")).toHaveCount(1);
+
+      const table = page.locator(".coinche-game-table");
+      await expect(table).toBeVisible();
+      const widthBefore = (await table.boundingBox())?.width;
+      const menuButton = header.getByRole("button", { name: "Menu Partie" });
+      await expect(menuButton).toContainText("Partie");
+      await menuButton.click();
+
+      const panel = page.getByRole("complementary", { name: "Menu de partie" });
+      await expect(panel).toBeVisible();
+      await expect(panel).toHaveCSS("position", "absolute");
+      const panelWidth = (await panel.boundingBox())?.width ?? 0;
+      expect(panelWidth).toBeGreaterThanOrEqual(260);
+      expect(panelWidth).toBeLessThanOrEqual(320);
+      await expect(panel.getByRole("switch", { name: "Scores en direct" })).toBeVisible();
+      await expect(panel.getByRole("button", { name: "Paramètres" })).toBeVisible();
+      await expect(panel.getByRole("button", { name: "Règles de la prochaine partie" })).toBeVisible();
+      await expect(panel.getByRole("button", { name: "Abandonner et redistribuer" })).toBeVisible();
+      await expect(panel.getByRole("link")).toHaveCount(0);
+      expect((await table.boundingBox())?.width).toBe(widthBefore);
+
+      await page.keyboard.press("Escape");
+      await expect(panel).toHaveCount(0);
+      await expect(menuButton).toBeFocused();
+      await menuButton.click();
+      await expect(panel).toBeVisible();
+      await menuButton.click();
+      await expect(panel).toHaveCount(0);
+      await menuButton.click();
+      await table.click({ position: { x: 10, y: 10 } });
+      await expect(panel).toHaveCount(0);
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/solo");
+    await expect(header).toBeVisible();
+    const mobileMenuButton = header.getByRole("button", { name: "Menu Partie" });
+    await expect(mobileMenuButton.getByText("•••", { exact: true })).toBeVisible();
+    await expect(mobileMenuButton.getByText(/Partie/)).toBeHidden();
+    await mobileMenuButton.click();
+    const mobilePanel = page.getByRole("complementary", { name: "Menu de partie" });
+    await expect(mobilePanel).toBeVisible();
+    expect((await mobilePanel.boundingBox())?.width ?? 0).toBeLessThanOrEqual(320);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.keyboard.press("Escape");
+    await expect(mobilePanel).toHaveCount(0);
   });
 
   test("@smoke background music persists across navigation and obeys its own settings", async ({ page }) => {
@@ -198,7 +260,7 @@ test.describe("@smoke public production readiness", () => {
     await page.getByRole("button", { name: "Contrôles audio" }).click();
     await expect(page.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
 
-    await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await page.getByRole("button", { name: "Menu Partie" }).click();
     await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
     const dialog = page.getByRole("dialog", { name: "Paramètres" });
     await dialog.getByRole("button", { name: "SON" }).click();
@@ -210,7 +272,7 @@ test.describe("@smoke public production readiness", () => {
     await page.getByRole("button", { name: "Contrôles audio" }).click();
     await page.getByRole("button", { name: "Lire la musique" }).click();
     await expect(page.getByRole("button", { name: "Mettre la musique en pause" })).toBeVisible();
-    await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await page.getByRole("button", { name: "Menu Partie" }).click();
     await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
     await dialog.getByRole("button", { name: "SON" }).click();
     await expect(dialog.getByRole("checkbox", { name: "Musique" })).toBeChecked();
@@ -343,15 +405,15 @@ test.describe("@smoke public production readiness", () => {
     await expect(page.getByLabel("Mot de passe")).toHaveAttribute("type", "password");
 
     await page.goto("/solo");
-    await expect(page.getByRole("button", { name: "Ouvrir le menu de partie" })).toBeVisible();
-    await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await expect(page.getByRole("button", { name: "Menu Partie" })).toBeVisible();
+    await page.getByRole("button", { name: "Menu Partie" }).click();
     await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
     await expect(page.getByRole("dialog", { name: "Paramètres" })).toBeVisible();
     await expect(page.getByLabel("Vitesse de jeu")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog", { name: "Paramètres" })).toBeHidden();
 
-    await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await page.getByRole("button", { name: "Menu Partie" }).click();
     await page.getByRole("button", { name: "Règles de la prochaine partie" }).click();
     const rulesDialog = page.getByRole("dialog", { name: "Règles de la prochaine partie" });
     await rulesDialog.getByRole("combobox", { name: "Score cible" }).selectOption("1500");
@@ -374,7 +436,7 @@ test.describe("@smoke public production readiness", () => {
 
   test("@smoke rules editor keeps custom target score editing fluid", async ({ page }) => {
     await page.goto("/solo");
-    await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await page.getByRole("button", { name: "Menu Partie" }).click();
     await page.getByRole("button", { name: "Règles de la prochaine partie" }).click();
 
     const dialog = page.getByRole("dialog", { name: "Règles de la prochaine partie" });
@@ -479,7 +541,7 @@ test.describe("@smoke public production readiness", () => {
     await expect(page.getByRole("switch", { name: "Activer le thème sombre" })).toBeVisible();
     await expect(page.locator(".coinche-game-table")).toBeVisible();
     await expect(page.locator(".coinche-game-table")).toHaveCSS("background-color", "rgb(13, 91, 60)");
-    await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+    await page.getByRole("button", { name: "Menu Partie" }).click();
     await page.getByRole("button", { name: "Règles de la prochaine partie" }).click();
     const rulesDialog = page.getByRole("dialog", { name: "Règles de la prochaine partie" });
     await expect(rulesDialog.locator(".coinche-rules-configurator")).toHaveCSS("background-color", "rgb(238, 234, 222)");
@@ -531,8 +593,8 @@ test.describe("@smoke public production readiness", () => {
 
     await page.setViewportSize({ width: 844, height: 390 });
     await page.goto("/solo");
-    await expect(page.locator(".coinche-game-topbar")).toHaveCSS("height", "48px");
-    await expect(page.locator(".coinche-game-topbar .coinche-brand-logo--compact")).toBeVisible();
+    await expect(page.locator("header.coinche-global-header")).toHaveCSS("height", "56px");
+    await expect(page.locator("header.coinche-global-header .coinche-brand-logo--compact")).toBeVisible();
   });
 
   for (const viewport of [
