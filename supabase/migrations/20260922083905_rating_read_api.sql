@@ -44,9 +44,9 @@ begin
   where user_id = v_actor;
 
   if found and v_rating.rated_games >= 5 then
-    select ranked.position into v_position
+    select ranked."position" into v_position
     from (
-      select user_id, pg_catalog.dense_rank() over (order by rating desc) as position
+      select user_id, pg_catalog.dense_rank() over (order by rating desc) as "position"
       from public.player_ratings
       where rated_games >= 5
     ) ranked
@@ -93,7 +93,7 @@ end;
 $$;
 
 create function private.get_rating_leaderboard(p_limit integer, p_offset integer)
-returns table(username text, rating integer, rank text, position bigint)
+returns table(username text, rating integer, rank text, "position" bigint)
 language plpgsql stable security definer set search_path = '' as $$
 begin
   if (select auth.uid()) is null then
@@ -108,7 +108,7 @@ begin
     select
       player.user_id,
       player.rating,
-      pg_catalog.dense_rank() over (order by player.rating desc) as position
+      pg_catalog.dense_rank() over (order by player.rating desc) as "position"
     from public.player_ratings player
     where player.rated_games >= 5
   )
@@ -116,7 +116,7 @@ begin
     profile.username::text,
     ranked.rating,
     private.rating_rank(ranked.rating),
-    ranked.position
+    ranked."position"
   from ranked
   join public.profiles profile on profile.id = ranked.user_id
   where profile.username is not null
@@ -136,7 +136,7 @@ create function public.get_rating_leaderboard(
   p_limit integer default 50,
   p_offset integer default 0
 )
-returns table(username text, rating integer, rank text, position bigint)
+returns table(username text, rating integer, rank text, "position" bigint)
 language sql stable security invoker set search_path = '' as $$
   select * from private.get_rating_leaderboard(p_limit, p_offset);
 $$;
