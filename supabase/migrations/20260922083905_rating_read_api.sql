@@ -85,7 +85,7 @@ begin
     'peak_rating', v_rating.peak_rating,
     'rank', case when v_rating.rated_games >= 5 then private.rating_rank(v_rating.rating) else null end,
     'position', v_position,
-    'placement_games', pg_catalog.least(v_rating.rated_games, 5),
+    'placement_games', least(v_rating.rated_games, 5),
     'is_ranked', v_rating.rated_games >= 5,
     'pending_matches', v_pending_matches
   );
