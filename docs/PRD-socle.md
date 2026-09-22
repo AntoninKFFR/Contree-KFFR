@@ -341,8 +341,8 @@ une `PlayerGameView` ou une action réseau. Stockage local versionné
 Routes existantes : `/` (accueil), `/solo`, `/multiplayer`, `/multiplayer/[roomId]`, `/login`,
 `/auth/callback`, `/profile`, `/history`, `/rules`.
 
-Composants transverses : `components/ui/AppShell.tsx`, `TopBarChrome.tsx`, `ThemeToggle.tsx`,
-`AccessibleDialog.tsx`, `KffrLogo.tsx`, `components/AppTopNav.tsx`, `components/GameTopBar.tsx`,
+Composants transverses : `components/ui/AppShell.tsx`, `ThemeToggle.tsx`,
+`AccessibleDialog.tsx`, `KffrLogo.tsx`, `components/AppTopNav.tsx`, `components/GameMenuPopover.tsx`,
 `components/MobileLandscapeNotice.tsx`. Identité visuelle KFFR dans `public/brand/`.
 
 ---

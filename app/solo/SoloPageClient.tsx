@@ -6,7 +6,7 @@ import { BiddingPanel } from "@/components/BiddingPanel";
 import { BotReviewHistory, BotReviewPanel } from "@/components/BotReviewPanel";
 import { SoloBotHandsPanel } from "@/components/BotHandAnalysis";
 import { GameTable } from "@/components/GameTable";
-import { GameTopBar } from "@/components/GameTopBar";
+import { GameMenuPopover } from "@/components/GameMenuPopover";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
@@ -312,11 +312,11 @@ export default function SoloPage() {
   }
 
   if (isMobilePortrait) {
-    return <><GameTopBar contextLabel="Solo" focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" /><MobileLandscapeNotice />{rulesDialog}{isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}</>;
+    return <><GameMenuPopover focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" /><MobileLandscapeNotice />{rulesDialog}{isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}</>;
   }
 
   return (
-    <><GameTopBar contextLabel="Solo" focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" /><main
+    <><GameMenuPopover focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" /><main
       className={soloMainClassName(analysisDesktop, isMobileLandscape)}
     >
       <div className={soloContentClassName(analysisDesktop)}>

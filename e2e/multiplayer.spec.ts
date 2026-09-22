@@ -112,7 +112,7 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       await pages[0].getByRole("button", { name: "Lancer la partie" }).click();
       let gameView = await expectRoom(pages[0], roomId, "authoritative game created", (view) => view.room.status === "playing" && view.game?.phase === "bidding");
       for (const page of pages) {
-        await page.getByRole("button", { name: "Ouvrir le menu de partie" }).click();
+        await page.getByRole("button", { name: "Menu Partie" }).click();
         await expect(page.getByRole("button", { name: "Abandonner la partie" })).toBeVisible();
         await page.keyboard.press("Escape");
       }

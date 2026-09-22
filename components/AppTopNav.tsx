@@ -70,8 +70,6 @@ export function AppTopNav() {
     return () => { document.removeEventListener("keydown", close); document.removeEventListener("pointerdown", close); };
   }, [mobileOpen, playOpen]);
 
-  const isGameRoute = pathname === "/solo" || /^\/multiplayer\/[^/]+$/.test(pathname);
-  if (isGameRoute) return null;
   const links = appNavigationLinks(Boolean(session));
   const playActive = pathname === "/solo" || pathname.startsWith("/multiplayer");
   const linkClass = (href: string) => `coinche-topnav-link ${active(pathname, href) ? "coinche-topnav-link--active" : ""}`;
@@ -116,6 +114,7 @@ export function AppTopNav() {
         {links.filter((link) => link.href !== "/").map((link) => <Link aria-current={active(pathname, link.href) ? "page" : undefined} className={linkClass(link.href)} href={link.href} key={link.href}>{link.label}</Link>)}
       </nav>
       <div className="flex shrink-0 items-center gap-1.5">
+        <div id="app-topnav-game-actions" />
         <AudioPopover />
         <ThemeToggle />
         {session ? <Link className="coinche-account-link max-w-28 truncate" href="/profile">{username ?? "Profil"}</Link> : <Link className="coinche-account-link" href="/login">Se connecter</Link>}

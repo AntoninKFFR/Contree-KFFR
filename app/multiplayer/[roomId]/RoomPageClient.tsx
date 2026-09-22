@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
-import { GameTopBar, type GameMenuAction } from "@/components/GameTopBar";
+import { GameMenuPopover, type GameMenuAction } from "@/components/GameMenuPopover";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
@@ -313,19 +313,19 @@ export default function MultiplayerRoomPage() {
   ];
 
   if (shouldLockPortrait) {
-    return <><GameTopBar contextLabel={roomWithPlayers?.room.code ?? "Multijoueur"} focusMode={isFocusMode} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} /><MobileLandscapeNotice />{isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost, tablePreferences, isSavingTablePreferences: isUpdatingTablePreferences, onTablePreferencesChange: handleUpdateTablePreferences }} onClose={() => setIsSettingsOpen(false)} /> : null}</>;
+    return <><GameMenuPopover focusMode={isFocusMode} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} /><MobileLandscapeNotice />{isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost, tablePreferences, isSavingTablePreferences: isUpdatingTablePreferences, onTablePreferencesChange: handleUpdateTablePreferences }} onClose={() => setIsSettingsOpen(false)} /> : null}</>;
   }
 
   return (
-    <><GameTopBar contextLabel={roomWithPlayers?.room.code ?? "Multijoueur"} focusMode={isFocusMode} menuActions={gameMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} showFocusMode={isPlayingLayout} /><main
+    <><GameMenuPopover focusMode={isFocusMode} menuActions={gameMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} showFocusMode={isPlayingLayout} /><main
       className={
         isPlayingLayout
-          ? `coinche-game-shell h-[calc(100dvh-48px)] min-h-0 overflow-x-hidden overflow-y-auto px-2 py-2 sm:px-3 lg:overflow-hidden${isMobileLandscape ? " overflow-hidden px-0 py-0 sm:px-3" : ""}`
+          ? `coinche-game-shell h-[calc(100dvh-56px)] min-h-0 overflow-x-hidden overflow-y-auto px-2 py-2 sm:px-3 lg:overflow-hidden${isMobileLandscape ? " overflow-hidden px-0 py-0 sm:px-3" : ""}`
           : isLobbyLayout
-          ? "coinche-app-page coinche-lobby-shell h-[calc(100dvh-48px)] min-h-0 overflow-hidden px-2 py-2 sm:px-3"
+          ? "coinche-app-page coinche-lobby-shell h-[calc(100dvh-56px)] min-h-0 overflow-hidden px-2 py-2 sm:px-3"
           : isFinishedLayout
-          ? "coinche-app-page flex h-[calc(100dvh-48px)] min-h-0 items-center justify-center px-3 py-4"
-          : "coinche-app-page min-h-[calc(100dvh-48px)] px-3 py-5 text-stone-50 sm:px-5 sm:py-7"
+          ? "coinche-app-page flex h-[calc(100dvh-56px)] min-h-0 items-center justify-center px-3 py-4"
+          : "coinche-app-page min-h-[calc(100dvh-56px)] px-3 py-5 text-stone-50 sm:px-5 sm:py-7"
       }
     >
       <div

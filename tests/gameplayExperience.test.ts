@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable, tableSeatsFor } from "@/components/GameTable";
-import { GameTopBar } from "@/components/GameTopBar";
+import { GameMenuPanel } from "@/components/GameMenuPopover";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { HumanHand } from "@/components/HumanHand";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
@@ -23,36 +23,33 @@ function withPreferences(element: React.ReactElement): string {
 }
 
 describe("premium gameplay shell", () => {
-  it("keeps essential controls in a compact shared game bar and separates dangerous actions", () => {
+  it("keeps only game controls in a compact popover and separates dangerous actions", () => {
     vi.stubGlobal("React", React);
-    const markup = renderToStaticMarkup(React.createElement(GameTopBar, {
-      contextLabel: "Solo", focusMode: false,
+    const markup = renderToStaticMarkup(React.createElement(GameMenuPanel, {
+      focusMode: false,
       onOpenPreferences: () => undefined,
+      onSelect: (action) => action(),
       onToggleFocusMode: () => undefined,
       preferencesLabel: "Paramètres",
       menuActions: [{ label: "Abandonner la partie", tone: "danger", onSelect: () => undefined }],
     }));
-    expect(markup).toContain("KFFR Contrée");
-    expect(markup).toContain("coinche-brand-logo--compact");
     expect(markup).toContain("Scores en direct");
     expect(markup).toContain('role="switch"');
     expect(markup).toContain('aria-checked="true"');
-    expect(markup).toContain("Ouvrir le menu de partie");
-    expect(markup).toContain("Accueil");
     expect(markup).toContain("Abandonner la partie");
+    expect(markup).not.toContain("Accueil");
+    expect(markup).not.toContain("Multijoueur");
+    expect(markup).not.toContain("coinche-global-header");
     expect(markup).not.toContain(">Infos<");
     expect(markup).not.toContain("Mode épuré");
-    const topbar = markup.match(/<header[^>]*coinche-game-topbar[\s\S]*?<\/header>/)?.[0] ?? "";
-    expect(topbar).toContain("Ouvrir le menu de partie");
-    expect(topbar).not.toContain("Scores en direct");
-    expect(topbar).not.toContain("Paramètres");
   });
 
   it("maps the existing hidden-HUD state to the live-score switch", () => {
     vi.stubGlobal("React", React);
-    const markup = renderToStaticMarkup(React.createElement(GameTopBar, {
-      contextLabel: "Solo", focusMode: true,
+    const markup = renderToStaticMarkup(React.createElement(GameMenuPanel, {
+      focusMode: true,
       onOpenPreferences: () => undefined,
+      onSelect: (action) => action(),
       onToggleFocusMode: () => undefined,
     }));
     expect(markup).toContain('aria-checked="false"');

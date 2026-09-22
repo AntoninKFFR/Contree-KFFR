@@ -182,7 +182,7 @@ describe("solo bot hand analysis", () => {
 
     const normalDesktop = isSoloDesktopAnalysisLayout(true, false, false);
     expect(normalDesktop).toBe(false);
-    expect(soloMainClassName(normalDesktop, false)).toContain("h-[calc(100dvh-48px)]");
+    expect(soloMainClassName(normalDesktop, false)).toContain("h-[calc(100dvh-56px)]");
     expect(soloMainClassName(normalDesktop, false)).toContain("lg:overflow-hidden");
     expect(soloContentClassName(normalDesktop)).toContain("h-full");
     expect(soloGridClassName(normalDesktop, false)).toContain("flex-1");
