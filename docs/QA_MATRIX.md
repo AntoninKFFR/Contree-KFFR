@@ -159,16 +159,16 @@ Cette section distingue les tests présents dans le dépôt de leur exécution r
 |---|---|---|
 | Formule, K, coefficients, seuils, forfeit | `tests/ratingFormulaV1.test.ts`, `lib/rating/formulaV1.ts` | ✅ tests unitaires locaux |
 | Audit des droits distants en lecture seule | Catalogue PostgreSQL : RPC de lecture accordées à `authenticated`, `public`/`anon` refusés, `apply_rating_match` refusée, cinq tables Elo RLS sans accès direct, `profiles` limité au propriétaire | ✅ vérifié sans mutation le 22/09/2026 |
-| Schéma, RLS, suppression/anonymisation, absence d'accès direct Elo | `scripts/testRatingDb.mjs` avec JWT locaux ; cinq tables, écritures refusées | ⚠️ test DB présent ; CI locale Supabase à confirmer |
-| Snapshot, fin atomique `pending`, forfeit autoritaire | `scripts/testRatingLifecycleDb.ts` | ⚠️ test DB présent ; CI à confirmer |
-| Erreur d'application, room finie, pending conservé, retry | `scripts/testRatingLifecycleDb.ts` ; rollback de tous les ratings/participants | ⚠️ test DB présent ; CI à confirmer |
-| Premier `applied`, second `already_applied`, rating/compteurs/ledger inchangés | `scripts/testRatingLifecycleDb.ts` renforcé dans PR E | ⚠️ test DB présent ; CI à confirmer |
-| Deux matchs au même snapshot, deltas ajoutés au courant sans lost update | `scripts/testRatingLifecycleDb.ts` renforcé dans PR E | ⚠️ test DB présent ; CI à confirmer |
-| API lecture, placement, position, confidentialité leaderboard | `scripts/testRatingReadDb.mjs`, `tests/ratingQueries.test.ts` | ⚠️ test DB présent ; CI à confirmer. Unitaire ✅ |
+| Schéma, RLS, suppression/anonymisation, absence d'accès direct Elo | `scripts/testRatingDb.mjs` avec JWT locaux ; cinq tables, écritures refusées | ✅ CI Supabase locale PR #30 |
+| Snapshot, fin atomique `pending`, forfeit autoritaire | `scripts/testRatingLifecycleDb.ts` | ✅ CI Supabase locale PR #30 |
+| Erreur d'application, room finie, pending conservé, retry | `scripts/testRatingLifecycleDb.ts` ; rollback de tous les ratings/participants | ✅ CI Supabase locale PR #30 |
+| Premier `applied`, second `already_applied`, rating/compteurs/ledger inchangés | `scripts/testRatingLifecycleDb.ts` renforcé dans PR E | ✅ CI Supabase locale PR #30 |
+| Deux matchs au même snapshot, deltas ajoutés au courant sans lost update | `scripts/testRatingLifecycleDb.ts` renforcé dans PR E | ✅ CI Supabase locale PR #30 |
+| API lecture, placement, position, confidentialité leaderboard | `scripts/testRatingReadDb.mjs`, `tests/ratingQueries.test.ts` | ✅ CI Supabase locale et tests unitaires |
 | UI profil, progression, pending, leaderboard responsive | `tests/ratingUi.test.ts`, `tests/ratingProgress.test.ts`, `e2e/smoke.spec.ts` | ✅ couvert localement |
 | Multijoueur générique, takeover/reconnexion/history/rematch sans Elo | `e2e/multiplayer.spec.ts` en ruleset `custom`, comparaison avant/après | ⚠️ implémenté ; exécution authentifiée non faite ici |
 | Quatre humains, forfeit, redistribution, compteurs et classement | `e2e/rating.spec.ts` | ⚠️ implémenté mais non exécuté : garde/credentials absents |
 | Un humain + trois bots, fiabilité 0,20 et aucun transfert | `e2e/rating.spec.ts` | ⚠️ implémenté mais non exécuté : garde/credentials absents |
-| Comptes supprimés et historiques des autres joueurs | `scripts/testRatingDb.mjs`, `scripts/testRatingReadDb.mjs` | ⚠️ test DB présent ; CI à confirmer |
+| Comptes supprimés et historiques des autres joueurs | `scripts/testRatingDb.mjs`, `scripts/testRatingReadDb.mjs` | ✅ CI Supabase locale PR #30 |
 
-Sur cette machine, `supabase start` échoue car Docker et Podman sont absents ; `npm run test:db:rating` s'arrête avant les tests faute de base locale. Le workflow `rating-db.yml` doit apporter la preuve d'exécution DB sur la PR. La suite Elo authentifiée ne devient ✅ qu'après une vraie exécution sans skip. Jusque-là, la PR E est implémentée mais le chantier Elo n'est pas déclaré définitivement terminé.
+Sur cette machine, `supabase start` échoue car Docker et Podman sont absents ; `npm run test:db:rating` s'arrête avant les tests faute de base locale. Le workflow `rating-db.yml` a exécuté ces tests sur une Supabase locale jetable dans la CI de la PR #30, avec résultat ✅ le 22/09/2026. La suite Elo authentifiée ne devient ✅ qu'après une vraie exécution sans skip. Jusque-là, la PR E est implémentée mais le chantier Elo n'est pas déclaré définitivement terminé.
