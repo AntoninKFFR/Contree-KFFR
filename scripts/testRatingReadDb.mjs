@@ -149,13 +149,32 @@ async function run() {
   assert.deepEqual([dSummary.rating, dSummary.rank, dSummary.position], [1300, "Sait jouer V", 3]);
   assert.ok(!(await leaderboard(d, { p_limit: 1, p_offset: 0 })).some((entry) => entry.username === d.username));
 
+  // A rated player without a public username is outside both position sets.
+  checked(await admin.from("player_ratings").update({ rating: 1600, peak_rating: 1600 })
+    .eq("user_id", a.id), "higher hidden rating");
+  checked(await a.client.from("profiles").update({ username: null }).eq("id", a.id), "clear own username");
+  const withoutUsername = await leaderboard(b);
+  assert.deepEqual(withoutUsername.map((entry) => [entry.username, entry.position]), [
+    [b.username, 1], [c.username, 2], [d.username, 3],
+  ]);
+  assert.ok(!withoutUsername.some((entry) => entry.username === a.username));
+  assert.deepEqual(Object.keys(withoutUsername[0]).sort(), ["position", "rank", "rating", "username"]);
+  const hiddenSummary = await summary(a);
+  assert.deepEqual([hiddenSummary.rating, hiddenSummary.rated_games, hiddenSummary.placement_games,
+    hiddenSummary.is_ranked, hiddenSummary.rank, hiddenSummary.position],
+  [1600, 5, 5, false, null, null]);
+  assert.equal((await summary(b)).position, 1);
+  checked(await a.client.from("profiles").update({ username: a.username }).eq("id", a.id), "restore own username");
+  assert.equal((await summary(a)).position, 1);
+  assert.equal((await leaderboard(b))[0].username, a.username);
+
   // profiles remains private even though the leaderboard can project usernames.
   const ownProfiles = checked(await a.client.from("profiles").select("id,username"), "own profiles only");
   assert.deepEqual(ownProfiles.map((profile) => profile.id), [a.id]);
   await rejected(anonymous.from("profiles").select("id,username"), /permission|denied/i);
   await rejected(anonymous.rpc("get_my_rating_summary"), /permission|authentication|schema cache/i);
   await rejected(anonymous.rpc("get_rating_leaderboard"), /permission|authentication|schema cache/i);
-  await rejected(a.client.rpc("apply_rating_match", { p_match_id: randomUUID() }), /permission|denied|schema cache/i);
+  await rejected(a.client.rpc("apply_rating_match", { p_source_game_id: randomUUID() }), /permission|denied|schema cache/i);
   await rejected(a.client.from("player_ratings").select("*"), /permission|denied/i);
   await rejected(a.client.from("player_ratings").update({ rating: 9999 }).eq("user_id", a.id), /permission|denied/i);
 

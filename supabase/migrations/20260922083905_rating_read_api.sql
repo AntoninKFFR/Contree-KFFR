@@ -43,12 +43,16 @@ begin
   from public.player_ratings
   where user_id = v_actor;
 
+  -- A player is ranked only while their rating is publishable. Use the same
+  -- profile join and filters as the public leaderboard, before DENSE_RANK.
   if found and v_rating.rated_games >= 5 then
     select ranked."position" into v_position
     from (
-      select user_id, pg_catalog.dense_rank() over (order by rating desc) as "position"
-      from public.player_ratings
-      where rated_games >= 5
+      select player.user_id,
+        pg_catalog.dense_rank() over (order by player.rating desc) as "position"
+      from public.player_ratings player
+      join public.profiles profile on profile.id = player.user_id
+      where player.rated_games >= 5 and profile.username is not null
     ) ranked
     where ranked.user_id = v_actor;
   end if;
@@ -83,10 +87,10 @@ begin
     'losses', v_rating.losses,
     'forfeits', v_rating.forfeits,
     'peak_rating', v_rating.peak_rating,
-    'rank', case when v_rating.rated_games >= 5 then private.rating_rank(v_rating.rating) else null end,
+    'rank', case when v_position is not null then private.rating_rank(v_rating.rating) else null end,
     'position', v_position,
     'placement_games', least(v_rating.rated_games, 5),
-    'is_ranked', v_rating.rated_games >= 5,
+    'is_ranked', v_position is not null,
     'pending_matches', v_pending_matches
   );
 end;
@@ -104,22 +108,24 @@ begin
   end if;
 
   return query
+  -- Filter to publishable profiles before ranking; hidden players cannot
+  -- create gaps in public positions.
   with ranked as materialized (
     select
       player.user_id,
+      profile.username,
       player.rating,
       pg_catalog.dense_rank() over (order by player.rating desc) as "position"
     from public.player_ratings player
-    where player.rated_games >= 5
+    join public.profiles profile on profile.id = player.user_id
+    where player.rated_games >= 5 and profile.username is not null
   )
   select
-    profile.username::text,
+    ranked.username::text,
     ranked.rating,
     private.rating_rank(ranked.rating),
     ranked."position"
   from ranked
-  join public.profiles profile on profile.id = ranked.user_id
-  where profile.username is not null
   order by ranked.rating desc, ranked.user_id
   limit p_limit offset p_offset;
 end;
