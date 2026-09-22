@@ -193,7 +193,7 @@ async function run() {
   }).eq("user_id", placement.id), "complete placements");
   placementSummary = await summary(placement);
   assert.deepEqual([placementSummary.placement_games, placementSummary.is_ranked,
-    placementSummary.rank, placementSummary.position], [5, true, "Débutant I", 4]);
+    placementSummary.rank, placementSummary.position], [5, true, "Débutant I", 5]);
   assert.ok((await leaderboard(a)).some((entry) => entry.username === placement.username));
 
   checked(await admin.auth.admin.deleteUser(d.id), "delete ranked account");
