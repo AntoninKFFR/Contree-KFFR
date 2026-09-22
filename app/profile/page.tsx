@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { ensureProfile, saveProfileUsername } from "@/lib/profiles";
@@ -31,6 +32,7 @@ import {
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [games, setGames] = useState<GameRow[]>([]);
   const [multiplayerGames, setMultiplayerGames] = useState<MultiplayerHistoryGame[]>([]);
   const [pageState, setPageState] = useState<PageState>("loading");
@@ -178,6 +180,12 @@ export default function ProfilePage() {
     } finally { setIsSavingUsername(false); }
   }
 
+  async function handleSignOut() {
+    await getSupabaseClient()?.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
+
   if (pageState === "unavailable") {
     return (
       <ProfileShell>
@@ -231,6 +239,9 @@ export default function ProfilePage() {
         </div> : <div className="mt-3 flex items-center gap-3"><span className="font-bold text-stone-100">{username}</span><button className={appSecondaryActionClass} onClick={() => { setIsEditingUsername(true); setIdentityMessage(null); }} type="button">Modifier</button></div>}
         {identityMessage ? <p className="mt-3 text-sm text-stone-300" role="status">{identityMessage}</p> : null}
         {!username ? <p className="mt-3 text-sm text-stone-300">Choisis un pseudo pour jouer en multijoueur.</p> : null}
+        <div className="mt-6 border-t border-white/10 pt-4">
+          <button className={appSecondaryActionClass} onClick={() => void handleSignOut()} type="button">Se déconnecter</button>
+        </div>
         </AppSurface>
       </div>
 

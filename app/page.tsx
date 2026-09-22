@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { AuthStatus } from "@/components/AuthStatus";
 import { AppPage, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { KffrLogo } from "@/components/ui/KffrLogo";
 
@@ -12,9 +11,6 @@ export default function HomePage() {
   return (
     <AppPage className="justify-center sm:min-h-[calc(100dvh-112px)]" width="wide">
       <section className="coinche-app-surface relative overflow-hidden rounded-[2rem] border px-5 py-8 sm:px-10 sm:py-12 lg:px-14 lg:py-16">
-        <div className="mb-5 flex justify-end sm:mb-3">
-          <AuthStatus />
-        </div>
         <div className="lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12">
           <div className="relative">
             <h1 className="max-w-2xl text-4xl font-black leading-[1.05] tracking-[-0.035em] text-[#f4ead0] sm:text-5xl lg:text-6xl">

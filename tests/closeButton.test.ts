@@ -1,7 +1,6 @@
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { AppDrawerNav } from "@/components/AppDrawerNav";
 import { GameTopBar } from "@/components/GameTopBar";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { IconCloseButton } from "@/components/ui/IconCloseButton";
@@ -23,7 +22,7 @@ describe("shared close button", () => {
     expect(markup).not.toContain(">×<");
   });
 
-  it("is reused by dialogs and both application drawers", () => {
+  it("stays available to modal dialogs while navigation uses compact panels", () => {
     const dialog = renderToStaticMarkup(
       React.createElement(AccessibleDialog, {
         description: "Test",
@@ -37,18 +36,12 @@ describe("shared close button", () => {
       onOpenPreferences: noop,
       onToggleFocusMode: noop,
     }));
-    const appDrawer = renderToStaticMarkup(React.createElement(AppDrawerNav));
-
-    for (const markup of [dialog, gameDrawer, appDrawer]) {
-      expect(markup).toContain("h-9 w-9");
-      expect(markup).toContain("<svg");
-      expect(markup).not.toContain(">×<");
-    }
+    expect(dialog).toContain("h-9 w-9");
+    expect(dialog).toContain("<svg");
+    expect(dialog).not.toContain(">×<");
     expect(gameDrawer).toContain("coinche-theme-toggle");
-    expect(appDrawer).toContain("coinche-theme-toggle");
-    expect(appDrawer).toContain("coinche-nav-link--active");
-    expect(appDrawer).toContain("coinche-nav-kicker");
-    expect(gameDrawer).toContain("coinche-game-nav-kicker");
     expect(gameDrawer).toContain("coinche-nav-section-label");
+    expect(gameDrawer).toContain("game-menu-panel");
+    expect(gameDrawer).not.toContain("coinche-app-drawer");
   });
 });

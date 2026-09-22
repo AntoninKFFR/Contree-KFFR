@@ -40,8 +40,8 @@ describe("KFFR branding", () => {
     expect(homeSource).not.toMatch(/radial-gradient|blur-3xl|drop-shadow/);
     expect(shellSource).not.toMatch(/blur-3xl|backdrop-blur/);
     expect(markup).toContain("La contrée, en solo ou entre amis");
-    expect(markup).toContain('href="/login"');
-    expect(markup).toContain("Se connecter");
+    expect(homeSource).not.toContain("AuthStatus");
+    expect(markup).not.toContain("Connecté :");
     expect(markup).toContain("Jouer en solo");
     expect(markup).toContain("Multijoueur");
   });
