@@ -70,9 +70,8 @@ export function parseRatingSummary(value: unknown): RatingSummary {
     || summary.forfeits > summary.losses
     || summary.peakRating < summary.rating
     || summary.placementGames !== Math.min(summary.ratedGames, 5)
-    || summary.isRanked !== (summary.ratedGames >= 5)
     || (summary.isRanked
-      ? summary.rank === null || summary.position === null
+      ? summary.ratedGames < 5 || summary.rank === null || summary.position === null
       : summary.rank !== null || summary.position !== null)
   ) {
     throw new Error("Inconsistent rating summary");

@@ -48,9 +48,41 @@ describe("rating read queries", () => {
     });
   });
 
+  it("keeps a five-game player without a public username unranked", () => {
+    expect(parseRatingSummary({
+      rating: 1600,
+      rated_games: 5,
+      wins: 3,
+      losses: 2,
+      forfeits: 0,
+      peak_rating: 1600,
+      rank: null,
+      position: null,
+      placement_games: 5,
+      is_ranked: false,
+      pending_matches: 0,
+    })).toEqual({
+      rating: 1600,
+      ratedGames: 5,
+      wins: 3,
+      losses: 2,
+      forfeits: 0,
+      peakRating: 1600,
+      rank: null,
+      position: null,
+      placementGames: 5,
+      isRanked: false,
+      pendingMatches: 0,
+    });
+  });
+
   it("rejects inconsistent summaries", () => {
     expect(() => parseRatingSummary({ ...unranked, placement_games: 5 })).toThrow("Inconsistent");
     expect(() => parseRatingSummary({ ...unranked, rank: "Débutant I" })).toThrow("Inconsistent");
+    expect(() => parseRatingSummary({ ...unranked, is_ranked: true,
+      rank: "Débutant I", position: 1 })).toThrow("Inconsistent");
+    expect(() => parseRatingSummary({ ...unranked, rated_games: 5, wins: 4,
+      placement_games: 5, rank: "Débutant I", position: 1 })).toThrow("Inconsistent");
   });
 
   it("maps only the four public leaderboard fields", () => {
