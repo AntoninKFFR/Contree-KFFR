@@ -150,3 +150,25 @@ Statuts : ✅ couvert par un test automatisé ou une vérification reproductible
 - ⚠️ L'orchestration quatre navigateurs est maintenant codée, mais ne peut pas devenir ✅ avant une exécution réelle avec les quatre comptes E2E. Les credentials étaient absents lors de cette phase et aucun compte production n'a été créé.
 - ⚠️ Le smoke distant reste non exécuté tant que `E2E_BASE_URL` n'est pas fourni. Le même projet Playwright est prêt pour preview/staging/prod sans modification de code.
 - Aucun scénario critique moteur, autorité serveur, confidentialité, score ou compatibilité legacy n'est marqué ❌.
+
+## N. Elo V1 — clôture PR E (22/09/2026)
+
+Cette section distingue les tests présents dans le dépôt de leur exécution réelle. Les scénarios `@rating` modifient durablement les comptes E2E et sont skipped tant que les huit variables de comptes et `E2E_RATING_MUTATION=1` ne sont pas fournis sur un environnement de test/staging approuvé.
+
+| Scénario | Couverture | État |
+|---|---|---|
+| Formule, K, coefficients, seuils, forfeit | `tests/ratingFormulaV1.test.ts`, `lib/rating/formulaV1.ts` | ✅ tests unitaires locaux |
+| Audit des droits distants en lecture seule | Catalogue PostgreSQL : RPC de lecture accordées à `authenticated`, `public`/`anon` refusés, `apply_rating_match` refusée, cinq tables Elo RLS sans accès direct, `profiles` limité au propriétaire | ✅ vérifié sans mutation le 22/09/2026 |
+| Schéma, RLS, suppression/anonymisation, absence d'accès direct Elo | `scripts/testRatingDb.mjs` avec JWT locaux ; cinq tables, écritures refusées | ⚠️ test DB présent ; CI locale Supabase à confirmer |
+| Snapshot, fin atomique `pending`, forfeit autoritaire | `scripts/testRatingLifecycleDb.ts` | ⚠️ test DB présent ; CI à confirmer |
+| Erreur d'application, room finie, pending conservé, retry | `scripts/testRatingLifecycleDb.ts` ; rollback de tous les ratings/participants | ⚠️ test DB présent ; CI à confirmer |
+| Premier `applied`, second `already_applied`, rating/compteurs/ledger inchangés | `scripts/testRatingLifecycleDb.ts` renforcé dans PR E | ⚠️ test DB présent ; CI à confirmer |
+| Deux matchs au même snapshot, deltas ajoutés au courant sans lost update | `scripts/testRatingLifecycleDb.ts` renforcé dans PR E | ⚠️ test DB présent ; CI à confirmer |
+| API lecture, placement, position, confidentialité leaderboard | `scripts/testRatingReadDb.mjs`, `tests/ratingQueries.test.ts` | ⚠️ test DB présent ; CI à confirmer. Unitaire ✅ |
+| UI profil, progression, pending, leaderboard responsive | `tests/ratingUi.test.ts`, `tests/ratingProgress.test.ts`, `e2e/smoke.spec.ts` | ✅ couvert localement |
+| Multijoueur générique, takeover/reconnexion/history/rematch sans Elo | `e2e/multiplayer.spec.ts` en ruleset `custom`, comparaison avant/après | ⚠️ implémenté ; exécution authentifiée non faite ici |
+| Quatre humains, forfeit, redistribution, compteurs et classement | `e2e/rating.spec.ts` | ⚠️ implémenté mais non exécuté : garde/credentials absents |
+| Un humain + trois bots, fiabilité 0,20 et aucun transfert | `e2e/rating.spec.ts` | ⚠️ implémenté mais non exécuté : garde/credentials absents |
+| Comptes supprimés et historiques des autres joueurs | `scripts/testRatingDb.mjs`, `scripts/testRatingReadDb.mjs` | ⚠️ test DB présent ; CI à confirmer |
+
+Sur cette machine, `supabase start` échoue car Docker et Podman sont absents ; `npm run test:db:rating` s'arrête avant les tests faute de base locale. Le workflow `rating-db.yml` doit apporter la preuve d'exécution DB sur la PR. La suite Elo authentifiée ne devient ✅ qu'après une vraie exécution sans skip. Jusque-là, la PR E est implémentée mais le chantier Elo n'est pas déclaré définitivement terminé.

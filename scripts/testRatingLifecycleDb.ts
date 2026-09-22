@@ -205,7 +205,21 @@ try {
   const firstEnd = await finish(first, 0);
   assert.equal(firstEnd.matches.length, 1);
   assert.equal(await apply(first.gameId), "applied");
+  const ratingsAfterFirstApply = await Promise.all(users.map(async (u) => {
+    const row = await rating(u.id);
+    return [row.rating, row.rated_games, row.wins, row.losses, row.forfeits, row.peak_rating];
+  }));
+  const ledgerAfterFirstApply = checked(await admin.from("rating_match_participants")
+    .select("seat_index,rating_before_apply,delta,rating_after_apply,forfeited")
+    .eq("match_id", firstEnd.matches[0].id).order("seat_index"), "first applied ledger");
   assert.equal(await apply(first.gameId), "already_applied");
+  assert.deepEqual(await Promise.all(users.map(async (u) => {
+    const row = await rating(u.id);
+    return [row.rating, row.rated_games, row.wins, row.losses, row.forfeits, row.peak_rating];
+  })), ratingsAfterFirstApply);
+  assert.deepEqual(checked(await admin.from("rating_match_participants")
+    .select("seat_index,rating_before_apply,delta,rating_after_apply,forfeited")
+    .eq("match_id", firstEnd.matches[0].id).order("seat_index"), "ledger after duplicate apply"), ledgerAfterFirstApply);
   assert.deepEqual(await Promise.all(users.map(async (u) => (await rating(u.id)).rating)),
     [1020, 980, 1020, 980]);
   const firstLedger = checked(await admin.from("rating_match_participants")
@@ -333,13 +347,24 @@ try {
   const pendingEnd = await finish(pending, 0, null, "timer");
   checked(await admin.from("rating_match_participants").update({ result: 0 })
     .eq("match_id", pendingEnd.matches[0].id).eq("seat_index", 0).select("seat_index").single(), "corrupt result");
+  const ratingsBeforeFailedApply = await Promise.all(users.map(async (u) => {
+    const row = await rating(u.id);
+    return [row.rating, row.rated_games, row.wins, row.losses, row.forfeits, row.peak_rating];
+  }));
   const failed = await admin.rpc("apply_rating_match", { p_source_game_id: pending.gameId });
   assert.ok(failed.error);
-  assert.equal((await rating(users[0].id)).rating, 1000);
+  assert.deepEqual(await Promise.all(users.map(async (u) => {
+    const row = await rating(u.id);
+    return [row.rating, row.rated_games, row.wins, row.losses, row.forfeits, row.peak_rating];
+  })), ratingsBeforeFailedApply);
   assert.equal(checked(await admin.from("rooms").select("status")
     .eq("id", pending.room.id).single(), "finished after failed apply").status, "finished");
   assert.equal(checked(await admin.from("rating_matches").select("status")
     .eq("source_game_id", pending.gameId).single(), "pending after failure").status, "pending");
+  const failedLedger = checked(await admin.from("rating_match_participants")
+    .select("rating_before_apply,delta,rating_after_apply")
+    .eq("match_id", pendingEnd.matches[0].id), "ledger after failed apply");
+  assert.ok(failedLedger.every((seat) => seat.rating_before_apply === null && seat.delta === null && seat.rating_after_apply === null));
   checked(await admin.from("rating_match_participants").update({ result: 1 })
     .eq("match_id", pendingEnd.matches[0].id).eq("seat_index", 0).select("seat_index").single(), "repair result");
   assert.equal(await apply(pending.gameId), "applied");
@@ -363,6 +388,15 @@ try {
   await finish(gameB, 0);
   assert.deepEqual(await Promise.all([apply(gameA.gameId), apply(gameB.gameId)]), ["applied", "applied"]);
   assert.equal((await rating(users[0].id)).rating, 1006);
+  const concurrentLedgers = await Promise.all([gameA, gameB].map(async (game) => {
+    const match = checked(await admin.from("rating_matches").select("id")
+      .eq("source_game_id", game.gameId).single(), "concurrent match");
+    const seat = checked(await admin.from("rating_match_participants")
+      .select("rating_snapshot,rating_before_apply,delta,rating_after_apply")
+      .eq("match_id", match.id).eq("seat_index", 0).single(), "concurrent ledger");
+    return [seat.rating_snapshot, seat.rating_before_apply, seat.delta, seat.rating_after_apply];
+  }));
+  assert.deepEqual(concurrentLedgers.sort((a, b) => a[1] - b[1]), [[1000, 1000, 3, 1003], [1000, 1003, 3, 1006]]);
   assert.equal(await apply(gameA.gameId), "already_applied");
 
   const unauthorized = await users[0].client.rpc("apply_rating_match", {

@@ -1,6 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { fourPlayerCredentials, loginAs } from "./helpers/auth";
 import { createRoomThroughUi, enableTechnicalRules, joinRoomThroughUi, setLocalPreferences } from "./helpers/multiplayerUi";
+import { ratingSummary, waitForNoPending } from "./helpers/rating";
 import { expectRoom, monitorRoomPrivacy, roomView, sendIntent, sendTick, type E2ERoomView } from "./helpers/room";
 
 const auth = fourPlayerCredentials();
@@ -97,6 +98,7 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
         await expect(page.getByRole("button", { name: "Prêt", exact: true })).toBeVisible();
       }
       const rulesView = await roomView(pages[0], roomId);
+      expect(rulesView.room.ruleset_snapshot?.id).toBe("custom");
       expect(rulesView.room.ruleset_snapshot?.bidding).toMatchObject({ allowNoTrump: true, allowAllTrump: true, allowGenerale: true });
       const forbidden = await sendIntent(pages[1], roomId, rulesView.room.state_version, { type: "update-room-rules", rules: { presetId: "contree-kffr" } });
       expect(forbidden.status).toBe(403);
@@ -215,6 +217,8 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
         await loginAs(page, auth.credentials[index]);
       }
 
+      const ratingsBefore = await Promise.all(pages.map((page, index) => waitForNoPending(page, `generic multiplayer account ${index + 1}`)));
+
       const hostPage = pages[0];
       const hostPrivacy = monitorRoomPrivacy(hostPage);
       const created = await createRoomThroughUi(hostPage);
@@ -234,6 +238,8 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
         "four humans seated for lifecycle validation",
         (view) => view.players.filter((player) => player.kind === "human").length === 4,
       );
+      await enableTechnicalRules(hostPage);
+      expect((await roomView(hostPage, roomId)).room.ruleset_snapshot?.id).toBe("custom");
       const seatPages = new Map<number, Page>();
       for (const page of pages) {
         const view = await roomView(page, roomId);
@@ -389,6 +395,12 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       expect(finished.game?.forfeitingTeam).toBe(forfeitingTeam);
       expect(finished.game?.winnerTeam).toBe(forfeitingTeam === 0 ? 1 : 0);
       expect(finished.players.every((player) => !player.bot_takeover)).toBe(true);
+      const ratingsAfter = await Promise.all(pages.map(ratingSummary));
+      for (let index = 0; index < 4; index += 1) {
+        expect([ratingsAfter[index].rating, ratingsAfter[index].ratedGames, ratingsAfter[index].pendingMatches],
+          `custom multiplayer game changed Elo for account ${index + 1}`)
+          .toEqual([ratingsBefore[index].rating, ratingsBefore[index].ratedGames, 0]);
+      }
 
       const hostPlayer = finished.players.find((player) => player.is_host);
       if (!hostPlayer) throw new Error("The finished room has no public host projection.");
