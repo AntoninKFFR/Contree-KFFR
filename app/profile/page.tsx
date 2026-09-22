@@ -16,6 +16,8 @@ import {
 } from "@/lib/stats";
 import { calculateDetailedPlayerStats, multiplayerGamesForDetailedStats, soloGamesForDetailedStats } from "@/lib/detailedPlayerStats";
 import { DetailedStatsDashboard } from "@/components/profile/DetailedStatsDashboard";
+import { RatingCard } from "@/components/rating/RatingCard";
+import { getMyRatingSummary, type RatingSummary } from "@/lib/rating/queries";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import {
   AppEyebrow,
@@ -40,6 +42,10 @@ export default function ProfilePage() {
   const [identityMessage, setIdentityMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statsMode, setStatsMode] = useState<"solo" | "multiplayer">("solo");
+  const [ratingState, setRatingState] = useState<"loading" | "ready" | "error">("loading");
+  const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(null);
+  const [ratingRevision, setRatingRevision] = useState(0);
+  const ratingUserId = session?.user.id;
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -106,6 +112,50 @@ export default function ProfilePage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!ratingUserId) return;
+    const client = getSupabaseClient();
+    if (!client) { setRatingState("error"); return; }
+    let cancelled = false;
+    setRatingState("loading");
+    void getMyRatingSummary(client)
+      .then((summary) => {
+        if (cancelled) return;
+        setRatingSummary(summary);
+        setRatingState("ready");
+      })
+      .catch(() => { if (!cancelled) setRatingState("error"); });
+    return () => { cancelled = true; };
+  }, [ratingUserId, ratingRevision]);
+
+  useEffect(() => {
+    if (!ratingUserId || ratingState !== "ready" || !ratingSummary?.pendingMatches) return;
+    const client = getSupabaseClient();
+    if (!client) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const refresh = () => {
+      if (document.hidden) return;
+      void getMyRatingSummary(client).then((summary) => {
+        if (!cancelled) setRatingSummary(summary);
+      }).catch(() => { /* Keep the last valid rating; the next tick can retry. */ });
+    };
+    const syncVisibility = () => {
+      if (timer) { clearInterval(timer); timer = null; }
+      if (!document.hidden) {
+        refresh();
+        timer = setInterval(refresh, 5000);
+      }
+    };
+    document.addEventListener("visibilitychange", syncVisibility);
+    syncVisibility();
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", syncVisibility);
+      if (timer) clearInterval(timer);
+    };
+  }, [ratingUserId, ratingState, ratingSummary?.pendingMatches]);
+
   const soloStats = useMemo(() => calculateDetailedPlayerStats(soloGamesForDetailedStats(games)), [games]);
   const multiplayerStats = useMemo(() => calculateDetailedPlayerStats(multiplayerGamesForDetailedStats(multiplayerGames)), [multiplayerGames]);
   const recentGames = useMemo(() => games.slice(0, 5), [games]);
@@ -122,6 +172,7 @@ export default function ProfilePage() {
       setUsernameDraft(result.username ?? "");
       setIsEditingUsername(false);
       setIdentityMessage("Pseudo enregistré.");
+      setRatingRevision((value) => value + 1);
     } catch {
       setIdentityMessage("Erreur réseau. Réessaie.");
     } finally { setIsSavingUsername(false); }
@@ -165,7 +216,10 @@ export default function ProfilePage() {
         </p>
       </AppSurface>
 
-      <AppSurface className="p-6 sm:p-7">
+      {ratingState === "ready" && ratingSummary ? <RatingCard state="ready" summary={ratingSummary} /> : <RatingCard state={ratingState === "error" ? "error" : "loading"} />}
+
+      <div id="profile-username">
+        <AppSurface className="p-6 sm:p-7">
         <AppEyebrow>Compte / Identité</AppEyebrow>
         <h2 className="mt-2 text-lg font-bold text-stone-50">Pseudo</h2>
         {isEditingUsername || !username ? <div className="mt-3 flex flex-wrap items-end gap-2">
@@ -177,7 +231,8 @@ export default function ProfilePage() {
         </div> : <div className="mt-3 flex items-center gap-3"><span className="font-bold text-stone-100">{username}</span><button className={appSecondaryActionClass} onClick={() => { setIsEditingUsername(true); setIdentityMessage(null); }} type="button">Modifier</button></div>}
         {identityMessage ? <p className="mt-3 text-sm text-stone-300" role="status">{identityMessage}</p> : null}
         {!username ? <p className="mt-3 text-sm text-stone-300">Choisis un pseudo pour jouer en multijoueur.</p> : null}
-      </AppSurface>
+        </AppSurface>
+      </div>
 
       <div aria-label="Mode des statistiques" className="flex gap-2" role="tablist">
         <button aria-controls="player-stats-panel" aria-selected={statsMode === "solo"} className={statsMode === "solo" ? appPrimaryActionClass : appSecondaryActionClass} id="solo-stats-tab" onClick={() => setStatsMode("solo")} role="tab" type="button">Solo</button>

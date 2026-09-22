@@ -109,3 +109,42 @@ export function ratingRank(rating: number): string {
   if (!Number.isSafeInteger(rating) || rating < 0) throw new RangeError("Rating must be a non-negative integer");
   return RANK_THRESHOLDS.find(([minimum]) => rating >= minimum)?.[1] ?? "Débutant V";
 }
+
+/** Presentation progress using the same official thresholds as ratingRank. */
+export function getRatingProgress(rating: number): {
+  currentRank: string;
+  currentThreshold: number | null;
+  nextRank: string | null;
+  nextThreshold: number | null;
+  pointsIntoRank: number | null;
+  pointsToNextRank: number | null;
+  pointsRemaining: number | null;
+  progress: number | null;
+} {
+  const currentRank = ratingRank(rating);
+  const index = RANK_THRESHOLDS.findIndex(([minimum]) => rating >= minimum);
+  if (index === -1) {
+    return {
+      currentRank, currentThreshold: null,
+      nextRank: RANK_THRESHOLDS.at(-1)![1], nextThreshold: RANK_THRESHOLDS.at(-1)![0],
+      pointsIntoRank: null, pointsToNextRank: null,
+      pointsRemaining: RANK_THRESHOLDS.at(-1)![0] - rating, progress: null,
+    };
+  }
+  const [currentThreshold] = RANK_THRESHOLDS[index];
+  if (index === 0) {
+    return {
+      currentRank, currentThreshold, nextRank: null, nextThreshold: null,
+      pointsIntoRank: null, pointsToNextRank: null, pointsRemaining: null, progress: null,
+    };
+  }
+  const [nextThreshold, nextRank] = RANK_THRESHOLDS[index - 1];
+  const pointsIntoRank = rating - currentThreshold;
+  const pointsToNextRank = nextThreshold - currentThreshold;
+  return {
+    currentRank, currentThreshold, nextRank, nextThreshold,
+    pointsIntoRank, pointsToNextRank,
+    pointsRemaining: nextThreshold - rating,
+    progress: pointsIntoRank / pointsToNextRank,
+  };
+}

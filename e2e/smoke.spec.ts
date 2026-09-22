@@ -267,6 +267,12 @@ test.describe("@smoke public production readiness", () => {
       await expect(page.getByRole("heading", { name: "Non connecté" })).toBeVisible();
       await expect(page.getByRole("link", { name: "Se connecter" })).toHaveAttribute("href", "/login?next=%2Fprofile");
     }
+    await page.goto("/leaderboard");
+    await expect(page.getByRole("heading", { name: "Classement", exact: true })).toBeVisible();
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+      await expect(page.getByText("Connecte-toi pour consulter le classement.")).toBeVisible();
+      await expect(page.getByRole("link", { name: "Se connecter" })).toHaveAttribute("href", "/login?next=%2Fleaderboard");
+    }
     await page.goto("/multiplayer");
     await expect(page.getByText("Nom affiché", { exact: true })).toHaveCount(0);
     if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
@@ -514,9 +520,10 @@ test.describe("@smoke public production readiness", () => {
     test(`critical pages have no horizontal overflow at ${viewport.name}`, async ({ page }) => {
       const monitor = monitorBrowserErrors(page);
       await page.setViewportSize(viewport);
-      for (const path of ["/", "/login", "/solo", "/multiplayer", "/friends", "/history", "/profile", "/rules"]) {
+      for (const path of ["/", "/login", "/solo", "/multiplayer", "/friends", "/history", "/profile", "/leaderboard", "/rules"]) {
         await page.goto(path);
         await expect.poll(async () => page.evaluate(() => document.readyState)).toMatch(/interactive|complete/);
+        if (path === "/leaderboard") await expect(page.getByRole("heading", { name: "Classement", exact: true })).toBeVisible();
         const overflow = await page.evaluate(() => Math.max(document.body.scrollWidth, document.documentElement.scrollWidth) - window.innerWidth);
         expect(overflow, `${path} horizontal overflow`).toBeLessThanOrEqual(1);
       }
