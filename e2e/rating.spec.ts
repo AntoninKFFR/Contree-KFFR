@@ -5,7 +5,7 @@ import type { RatingSummary } from "../lib/rating/queries";
 import { fourPlayerCredentials, loginAs } from "./helpers/auth";
 import { createRoomThroughUi, joinRoomThroughUi } from "./helpers/multiplayerUi";
 import { ownPublicUsername, ratingLeaderboard, ratingSummary, waitForApplied, waitForNoPending } from "./helpers/rating";
-import { expectRoom, roomView, sendIntent } from "./helpers/room";
+import { bestEffortFinishRoom, expectRoom, roomView, sendIntent } from "./helpers/room";
 
 const auth = fourPlayerCredentials();
 const missing = [...auth.missing, ...(process.env.E2E_RATING_MUTATION === "1" ? [] : ["E2E_RATING_MUTATION=1"])];
@@ -89,7 +89,7 @@ test.describe("@multiplayer @rating authenticated Elo lifecycle", () => {
       await expect(pages[0].getByRole("heading", { name: "Classement", exact: true })).toBeVisible();
       await assertStableAfterReload(pages, after, roomId);
     } finally {
-      if (roomId) await finishExactRoom(pages, roomId);
+      if (roomId) await bestEffortFinishRoom(pages, roomId);
       await Promise.all(contexts.map((context) => context.close().catch(() => undefined)));
     }
   });
@@ -134,7 +134,7 @@ test.describe("@multiplayer @rating authenticated Elo lifecycle", () => {
       await assertRankState(page, after);
       await assertStableAfterReload([page], [after], roomId);
     } finally {
-      if (roomId) await finishExactRoom([page], roomId);
+      if (roomId) await bestEffortFinishRoom([page], roomId);
       await context.close().catch(() => undefined);
     }
   });
@@ -171,20 +171,5 @@ async function assertStableAfterReload(pages: Page[], after: RatingSummary[], ro
         .toEqual([after[index].rating, after[index].ratedGames, after[index].wins,
           after[index].losses, after[index].forfeits, 0]);
     }
-  }
-}
-
-async function finishExactRoom(pages: Page[], roomId: string): Promise<void> {
-  const page = pages.find((candidate) => !candidate.isClosed());
-  if (!page) return;
-  try {
-    const view = await roomView(page, roomId);
-    if (view.room.status === "playing" && view.viewerSeatIndex !== null) {
-      await sendIntent(page, roomId, view.room.state_version, { type: "forfeit-game" });
-    } else if (view.room.status === "lobby" && view.viewerSeatIndex !== null) {
-      await sendIntent(page, roomId, view.room.state_version, { type: "leave-seat" });
-    }
-  } catch {
-    // Only the room created by this test is touched; no privileged cleanup.
   }
 }

@@ -2,7 +2,7 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { fourPlayerCredentials, loginAs } from "./helpers/auth";
 import { createRoomThroughUi, enableTechnicalRules, joinRoomThroughUi, setLocalPreferences } from "./helpers/multiplayerUi";
 import { ratingSummary, waitForNoPending } from "./helpers/rating";
-import { expectRoom, monitorRoomPrivacy, roomView, sendIntent, sendTick, type E2ERoomView } from "./helpers/room";
+import { bestEffortFinishRoom, expectRoom, monitorRoomPrivacy, roomView, sendIntent, sendTick, type E2ERoomView } from "./helpers/room";
 
 const auth = fourPlayerCredentials();
 const names = ["E2E_P1", "E2E_P2", "E2E_P3", "E2E_P4"];
@@ -465,25 +465,4 @@ function playerActionCount(view: E2ERoomView, seatIndex: number): number {
       (count, trick) => count + trick.cards.filter((played) => played.playerId === seatIndex).length,
       0,
     );
-}
-
-async function bestEffortFinishRoom(pages: Page[], roomId: string): Promise<void> {
-  const usable = pages.find((page) => !page.isClosed());
-  if (!usable) return;
-  try {
-    const current = await roomView(usable, roomId);
-    if (current.room.status === "playing") {
-      await sendIntent(usable, roomId, current.room.state_version, { type: "forfeit-game" });
-      return;
-    }
-    if (current.room.status === "lobby") {
-      for (const page of pages) {
-        if (page.isClosed()) continue;
-        const view = await roomView(page, roomId);
-        if (view.viewerSeatIndex !== null) await sendIntent(page, roomId, view.room.state_version, { type: "leave-seat" });
-      }
-    }
-  } catch {
-    // Cleanup is best-effort and targets only the exact room id created by this test.
-  }
 }

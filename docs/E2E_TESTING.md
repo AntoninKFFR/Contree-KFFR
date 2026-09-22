@@ -69,7 +69,7 @@ Cette suite joue une partie officielle à quatre humains avec abandon réel, pui
 
 **Exécuter seulement sur un test ou staging approuvé avec des comptes E2E dédiés.** Chaque partie appliquée reste dans leur historique Elo permanent ; après cinq parties, leur pseudo peut apparaître dans le leaderboard. Aucun reset automatique n'est effectué. Ne pas lancer la suite aveuglément sur une production publique. Voir [rating-operations.md](rating-operations.md) pour le suivi des pending.
 
-Avec `E2E_BASE_URL` distant, fournir aussi `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` de **ce même environnement** au runner Playwright. Le helper rating refuse d'utiliser le `.env.local` du checkout pour une cible distante, afin de ne pas lire un autre projet par erreur. Pour le serveur local, il peut lire ces deux valeurs publiques dans `.env.local`.
+Avec `E2E_BASE_URL` distant, les deux suites authentifiées qui lisent l'Elo, `npm run test:e2e:multiplayer` et `npm run test:e2e:rating`, nécessitent `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` de **ce même environnement** dans le runner Playwright. Le helper rating refuse d'utiliser le `.env.local` du checkout pour une cible distante, afin de ne pas lire un autre projet par erreur. Pour le serveur local, il peut lire ces deux valeurs publiques dans `.env.local`.
 
 ## Ce que couvre le scénario quatre joueurs
 
