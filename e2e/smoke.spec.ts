@@ -121,13 +121,30 @@ test.describe("@smoke public production readiness", () => {
     await expect(header.getByRole("link", { name: "Se connecter" })).toHaveAttribute("href", "/login");
     await expect(header.getByRole("link", { name: "Classement" })).toHaveCount(0);
     await expect(page.locator(".coinche-app-drawer")).toHaveCount(0);
+    await page.goto("/");
     const playButton = header.getByRole("button", { name: /Jouer/ });
-    await playButton.focus();
-    await page.keyboard.press("Enter");
-    await expect(header.getByRole("link", { name: "Solo", exact: true })).toHaveAttribute("href", "/solo");
+    await playButton.hover();
+    const soloLink = header.getByRole("link", { name: "Solo", exact: true });
+    await soloLink.hover();
+    await expect(soloLink).toBeVisible();
+    await expect(soloLink).toBeEnabled();
+    await expect(soloLink).toHaveAttribute("href", "/solo");
     await expect(header.getByRole("link", { name: "Multijoueur", exact: true })).toHaveAttribute("href", "/multiplayer");
     await page.keyboard.press("Escape");
-    await expect(header.getByRole("link", { name: "Solo", exact: true })).toHaveCount(0);
+    await expect(soloLink).toHaveCount(0);
+    await page.mouse.move(0, 200);
+    await playButton.click();
+    await expect(soloLink).toBeVisible();
+    await playButton.click();
+    await expect(soloLink).toHaveCount(0);
+    await playButton.click();
+    await page.getByRole("heading", { name: "La contrée, en solo ou entre amis" }).click();
+    await expect(soloLink).toHaveCount(0);
+    await playButton.focus();
+    await page.keyboard.press("Enter");
+    await expect(soloLink).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(soloLink).toHaveCount(0);
 
     for (const viewport of [{ width: 844, height: 390 }, { width: 390, height: 844 }, { width: 375, height: 667 }]) {
       await page.setViewportSize(viewport);

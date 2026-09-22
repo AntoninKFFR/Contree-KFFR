@@ -28,9 +28,15 @@ export function AppTopNav() {
   const [playOpen, setPlayOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const rootRef = useRef<HTMLElement>(null);
-  const playRef = useRef<HTMLDivElement>(null);
+  const playPinnedRef = useRef(false);
+  const playOpenedByHoverRef = useRef(false);
 
-  useEffect(() => { setPlayOpen(false); setMobileOpen(false); }, [pathname]);
+  useEffect(() => {
+    playPinnedRef.current = false;
+    playOpenedByHoverRef.current = false;
+    setPlayOpen(false);
+    setMobileOpen(false);
+  }, [pathname]);
   useEffect(() => {
     const supabase = getSupabaseClient();
     if (!supabase) return;
@@ -50,8 +56,14 @@ export function AppTopNav() {
   useEffect(() => {
     if (!playOpen && !mobileOpen) return;
     const close = (event: KeyboardEvent | PointerEvent) => {
-      if (event instanceof KeyboardEvent && event.key === "Escape") { setPlayOpen(false); setMobileOpen(false); }
-      if (event instanceof PointerEvent && !rootRef.current?.contains(event.target as Node)) { setPlayOpen(false); setMobileOpen(false); }
+      const shouldClose = (event instanceof KeyboardEvent && event.key === "Escape")
+        || (event instanceof PointerEvent && !rootRef.current?.contains(event.target as Node));
+      if (shouldClose) {
+        playPinnedRef.current = false;
+        playOpenedByHoverRef.current = false;
+        setPlayOpen(false);
+        setMobileOpen(false);
+      }
     };
     document.addEventListener("keydown", close);
     document.addEventListener("pointerdown", close);
@@ -63,17 +75,42 @@ export function AppTopNav() {
   const links = appNavigationLinks(Boolean(session));
   const playActive = pathname === "/solo" || pathname.startsWith("/multiplayer");
   const linkClass = (href: string) => `coinche-topnav-link ${active(pathname, href) ? "coinche-topnav-link--active" : ""}`;
+  const openPlayOnHover = () => {
+    if (playPinnedRef.current) return;
+    playOpenedByHoverRef.current = true;
+    setPlayOpen(true);
+  };
+  const closePlayOnHoverLeave = () => {
+    if (playPinnedRef.current) return;
+    playOpenedByHoverRef.current = false;
+    setPlayOpen(false);
+  };
+  const togglePlayMenu = () => {
+    if (playOpenedByHoverRef.current) {
+      playOpenedByHoverRef.current = false;
+      playPinnedRef.current = true;
+      setPlayOpen(true);
+      return;
+    }
+    setPlayOpen((current) => {
+      const next = !current;
+      playPinnedRef.current = next;
+      return next;
+    });
+  };
 
   return <header className="coinche-global-header sticky top-0 z-50 h-14 border-b shadow-lg backdrop-blur-md" ref={rootRef}>
     <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between gap-3 px-3 sm:px-5">
       <Link aria-label="Accueil — KFFR Contrée" className="shrink-0" href="/"><KffrLogo className="h-8 w-[5.25rem]" variant="compact" /></Link>
       <nav aria-label="Navigation principale" className="hidden min-[1120px]:flex min-w-0 items-center gap-1">
         <Link aria-current={pathname === "/" ? "page" : undefined} className={linkClass("/")} href="/">Accueil</Link>
-        <div className="relative" onMouseEnter={() => setPlayOpen(true)} onMouseLeave={() => setPlayOpen(false)} ref={playRef}>
-          <button aria-controls="play-menu" aria-current={playActive ? "page" : undefined} aria-expanded={playOpen} className={`coinche-topnav-link ${playActive ? "coinche-topnav-link--active" : ""}`} onClick={() => setPlayOpen(true)} onFocus={() => setPlayOpen(true)} type="button">Jouer <span aria-hidden="true">▾</span></button>
-          {playOpen ? <div className="coinche-popover absolute left-0 top-[calc(100%+0.5rem)] w-44 rounded-xl border p-1.5 shadow-2xl" id="play-menu">
-            <Link aria-current={pathname === "/solo" ? "page" : undefined} className="coinche-dropdown-link" href="/solo">Solo</Link>
-            <Link aria-current={pathname.startsWith("/multiplayer") ? "page" : undefined} className="coinche-dropdown-link" href="/multiplayer">Multijoueur</Link>
+        <div className="relative" onMouseEnter={openPlayOnHover} onMouseLeave={closePlayOnHoverLeave}>
+          <button aria-controls="play-menu" aria-current={playActive ? "page" : undefined} aria-expanded={playOpen} className={`coinche-topnav-link ${playActive ? "coinche-topnav-link--active" : ""}`} onClick={togglePlayMenu} type="button">Jouer <span aria-hidden="true">▾</span></button>
+          {playOpen ? <div className="absolute left-0 top-full w-44 pt-2" id="play-menu">
+            <div className="coinche-popover rounded-xl border p-1.5 shadow-2xl">
+              <Link aria-current={pathname === "/solo" ? "page" : undefined} className="coinche-dropdown-link" href="/solo">Solo</Link>
+              <Link aria-current={pathname.startsWith("/multiplayer") ? "page" : undefined} className="coinche-dropdown-link" href="/multiplayer">Multijoueur</Link>
+            </div>
           </div> : null}
         </div>
         {links.filter((link) => link.href !== "/").map((link) => <Link aria-current={active(pathname, link.href) ? "page" : undefined} className={linkClass(link.href)} href={link.href} key={link.href}>{link.label}</Link>)}
