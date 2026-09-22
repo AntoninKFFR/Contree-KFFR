@@ -22,16 +22,17 @@ const board = (entries: React.ComponentProps<typeof LeaderboardView>["entries"],
 describe("rating UI", () => {
   it("shows 0/5 placement without an official rank", () => {
     const html = card(base);
-    expect(html).toContain("0/5");
+    expect(html).toContain("0 / 5 parties");
     expect(html).toContain("Joue 5 parties de Contrée classique");
     expect(html).toContain('role="progressbar"');
     expect(html).toContain('aria-valuenow="0"');
     expect(html).not.toContain("au classement");
+    expect(html).not.toContain("coinche-rank-emblem");
   });
 
   it("shows 4/5 placement and remaining matches", () => {
     const html = card({ ...base, rating: 1050, peakRating: 1050, ratedGames: 4, wins: 2, losses: 2, placementGames: 4 });
-    expect(html).toContain("4/5");
+    expect(html).toContain("4 / 5 parties");
     expect(html).toContain("Encore 1 partie classée");
     expect(html).toContain('aria-valuenow="4"');
   });
@@ -45,6 +46,7 @@ describe("rating UI", () => {
     expect(html).toContain('aria-valuenow="12"');
     expect(html).toContain("Mise à jour du classement en cours");
     expect(html).toContain('role="status"');
+    expect(html).toContain('%2Franks%2Fsait-jouer.png');
   });
 
   it("keeps true Elo for a player without a public username", () => {
@@ -53,6 +55,7 @@ describe("rating UI", () => {
     expect(html).toContain("Ajoute un pseudo pour apparaître dans le classement.");
     expect(html).toContain('href="#profile-username"');
     expect(html).not.toContain("Placement");
+    expect(html).not.toContain("coinche-rank-emblem");
   });
 
   it("preserves dense-rank ties and renders only public fields", () => {
@@ -66,6 +69,8 @@ describe("rating UI", () => {
     expect(html).not.toContain("user_id");
     expect(html).not.toContain("email");
     expect(html).not.toContain("Victoires");
+    expect(html).toContain('%2Franks%2Fcapot-de-capi.png');
+    expect(html).toContain('%2Franks%2Fsait-jouer.png');
   });
 
   it("shows empty state and usable pagination controls", () => {

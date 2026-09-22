@@ -1,6 +1,7 @@
 import React from "react";
 import type { PlayerId } from "@/engine/types";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
+import { RankEmblem } from "@/components/rating/RankEmblem";
 
 type PlayerPanelProps = {
   playerId: PlayerId;
@@ -11,6 +12,9 @@ type PlayerPanelProps = {
   hasStartingPlayer: boolean;
   cardsRemaining?: number;
   isHost?: boolean;
+  isRanked?: boolean;
+  rating?: number | null;
+  rank?: string | null;
 };
 
 export function PlayerPanel({
@@ -20,6 +24,9 @@ export function PlayerPanel({
   isConnected,
   isCurrent,
   isHost = false,
+  isRanked = false,
+  rating = null,
+  rank = null,
 }: PlayerPanelProps) {
   const { effectiveReducedMotion, preferences } = usePlayerPreferences();
   const highlight = isCurrent && preferences.assistance.showTurnIndicator;
@@ -33,6 +40,7 @@ export function PlayerPanel({
       ].join(" ")}
     >
       <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+        {isRanked && rating !== null ? <RankEmblem decorative rating={rating} size="xs" /> : null}
         <div className="min-w-0">
           <div className="flex items-center justify-center gap-1">
             <p className="max-w-[58px] truncate text-[11px] font-bold sm:max-w-24 sm:text-sm">{name}</p>
@@ -47,6 +55,7 @@ export function PlayerPanel({
               {isBotTakeover ? "Bot temporaire" : isConnected ? "En ligne" : "Hors ligne"}
             </p>
           ) : null}
+          {isConnected !== undefined ? <p className="hidden max-w-24 truncate text-[8px] font-bold text-[#f0dfb1]/80 sm:block">{isRanked ? rank : "Placement"}</p> : null}
         </div>
         {hasStartingPlayer ? (
           <span className="rounded border border-[#d8c48f]/50 px-1 py-0 text-[10px] font-bold text-[#f0dfb1]">

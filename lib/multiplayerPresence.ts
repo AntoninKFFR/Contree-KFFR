@@ -1,4 +1,4 @@
-import type { RoomPlayerRow, RoomPlayerView } from "@/lib/roomTypes";
+import type { RoomPlayerPublicRating, RoomPlayerRow, RoomPlayerView } from "@/lib/roomTypes";
 
 export const PRESENCE_HEARTBEAT_INTERVAL_MS = 15_000;
 export const PRESENCE_OFFLINE_TIMEOUT_MS = 60_000;
@@ -50,14 +50,27 @@ export function projectRoomPlayers(
   players: RoomPlayerRow[],
   nowMs: number,
   hostUserId: string | null = null,
+  ratingsByUserId: ReadonlyMap<string, RoomPlayerPublicRating> = new Map(),
 ): RoomPlayerView[] {
-  return players.map((player) => ({
-    seat_index: player.seat_index,
-    kind: player.kind,
-    display_name: player.display_name,
-    is_ready: player.is_ready,
-    is_connected: isPlayerConnected(player, nowMs),
-    bot_takeover: player.bot_takeover,
-    is_host: player.kind === "human" && player.user_id === hostUserId,
-  }));
+  return players.map((player) => {
+    const publicRating = player.kind === "human" && player.user_id
+      ? ratingsByUserId.get(player.user_id)
+      : undefined;
+    const isRanked = publicRating?.is_ranked === true
+      && Number.isSafeInteger(publicRating.rating)
+      && typeof publicRating.rank === "string"
+      && publicRating.rank.length > 0;
+    return {
+      seat_index: player.seat_index,
+      kind: player.kind,
+      display_name: player.display_name,
+      is_ready: player.is_ready,
+      is_connected: isPlayerConnected(player, nowMs),
+      bot_takeover: player.bot_takeover,
+      is_host: player.kind === "human" && player.user_id === hostUserId,
+      is_ranked: isRanked,
+      rating: isRanked ? publicRating.rating : null,
+      rank: isRanked ? publicRating.rank : null,
+    };
+  });
 }

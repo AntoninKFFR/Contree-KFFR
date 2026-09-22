@@ -34,3 +34,11 @@ L'identifiant interne sert uniquement à stabiliser l'ordre et n'est jamais renv
 Les deux RPC publiques sont accordées à `authenticated` seulement. Elles appellent des fonctions privées bornées qui vérifient `auth.uid()`. Les rôles `public` et `anon` n'ont aucun droit d'exécution. Les politiques et droits de `profiles` restent inchangés : un utilisateur ne peut lire directement que son propre profil.
 
 Les tables Elo restent sans accès direct pour `anon` et `authenticated`. `apply_rating_match` reste réservé à `service_role`.
+
+## Projection multijoueur bornée
+
+L'API autoritaire d'une room enrichit côté serveur les sièges humains visibles par un participant assis. Elle utilise les UUID uniquement pour joindre `player_ratings` et `profiles`, puis les retire avant la réponse. Un visiteur non assis dans un lobby ne reçoit aucune cote.
+
+Chaque siège expose seulement `is_ranked`, `rating` et `rank` en plus de sa projection publique existante. Pour un humain classé et publiable, `rating` et `rank` contiennent les valeurs publiques. Pour un placement, un compte sans pseudo public, un bot ou une place vide, `is_ranked=false`, `rating=null` et `rank=null`. Un bot temporaire conserve la projection Elo du propriétaire humain du siège.
+
+Cette lecture ne crée aucun endpoint de recherche par UUID et n'ouvre aucun droit direct sur `player_ratings` ou `profiles`. Les snapshots, K, compteurs, cotes bots et données du ledger restent privés. Aucune migration n'est nécessaire pour cette projection serveur.

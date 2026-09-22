@@ -49,10 +49,16 @@ export type RoomPlayerRow = {
 
 export type RoomWithPlayers = { room: RoomRow; players: RoomPlayerRow[] };
 
+export type RoomPlayerPublicRating = {
+  is_ranked: boolean;
+  rating: number | null;
+  rank: string | null;
+};
+
 export type RoomPlayerView = Pick<
   RoomPlayerRow,
   "seat_index" | "kind" | "display_name" | "is_ready" | "is_connected" | "bot_takeover"
-> & { is_host: boolean };
+> & { is_host: boolean; rating: number | null; rank: string | null; is_ranked: boolean };
 
 export type MultiplayerRoomView = {
   room: Omit<RoomRow, "host_user_id" | "active_game_id">;

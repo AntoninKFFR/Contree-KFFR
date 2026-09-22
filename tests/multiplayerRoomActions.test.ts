@@ -19,6 +19,9 @@ function player(seat: 0 | 1 | 2 | 3, isReady = false): RoomPlayerView {
     is_connected: true,
     bot_takeover: false,
     is_host: seat === 0,
+    is_ranked: false,
+    rating: null,
+    rank: null,
   };
 }
 

@@ -16,6 +16,7 @@ const players: RoomPlayerView[] = [0, 1, 2, 3].map((seat) => ({
   kind: seat === 0 ? "human" : "empty",
   display_name: seat === 0 ? "Koyora" : null,
   is_ready: false, is_connected: seat === 0, bot_takeover: false, is_host: seat === 0,
+  is_ranked: false, rating: null, rank: null,
 }));
 
 function header(isHost: boolean) {
@@ -30,6 +31,21 @@ function header(isHost: boolean) {
 }
 
 describe("compact multiplayer lobby and finish", () => {
+  it("shows an emblem for a ranked human, Placement for an unranked human and no bot rating", () => {
+    const seats: RoomPlayerView[] = [
+      { ...players[0], is_ranked: true, rating: 1450, rank: "Sait jouer II" },
+      { ...players[1], kind: "human", display_name: "Placement", is_connected: true },
+      { ...players[2], kind: "bot", display_name: "Bot", is_connected: true },
+      players[3],
+    ];
+    const html = renderToStaticMarkup(React.createElement(LobbyTable, {
+      canJoinSeat: false, currentSeatIndex: 0, onJoinSeat: () => undefined, players: seats,
+    }));
+    expect(html).toContain("%2Franks%2Fsait-jouer.png");
+    expect(html).toContain("Sait jouer II");
+    expect(html).toContain("Placement");
+    expect(html).not.toContain("advanced_rules_v4");
+  });
   it("places Rules beside Preferences for host and non-host without a permanent rules summary", () => {
     const host = header(true);
     expect(host).toContain("BTFTHZ");

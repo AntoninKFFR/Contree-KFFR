@@ -8,8 +8,9 @@ import { BOT_NAME_POOL } from "@/engine/players";
 import type { GameState } from "@/engine/types";
 import { toPlayerGameView } from "@/engine/views";
 import type {
-  MultiplayerRoomView, RoomIntent, RoomPlayerRow, RoomRow, RoomWithPlayers,
+  MultiplayerRoomView, RoomIntent, RoomPlayerPublicRating, RoomPlayerRow, RoomRow, RoomWithPlayers,
 } from "@/lib/roomTypes";
+import { ratingRank } from "@/lib/rating/formulaV1";
 import { buildMultiplayerArchive } from "@/lib/multiplayerHistory";
 import { canClaimRoomHost, disconnectedHostSuccessor, nextHostUserId } from "@/lib/multiplayerHost";
 import { botReadyAt, isTurnDeadlineExpired, turnDeadlineForState } from "@/lib/multiplayerTurnTimer";
@@ -110,6 +111,37 @@ async function serverState(roomId: string): Promise<GameState> {
   return parseServerGameState(data.state);
 }
 
+async function publicRoomRatings(
+  players: RoomPlayerRow[],
+  viewerIsSeated: boolean,
+): Promise<ReadonlyMap<string, RoomPlayerPublicRating>> {
+  const userIds = players.flatMap((player) => player.kind === "human" && player.user_id ? [player.user_id] : []);
+  if (!viewerIsSeated || userIds.length === 0) return new Map();
+  try {
+    const db = getSupabaseAdmin();
+    const [ratingsResult, profilesResult] = await Promise.all([
+      db.from("player_ratings").select("user_id,rating,rated_games").in("user_id", userIds),
+      db.from("profiles").select("id,username").in("id", userIds),
+    ]);
+    if (ratingsResult.error) throw ratingsResult.error;
+    if (profilesResult.error) throw profilesResult.error;
+    const publicUserIds = new Set((profilesResult.data ?? []).flatMap((profile) =>
+      typeof profile.username === "string" && profile.username.length > 0 ? [profile.id] : []));
+    return new Map((ratingsResult.data ?? []).flatMap((row) => {
+      if (!publicUserIds.has(row.user_id) || !Number.isSafeInteger(row.rating)
+        || !Number.isSafeInteger(row.rated_games) || row.rated_games < 5) return [];
+      return [[row.user_id, {
+        is_ranked: true,
+        rating: row.rating,
+        rank: ratingRank(row.rating),
+      } satisfies RoomPlayerPublicRating]];
+    }));
+  } catch (error) {
+    console.error("room rating projection unavailable", { error });
+    return new Map();
+  }
+}
+
 export async function roomView(
   roomId: string,
   userId: string,
@@ -121,15 +153,18 @@ export async function roomView(
   if (result.room.status !== "lobby" && seatIndex === null) {
     throw new MultiplayerError("Tu ne fais pas partie de cette table.", 403, "not_a_member");
   }
-  const game = seat && (result.room.status === "playing" || result.room.status === "finished")
-    ? toPlayerGameView(await serverState(roomId), seat.seat_index)
-    : null;
+  const [game, ratingsByUserId] = await Promise.all([
+    seat && (result.room.status === "playing" || result.room.status === "finished")
+      ? serverState(roomId).then((state) => toPlayerGameView(state, seat.seat_index))
+      : Promise.resolve(null),
+    publicRoomRatings(result.players, seatIndex !== null),
+  ]);
   const { host_user_id: _hostUserId, active_game_id: _activeGameId, ...publicRoom } = result.room;
   void _hostUserId;
   void _activeGameId;
   return {
     room: { ...publicRoom, presentation_settings: normalizeMultiplayerTablePreferences(publicRoom.presentation_settings) },
-    players: projectRoomPlayers(result.players, nowMs, result.room.host_user_id),
+    players: projectRoomPlayers(result.players, nowMs, result.room.host_user_id, ratingsByUserId),
     isHost: result.room.host_user_id === userId,
     canClaimHost: canClaimRoomHost(result.room, result.players, userId, nowMs),
     viewerSeatIndex: seatIndex,

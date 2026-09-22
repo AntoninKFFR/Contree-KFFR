@@ -9,6 +9,7 @@ function player(seat: 0 | 1 | 2 | 3, kind: RoomPlayerView["kind"] = "empty"): Ro
   return {
     seat_index: seat, kind, display_name: kind === "empty" ? null : `P${seat}`,
     is_ready: false, is_connected: kind !== "empty", bot_takeover: false, is_host: seat === 0,
+    is_ranked: false, rating: null, rank: null,
   };
 }
 

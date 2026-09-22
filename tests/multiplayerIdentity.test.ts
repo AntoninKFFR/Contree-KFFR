@@ -1,18 +1,37 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
-import { createRoom, executeIntent, resolveRoomUsername } from "@/lib/server/multiplayerService";
+import { createRoom, executeIntent, resolveRoomUsername, roomView } from "@/lib/server/multiplayerService";
 import { parseRoomIntent } from "@/lib/server/roomIntentValidation";
 
 vi.mock("server-only", () => ({}));
 
-const state: { usernames: Record<string, string>; room: RoomRow | null; players: RoomPlayerRow[] } = {
-  usernames: {}, room: null, players: [],
+const state: {
+  usernames: Record<string, string>;
+  ratings: Record<string, { rating: number; rated_games: number }>;
+  room: RoomRow | null;
+  players: RoomPlayerRow[];
+} = {
+  usernames: {}, ratings: {}, room: null, players: [],
 };
 
 const db = {
   from(table: string) {
     if (table === "profiles") return {
-      select: () => ({ eq: (_column: string, userId: string) => ({ maybeSingle: async () => ({ data: state.usernames[userId] ? { username: state.usernames[userId] } : null, error: null }) }) }),
+      select: () => ({
+        eq: (_column: string, userId: string) => ({ maybeSingle: async () => ({ data: state.usernames[userId] ? { username: state.usernames[userId] } : null, error: null }) }),
+        in: async (_column: string, userIds: string[]) => ({
+          data: userIds.flatMap((userId) => state.usernames[userId] ? [{ id: userId, username: state.usernames[userId] }] : []),
+          error: null,
+        }),
+      }),
+    };
+    if (table === "player_ratings") return {
+      select: () => ({
+        in: async (_column: string, userIds: string[]) => ({
+          data: userIds.flatMap((userId) => state.ratings[userId] ? [{ user_id: userId, ...state.ratings[userId] }] : []),
+          error: null,
+        }),
+      }),
     };
     if (table === "rooms") return {
       insert: (values: Partial<RoomRow>) => ({ select: () => ({ single: async () => {
@@ -52,6 +71,10 @@ vi.mock("@/lib/server/supabaseAdmin", () => ({ getSupabaseAdmin: () => db }));
 
 beforeEach(() => {
   state.usernames = { host: "Antonin", guest: "Marie" };
+  state.ratings = {
+    host: { rating: 1450, rated_games: 5 },
+    guest: { rating: 1020, rated_games: 4 },
+  };
   state.room = null;
   state.players = [];
 });
@@ -65,11 +88,15 @@ describe("server-authoritative multiplayer identity", () => {
   it("creates and joins seats with server profile names, never a client displayName", async () => {
     const created = await createRoom({ userId: "host", rules: { presetId: "contree-kffr" } });
     expect(created.players[0].display_name).toBe("Antonin");
+    expect(created.players[0]).toMatchObject({ rating: 1450, rank: "Sait jouer II", is_ranked: true });
+    const outsiderView = await roomView("room-1", "outsider");
+    expect(outsiderView.players[0]).toMatchObject({ rating: null, rank: null, is_ranked: false });
     const intent = parseRoomIntent({ type: "join-seat", seatIndex: 1, displayName: "Spoofed" });
     expect(intent).toEqual({ type: "join-seat", seatIndex: 1 });
     const joined = await executeIntent("room-1", "guest", 0, intent);
     expect(joined.players[1].display_name).toBe("Marie");
     expect(joined.players[1].display_name).not.toBe("Spoofed");
+    expect(joined.players[1]).toMatchObject({ rating: null, rank: null, is_ranked: false });
   });
 
   it("does not create a room for an account without a profile", async () => {

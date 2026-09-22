@@ -27,6 +27,9 @@ function player(
     is_connected: true,
     bot_takeover: botTakeover,
     is_host: seat === 0,
+    is_ranked: false,
+    rating: null,
+    rank: null,
   };
 }
 

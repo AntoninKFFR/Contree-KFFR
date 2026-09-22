@@ -7,6 +7,7 @@ import type { CustomRulesetInput } from "@/engine/rulesets/custom";
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import { scoringModeLabel } from "@/lib/productGame";
 import type { MultiplayerRoomView, RoomPlayerRow, RoomPlayerView } from "@/lib/roomTypes";
+import { RankEmblem } from "@/components/rating/RankEmblem";
 
 function statusLabel(status: MultiplayerRoomView["room"]["status"]): string {
   if (status === "lobby") return "en attente";
@@ -241,9 +242,15 @@ function SeatCard({
       <span className="coinche-lobby-seat-position text-[10px] font-semibold uppercase tracking-wide text-stone-400">
         Place {positionLabel}
       </span>
-      <span className="mt-2 block font-bold text-stone-50">
-        {isEmpty ? "Place libre" : player.display_name}
-        {isCurrentUser ? " (Toi)" : ""}
+      <span className="mt-1 flex items-center justify-center gap-2">
+        {player.kind === "human" && player.is_ranked && player.rating !== null ? <RankEmblem decorative rating={player.rating} size="sm" /> : null}
+        <span className="min-w-0">
+          <span className="block truncate font-bold text-stone-50">
+            {isEmpty ? "Place libre" : player.display_name}
+            {isCurrentUser ? " (Toi)" : ""}
+          </span>
+          {player.kind === "human" ? <span className="block text-[10px] font-semibold text-stone-300">{player.is_ranked ? player.rank : "Placement"}</span> : null}
+        </span>
       </span>
       {player.is_host ? <span className="coinche-lobby-seat-host mt-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">Hôte</span> : null}
       {!isEmpty ? (

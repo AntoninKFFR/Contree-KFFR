@@ -32,6 +32,9 @@ export type E2ERoomView = {
     is_connected: boolean;
     bot_takeover: boolean;
     is_host: boolean;
+    is_ranked: boolean;
+    rating: number | null;
+    rank: string | null;
   }>;
   isHost: boolean;
   viewerSeatIndex: number | null;
@@ -146,7 +149,7 @@ function assertSafePayload(payload: unknown): void {
       return;
     }
     for (const [key, nested] of Object.entries(value)) {
-      if (["hands", "state", "gameState", "game_state", "server_state", "host_user_id", "active_game_id", "user_id"].includes(key)) {
+      if (["hands", "state", "gameState", "game_state", "server_state", "host_user_id", "active_game_id", "user_id", "email", "rating_snapshot", "k_factor", "bot_rating", "bot_rating_snapshot", "rated_games", "wins", "losses", "forfeits", "peak_rating", "ledger", "source_game_id"].includes(key)) {
         throw new Error(`Privacy violation: room API exposed forbidden field '${key}'.`);
       }
       if (key === "hand") {
@@ -154,6 +157,16 @@ function assertSafePayload(payload: unknown): void {
         if (!Array.isArray(nested) || nested.length > 8) throw new Error("Privacy violation: invalid player hand projection.");
       }
       visit(nested);
+    }
+    const record = value as Record<string, unknown>;
+    if ("seat_index" in record && "kind" in record) {
+      const ranked = record.is_ranked === true;
+      if (ranked) {
+        if (!Number.isSafeInteger(record.rating) || typeof record.rank !== "string") throw new Error("Privacy violation: invalid public rating projection.");
+      } else if (record.rating !== null || record.rank !== null) {
+        throw new Error("Privacy violation: provisional or bot rating exposed.");
+      }
+      if (record.kind !== "human" && ranked) throw new Error("Privacy violation: bot or empty seat has a public rating.");
     }
   };
   visit(payload);
