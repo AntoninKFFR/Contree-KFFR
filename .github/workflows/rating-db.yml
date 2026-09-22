@@ -6,9 +6,11 @@ on:
       - "supabase/migrations/**"
       - "scripts/testRatingDb.mjs"
       - "scripts/testRatingLifecycleDb.ts"
+      - "scripts/testRatingReadDb.mjs"
       - "lib/rating/**"
       - "lib/server/botRatings.ts"
       - "tests/ratingFormulaV1.test.ts"
+      - "tests/ratingQueries.test.ts"
       - ".github/workflows/rating-db.yml"
       - "package.json"
   push:
@@ -17,9 +19,11 @@ on:
       - "supabase/migrations/**"
       - "scripts/testRatingDb.mjs"
       - "scripts/testRatingLifecycleDb.ts"
+      - "scripts/testRatingReadDb.mjs"
       - "lib/rating/**"
       - "lib/server/botRatings.ts"
       - "tests/ratingFormulaV1.test.ts"
+      - "tests/ratingQueries.test.ts"
       - ".github/workflows/rating-db.yml"
       - "package.json"
 
