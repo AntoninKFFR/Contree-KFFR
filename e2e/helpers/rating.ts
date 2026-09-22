@@ -4,7 +4,11 @@ import { parseLeaderboard, parseRatingSummary, type LeaderboardEntry, type Ratin
 
 function publicSupabaseConfig(): { url: string; key: string } {
   let local = "";
-  try { local = readFileSync(".env.local", "utf8"); } catch { /* Public values may be supplied by the environment. */ }
+  // A remote E2E_BASE_URL may point at a different Supabase project. Never
+  // silently reuse this checkout's .env.local for that target.
+  if (!process.env.E2E_BASE_URL) {
+    try { local = readFileSync(".env.local", "utf8"); } catch { /* Public values may be supplied by the environment. */ }
+  }
   const value = (name: string): string | undefined => {
     if (process.env[name]) return process.env[name];
     const line = local.split(/\r?\n/).find((entry) => entry.trimStart().startsWith(`${name}=`));
