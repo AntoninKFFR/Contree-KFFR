@@ -55,9 +55,12 @@ describe("Blitz rules", () => {
     expect(initial.remainingMs).toBe(BLITZ_INITIAL_MS);
     expect(BLITZ_CORRECT_BONUS_MS).toBe(1_500);
     expect(BLITZ_STREAK_BONUS_MS).toBe(3_000);
-    expect(applyChallengeOutcome(initial, "correct", 59_000)).toMatchObject({ state: { correctAnswers: 1, correctStreak: 1, bestStreak: 1, remainingMs: 60_000 }, timeChangeMs: 1_500 });
+    expect(applyChallengeOutcome(initial, "correct", 50_000)).toMatchObject({ state: { correctAnswers: 1, correctStreak: 1, bestStreak: 1, remainingMs: 51_500 }, timeChangeMs: 1_500 });
+    expect(applyChallengeOutcome(initial, "correct", 59_500)).toMatchObject({ state: { correctAnswers: 1, correctStreak: 1, bestStreak: 1, remainingMs: 60_000 }, timeChangeMs: 500 });
     const fifth = applyChallengeOutcome({ ...initial, correctAnswers: 4, correctStreak: 4, bestStreak: 4 }, "correct", 50_000);
     expect(fifth).toMatchObject({ state: { correctAnswers: 5, correctStreak: 5, bestStreak: 5, remainingMs: 54_500 }, timeChangeMs: 4_500 });
+    expect(applyChallengeOutcome({ ...initial, correctAnswers: 4, correctStreak: 4, bestStreak: 4 }, "correct", 58_000)).toMatchObject({ state: { correctAnswers: 5, correctStreak: 5, bestStreak: 5, remainingMs: 60_000 }, timeChangeMs: 2_000 });
+    expect(applyChallengeOutcome(initial, "correct", 60_000)).toMatchObject({ state: { correctAnswers: 1, correctStreak: 1, bestStreak: 1, remainingMs: 60_000 }, timeChangeMs: 0 });
     expect(applyChallengeOutcome({ ...initial, correctStreak: 9 }, "correct", 10_000).timeChangeMs).toBe(4_500);
   });
 

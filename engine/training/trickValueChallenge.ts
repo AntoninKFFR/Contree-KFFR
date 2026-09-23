@@ -85,7 +85,7 @@ export function applyChallengeOutcome(state: ChallengeState, outcome: ChallengeO
         bestStreak: Math.max(state.bestStreak, correctStreak), wrongStreak: 0,
         remainingMs: nextRemaining,
       },
-      timeChangeMs: bonus,
+      timeChangeMs: nextRemaining - remaining,
     };
   }
   const wrongStreak = state.wrongStreak + 1;
