@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
+import { generatorVersion } from "@/engine/training/generator";
+import { generateTrickValueSeries } from "@/engine/training/trickValue";
 
 const unlockedProgress = {
   version: 1,
@@ -29,11 +31,16 @@ test("@smoke public training hub shows level 1 and locks level 2", async ({ page
   await expect(page).toHaveURL(/level=1/);
   await expect(page.getByText("Niveau 1 · Fondamentaux")).toBeVisible();
   await expect(page.getByLabel("Aide des valeurs des cartes")).toBeVisible();
-  await page.getByRole("textbox", { name: "Ta réponse en points" }).focus();
-  await page.keyboard.press("4");
-  await expect(page.getByRole("textbox", { name: "Ta réponse en points" })).toHaveValue("4");
-  await page.keyboard.press("Backspace");
-  await page.keyboard.press("0");
+  const answer = page.getByRole("textbox", { name: "Ta réponse en points" });
+  await answer.click();
+  await answer.fill("a1b2c3d4");
+  await expect(answer).toHaveValue("123");
+  await answer.press("Backspace");
+  await expect(answer).toHaveValue("12");
+  await answer.press("Home");
+  await answer.press("Delete");
+  await expect(answer).toHaveValue("2");
+  await answer.fill("0");
   await page.keyboard.press("Enter");
   await expect(page.getByText(/Ce pli vaut \d+ points/)).toBeVisible();
   browserErrors.assertClean();
@@ -59,7 +66,7 @@ test("@smoke completes ten level-1 exercises without an account on mobile", asyn
     await zero.click();
     await page.getByRole("button", { name: "Valider" }).click();
     await expect(page.getByText(/Ce pli vaut \d+ points/)).toBeVisible();
-    await expect(zero).toBeDisabled();
+    await expect(zero).toHaveCount(0);
     await page.getByRole("button", { name: exercise === 10 ? "Voir le résultat" : "Exercice suivant" }).click();
   }
   await expect(page.getByRole("heading", { name: "Résultat" })).toBeVisible();
@@ -96,10 +103,93 @@ test("@smoke unlocked players can choose either level explicitly", async ({ page
     }
     await page.getByRole("button", { name: "0", exact: true }).click();
     await page.getByRole("button", { name: "Valider" }).click();
-    await page.getByRole("button", { name: "Exercice suivant" }).click();
+    await expect(page.getByText(/Ce pli vaut \d+ points/)).toHaveCount(0);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   browserErrors.assertClean();
+});
+
+test("@smoke standard desktop exercise fits 1366x768 and mobile has no horizontal overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/training/puzzle/trick-value?level=1");
+  await expect(page.getByRole("list", { name: "Cartes du pli" }).locator("li")).toHaveCount(4);
+  await expect(page.getByRole("button", { name: "Valider" })).toBeVisible();
+  const desktop = await page.evaluate(() => ({
+    horizontal: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    vertical: document.documentElement.scrollHeight - document.documentElement.clientHeight,
+  }));
+  expect(desktop.horizontal).toBeLessThanOrEqual(0);
+  expect(desktop.vertical).toBeLessThanOrEqual(8);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+});
+
+test("@smoke confirmed level advances automatically, records the score and finishes after ten answers", async ({ page }) => {
+  await page.goto("/training");
+  await page.evaluate((value) => localStorage.setItem("coinche:training-progress:v1", JSON.stringify(value)), unlockedProgress);
+  await page.goto("/training/puzzle/trick-value?level=2");
+  const exercises = generateTrickValueSeries({ seed: 580000, generatorVersion, level: 2 });
+  const submitted = exercises.map((exercise, index) => index === 0 ? String(exercise.answer) : "0");
+  for (let index = 0; index < 10; index += 1) {
+    await expect(page.getByLabel(`Exercice ${index + 1} sur 10`)).toBeVisible();
+    await expect(page.getByLabel("Aide des valeurs des cartes")).toHaveCount(0);
+    await expect(page.getByText(/Ce pli vaut \d+ points/)).toHaveCount(0);
+    const answer = page.getByRole("textbox", { name: "Ta réponse en points" });
+    await answer.fill(submitted[index]);
+    await answer.press("Enter");
+    await expect(page.getByRole("button", { name: "Exercice suivant" })).toHaveCount(0);
+  }
+  await expect(page.getByRole("heading", { name: "Résultat" })).toBeVisible();
+  const expected = submitted.filter((value, index) => Number(value) === exercises[index].answer).length;
+  await expect(page.getByText(`${expected} / 10`, { exact: true })).toBeVisible();
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("coinche:training-progress:v1") ?? "null"));
+  expect(stored.axes["trick-value"].levels[2]).toEqual({ bestScore: expected, completedSeries: 1 });
+});
+
+test("@smoke training tones follow existing global and UI sound preferences", async ({ page }) => {
+  await page.addInitScript(() => {
+    const tones: number[] = [];
+    Object.assign(window, { __trainingTones: tones });
+    Object.defineProperty(window, "AudioContext", { configurable: true, value: class {
+      state = "running";
+      currentTime = 0;
+      destination = {};
+      createOscillator() {
+        return { frequency: { value: 0 }, type: "sine", connect() {}, start() { tones.push(this.frequency.value); }, stop() {} };
+      }
+      createGain() { return { gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect() {} }; }
+    } });
+  });
+  await page.goto("/training");
+  await page.evaluate((value) => localStorage.setItem("coinche:training-progress:v1", JSON.stringify(value)), unlockedProgress);
+  await page.evaluate(() => {
+    const key = "coinche:player-preferences:v1";
+    const preferences = JSON.parse(localStorage.getItem(key) ?? "null");
+    preferences.audio.enabled = true;
+    preferences.audio.uiSounds = true;
+    preferences.audio.volume = 0.5;
+    localStorage.setItem(key, JSON.stringify(preferences));
+  });
+  await page.goto("/training/puzzle/trick-value?level=2");
+  const exercises = generateTrickValueSeries({ seed: 580000, generatorVersion, level: 2 });
+  await page.getByRole("textbox", { name: "Ta réponse en points" }).fill(String(exercises[0].answer));
+  await page.getByRole("textbox", { name: "Ta réponse en points" }).press("Enter");
+  await expect(page.getByLabel("Exercice 2 sur 10")).toBeVisible();
+  await page.getByRole("textbox", { name: "Ta réponse en points" }).fill(String(exercises[1].answer === 0 ? 1 : 0));
+  await page.getByRole("textbox", { name: "Ta réponse en points" }).press("Enter");
+  await expect(page.getByLabel("Exercice 3 sur 10")).toBeVisible();
+  expect(await page.evaluate(() => (window as typeof window & { __trainingTones: number[] }).__trainingTones)).toEqual([880, 220]);
+
+  await page.evaluate(() => {
+    const key = "coinche:player-preferences:v1";
+    const preferences = JSON.parse(localStorage.getItem(key) ?? "null");
+    preferences.audio.uiSounds = false;
+    localStorage.setItem(key, JSON.stringify(preferences));
+  });
+  await page.reload();
+  await page.getByRole("textbox", { name: "Ta réponse en points" }).fill("0");
+  await page.getByRole("textbox", { name: "Ta réponse en points" }).press("Enter");
+  expect(await page.evaluate(() => (window as typeof window & { __trainingTones: number[] }).__trainingTones)).toEqual([]);
 });
 
 test("@smoke invalid and locked training levels are handled", async ({ page }) => {

@@ -6,8 +6,8 @@ import { resolveGameRules } from "@/engine/rulesets/resolve";
 import { generateTrainingPosition, generatorVersion } from "@/engine/training/generator";
 import { trainingAxes, isTrainingAxisId } from "@/engine/training/axes";
 import {
-  createTrickValueExercise, generateTrickValueSeries, TRICK_VALUE_LAST_TRICK_INDICES,
-  TRICK_VALUE_SERIES_LENGTH, trickValueAxis,
+  classifyTrickValueExercise, createTrickValueExercise, generateTrickValueSeries, TRICK_VALUE_LAST_TRICK_INDICES,
+  TRICK_VALUE_LEVEL_SLOTS, TRICK_VALUE_SERIES_LENGTH, trickValueAxis,
 } from "@/engine/training/trickValue";
 import {
   emptyTrainingProgress, isTrickValueLevelUnlocked, parseTrainingProgress, parseTrickValueLevel,
@@ -82,6 +82,46 @@ describe("trick-value levels", () => {
     const position = generateTrainingPosition({ seed: 380038, generatorVersion });
     const exercise = createTrickValueExercise(position);
     expect(exercise.answer).toBe(trickPoints(exercise.cards, exercise.contractMode, false));
+  });
+
+  it("selects the pedagogical trump and cut mix from legal, deterministic plays across seeds", () => {
+    expect(TRICK_VALUE_LEVEL_SLOTS[1].filter((kind) => kind === "has-trump")).toHaveLength(4);
+    expect(TRICK_VALUE_LEVEL_SLOTS[1].filter((kind) => kind === "cut")).toHaveLength(2);
+    expect(TRICK_VALUE_LEVEL_SLOTS[2].filter((kind) => kind === "trump-rich")).toHaveLength(3);
+    expect(TRICK_VALUE_LEVEL_SLOTS[2].filter((kind) => kind === "cut")).toHaveLength(2);
+
+    for (const seed of [380038, 380048, 380058, 480038, 480048, 580038, 580048]) {
+      for (const level of [1, 2] as const) {
+        const exercises = series(level, seed);
+        expect(exercises).toStrictEqual(series(level, seed));
+        expect(new Set(exercises.map((exercise) => exercise.seed)).size).toBe(10);
+        expect(exercises.filter((exercise) => classifyTrickValueExercise(exercise).isCut).length).toBeGreaterThanOrEqual(2);
+        expect(exercises.filter((exercise) => classifyTrickValueExercise(exercise).isLastTrick)).toHaveLength(level === 1 ? 0 : 3);
+        expect(exercises.filter((exercise) => classifyTrickValueExercise(exercise).trumpCount >= 1).length).toBeGreaterThanOrEqual(level === 1 ? 6 : 5);
+
+        exercises.forEach((exercise, index) => {
+          const classification = classifyTrickValueExercise(exercise);
+          const kind = TRICK_VALUE_LEVEL_SLOTS[level][index];
+          if (kind === "ordinary") expect(classification.trumpCount).toBe(0);
+          if (kind === "has-trump") expect(classification.trumpCount).toBeGreaterThanOrEqual(1);
+          if (kind === "trump-rich") expect(classification.trumpCount).toBeGreaterThanOrEqual(2);
+          if (kind === "cut") {
+            expect(classification.isCut).toBe(true);
+            if (exercise.contractMode.kind !== "suit") throw new Error("Expected a suit contract.");
+            const trumpSuit = exercise.contractMode.suit;
+            expect(exercise.cards[0].card.suit).not.toBe(trumpSuit);
+            expect(exercise.cards.slice(1).some(({ card }) => card.suit === trumpSuit)).toBe(true);
+          }
+          expect(exercise.answer).toBe(trickPoints(exercise.cards, exercise.contractMode, exercise.isLastTrick, false));
+          if (!exercise.isLastTrick) {
+            expect(createTrickValueExercise(generateTrainingPosition({ seed: exercise.seed, generatorVersion })).cards).toStrictEqual(exercise.cards);
+          } else {
+            expect(exercise.isCapot).toBe(false);
+            expect(exercise.bonusPoints).toBe(10);
+          }
+        });
+      }
+    }
   });
 });
 
