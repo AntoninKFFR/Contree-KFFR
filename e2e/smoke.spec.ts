@@ -193,6 +193,69 @@ test.describe("@smoke public production readiness", () => {
     }
   });
 
+  test("@smoke desktop topbar navigation stays fixed between routes", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const labels = ["Accueil", "Jouer", "Classement", "Amis", "Historique", "Règles"] as const;
+    const routes = ["/", "/leaderboard", "/rules", "/solo"] as const;
+    let baselineCenter: number | null = null;
+    let baselinePositions: Map<string, number> | null = null;
+
+    for (const route of routes) {
+      await page.goto(route);
+      await page.waitForLoadState("networkidle");
+      await page.evaluate(() => document.fonts.ready);
+      const header = page.locator("header.coinche-global-header");
+      const navigation = header.getByRole("navigation", { name: "Navigation principale" });
+      await expect(navigation).toBeVisible();
+      if (route === "/solo") await expect(header.getByRole("button", { name: "Menu Partie" })).toBeVisible();
+
+      // Public smoke has no authenticated session. Materialize the three private
+      // links with their production class so the full desktop geometry is still exercised.
+      await navigation.evaluate((element) => {
+        const rulesLink = [...element.querySelectorAll("a")].find((link) => link.textContent === "Règles");
+        if (!rulesLink) throw new Error("Lien Règles introuvable");
+        for (const label of ["Classement", "Amis", "Historique"]) {
+          if ([...element.querySelectorAll("a")].some((link) => link.textContent === label)) continue;
+          const link = document.createElement("a");
+          link.className = "coinche-topnav-link";
+          link.href = `#${label.toLowerCase()}`;
+          link.textContent = label;
+          element.insertBefore(link, rulesLink);
+        }
+      });
+
+      const navigationBox = await navigation.boundingBox();
+      expect(navigationBox).not.toBeNull();
+      const center = navigationBox!.x + navigationBox!.width / 2;
+      const positions = new Map<string, number>();
+      for (const label of labels) {
+        const item = label === "Jouer"
+          ? navigation.getByRole("button", { name: /Jouer/ })
+          : navigation.getByRole("link", { name: label, exact: true });
+        await expect(item).toHaveCount(1);
+        const box = await item.boundingBox();
+        expect(box, `${label} doit avoir une position mesurable sur ${route}`).not.toBeNull();
+        positions.set(label, box!.x);
+      }
+
+      expect(positions.has("Accueil")).toBe(true);
+      expect(positions.has("Jouer")).toBe(true);
+      expect(positions.has("Règles")).toBe(true);
+      expect(positions.size).toBe(labels.length);
+      if (!baselinePositions) {
+        baselinePositions = positions;
+        baselineCenter = center;
+      } else {
+        expect([...positions.keys()]).toEqual([...baselinePositions.keys()]);
+        expect(Math.abs(center - baselineCenter!)).toBeLessThanOrEqual(1);
+        for (const [label, baselineX] of baselinePositions) {
+          expect(Math.abs(positions.get(label)! - baselineX), `${label} se décale sur ${route}`).toBeLessThanOrEqual(1);
+        }
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+    }
+  });
+
   test("@smoke game routes keep the global topbar and a floating game menu", async ({ page }) => {
     const header = page.locator("header.coinche-global-header");
 
