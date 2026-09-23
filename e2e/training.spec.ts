@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 import { generatorVersion } from "@/engine/training/generator";
 import { generateTrickValueSeries } from "@/engine/training/trickValue";
+import { challengeDifficulty, challengeRunSeed, generateChallengeExercise } from "@/engine/training/trickValueChallenge";
 
 const unlockedProgress = {
   version: 1,
@@ -15,6 +16,25 @@ const unlockedProgress = {
     },
   },
 };
+const challengeUnlockedProgress = {
+  ...unlockedProgress,
+  axes: { "trick-value": {
+    ...unlockedProgress.axes["trick-value"],
+    levels: { ...unlockedProgress.axes["trick-value"].levels, 2: { bestScore: 8, completedSeries: 1 } },
+  } },
+};
+
+async function unlockChallenges(page: import("@playwright/test").Page) {
+  await page.goto("/training");
+  await page.evaluate((value) => localStorage.setItem("coinche:training-progress:v1", JSON.stringify(value)), challengeUnlockedProgress);
+}
+
+function challengeAnswer(mode: "survival" | "blitz", index: number, correctAnswers: number) {
+  return generateChallengeExercise({
+    runSeed: challengeRunSeed(mode, 0), exerciseIndex: index, generatorVersion,
+    difficulty: challengeDifficulty(mode, index, correctAnswers),
+  }).answer;
+}
 
 test("@smoke public training hub shows level 1 and locks level 2", async ({ page }) => {
   const browserErrors = monitorBrowserErrors(page);
@@ -25,6 +45,11 @@ test("@smoke public training hub shows level 1 and locks level 2", async ({ page
   await expect(page).toHaveURL(/\/training$/);
   await expect(page.getByRole("heading", { name: "Fondamentaux" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Confirmé" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Survie" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Blitz" })).toBeVisible();
+  await expect(page.getByText("Réussis 8/10 en Confirmé pour débloquer ce mode.")).toHaveCount(2);
+  await expect(page.getByRole("link", { name: "Jouer en Survie" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Jouer en Blitz" })).toHaveCount(0);
   await expect(page.getByText("Obtiens 8/10 au niveau 1 pour débloquer ce niveau.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Jouer le niveau 2" })).toHaveCount(0);
   await page.getByRole("link", { name: "Jouer le niveau 1" }).click();
@@ -201,6 +226,136 @@ test("@smoke invalid and locked training levels are handled", async ({ page }) =
   expect(invalid?.status()).toBe(404);
   const unknown = await page.goto("/training/puzzle/unknown-axis?level=1");
   expect(unknown?.status()).toBe(404);
+  const badMode = await page.goto("/training/puzzle/trick-value?mode=unknown");
+  expect(badMode?.status()).toBe(404);
+  const ambiguous = await page.goto("/training/puzzle/trick-value?mode=blitz&level=2");
+  expect(ambiguous?.status()).toBe(404);
+  const lockedChallenge = await page.goto("/training/puzzle/trick-value?mode=survival");
+  expect(lockedChallenge?.status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "Mode verrouillé" })).toBeVisible();
+});
+
+test("@smoke challenges unlock together after Confirmé 8/10 and remain responsive", async ({ page }) => {
+  const browserErrors = monitorBrowserErrors(page);
+  await unlockChallenges(page);
+  await page.reload();
+  await expect(page.getByRole("link", { name: "Jouer en Survie" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Jouer en Blitz" })).toBeVisible();
+  for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    for (const mode of ["survival", "blitz"] as const) {
+      await page.goto(`/training/puzzle/trick-value?mode=${mode}`);
+      await expect(page.getByRole("list", { name: "Cartes du pli" }).locator("li")).toHaveCount(4);
+      const overflow = await page.evaluate(() => ({
+        horizontal: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        vertical: document.documentElement.scrollHeight - document.documentElement.clientHeight,
+      }));
+      expect(overflow.horizontal).toBeLessThanOrEqual(0);
+      if (viewport.width === 1366) expect(overflow.vertical).toBeLessThanOrEqual(8);
+    }
+  }
+  browserErrors.assertClean();
+});
+
+test("@smoke Survie loses lives on wrong answer and timeout, then records a finished run", async ({ page }) => {
+  const browserErrors = monitorBrowserErrors(page);
+  await page.clock.install();
+  await unlockChallenges(page);
+  await page.goto("/training/puzzle/trick-value?mode=survival");
+  await expect(page.getByLabel("Vies restantes : 3")).toBeVisible();
+  const answer = page.getByRole("textbox", { name: "Ta réponse en points" });
+  await expect(answer).toBeFocused();
+  await answer.fill(String(challengeAnswer("survival", 0, 0)));
+  await answer.press("Enter");
+  await page.clock.runFor(200);
+  await expect(page.getByLabel("Vies restantes : 3")).toBeVisible();
+  await expect(page.getByText("Score 1 · Palier 1")).toBeVisible();
+  await expect(page.getByText("Pli 2")).toBeVisible();
+  await answer.fill(String(challengeAnswer("survival", 1, 1) === 0 ? 1 : 0));
+  await answer.press("Enter");
+  await page.clock.runFor(200);
+  await expect(page.getByLabel("Vies restantes : 2")).toBeVisible();
+  await expect(page.getByText("Pli 3")).toBeVisible();
+  await expect(answer).toBeFocused();
+  await page.clock.fastForward(9_100);
+  await page.clock.runFor(200);
+  await expect(page.getByLabel("Vies restantes : 1")).toBeVisible();
+  await expect(page.getByText("Pli 4")).toBeVisible();
+  await answer.fill(String(challengeAnswer("survival", 3, 1) === 0 ? 1 : 0));
+  await answer.press("Enter");
+  await expect(page.getByRole("heading", { name: "Résultat Survie" })).toBeVisible();
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("coinche:training-progress:v1") ?? "null"));
+  expect(stored.axes["trick-value"].challenges.survival).toEqual({ bestScore: 1, bestStreak: 0, completedRuns: 1 });
+  expect(stored.axes["trick-value"].challenges.blitz.completedRuns).toBe(0);
+  await page.getByRole("link", { name: "Retour entraînement" }).click();
+  await expect(page.getByText("Record : 1 pli")).toBeVisible();
+  browserErrors.assertClean();
+});
+
+test("@smoke challenge resolves a double submit once and cancels its clock on navigation", async ({ page }) => {
+  const browserErrors = monitorBrowserErrors(page);
+  await page.clock.install();
+  await unlockChallenges(page);
+  await page.goto("/training/puzzle/trick-value?mode=survival");
+  await page.getByRole("textbox", { name: "Ta réponse en points" }).fill(String(challengeAnswer("survival", 0, 0) === 0 ? 1 : 0));
+  await page.evaluate(() => {
+    const button = [...document.querySelectorAll("button")].find((candidate) => candidate.textContent === "Valider");
+    button?.click();
+    button?.click();
+  });
+  await page.clock.runFor(200);
+  await expect(page.getByLabel("Vies restantes : 2")).toBeVisible();
+  await expect(page.getByText("Pli 2")).toBeVisible();
+  await page.getByRole("link", { name: "Retour entraînement" }).click();
+  await page.clock.fastForward(30_000);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("coinche:training-progress:v1") ?? "null"));
+  expect(stored.axes["trick-value"].challenges?.survival?.completedRuns ?? 0).toBe(0);
+  browserErrors.assertClean();
+});
+
+test("@smoke Survie counts elapsed background time across successive question deadlines", async ({ page }) => {
+  await page.clock.install();
+  await unlockChallenges(page);
+  await page.goto("/training/puzzle/trick-value?mode=survival");
+  await expect(page.getByLabel("Vies restantes : 3")).toBeVisible();
+  await page.clock.fastForward(30_000);
+  await page.clock.runFor(600);
+  await expect(page.getByRole("heading", { name: "Résultat Survie" })).toBeVisible();
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("coinche:training-progress:v1") ?? "null"));
+  expect(stored.axes["trick-value"].challenges.survival.completedRuns).toBe(1);
+});
+
+test("@smoke Blitz applies time bonuses, escalating penalties and finishes at its deadline", async ({ page }) => {
+  const browserErrors = monitorBrowserErrors(page);
+  await page.clock.install();
+  await unlockChallenges(page);
+  await page.goto("/training/puzzle/trick-value?mode=blitz");
+  const timer = page.locator('[aria-label^="Temps restant :"]');
+  await expect(timer).toBeVisible();
+  expect(Number((await timer.getAttribute("aria-label"))?.match(/[\d.]+/)?.[0])).toBeGreaterThan(59);
+  await page.clock.fastForward(10_000);
+  const answer = page.getByRole("textbox", { name: "Ta réponse en points" });
+  await answer.fill(String(challengeAnswer("blitz", 0, 0)));
+  await answer.press("Enter");
+  await expect(page.getByText("+1,5 s")).toBeVisible();
+  await page.clock.runFor(200);
+  await expect(page.getByText("Pli 2")).toBeVisible();
+  await expect(answer).toBeFocused();
+  await answer.fill(String(challengeAnswer("blitz", 1, 1) === 0 ? 1 : 0));
+  await answer.press("Enter");
+  await expect(page.getByText("−8 s")).toBeVisible();
+  await page.clock.runFor(200);
+  await answer.fill(String(challengeAnswer("blitz", 2, 1) === 0 ? 1 : 0));
+  await answer.press("Enter");
+  await expect(page.getByText("−16 s")).toBeVisible();
+  await page.clock.runFor(200);
+  await page.clock.fastForward(60_000);
+  await expect(page.getByRole("heading", { name: "Résultat Blitz" })).toBeVisible();
+  await expect(page.getByText("1 bonne réponse", { exact: true })).toBeVisible();
+  await expect(page.getByText("Meilleure série de la run : 1")).toBeVisible();
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("coinche:training-progress:v1") ?? "null"));
+  expect(stored.axes["trick-value"].challenges.blitz).toEqual({ bestScore: 1, bestStreak: 1, completedRuns: 1 });
+  browserErrors.assertClean();
 });
 
 test("@smoke home training action remains visible at tablet widths", async ({ page }) => {
