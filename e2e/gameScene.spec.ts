@@ -1,9 +1,25 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+async function startSoloGame(page: Page) {
+  await page.getByRole("button", { name: "Commencer la partie" }).click();
+  await expect(page.locator(".coinche-game-scene")).toBeVisible();
+}
 
 test("@smoke Solo gameplay lives in one responsive table scene", async ({ page }) => {
   for (const viewport of [{ width: 1366, height: 768 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport);
     await page.goto("/solo");
+    await expect(page.getByRole("heading", { name: "Prêt à lancer une partie ?" })).toBeVisible();
+    await expect(page.locator(".coinche-game-scene")).toHaveCount(0);
+    if (viewport.width === 1366) {
+      const startButton = page.getByRole("button", { name: "Commencer la partie" });
+      await expect(startButton).toBeEnabled();
+      await startButton.focus();
+      await page.keyboard.press("Enter");
+      await expect(page.locator(".coinche-game-scene")).toBeVisible();
+    } else {
+      await startSoloGame(page);
+    }
     const scene = page.locator(".coinche-game-scene");
     await expect(scene).toBeVisible();
     await expect(scene.locator(".coinche-scene-hand-card")).toHaveCount(8);
@@ -30,6 +46,7 @@ test("@smoke Solo keeps the hand and played cards inside the scene", async ({ pa
   test.setTimeout(60_000);
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/solo");
+  await startSoloGame(page);
   const scene = page.locator(".coinche-game-scene");
   await scene.getByRole("button", { name: "Valeur 160" }).click();
   await scene.getByRole("button", { name: "Annoncer" }).click();
