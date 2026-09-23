@@ -16,9 +16,10 @@ export default function HomePage() {
             <h1 className="max-w-2xl text-4xl font-black leading-[1.05] tracking-[-0.035em] text-[#f4ead0] sm:text-5xl lg:text-6xl">
               La contrée, en solo ou entre amis
             </h1>
-            <div className="mt-8 flex flex-col gap-2.5 sm:flex-row">
+            <div className="mt-8 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
               <Link className={`${appPrimaryActionClass} sm:min-w-48`} href="/solo">Jouer en solo</Link>
               <Link className={`${appSecondaryActionClass} sm:min-w-48`} href="/multiplayer">Multijoueur</Link>
+              <Link className={`${appSecondaryActionClass} sm:min-w-48`} href="/training">Entraînement</Link>
             </div>
             <Link className="coinche-ui-link mt-5 inline-flex text-sm font-bold transition" href="/rules">Voir les règles <span aria-hidden="true" className="coinche-ui-kicker ml-1.5">→</span></Link>
           </div>

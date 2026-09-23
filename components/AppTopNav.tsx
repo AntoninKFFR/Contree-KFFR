@@ -10,11 +10,11 @@ import { AudioPopover } from "@/components/ui/AudioPopover";
 import { KffrLogo } from "@/components/ui/KffrLogo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
-const PUBLIC_LINKS = [{ href: "/", label: "Accueil" }, { href: "/rules", label: "Règles" }] as const;
+const PUBLIC_LINKS = [{ href: "/", label: "Accueil" }, { href: "/training", label: "Entraînement" }, { href: "/rules", label: "Règles" }] as const;
 const PRIVATE_LINKS = [{ href: "/leaderboard", label: "Classement" }, { href: "/friends", label: "Amis" }, { href: "/history", label: "Historique" }] as const;
 
 export function appNavigationLinks(authenticated: boolean) {
-  return authenticated ? [PUBLIC_LINKS[0], ...PRIVATE_LINKS, PUBLIC_LINKS[1]] : [...PUBLIC_LINKS];
+  return authenticated ? [PUBLIC_LINKS[0], ...PRIVATE_LINKS, PUBLIC_LINKS[1], PUBLIC_LINKS[2]] : [...PUBLIC_LINKS];
 }
 
 function active(pathname: string, href: string) {
