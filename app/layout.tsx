@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 };
 
 const themeBootstrap = `(()=>{try{const raw=localStorage.getItem("coinche:player-preferences:v1");const value=raw?JSON.parse(raw):null;document.documentElement.dataset.theme=value?.visual?.theme==="light"?"light":"dark"}catch{document.documentElement.dataset.theme="dark"}})()`;
+const isVercelDeployment = process.env.VERCEL === "1";
 
 export default function RootLayout({
   children,
@@ -32,7 +33,7 @@ export default function RootLayout({
             </div>
           </MusicProvider>
         </PlayerPreferencesProvider>
-        <SpeedInsights />
+        {isVercelDeployment ? <SpeedInsights /> : null}
       </body>
     </html>
   );
