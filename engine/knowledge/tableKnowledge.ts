@@ -1,0 +1,251 @@
+import { createDeck, SUITS } from "@/engine/cards";
+import { playerTeam } from "@/engine/rules";
+import { resolveContractMode, usesTrumpRanking } from "@/engine/contractMode";
+import { resolveGameRules } from "@/engine/rulesets/resolve";
+import type { Card, GameState, PlayerId, Suit } from "@/engine/types";
+import { inactivePlayerId } from "@/engine/activePlayers";
+
+const NORMAL_MASTER_ORDER: Card["rank"][] = ["A", "10", "K", "Q", "J", "9", "8", "7"];
+const TRUMP_MASTER_ORDER: Card["rank"][] = ["J", "9", "A", "10", "K", "Q", "8", "7"];
+const PLAYERS: PlayerId[] = [0, 1, 2, 3];
+
+export type CutRiskLevel = "none" | "low" | "medium" | "high";
+
+export type CutRiskInfo = {
+  suit: Suit;
+  level: CutRiskLevel;
+  knownVoidOpponents: PlayerId[];
+  knownVoidPartner: boolean;
+  remainingTrumpCount: number;
+};
+
+export type TrickKnowledge = {
+  inactivePlayerId: PlayerId | null;
+  voidSuitsByPlayer: Record<PlayerId, Suit[]>;
+  playedTrumps: Card[];
+  remainingTrumps: Card[];
+  masterCardsBySuit: Record<Suit, Card | null>;
+  cutRiskBySuit: Record<Suit, CutRiskInfo>;
+  deadSuits: Suit[];
+  weakenedSuits: Suit[];
+};
+
+function cardKey(card: Card): string {
+  return `${card.rank}-${card.suit}`;
+}
+
+function sortCardsByMasterOrder(cards: Card[], suit: Suit, state: GameState): Card[] {
+  const mode = resolveContractMode(state);
+  const order = mode && usesTrumpRanking(suit, mode) ? TRUMP_MASTER_ORDER : NORMAL_MASTER_ORDER;
+  return [...cards].sort((first, second) => order.indexOf(first.rank) - order.indexOf(second.rank));
+}
+
+export function getVisibleCards(state: GameState, viewerId: PlayerId): Card[] {
+  return [
+    ...state.hands[viewerId],
+    ...state.currentTrick.cards.map((played) => played.card),
+    ...state.completedTricks.flatMap((trick) => trick.cards.map((played) => played.card)),
+  ];
+}
+
+export function getPlayedCards(state: GameState, viewerId: PlayerId): Card[] {
+  void viewerId;
+  return [
+    ...state.currentTrick.cards.map((played) => played.card),
+    ...state.completedTricks.flatMap((trick) => trick.cards.map((played) => played.card)),
+  ];
+}
+
+export function inferVoidSuitsByPlayer(state: GameState, viewerId: PlayerId): Record<PlayerId, Suit[]> {
+  void viewerId;
+  const voidSuits: Record<PlayerId, Set<Suit>> = {
+    0: new Set<Suit>(),
+    1: new Set<Suit>(),
+    2: new Set<Suit>(),
+    3: new Set<Suit>(),
+  };
+
+  // Playing off-suit proves a void only in variants where following suit is mandatory.
+  if (!resolveGameRules(state.settings).cardPlay.mustFollowSuit) {
+    return { 0: [], 1: [], 2: [], 3: [] };
+  }
+
+  const markVoidSuits = (cards: GameState["currentTrick"]["cards"]) => {
+    if (cards.length < 2) return;
+
+    const leadSuit = cards[0].card.suit;
+    for (const played of cards.slice(1)) {
+      if (played.card.suit !== leadSuit) {
+        voidSuits[played.playerId].add(leadSuit);
+      }
+    }
+  };
+
+  for (const trick of state.completedTricks) {
+    markVoidSuits(trick.cards);
+  }
+
+  markVoidSuits(state.currentTrick.cards);
+
+  return {
+    0: SUITS.filter((suit) => voidSuits[0].has(suit)),
+    1: SUITS.filter((suit) => voidSuits[1].has(suit)),
+    2: SUITS.filter((suit) => voidSuits[2].has(suit)),
+    3: SUITS.filter((suit) => voidSuits[3].has(suit)),
+  };
+}
+
+export function getPlayedTrumps(state: GameState, viewerId: PlayerId): Card[] {
+  if (!state.trump) return [];
+
+  return getPlayedCards(state, viewerId).filter((card) => card.suit === state.trump);
+}
+
+export function getRemainingTrumps(state: GameState, viewerId: PlayerId): Card[] {
+  if (!state.trump) return [];
+
+  const playedTrumpKeys = new Set(getPlayedTrumps(state, viewerId).map(cardKey));
+  return sortCardsByMasterOrder(
+    createDeck().filter((card) => card.suit === state.trump && !playedTrumpKeys.has(cardKey(card))),
+    state.trump,
+    state,
+  );
+}
+
+export function getMasterCardsStillOutBySuit(state: GameState, viewerId: PlayerId): Record<Suit, Card | null> {
+  const playedCardKeys = new Set(getPlayedCards(state, viewerId).map(cardKey));
+
+  return {
+    clubs:
+      sortCardsByMasterOrder(
+        createDeck().filter((card) => card.suit === "clubs" && !playedCardKeys.has(cardKey(card))),
+        "clubs",
+        state,
+      )[0] ?? null,
+    diamonds:
+      sortCardsByMasterOrder(
+        createDeck().filter((card) => card.suit === "diamonds" && !playedCardKeys.has(cardKey(card))),
+        "diamonds",
+        state,
+      )[0] ?? null,
+    hearts:
+      sortCardsByMasterOrder(
+        createDeck().filter((card) => card.suit === "hearts" && !playedCardKeys.has(cardKey(card))),
+        "hearts",
+        state,
+      )[0] ?? null,
+    spades:
+      sortCardsByMasterOrder(
+        createDeck().filter((card) => card.suit === "spades" && !playedCardKeys.has(cardKey(card))),
+        "spades",
+        state,
+      )[0] ?? null,
+  };
+}
+
+export function getRemainingCardsBySuit(state: GameState, viewerId: PlayerId): Record<Suit, Card[]> {
+  const playedCardKeys = new Set(getPlayedCards(state, viewerId).map(cardKey));
+
+  return {
+    clubs: sortCardsByMasterOrder(
+      createDeck().filter((card) => card.suit === "clubs" && !playedCardKeys.has(cardKey(card))),
+      "clubs",
+      state,
+    ),
+    diamonds: sortCardsByMasterOrder(
+      createDeck().filter((card) => card.suit === "diamonds" && !playedCardKeys.has(cardKey(card))),
+      "diamonds",
+      state,
+    ),
+    hearts: sortCardsByMasterOrder(
+      createDeck().filter((card) => card.suit === "hearts" && !playedCardKeys.has(cardKey(card))),
+      "hearts",
+      state,
+    ),
+    spades: sortCardsByMasterOrder(
+      createDeck().filter((card) => card.suit === "spades" && !playedCardKeys.has(cardKey(card))),
+      "spades",
+      state,
+    ),
+  };
+}
+
+export function getCutRiskBySuit(state: GameState, viewerId: PlayerId): Record<Suit, CutRiskInfo> {
+  const voidSuitsByPlayer = inferVoidSuitsByPlayer(state, viewerId);
+  const remainingTrumps = getRemainingTrumps(state, viewerId);
+  const remainingCardsBySuit = getRemainingCardsBySuit(state, viewerId);
+  const currentTeam = playerTeam(viewerId);
+  const partnerId = ((viewerId + 2) % 4) as PlayerId;
+
+  const buildRisk = (suit: Suit): CutRiskInfo => {
+    if (!state.trump || suit === state.trump || remainingTrumps.length === 0) {
+      return {
+        suit,
+        level: "none",
+        knownVoidOpponents: [],
+        knownVoidPartner: false,
+        remainingTrumpCount: remainingTrumps.length,
+      };
+    }
+
+    const knownVoidOpponents = PLAYERS.filter(
+      (playerId) =>
+        playerId !== viewerId &&
+        playerTeam(playerId) !== currentTeam &&
+        voidSuitsByPlayer[playerId].includes(suit),
+    );
+    const knownVoidPartner = voidSuitsByPlayer[partnerId].includes(suit);
+    const remainingCount = remainingCardsBySuit[suit].length;
+
+    let level: CutRiskLevel = "low";
+    if (knownVoidOpponents.length >= 2) {
+      level = "high";
+    } else if (knownVoidOpponents.length === 1) {
+      level = "medium";
+    } else if (remainingCount <= 2) {
+      level = "medium";
+    }
+
+    if (knownVoidPartner && level === "low") {
+      level = "medium";
+    }
+
+    return {
+      suit,
+      level,
+      knownVoidOpponents,
+      knownVoidPartner,
+      remainingTrumpCount: remainingTrumps.length,
+    };
+  };
+
+  return {
+    clubs: buildRisk("clubs"),
+    diamonds: buildRisk("diamonds"),
+    hearts: buildRisk("hearts"),
+    spades: buildRisk("spades"),
+  };
+}
+
+export function getDeadSuits(state: GameState, viewerId: PlayerId): Suit[] {
+  const remainingCardsBySuit = getRemainingCardsBySuit(state, viewerId);
+  return SUITS.filter((suit) => remainingCardsBySuit[suit].length === 0);
+}
+
+export function getWeakenedSuits(state: GameState, viewerId: PlayerId): Suit[] {
+  const remainingCardsBySuit = getRemainingCardsBySuit(state, viewerId);
+  return SUITS.filter((suit) => remainingCardsBySuit[suit].length <= 2);
+}
+
+export function buildTableKnowledge(state: GameState, viewerId: PlayerId): TrickKnowledge {
+  return {
+    inactivePlayerId: inactivePlayerId(state),
+    voidSuitsByPlayer: inferVoidSuitsByPlayer(state, viewerId),
+    playedTrumps: getPlayedTrumps(state, viewerId),
+    remainingTrumps: getRemainingTrumps(state, viewerId),
+    masterCardsBySuit: getMasterCardsStillOutBySuit(state, viewerId),
+    cutRiskBySuit: getCutRiskBySuit(state, viewerId),
+    deadSuits: getDeadSuits(state, viewerId),
+    weakenedSuits: getWeakenedSuits(state, viewerId),
+  };
+}
