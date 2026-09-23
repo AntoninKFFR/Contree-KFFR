@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import type { ChangeEvent, KeyboardEvent } from "react";
 import { appPrimaryActionClass } from "@/components/ui/AppShell";
 
 type NumberPadProps = {
@@ -11,18 +11,19 @@ type NumberPadProps = {
 };
 
 export function NumberPad({ value, onChange, onSubmit, disabled = false }: NumberPadProps) {
+  const sanitize = (input: string) => input.replace(/\D/g, "").slice(0, 3);
   const append = (digit: string) => {
-    if (!disabled && value.length < 3) onChange(value + digit);
+    if (!disabled) onChange(sanitize(value + digit));
   };
   const erase = () => {
     if (!disabled) onChange(value.slice(0, -1));
   };
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (disabled) return;
-    if (/^[0-9]$/.test(event.key)) { event.preventDefault(); append(event.key); }
-    else if (event.key === "Backspace") { event.preventDefault(); erase(); }
-    else if (event.key === "Delete") { event.preventDefault(); onChange(""); }
-    else if (event.key === "Enter" && value) { event.preventDefault(); onSubmit(); }
+    if (event.key === "Enter" && value) { event.preventDefault(); onSubmit(); }
+  };
+  const onInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (!disabled) onChange(sanitize(event.target.value));
   };
 
   return <div className="mx-auto w-full max-w-xs">
@@ -32,10 +33,10 @@ export function NumberPad({ value, onChange, onSubmit, disabled = false }: Numbe
       className="coinche-input mt-2 h-14 w-full rounded-xl border text-center text-2xl font-black outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
       disabled={disabled}
       id="training-answer"
-      inputMode="none"
+      inputMode="numeric"
+      onChange={onInputChange}
       onKeyDown={onKeyDown}
       placeholder="?"
-      readOnly
       type="text"
       value={value}
     />

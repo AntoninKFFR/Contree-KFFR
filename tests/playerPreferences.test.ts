@@ -99,4 +99,19 @@ describe("central game-speed and collection policy", () => {
 describe("preference audio gating", () => {
   it("keeps all sounds off by default", () => expect(canPlayPreferenceSound("card-play", clonePlayerPreferences())).toBe(false));
   it("honors the master, category and volume controls", () => { const value = clonePlayerPreferences(); value.audio.enabled = true; expect(canPlayPreferenceSound("bid", value)).toBe(true); value.audio.biddingSounds = false; expect(canPlayPreferenceSound("bid", value)).toBe(false); value.audio.volume = 0; expect(canPlayPreferenceSound("card-play", value)).toBe(false); });
+  it("routes both training feedback sounds through the existing UI sound preferences", () => {
+    const value = clonePlayerPreferences();
+    for (const sound of ["training-correct", "training-wrong"] as const) {
+      expect(canPlayPreferenceSound(sound, value)).toBe(false);
+      value.audio.enabled = true;
+      expect(canPlayPreferenceSound(sound, value)).toBe(true);
+      value.audio.uiSounds = false;
+      expect(canPlayPreferenceSound(sound, value)).toBe(false);
+      value.audio.uiSounds = true;
+      value.audio.volume = 0;
+      expect(canPlayPreferenceSound(sound, value)).toBe(false);
+      value.audio.volume = 0.5;
+      value.audio.enabled = false;
+    }
+  });
 });

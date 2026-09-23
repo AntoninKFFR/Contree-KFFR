@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SUIT_LABELS, SUIT_SYMBOLS } from "@/engine/cards";
 import { formatContractMode } from "@/engine/contractMode";
 import { cardPoints } from "@/engine/rules";
@@ -11,6 +11,8 @@ import type { Card, Rank } from "@/engine/types";
 import { AppEyebrow, AppPage, AppSurface, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { NumberPad } from "@/components/training/NumberPad";
 import { isTrickValueLevelUnlocked, readTrainingProgress, recordTrickValueSeries, saveTrainingProgress, trickValueSeriesSeed, type TrainingProgress } from "@/components/training/progress";
+import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
+import { playPreferenceSound } from "@/lib/preferences/audio";
 
 const TRUMP_RANKS: Rank[] = ["J", "9", "A", "10", "K", "Q", "8", "7"];
 const SIDE_RANKS: Rank[] = ["A", "10", "K", "Q", "J", "9", "8", "7"];
@@ -33,9 +35,9 @@ function ValueGuide() {
     { label: "À l’atout", suit: "hearts" as const, ranks: TRUMP_RANKS },
     { label: "Hors atout", suit: "clubs" as const, ranks: SIDE_RANKS },
   ];
-  return <aside aria-label="Aide des valeurs des cartes" className="mt-6 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3 sm:p-4">
+  return <aside aria-label="Aide des valeurs des cartes" className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3">
     <p className="text-xs font-black uppercase tracking-widest text-[var(--ui-kicker)]">Aide · Valeur des cartes</p>
-    <div className="mt-3 grid gap-3 sm:grid-cols-2 sm:gap-5">
+    <div className="mt-2 grid gap-3 sm:grid-cols-2 sm:gap-4">
       {groups.map(({ label, suit, ranks }) => <div key={label}>
         <p className="mb-1.5 text-xs font-bold">{label}</p>
         <div className="grid grid-cols-8 gap-0.5 text-center">
@@ -50,6 +52,8 @@ function ValueGuide() {
 }
 
 export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
+  const { preferences } = usePlayerPreferences();
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [progress, setProgress] = useState<TrainingProgress | null>(null);
   const [locked, setLocked] = useState(false);
   const [series, setSeries] = useState<TrickValueExercise[] | null>(null);
@@ -72,7 +76,19 @@ export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
     setSeries(generateTrickValueSeries({ seed: trickValueSeriesSeed(saved, level), generatorVersion, level }));
   }, [level]);
 
+  useEffect(() => () => {
+    if (advanceTimer.current !== null) clearTimeout(advanceTimer.current);
+  }, []);
+
+  useEffect(() => {
+    if (level === 2 && feedback === null && series && !finished) {
+      document.getElementById("training-answer")?.focus();
+    }
+  }, [feedback, finished, index, level, series]);
+
   const startSeries = (saved: TrainingProgress) => {
+    if (advanceTimer.current !== null) clearTimeout(advanceTimer.current);
+    advanceTimer.current = null;
     setSeries(generateTrickValueSeries({ seed: trickValueSeriesSeed(saved, level), generatorVersion, level }));
     setIndex(0);
     setAnswer("");
@@ -83,13 +99,8 @@ export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
   };
 
   const exercise = series?.[index];
-  const submit = () => {
-    if (!exercise || feedback !== null || !answer) return;
-    setFeedback(Number(answer) === exercise.answer);
-  };
-  const next = () => {
-    if (!series || !progress || feedback === null) return;
-    const nextScore = score + Number(feedback);
+  const advance = (nextScore: number) => {
+    if (!series || !progress) return;
     if (index === TRICK_VALUE_SERIES_LENGTH - 1) {
       const updated = recordTrickValueSeries(progress, level, nextScore);
       setJustUnlocked(level === 1 && !isTrickValueLevelUnlocked(progress, 2) && isTrickValueLevelUnlocked(updated, 2));
@@ -103,6 +114,21 @@ export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
       setAnswer("");
       setFeedback(null);
     }
+  };
+  const submit = () => {
+    if (!exercise || feedback !== null || !answer) return;
+    const correct = Number(answer) === exercise.answer;
+    setFeedback(correct);
+    playPreferenceSound(correct ? "training-correct" : "training-wrong", preferences);
+    if (level === 2) {
+      advanceTimer.current = setTimeout(() => {
+        advanceTimer.current = null;
+        advance(score + Number(correct));
+      }, 190);
+    }
+  };
+  const next = () => {
+    if (feedback !== null) advance(score + Number(feedback));
   };
 
   if (locked) {
@@ -137,30 +163,39 @@ export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
     </AppPage>;
   }
 
-  return <AppPage width="medium">
+  const trump = exercise.contractMode.kind === "suit" ? exercise.contractMode.suit : null;
+  const redTrump = trump === "hearts" || trump === "diamonds";
+
+  return <AppPage width="wide">
     <Link className="coinche-ui-link w-fit text-sm font-bold" href="/training">← Changer de niveau</Link>
-    <AppSurface className="mx-auto w-full max-w-2xl">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <AppEyebrow>Valeur d’un pli</AppEyebrow>
-          <p className="mt-2 text-sm font-bold text-[var(--accent)]">Niveau {level} · {levelName}</p>
-          <h1 className="mt-2 text-2xl font-black sm:text-3xl">Combien vaut ce pli ?</h1>
+    <AppSurface className="mx-auto w-full">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h1 className="whitespace-nowrap text-2xl font-black tracking-tight sm:text-3xl">Valeur d’un pli</h1>
+          <p className="text-sm font-bold text-[var(--accent)]">Niveau {level} · {levelName}</p>
         </div>
         <span aria-label={`Exercice ${index + 1} sur ${TRICK_VALUE_SERIES_LENGTH}`} className="rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-sm font-bold">{index + 1} / {TRICK_VALUE_SERIES_LENGTH}</span>
       </div>
-      <p className="mt-3 text-sm text-[var(--text-secondary)]">Contrat : {formatContractMode(exercise.contractMode)}</p>
-      {exercise.isLastTrick ? <p className="mt-3 rounded-lg border border-[var(--border-strong)] bg-[var(--accent-soft)] px-3 py-2 text-sm font-black">Dernier pli · 10 de der</p> : null}
-      <ol aria-label="Cartes du pli" className="mt-6 grid grid-cols-4 gap-1.5 sm:gap-3">
-        {exercise.cards.map((played, cardIndex) => <TrainingCard card={played.card} index={cardIndex} key={`${played.playerId}-${cardIndex}`} />)}
-      </ol>
-      {level === 1 ? <ValueGuide /> : null}
-      <div className="mt-7">
-        <NumberPad disabled={feedback !== null} onChange={setAnswer} onSubmit={submit} value={answer} />
-        {feedback !== null ? <div aria-live="polite" className="mx-auto mt-5 max-w-xs rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-center">
+      <div className="mt-4 grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] md:gap-8">
+        <div className="min-w-0">
+          <p className="text-lg font-black">Combien vaut ce pli ?</p>
+          <div className="mt-3 flex items-center gap-3" aria-label={trump ? `Atout ${SUIT_LABELS[trump]}` : formatContractMode(exercise.contractMode)}>
+            <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]">Atout</span>
+            {trump ? <span aria-hidden="true" className={`flex h-14 w-14 items-center justify-center rounded-xl border text-5xl leading-none shadow-sm ${redTrump ? "border-red-200 bg-[#fff5ed] text-red-700" : "border-stone-300 bg-[#fffef9] text-stone-900"}`}>{SUIT_SYMBOLS[trump]}</span> : <span>{formatContractMode(exercise.contractMode)}</span>}
+          </div>
+          <ol aria-label="Cartes du pli" className="mt-4 grid grid-cols-4 gap-1.5 sm:gap-3">
+            {exercise.cards.map((played, cardIndex) => <TrainingCard card={played.card} index={cardIndex} key={`${played.playerId}-${cardIndex}`} />)}
+          </ol>
+          {exercise.isLastTrick ? <div className="mt-4 flex items-center gap-3 text-xs font-bold tracking-wide text-[var(--accent)]"><span className="h-px flex-1 bg-[var(--border-strong)]" /><span>Dernier pli · 10 de der</span><span className="h-px flex-1 bg-[var(--border-strong)]" /></div> : null}
+          {level === 1 ? <ValueGuide /> : null}
+        </div>
+        <div className="min-w-0 md:border-l md:border-[var(--border)] md:pl-8">
+          {level === 1 && feedback !== null ? <div aria-live="polite" className="mx-auto max-w-xs rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-center">
           <p className={`font-black ${feedback ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{feedback ? "Bonne réponse !" : "Mauvaise réponse"}</p>
           <p className="mt-1">Ce pli vaut <strong>{exercise.answer} points</strong>.</p>
-          <button className={`${appPrimaryActionClass} mt-4 min-h-12 w-full`} onClick={next} type="button">{index === TRICK_VALUE_SERIES_LENGTH - 1 ? "Voir le résultat" : "Exercice suivant"}</button>
-        </div> : null}
+          <button className={`${appPrimaryActionClass} mt-3 min-h-11 w-full`} onClick={next} type="button">{index === TRICK_VALUE_SERIES_LENGTH - 1 ? "Voir le résultat" : "Exercice suivant"}</button>
+          </div> : <NumberPad disabled={feedback !== null} onChange={setAnswer} onSubmit={submit} value={answer} />}
+        </div>
       </div>
     </AppSurface>
   </AppPage>;
