@@ -157,7 +157,7 @@ export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
       <div className="mt-7">
         <NumberPad disabled={feedback !== null} onChange={setAnswer} onSubmit={submit} value={answer} />
         {feedback !== null ? <div aria-live="polite" className="mx-auto mt-5 max-w-xs rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-center">
-          <p className={`font-black ${feedback ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{feedback ? "Bonne réponse !" : "Pas encore."}</p>
+          <p className={`font-black ${feedback ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{feedback ? "Bonne réponse !" : "Mauvaise réponse"}</p>
           <p className="mt-1">Ce pli vaut <strong>{exercise.answer} points</strong>.</p>
           <button className={`${appPrimaryActionClass} mt-4 min-h-12 w-full`} onClick={next} type="button">{index === TRICK_VALUE_SERIES_LENGTH - 1 ? "Voir le résultat" : "Exercice suivant"}</button>
         </div> : null}
