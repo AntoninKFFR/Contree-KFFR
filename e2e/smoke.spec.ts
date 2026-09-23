@@ -1,5 +1,10 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
+
+async function startSoloGame(page: Page) {
+  await page.getByRole("button", { name: "Commencer la partie" }).click();
+  await expect(page.locator(".coinche-game-table")).toBeVisible();
+}
 
 test.describe("@smoke public production readiness", () => {
   test("@smoke rank emblems are optimized transparent PNG assets", async ({ page }) => {
@@ -203,8 +208,10 @@ test.describe("@smoke public production readiness", () => {
       await expect(page.locator("header")).toHaveCount(1);
 
       const table = page.locator(".coinche-game-table");
-      await expect(table).toBeVisible();
-      const widthBefore = (await table.boundingBox())?.width;
+      await expect(page.getByRole("heading", { name: "Prêt à lancer une partie ?" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Commencer la partie" })).toBeVisible();
+      await expect(table).toHaveCount(0);
+      await expect(page.locator(".coinche-scene-hand-card")).toHaveCount(0);
       const menuButton = header.getByRole("button", { name: "Menu Partie" });
       await expect(menuButton).toContainText("Partie");
       await menuButton.click();
@@ -215,18 +222,22 @@ test.describe("@smoke public production readiness", () => {
       const panelWidth = (await panel.boundingBox())?.width ?? 0;
       expect(panelWidth).toBeGreaterThanOrEqual(260);
       expect(panelWidth).toBeLessThanOrEqual(320);
-      await expect(panel.getByRole("switch", { name: "Scores en direct" })).toBeVisible();
+      await expect(panel.getByRole("switch", { name: "Scores en direct" })).toHaveCount(0);
       await expect(panel.getByRole("button", { name: "Paramètres" })).toBeVisible();
       await expect(panel.getByRole("button", { name: "Règles de la prochaine partie" })).toBeVisible();
-      await expect(panel.getByRole("button", { name: "Abandonner et redistribuer" })).toBeVisible();
+      await expect(panel.getByRole("button", { name: "Abandonner et redistribuer" })).toHaveCount(0);
       await expect(panel.getByRole("link")).toHaveCount(0);
-      expect((await table.boundingBox())?.width).toBe(widthBefore);
 
       await page.keyboard.press("Escape");
       await expect(panel).toHaveCount(0);
       await expect(menuButton).toBeFocused();
+      await startSoloGame(page);
+      const widthBefore = (await table.boundingBox())?.width;
       await menuButton.click();
       await expect(panel).toBeVisible();
+      await expect(panel.getByRole("switch", { name: "Scores en direct" })).toBeVisible();
+      await expect(panel.getByRole("button", { name: "Abandonner et redistribuer" })).toBeVisible();
+      expect((await table.boundingBox())?.width).toBe(widthBefore);
       await menuButton.click();
       await expect(panel).toHaveCount(0);
       await menuButton.click();
@@ -247,6 +258,11 @@ test.describe("@smoke public production readiness", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await page.keyboard.press("Escape");
     await expect(mobilePanel).toHaveCount(0);
+    await page.getByRole("button", { name: "Commencer la partie" }).click();
+    await expect(page.getByRole("heading", { name: "Tournez votre téléphone" })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Commencer la partie" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tournez votre téléphone" })).toHaveCount(0);
   });
 
   test("@smoke background music persists across navigation and obeys its own settings", async ({ page }) => {
@@ -345,6 +361,7 @@ test.describe("@smoke public production readiness", () => {
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
         await page.screenshot({ path: `test-results/multiplayer-${theme}-${viewport.width}.png`, fullPage: true });
         await page.goto("/solo");
+        await startSoloGame(page);
         const bidding = page.locator(".coinche-bidding-panel");
         await expect(bidding).toBeVisible();
         await expect(bidding).toHaveCSS("background-color", theme === "dark" ? "rgb(9, 24, 17)" : "rgb(255, 253, 247)");
@@ -448,8 +465,25 @@ test.describe("@smoke public production readiness", () => {
     await contracts.getByRole("checkbox", { name: /^Sans Atout/ }).check();
     await contracts.getByRole("checkbox", { name: /^Tout Atout/ }).check();
     await contracts.getByRole("checkbox", { name: /^Générale/ }).check();
-    await rulesDialog.getByRole("button", { name: "Appliquer et nouvelle partie" }).click();
+    await rulesDialog.getByRole("button", { name: "Enregistrer les règles" }).click();
     await expect(rulesDialog).toBeHidden();
+    await expect(page.getByRole("button", { name: "Commencer la partie" })).toBeVisible();
+    await expect(page.locator(".coinche-game-table")).toHaveCount(0);
+    await startSoloGame(page);
+    await expect(page.getByRole("main")).toHaveAccessibleName("Partie Solo, objectif 1500 points");
+    await page.getByRole("button", { name: "Menu Partie" }).click();
+    await page.getByRole("button", { name: "Règles de la prochaine partie" }).click();
+    const activeRulesDialog = page.getByRole("dialog", { name: "Règles de la prochaine partie" });
+    await activeRulesDialog.getByRole("combobox", { name: "Score cible" }).selectOption("2000");
+    await activeRulesDialog.getByRole("button", { name: "Appliquer et nouvelle partie" }).click();
+    await expect(page.getByRole("main")).toHaveAccessibleName("Partie Solo, objectif 2000 points");
+    await page.getByRole("button", { name: "Menu Partie" }).click();
+    await page.getByRole("button", { name: "Abandonner et redistribuer" }).click();
+    const abandonDialog = page.getByRole("dialog", { name: "Abandonner la partie ?" });
+    await expect(abandonDialog).toBeVisible();
+    await abandonDialog.getByRole("button", { name: "Abandonner et redistribuer" }).click();
+    await expect(abandonDialog).toBeHidden();
+    await expect(page.locator(".coinche-scene-hand-card")).toHaveCount(8);
 
     await page.goto("/multiplayer");
     await expect(page.getByRole("heading", { name: "Une table, quatre places" })).toBeVisible();
@@ -565,6 +599,7 @@ test.describe("@smoke public production readiness", () => {
     }
     await page.goto("/solo");
     await expect(page.getByRole("switch", { name: "Activer le thème sombre" })).toBeVisible();
+    await startSoloGame(page);
     await expect(page.locator(".coinche-game-table")).toBeVisible();
     await expect(page.locator(".coinche-game-table")).toHaveCSS("background-color", "rgb(13, 91, 60)");
     await page.getByRole("button", { name: "Menu Partie" }).click();
