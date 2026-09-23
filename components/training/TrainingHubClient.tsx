@@ -3,8 +3,30 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppEyebrow, AppPage, AppSurface, appPrimaryActionClass } from "@/components/ui/AppShell";
-import { isTrickValueChallengeUnlocked, isTrickValueLevelUnlocked, readTrainingProgress, type TrainingProgress } from "@/components/training/progress";
+import { PILE_COUNT_MODE_COPY, PILE_COUNT_TITLE } from "@/components/training/pileCountCopy";
+import {
+  isPileCountModeUnlocked, isTrickValueChallengeUnlocked, isTrickValueLevelUnlocked, PASSING_SCORE, readTrainingProgress,
+  type TrainingProgress,
+} from "@/components/training/progress";
+import { PILE_COUNT_MODES, PILE_COUNT_SERIES_LENGTH, type PileCountMode } from "@/engine/training/pileCount";
 import type { TrickValueChallengeMode } from "@/engine/training/trickValueChallenge";
+
+function PileCountModeCard({ mode, progress }: { mode: PileCountMode; progress: TrainingProgress | null }) {
+  const copy = PILE_COUNT_MODE_COPY[mode];
+  const unlocked = progress ? isPileCountModeUnlocked(progress, mode) : mode !== "normal";
+  const saved = progress?.axes["pile-count"].modes;
+  const record = mode === "free" || !saved ? null : saved[mode];
+  return <article className="flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 sm:p-5">
+    <h3 className="text-xl font-black">{copy.name}</h3>
+    <p className="mt-2 flex-1 text-sm text-[var(--text-secondary)]">{copy.description}</p>
+    {unlocked ? <>
+      <p className="mt-4 text-sm font-semibold">
+        {record?.completedSeries ? `Meilleur score : ${record.bestScore} / ${PILE_COUNT_SERIES_LENGTH}` : mode === "free" ? "Sans record" : "Accessible"}
+      </p>
+      <Link aria-label={`${PILE_COUNT_TITLE} en mode ${copy.name}`} className={`${appPrimaryActionClass} mt-4 w-full`} href={`/training/puzzle/pile-count?mode=${mode}`}>Commencer</Link>
+    </> : <p className="mt-4 text-sm font-semibold">Réussis {PASSING_SCORE}/{PILE_COUNT_SERIES_LENGTH} en Débutant pour débloquer ce mode.</p>}
+  </article>;
+}
 
 function ChallengeCard({ mode, unlocked, progress }: {
   mode: TrickValueChallengeMode;
@@ -69,6 +91,13 @@ export function TrainingHubClient() {
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <ChallengeCard mode="survival" progress={progress} unlocked={challengesUnlocked} />
         <ChallengeCard mode="blitz" progress={progress} unlocked={challengesUnlocked} />
+      </div>
+    </AppSurface>
+    <AppSurface className="mt-4">
+      <h2 className="text-2xl font-black">{PILE_COUNT_TITLE}</h2>
+      <p className="mt-2 text-sm text-[var(--text-secondary)]">Les cartes du tas de ton équipe défilent une à une : compte tes points de fin de donne, 10 de der et belote compris.</p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        {PILE_COUNT_MODES.map((mode) => <PileCountModeCard key={mode} mode={mode} progress={progress} />)}
       </div>
     </AppSurface>
   </AppPage>;

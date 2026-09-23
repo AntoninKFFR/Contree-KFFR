@@ -17,7 +17,7 @@ const TRUMP_RANKS: Rank[] = ["J", "9", "A", "10", "K", "Q", "8", "7"];
 const SIDE_RANKS: Rank[] = ["A", "10", "K", "Q", "J", "9", "8", "7"];
 const GUIDE_MODE = { kind: "suit", suit: "hearts" } as const;
 
-function ValueGuide() {
+export function ValueGuide() {
   const groups = [
     { label: "À l’atout", suit: "hearts" as const, ranks: TRUMP_RANKS },
     { label: "Hors atout", suit: "clubs" as const, ranks: SIDE_RANKS },
