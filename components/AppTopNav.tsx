@@ -98,9 +98,9 @@ export function AppTopNav() {
   };
 
   return <header className="coinche-global-header sticky top-0 z-50 h-14 border-b shadow-lg backdrop-blur-md" ref={rootRef}>
-    <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between gap-3 px-3 sm:px-5">
-      <Link aria-label="Accueil — KFFR Contrée" className="shrink-0" href="/"><KffrLogo className="h-8 w-[5.25rem]" variant="compact" /></Link>
-      <nav aria-label="Navigation principale" className="hidden min-[1120px]:flex min-w-0 items-center gap-1">
+    <div className="mx-auto grid h-full w-full max-w-[1600px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3 sm:px-5">
+      <Link aria-label="Accueil — KFFR Contrée" className="col-start-1 shrink-0 justify-self-start" href="/"><KffrLogo className="h-8 w-[5.25rem]" variant="compact" /></Link>
+      <nav aria-label="Navigation principale" className="col-start-2 hidden min-w-0 items-center gap-1 justify-self-center min-[1120px]:flex">
         <Link aria-current={pathname === "/" ? "page" : undefined} className={linkClass("/")} href="/">Accueil</Link>
         <div className="relative" onMouseEnter={openPlayOnHover} onMouseLeave={closePlayOnHoverLeave}>
           <button aria-controls="play-menu" aria-current={playActive ? "page" : undefined} aria-expanded={playOpen} className={`coinche-topnav-link ${playActive ? "coinche-topnav-link--active" : ""}`} onClick={togglePlayMenu} type="button">Jouer <span aria-hidden="true">▾</span></button>
@@ -113,7 +113,7 @@ export function AppTopNav() {
         </div>
         {links.filter((link) => link.href !== "/").map((link) => <Link aria-current={active(pathname, link.href) ? "page" : undefined} className={linkClass(link.href)} href={link.href} key={link.href}>{link.label}</Link>)}
       </nav>
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="col-start-3 flex shrink-0 items-center gap-1.5 justify-self-end">
         <div id="app-topnav-game-actions" />
         <AudioPopover />
         <ThemeToggle />
