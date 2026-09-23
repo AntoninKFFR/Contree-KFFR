@@ -16,20 +16,51 @@ export type TrainingGeneratorOptions = {
   generatorVersion: number;
 };
 
-export function generateTrainingPosition(options: TrainingGeneratorOptions): TrainingPosition {
-  const { seed, generatorVersion: requestedVersion } = options;
+/** A full round played from its first card, for axes that replay a whole deal. */
+export type TrainingRound = {
+  seed: number;
+  generatorVersion: typeof generatorVersion;
+  /** Bidding done, no card played yet. */
+  start: GameState;
+  /** All eight tricks played, round result available. */
+  final: GameState;
+};
+
+function assertGeneratorOptions({ seed, generatorVersion: requestedVersion }: TrainingGeneratorOptions): void {
   if (requestedVersion !== generatorVersion) {
     throw new Error(`Unsupported training generator version: ${requestedVersion}`);
   }
   if (!Number.isSafeInteger(seed)) throw new Error("Training seed must be a safe integer.");
+}
 
-  const random = createSeededRandom(seed);
+// Shared by every generator: changing the random draws here changes all positions and requires a version bump.
+function createTrainingDeal(random: () => number): GameState {
   let state = createInitialGame(random);
   const trump = SUITS[Math.floor(random() * SUITS.length)];
   state = makeBid(state, state.currentPlayerId, { action: "bid", value: 80, trump });
   for (let pass = 0; pass < 3; pass += 1) {
     state = makeBid(state, state.currentPlayerId, { action: "pass" });
   }
+  return state;
+}
+
+export function generateTrainingRound(options: TrainingGeneratorOptions): TrainingRound {
+  assertGeneratorOptions(options);
+  const random = createSeededRandom(options.seed);
+  const start = createTrainingDeal(random);
+  let final = start;
+  while (final.phase === "playing") {
+    const legalCards = playableCardsForCurrentPlayer(final);
+    final = playCard(final, final.currentPlayerId, legalCards[Math.floor(random() * legalCards.length)]);
+  }
+  return { seed: options.seed, generatorVersion, start, final };
+}
+
+export function generateTrainingPosition(options: TrainingGeneratorOptions): TrainingPosition {
+  assertGeneratorOptions(options);
+  const { seed } = options;
+  const random = createSeededRandom(seed);
+  let state = createTrainingDeal(random);
 
   const cardCount = Math.floor(random() * 25);
   for (let played = 0; played < cardCount; played += 1) {
