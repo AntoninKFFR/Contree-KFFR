@@ -1,135 +1,117 @@
 # Guide de contribution — Contrée KFFR
 
-Ce document décrit **comment on travaille à deux** sur ce projet. Il s'adresse
-aux deux développeurs **et à leurs agents de code** (Claude Code, Cursor, etc.).
-Objectif : que tout le monde pousse dans la même direction, sans casser `main`
-ni le site en ligne.
+Ce document définit le workflow commun aux contributeurs humains et aux agents
+de code. L'objectif est de garder des chantiers isolés, des Pull Requests petites
+et un historique Git lisible.
 
-> **Règle d'or : personne ne pousse directement sur `main`.**
-> Tout passe par une branche + une Pull Request.
+> **Règle d'or : aucun push direct sur `main`.**
+> Toute modification passe par une branche dédiée et une Pull Request.
 
----
+## 1. Une issue = un chantier
 
-## 1. Le modèle : trois lieux distincts
+- Chaque chantier correspond à une issue GitHub précise.
+- Avant de commencer, lire son objectif, ses critères d'acceptation, ses
+  dépendances et les fichiers ou références mentionnés.
+- Vérifier qu'aucune autre issue, Pull Request ou branche active ne couvre déjà
+  le même périmètre.
+- Ne pas élargir le chantier en refonte plus générale sans décision humaine.
+- Si deux chantiers risquent de modifier le même périmètre, arrêter le travail
+  et signaler le conflit avant toute modification.
 
-| Lieu | Où | Rôle |
-|---|---|---|
-| **Local** | ton PC | Là où on écrit le code et où on peut le lancer (`npm run dev` → `http://localhost:3000`) |
-| **GitHub** | cloud | Le dépôt central partagé, la référence commune (`AntoninKFFR/Contree-KFFR`) |
-| **Vercel** | cloud | Déploie le code : une **preview** par branche/PR, et la **production** depuis `main` |
+### Labels de délégation
 
-Flux : `local → git push (sur une branche) → Pull Request → Vercel preview → test → merge dans main → Vercel production`
+- `good-for-agent` : un agent peut traiter l'issue de manière autonome lorsque
+  le brief est suffisamment précis.
+- `needs-human` : une décision humaine est requise. L'agent identifie la
+  décision manquante et attend sa validation au lieu de faire une hypothèse.
 
----
+## 2. Workflow du board
 
-## 2. Le workflow au quotidien
+Les issues avancent dans cet ordre :
 
-### a. Partir d'un `main` à jour
+`Backlog` → `Ready` → `In progress` → `In review` → `Done`
+
+- **Backlog** : chantier identifié, pas encore prêt à démarrer.
+- **Ready** : périmètre, dépendances et décisions nécessaires sont suffisamment
+  clairs.
+- **In progress** : le chantier est pris et une branche dédiée est active.
+- **In review** : la Pull Request est ouverte et attend une revue humaine.
+- **Done** : la Pull Request a été relue et mergée par un humain.
+
+## 3. Démarrer un chantier
+
+Toujours repartir du `main` distant actuel :
+
 ```bash
-git checkout main
-git pull
+git fetch origin
+git switch main
+git pull --ff-only origin main
+git switch -c feat/nom-court
 ```
 
-### b. Créer une branche dédiée à la fonctionnalité
+Utiliser une branche dédiée par issue. Les préfixes usuels sont :
+
+- `feat/...` pour une fonctionnalité ;
+- `fix/...` pour une correction ;
+- `docs/...` pour la documentation ;
+- `test/...` pour les tests ;
+- `chore/...` pour la configuration ou la maintenance.
+
+Ne jamais reprendre la branche d'un autre contributeur sans demande explicite.
+
+## 4. Développer et valider
+
+- Respecter strictement le périmètre de l'issue.
+- Ne pas ajouter de fichiers locaux, de changements parasites ou de secrets.
+- Effectuer les validations locales pertinentes avant la livraison, notamment
+  le typecheck, le lint, les tests, le build et le smoke test lorsque le
+  changement le justifie.
+- Vérifier le diff final avant de commiter.
+
+Exemple de validations pour un changement applicatif :
+
 ```bash
-git checkout -b feat/nom-court-de-la-fonctionnalite
-```
-Convention de nommage :
-- `feat/...` : nouvelle fonctionnalité
-- `fix/...` : correction de bug
-- `chore/...` : technique (déps, config, refacto sans changement visible)
-
-### c. Développer et commiter régulièrement
-```bash
-git add -A
-git commit -m "feat: description courte du changement"
-git push -u origin feat/nom-court-de-la-fonctionnalite
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run test:e2e:smoke
+git diff --check
 ```
 
-### d. Ouvrir une Pull Request vers `main`
-- Sur GitHub, ouvrir une PR de ta branche vers `main`.
-- Deux choses se déclenchent automatiquement :
-  - **La CI** (GitHub Actions) : build + tests e2e smoke.
-  - **Vercel** : un **déploiement de preview** avec une URL dédiée à cette PR.
+Pour une modification limitée à la documentation ou à la configuration, lancer
+les contrôles pertinents au périmètre et au minimum `git diff --check`.
 
-### e. Test collectif
-- Chacun peut tester la fonctionnalité sur l'**URL de preview Vercel** (pas la prod).
-- L'autre développeur relit le code de la PR.
-- On ne merge que si : ✅ CI verte, ✅ preview testée, ✅ relecture OK.
+## 5. Base de données Supabase
 
-### f. Merge et nettoyage
-- Merge de la PR dans `main` (le merge déclenche le déploiement en **production**).
-- Puis en local :
-```bash
-git checkout main
-git pull
-git branch -d feat/nom-court-de-la-fonctionnalite
-```
+Tout changement de schéma ou de sécurité de la base doit passer par un nouveau
+fichier versionné dans `supabase/migrations/` : table, colonne, fonction SQL,
+trigger, contrainte, index ou policy RLS.
 
----
+Ne jamais modifier le schéma manuellement dans l'interface Supabase. Une
+migration risquée ou destructrice doit être discutée avant son application.
 
-## 3. Base de données Supabase (point critique à deux)
+## 6. Secrets et variables d'environnement
 
-On partage **un seul projet Supabase** (offre gratuite : `contree-kffr`). La base
-est donc **commune** aux deux développeurs.
+- Ne jamais commiter de secret, de jeton, de mot de passe ou de clé privée.
+- Les valeurs locales vivent dans `.env.local`, ignoré par Git.
+- `.env.example` documente seulement les noms et valeurs factices attendus.
+- Une clé serveur ne doit jamais être exposée avec le préfixe `NEXT_PUBLIC_`.
+- Les variables des environnements déployés sont configurées hors du dépôt.
 
-**Règle absolue : ne jamais modifier le schéma à la main dans l'interface Supabase.**
+## 7. Livraison par Pull Request
 
-Tout changement de schéma (table, colonne, fonction SQL, policy RLS…) se fait via
-un **nouveau fichier de migration** versionné :
+Quand le chantier est prêt :
 
-```
-supabase/migrations/AAAAMMJJHHMMSS_description.sql
-```
+1. créer un commit lisible contenant uniquement les changements du chantier ;
+2. pousser la branche dédiée ;
+3. créer une Pull Request vers `main` et renseigner le template ;
+4. arrêter immédiatement le travail après la création de la Pull Request.
 
-- Le fichier est **commité avec la fonctionnalité** dans la même PR.
-- Il sert de trace reproductible et garde les deux environnements synchronisés.
-- Application / vérification via la CLI Supabase :
-```bash
-supabase db push
-supabase migration list
-```
+Un agent ne merge jamais une Pull Request. Après sa création, il n'attend pas
+GitHub Actions ou Vercel, ne surveille pas les checks distants et ne poursuit
+pas le chantier. Les humains effectuent la revue, vérifient les résultats
+distants et décident du merge.
 
-> Comme la base est partagée, un changement destructeur impacte l'autre.
-> En cas de doute sur une migration risquée, se concerter avant de l'appliquer.
-
----
-
-## 4. Secrets et variables d'environnement
-
-- Les clés vivent **uniquement** dans `.env.local` (ignoré par git — ne jamais le commiter).
-- Modèle des variables attendues : voir `.env.example`.
-- `SUPABASE_SECRET_KEY` est **secrète** : côté serveur uniquement, **jamais** préfixée par `NEXT_PUBLIC_`, jamais dans le code, jamais dans une PR.
-- Les mêmes valeurs Supabase sont partagées entre les deux développeurs (même projet), transmises par un canal privé.
-- Sur Vercel, ces variables sont configurées dans les réglages du projet (Environment Variables), pas dans le repo.
-- En cas de fuite d'une clé : la régénérer dans Supabase (Settings → API), puis mettre à jour `.env.local` et Vercel.
-
----
-
-## 5. Vérifications avant d'ouvrir une PR
-
-Lancer en local avant de pousser :
-```bash
-npm run typecheck   # types TypeScript
-npm run lint        # règles ESLint
-npm test            # tests unitaires (Vitest)
-```
-La CI relance de son côté le build et les tests e2e smoke sur chaque PR.
-
----
-
-## 6. Contraintes des offres gratuites (Vercel / Supabase)
-
-- **Vercel (Hobby)** : les preview deployments par branche/PR sont inclus. Usage non commercial. Vérifier une fois dans les réglages du projet que les previews sont activés (défaut).
-- **Supabase (Free)** : un projet partagé, quotas limités. Le projet peut se mettre en pause après une période d'inactivité — il suffit de le réactiver depuis le dashboard.
-
----
-
-## 7. Résumé pour un agent de code
-
-Quand tu travailles sur ce repo :
-1. **Ne jamais commiter directement sur `main`.** Toujours créer une branche `feat/…`, `fix/…` ou `chore/…`.
-2. Tout changement de schéma DB = un nouveau fichier dans `supabase/migrations/`, jamais de modif manuelle Supabase.
-3. Ne jamais écrire de secret en dur ni exposer une clé serveur via `NEXT_PUBLIC_`.
-4. Avant de proposer un push : `npm run typecheck`, `npm run lint`, `npm test`.
-5. Livrer le travail via une Pull Request vers `main`, testable sur la preview Vercel.
+Le merge dans `main` et le passage du board à `Done` sont des responsabilités
+humaines.
