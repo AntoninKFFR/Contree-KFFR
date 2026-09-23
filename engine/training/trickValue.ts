@@ -12,11 +12,11 @@ export const TRICK_VALUE_SERIES_LENGTH = 10;
 export const TRICK_VALUE_LAST_TRICK_INDICES = [2, 5, 8] as const;
 const MAX_CANDIDATE_ATTEMPTS = 100;
 type OrdinaryKind = "ordinary" | "has-trump" | "trump-rich" | "cut";
-type SlotKind = OrdinaryKind | "last-trick";
+export type TrickValueSlotKind = OrdinaryKind | "last-trick";
 
 // Each slot has its own seed lane. The categories are deliberately separate slots:
 // cuts also contain trump, so levels 1 and 2 get at least six and five trump situations respectively.
-export const TRICK_VALUE_LEVEL_SLOTS: Record<TrickValueLevel, readonly SlotKind[]> = {
+export const TRICK_VALUE_LEVEL_SLOTS: Record<TrickValueLevel, readonly TrickValueSlotKind[]> = {
   1: ["has-trump", "cut", "ordinary", "has-trump", "ordinary", "cut", "has-trump", "ordinary", "has-trump", "ordinary"],
   2: ["trump-rich", "cut", "last-trick", "ordinary", "trump-rich", "last-trick", "cut", "ordinary", "last-trick", "trump-rich"],
 };
@@ -102,7 +102,7 @@ function finishRound(position: TrainingPosition): GameState {
   return state;
 }
 
-function matchesSlot(exercise: TrickValueExercise, kind: SlotKind): boolean {
+function matchesSlot(exercise: TrickValueExercise, kind: TrickValueSlotKind): boolean {
   const classification = classifyTrickValueExercise(exercise);
   if (kind === "last-trick") return exercise.isLastTrick && !exercise.isCapot && exercise.bonusPoints === 10;
   if (exercise.isLastTrick) return false;
@@ -112,7 +112,7 @@ function matchesSlot(exercise: TrickValueExercise, kind: SlotKind): boolean {
   return classification.trumpCount === 0;
 }
 
-function selectExercise(seed: number, requestedVersion: number, kind: SlotKind): TrickValueExercise {
+export function selectTrickValueExercise(seed: number, requestedVersion: number, kind: TrickValueSlotKind): TrickValueExercise {
   for (let attempt = 0; attempt < MAX_CANDIDATE_ATTEMPTS; attempt += 1) {
     const candidateSeed = seed + attempt * TRICK_VALUE_SERIES_LENGTH;
     const position = generateTrainingPosition({ seed: candidateSeed, generatorVersion: requestedVersion });
@@ -135,5 +135,5 @@ function selectExercise(seed: number, requestedVersion: number, kind: SlotKind):
 export function generateTrickValueSeries(options: TrickValueSeriesOptions): TrickValueExercise[] {
   const { seed, level, generatorVersion: requestedVersion } = options;
   if (level !== 1 && level !== 2) throw new Error(`Unknown trick-value level: ${level}`);
-  return TRICK_VALUE_LEVEL_SLOTS[level].map((kind, index) => selectExercise(seed + index, requestedVersion, kind));
+  return TRICK_VALUE_LEVEL_SLOTS[level].map((kind, index) => selectTrickValueExercise(seed + index, requestedVersion, kind));
 }

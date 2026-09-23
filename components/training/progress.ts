@@ -1,15 +1,18 @@
 import type { TrickValueLevel } from "@/engine/training/trickValue";
+import { challengeRunSeed, type ChallengeState, type TrickValueChallengeMode } from "@/engine/training/trickValueChallenge";
 
 export const TRAINING_PROGRESS_KEY = "coinche:training-progress:v1";
 export const PASSING_SCORE = 8;
 
 export type LevelProgress = { bestScore: number; completedSeries: number };
+export type ChallengeProgress = { bestScore: number; bestStreak: number; completedRuns: number };
 export type TrainingProgress = {
   version: 1;
   axes: {
     "trick-value": {
       unlockedLevel: TrickValueLevel;
       levels: Record<TrickValueLevel, LevelProgress>;
+      challenges: Record<TrickValueChallengeMode, ChallengeProgress>;
     };
   };
 };
@@ -26,6 +29,10 @@ export function emptyTrainingProgress(): TrainingProgress {
         levels: {
           1: { bestScore: 0, completedSeries: 0 },
           2: { bestScore: 0, completedSeries: 0 },
+        },
+        challenges: {
+          survival: { bestScore: 0, bestStreak: 0, completedRuns: 0 },
+          blitz: { bestScore: 0, bestStreak: 0, completedRuns: 0 },
         },
       },
     },
@@ -50,6 +57,19 @@ function readLevel(value: unknown): LevelProgress {
   return { bestScore, completedSeries };
 }
 
+function readNonnegativeInteger(value: unknown): number {
+  return Number.isSafeInteger(value) && Number(value) >= 0 ? Number(value) : 0;
+}
+
+function readChallenge(value: unknown): ChallengeProgress {
+  const fields = objectOrNull(value);
+  return {
+    bestScore: readNonnegativeInteger(fields?.bestScore),
+    bestStreak: readNonnegativeInteger(fields?.bestStreak),
+    completedRuns: readNonnegativeInteger(fields?.completedRuns),
+  };
+}
+
 export function parseTrainingProgress(raw: string | null): TrainingProgress {
   if (!raw) return emptyTrainingProgress();
   try {
@@ -63,12 +83,14 @@ export function parseTrainingProgress(raw: string | null): TrainingProgress {
     // The first PR stored a single score and series count. Preview users keep that as level 1.
     const level1 = readLevel(levels ? levels["1"] : axis);
     const level2 = readLevel(levels?.["2"]);
+    const challenges = objectOrNull(axis.challenges);
     return {
       version: 1,
       axes: {
         "trick-value": {
           unlockedLevel: level1.bestScore >= PASSING_SCORE ? 2 : 1,
           levels: { 1: level1, 2: level2 },
+          challenges: { survival: readChallenge(challenges?.survival), blitz: readChallenge(challenges?.blitz) },
         },
       },
     };
@@ -96,6 +118,31 @@ export function isTrickValueLevelUnlocked(progress: TrainingProgress, level: Tri
   return level === 1 || progress.axes["trick-value"].unlockedLevel === 2;
 }
 
+export function isTrickValueChallengeUnlocked(progress: TrainingProgress): boolean {
+  return progress.axes["trick-value"].levels[2].bestScore >= PASSING_SCORE;
+}
+
+export function trainingChallengeRunSeed(progress: TrainingProgress, mode: TrickValueChallengeMode): number {
+  return challengeRunSeed(mode, progress.axes["trick-value"].challenges[mode].completedRuns);
+}
+
+export function recordTrickValueChallengeRun(progress: TrainingProgress, run: ChallengeState): TrainingProgress {
+  if (!run.finished || !Number.isSafeInteger(run.correctAnswers) || run.correctAnswers < 0) {
+    throw new Error("Only a finished challenge run can be recorded.");
+  }
+  const axis = progress.axes["trick-value"];
+  const previous = axis.challenges[run.mode];
+  const updated: ChallengeProgress = {
+    bestScore: Math.max(previous.bestScore, run.correctAnswers),
+    bestStreak: run.mode === "blitz" ? Math.max(previous.bestStreak, run.bestStreak) : 0,
+    completedRuns: previous.completedRuns + 1,
+  };
+  return {
+    version: 1,
+    axes: { "trick-value": { ...axis, challenges: { ...axis.challenges, [run.mode]: updated } } },
+  };
+}
+
 export function recordTrickValueSeries(progress: TrainingProgress, level: TrickValueLevel, score: number): TrainingProgress {
   if (level !== 1 && level !== 2) throw new Error("Invalid trick-value level.");
   if (!Number.isInteger(score) || score < 0 || score > 10) throw new Error("Invalid training score.");
@@ -109,6 +156,7 @@ export function recordTrickValueSeries(progress: TrainingProgress, level: TrickV
       "trick-value": {
         unlockedLevel: levels[1].bestScore >= PASSING_SCORE ? 2 : 1,
         levels,
+        challenges: previous.challenges,
       },
     },
   };
