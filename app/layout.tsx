@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppTopNav } from "@/components/AppTopNav";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
@@ -34,6 +35,7 @@ export default function RootLayout({
           </MusicProvider>
         </PlayerPreferencesProvider>
         {isVercelDeployment ? <SpeedInsights /> : null}
+        {isVercelDeployment ? <Analytics /> : null}
       </body>
     </html>
   );
