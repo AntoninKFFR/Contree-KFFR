@@ -1,92 +1,143 @@
 import { describe, expect, it } from "vitest";
 import { playCard, playableCardsForCurrentPlayer } from "@/engine/game";
-import { cardPoints, trickPoints } from "@/engine/rules";
+import { createSeededRandom } from "@/engine/random";
+import { trickPoints } from "@/engine/rules";
+import { resolveGameRules } from "@/engine/rulesets/resolve";
 import { generateTrainingPosition, generatorVersion } from "@/engine/training/generator";
 import { trainingAxes, isTrainingAxisId } from "@/engine/training/axes";
-import { createTrickValueExercise, generateTrickValueSeries, trickValueAxis } from "@/engine/training/trickValue";
-import type { ContractMode } from "@/engine/types";
 import {
-  emptyTrainingProgress, parseTrainingProgress, readTrainingProgress, recordTrickValueSeries,
-  saveTrainingProgress, TRAINING_PROGRESS_KEY, trickValueSeriesSeed,
+  createTrickValueExercise, generateTrickValueSeries, TRICK_VALUE_LAST_TRICK_INDICES,
+  TRICK_VALUE_SERIES_LENGTH, trickValueAxis,
+} from "@/engine/training/trickValue";
+import {
+  emptyTrainingProgress, isTrickValueLevelUnlocked, parseTrainingProgress, parseTrickValueLevel,
+  readTrainingProgress, recordTrickValueSeries, saveTrainingProgress, TRAINING_PROGRESS_KEY,
+  trickValueSeriesSeed,
 } from "@/components/training/progress";
 
-describe("trick-value training", () => {
-  it("registers only the supported axis and handles unknown ids", () => {
+const series = (level: 1 | 2, seed = 480038) => generateTrickValueSeries({ seed, generatorVersion, level });
+
+describe("trick-value levels", () => {
+  it("registers the axis and validates explicit level selection", () => {
     expect(trainingAxes.resolve("trick-value")).toBe(trickValueAxis);
     expect(isTrainingAxisId("trick-value")).toBe(true);
     expect(isTrainingAxisId("unknown")).toBe(false);
+    expect(parseTrickValueLevel("1")).toBe(1);
+    expect(parseTrickValueLevel("2")).toBe(2);
+    expect(parseTrickValueLevel("3")).toBeNull();
+    expect(parseTrickValueLevel(undefined)).toBeNull();
+    expect(parseTrickValueLevel(["1", "2"])).toBeNull();
   });
 
-  it("produces exactly ten deterministic complete tricks", () => {
-    const first = generateTrickValueSeries(380038);
-    expect(first).toHaveLength(10);
-    expect(first.every((exercise) => exercise.cards.length === 4)).toBe(true);
-    expect(JSON.stringify(first)).toBe(JSON.stringify(generateTrickValueSeries(380038)));
-    expect(first).not.toStrictEqual(generateTrickValueSeries(380048));
-    expect(first.every((exercise) => exercise.generatorVersion === generatorVersion)).toBe(true);
+  it("keeps both levels deterministic, versioned, and limited to suit contracts", () => {
+    for (const level of [1, 2] as const) {
+      const first = series(level);
+      expect(first).toHaveLength(TRICK_VALUE_SERIES_LENGTH);
+      expect(first.every((exercise) => exercise.cards.length === 4)).toBe(true);
+      expect(first.every((exercise) => exercise.contractMode.kind === "suit")).toBe(true);
+      expect(first.every((exercise) => exercise.generatorVersion === generatorVersion)).toBe(true);
+      expect(JSON.stringify(first)).toBe(JSON.stringify(series(level)));
+      expect(first).not.toStrictEqual(series(level, 480048));
+    }
+    expect(series(1)).not.toStrictEqual(series(2));
+    expect(() => generateTrickValueSeries({ seed: 1, generatorVersion, level: 3 as 1 })).toThrow();
+    expect(() => generateTrickValueSeries({ seed: 1, generatorVersion: 2, level: 1 })).toThrow();
   });
 
-  it("uses engine card and trick points in suit, no-trump, and all-trump modes", () => {
+  it("uses only ordinary tricks without a last-trick bonus at level 1", () => {
+    for (const exercise of series(1)) {
+      expect(exercise.trickNumber).toBeLessThan(8);
+      expect(exercise.isLastTrick).toBe(false);
+      expect(exercise.bonusPoints).toBe(0);
+      expect(exercise.answer).toBe(trickPoints(exercise.cards, exercise.contractMode, false));
+    }
+  });
+
+  it("uses three real eighth tricks with the standard bonus and no capot at level 2", () => {
+    const exercises = series(2);
+    expect(exercises.flatMap((exercise, index) => exercise.isLastTrick ? [index] : []))
+      .toEqual([...TRICK_VALUE_LAST_TRICK_INDICES]);
+    for (const exercise of exercises) {
+      expect(exercise.answer).toBe(trickPoints(exercise.cards, exercise.contractMode, exercise.isLastTrick, false));
+      if (!exercise.isLastTrick) continue;
+      expect(exercise.trickNumber).toBe(8);
+      expect(exercise.isCapot).toBe(false);
+      expect(exercise.bonusPoints).toBe(10);
+
+      const random = createSeededRandom(exercise.seed ^ 0x4445524e);
+      let state = generateTrainingPosition({ seed: exercise.seed, generatorVersion }).state;
+      while (state.phase === "playing") {
+        const legal = playableCardsForCurrentPlayer(state);
+        state = playCard(state, state.currentPlayerId, legal[Math.floor(random() * legal.length)]);
+      }
+      const finalTrick = state.completedTricks[7];
+      expect(state.completedTricks).toHaveLength(8);
+      expect(exercise.cards).toStrictEqual(finalTrick.cards);
+      expect(exercise.answer).toBe(finalTrick.points);
+      expect(exercise.bonusPoints).toBe(resolveGameRules(state.settings).trickScoring.lastTrickBonus);
+    }
+  });
+
+  it("derives a single exercise answer from engine scoring", () => {
     const position = generateTrainingPosition({ seed: 380038, generatorVersion });
-    const modes: ContractMode[] = [
-      { kind: "suit", suit: "hearts" }, { kind: "no-trump" }, { kind: "all-trump" },
-    ];
-    for (const mode of modes) {
-      const exercise = createTrickValueExercise({
-        ...position,
-        state: { ...position.state, contractMode: mode },
-      });
-      expect(exercise.contractMode).toEqual(mode);
-      expect(exercise.answer).toBe(trickPoints(exercise.cards, mode, false));
-      expect(exercise.answer).toBe(exercise.cards.reduce((sum, played) => sum + cardPoints(played.card, mode), 0));
-    }
-  });
-
-  it("counts the last-trick bonus only for an actual eighth trick", () => {
-    const position = generateTrainingPosition({ seed: 380039, generatorVersion });
-    let state = position.state;
-    while (state.phase === "playing") {
-      state = playCard(state, state.currentPlayerId, playableCardsForCurrentPlayer(state)[0]);
-    }
-    expect(state.completedTricks).toHaveLength(8);
-    const exercise = createTrickValueExercise({ ...position, state });
-    expect(exercise.isLastTrick).toBe(true);
-    expect(exercise.bonusPoints).toBeGreaterThan(0);
-    expect(exercise.answer).toBe(state.completedTricks[7].points);
-    const earlier = createTrickValueExercise({ ...position, state: { ...state, phase: "playing", completedTricks: state.completedTricks.slice(0, 7) } });
-    expect(earlier.isLastTrick).toBe(false);
-    expect(earlier.answer).toBe(trickPoints(earlier.cards, earlier.contractMode, false));
+    const exercise = createTrickValueExercise(position);
+    expect(exercise.answer).toBe(trickPoints(exercise.cards, exercise.contractMode, false));
   });
 });
 
-describe("local training progress", () => {
-  it("recovers from absent, invalid, partial, and inaccessible storage", () => {
+describe("local progress by level", () => {
+  it("keeps level 1 open and locks level 2 until level 1 reaches eight", () => {
+    const initial = emptyTrainingProgress();
+    expect(isTrickValueLevelUnlocked(initial, 1)).toBe(true);
+    expect(isTrickValueLevelUnlocked(initial, 2)).toBe(false);
+    const seven = recordTrickValueSeries(initial, 1, 7);
+    expect(isTrickValueLevelUnlocked(seven, 2)).toBe(false);
+    const eight = recordTrickValueSeries(initial, 1, 8);
+    expect(isTrickValueLevelUnlocked(eight, 1)).toBe(true);
+    expect(isTrickValueLevelUnlocked(eight, 2)).toBe(true);
+    expect(isTrickValueLevelUnlocked(recordTrickValueSeries(initial, 1, 10), 2)).toBe(true);
+    expect(isTrickValueLevelUnlocked(recordTrickValueSeries(initial, 2, 10), 2)).toBe(false);
+    expect(isTrickValueLevelUnlocked(recordTrickValueSeries(eight, 1, 0), 2)).toBe(true);
+  });
+
+  it("tracks best scores, series counts, and future seeds independently", () => {
+    const initial = emptyTrainingProgress();
+    const level1Seed = trickValueSeriesSeed(initial, 1);
+    const level2Seed = trickValueSeriesSeed(initial, 2);
+    const afterOne = recordTrickValueSeries(initial, 1, 8);
+    expect(afterOne.axes["trick-value"].levels[1]).toEqual({ bestScore: 8, completedSeries: 1 });
+    expect(afterOne.axes["trick-value"].levels[2]).toEqual({ bestScore: 0, completedSeries: 0 });
+    expect(trickValueSeriesSeed(afterOne, 1)).not.toBe(level1Seed);
+    expect(trickValueSeriesSeed(afterOne, 2)).toBe(level2Seed);
+    const afterTwo = recordTrickValueSeries(afterOne, 2, 9);
+    expect(afterTwo.axes["trick-value"].levels[1]).toEqual(afterOne.axes["trick-value"].levels[1]);
+    expect(afterTwo.axes["trick-value"].levels[2]).toEqual({ bestScore: 9, completedSeries: 1 });
+    expect(trickValueSeriesSeed(afterTwo, 1)).toBe(trickValueSeriesSeed(afterOne, 1));
+    expect(trickValueSeriesSeed(afterTwo, 2)).not.toBe(level2Seed);
+    const replayOne = recordTrickValueSeries(afterTwo, 1, 7);
+    expect(replayOne.axes["trick-value"].levels[1].bestScore).toBe(8);
+    expect(replayOne.axes["trick-value"].levels[2].bestScore).toBe(9);
+    expect(replayOne.axes["trick-value"].levels[2].completedSeries).toBe(1);
+  });
+
+  it("recovers from invalid or partial storage and reads the earlier PR shape", () => {
     expect(parseTrainingProgress(null)).toEqual(emptyTrainingProgress());
     expect(parseTrainingProgress("{invalid")).toEqual(emptyTrainingProgress());
     expect(parseTrainingProgress('{"version":1,"axes":{}}')).toEqual(emptyTrainingProgress());
-    expect(parseTrainingProgress('{"version":1,"axes":{"trick-value":{"bestScore":8}}}').axes["trick-value"])
-      .toEqual({ bestScore: 8, completedSeries: 0, unlockedLevel: 2 });
+    const legacy = parseTrainingProgress('{"version":1,"axes":{"trick-value":{"bestScore":8,"completedSeries":3,"unlockedLevel":2}}}');
+    expect(legacy.axes["trick-value"].levels[1]).toEqual({ bestScore: 8, completedSeries: 3 });
+    expect(legacy.axes["trick-value"].levels[2]).toEqual({ bestScore: 0, completedSeries: 0 });
+    expect(isTrickValueLevelUnlocked(legacy, 2)).toBe(true);
     expect(readTrainingProgress({ getItem: () => { throw new Error("blocked"); } })).toEqual(emptyTrainingProgress());
     expect(() => saveTrainingProgress(emptyTrainingProgress(), { setItem: () => { throw new Error("blocked"); } })).not.toThrow();
   });
 
-  it("saves a versioned value under the required key", () => {
+  it("saves the per-level format under the required key", () => {
     let key = "";
     let raw = "";
-    const progress = recordTrickValueSeries(emptyTrainingProgress(), 8);
+    const progress = recordTrickValueSeries(emptyTrainingProgress(), 1, 8);
     saveTrainingProgress(progress, { setItem: (nextKey, value) => { key = nextKey; raw = value; } });
     expect(key).toBe(TRAINING_PROGRESS_KEY);
     expect(readTrainingProgress({ getItem: () => raw })).toEqual(progress);
-  });
-
-  it("unlocks at eight of ten, preserves the best score, and advances the series seed", () => {
-    const seven = recordTrickValueSeries(emptyTrainingProgress(), 7);
-    expect(seven.axes["trick-value"].unlockedLevel).toBe(1);
-    const eight = recordTrickValueSeries(emptyTrainingProgress(), 8);
-    expect(eight.axes["trick-value"].unlockedLevel).toBe(2);
-    expect(recordTrickValueSeries(emptyTrainingProgress(), 10).axes["trick-value"].unlockedLevel).toBe(2);
-    expect(recordTrickValueSeries(eight, 7).axes["trick-value"].bestScore).toBe(8);
-    expect(trickValueSeriesSeed(1, eight.axes["trick-value"].completedSeries))
-      .not.toBe(trickValueSeriesSeed(1, 0));
   });
 });
