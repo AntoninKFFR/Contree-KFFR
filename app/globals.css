@@ -426,14 +426,14 @@ summary:focus-visible {
 .coinche-scene-bidding .coinche-bidding-panel { border-color: rgb(234 216 166 / 45%); box-shadow: 0 16px 36px rgb(0 0 0 / 28%); }
 .coinche-trick-area { width: 190px; height: 170px; pointer-events: none; }
 .coinche-trick-card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(var(--card-rotation)); }
-.coinche-trick-card--top { --card-rotation: -2deg; margin-top: -53px; margin-left: -6px; z-index: 1; }
-.coinche-trick-card--right { --card-rotation: 4deg; margin-top: -3px; margin-left: 37px; z-index: 2; }
-.coinche-trick-card--bottom { --card-rotation: 1deg; margin-top: 45px; margin-left: 5px; z-index: 4; }
-.coinche-trick-card--left { --card-rotation: -4deg; margin-top: 2px; margin-left: -38px; z-index: 3; }
-@keyframes coinche-play-from-top { from { opacity: 0; transform: translateY(-38px) rotate(-7deg) scale(.92); } }
-@keyframes coinche-play-from-right { from { opacity: 0; transform: translateX(48px) rotate(9deg) scale(.92); } }
-@keyframes coinche-play-from-bottom { from { opacity: 0; transform: translateY(55px) rotate(5deg) scale(.92); } }
-@keyframes coinche-play-from-left { from { opacity: 0; transform: translateX(-48px) rotate(-9deg) scale(.92); } }
+.coinche-trick-card--top { --card-rotation: -2deg; margin-top: -53px; margin-left: -6px; }
+.coinche-trick-card--right { --card-rotation: 4deg; margin-top: -3px; margin-left: 37px; }
+.coinche-trick-card--bottom { --card-rotation: 1deg; margin-top: 45px; margin-left: 5px; }
+.coinche-trick-card--left { --card-rotation: -4deg; margin-top: 2px; margin-left: -38px; }
+@keyframes coinche-play-from-top { from { opacity: 0; transform: translateY(calc(-1 * clamp(90px, 28vh, 260px))) rotate(-7deg) scale(.92); } }
+@keyframes coinche-play-from-right { from { opacity: 0; transform: translateX(clamp(90px, 30vw, 420px)) rotate(9deg) scale(.92); } }
+@keyframes coinche-play-from-bottom { from { opacity: 0; transform: translateY(clamp(90px, 24vh, 240px)) rotate(5deg) scale(.92); } }
+@keyframes coinche-play-from-left { from { opacity: 0; transform: translateX(calc(-1 * clamp(90px, 30vw, 420px))) rotate(-9deg) scale(.92); } }
 .coinche-card-play-from-top { animation: coinche-play-from-top 240ms ease-out both; }
 .coinche-card-play-from-right { animation: coinche-play-from-right 240ms ease-out both; }
 .coinche-card-play-from-bottom { animation: coinche-play-from-bottom 240ms ease-out both; }

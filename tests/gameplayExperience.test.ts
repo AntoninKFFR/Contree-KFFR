@@ -2,7 +2,7 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BiddingPanel } from "@/components/BiddingPanel";
-import { GameTable, tableSeatsFor } from "@/components/GameTable";
+import { GameTable, LastTrickTable, tableSeatsFor } from "@/components/GameTable";
 import { GameMenuPanel } from "@/components/GameMenuPopover";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { HumanHand } from "@/components/HumanHand";
@@ -126,12 +126,13 @@ describe("premium gameplay shell", () => {
 
   it("keeps human rank identity on the multiplayer table without ranking bots", () => {
     const state = createInitialGame(() => 0.1);
+    state.playerNames = { 0: "Classé", 1: "Bot", 2: "Sans rang", 3: "Reprise" };
     const players: RoomPlayerView[] = [
       { seat_index: 0, kind: "human", display_name: "Classé", is_ready: true, is_connected: true,
         bot_takeover: false, is_host: true, is_ranked: true, rating: 1450, rank: "Sait jouer II" },
       { seat_index: 1, kind: "bot", display_name: "Bot", is_ready: true, is_connected: true,
         bot_takeover: false, is_host: false, is_ranked: false, rating: null, rank: null },
-      { seat_index: 2, kind: "human", display_name: "Placement", is_ready: true, is_connected: true,
+      { seat_index: 2, kind: "human", display_name: "Sans rang", is_ready: true, is_connected: true,
         bot_takeover: false, is_host: false, is_ranked: false, rating: null, rank: null },
       { seat_index: 3, kind: "human", display_name: "Reprise", is_ready: true, is_connected: false,
         bot_takeover: true, is_host: false, is_ranked: true, rating: 1600, rank: "Capot de Capi IV" },
@@ -140,8 +141,41 @@ describe("premium gameplay shell", () => {
     expect(markup.match(/data-rank-family=/g)).toHaveLength(2);
     expect(markup).toContain("Sait jouer II");
     expect(markup).toContain("Capot de Capi IV");
-    expect(markup).toContain("Placement");
+    expect(markup).toContain("Sans rang");
+    expect(markup).not.toContain("Placement");
     expect(markup).toContain("Bot temporaire");
+  });
+
+  it("shows the real multiplayer turn countdown only beside the active player", () => {
+    const state = createInitialGame(() => 0.1);
+    state.phase = "playing";
+    state.currentPlayerId = 2;
+    const markup = withPreferences(React.createElement(GameTable, { state, turnSecondsRemaining: 37 }));
+    expect(markup.match(/role="timer"/g)).toHaveLength(1);
+    expect(markup).toContain('aria-label="37 secondes restantes avant le coup automatique"');
+    expect(markup).toContain("⏱ 37 s");
+    expect(withPreferences(React.createElement(GameTable, { state }))).not.toContain('role="timer"');
+  });
+
+  it("lays out the last trick as a seat-relative table with play-order depth and no entrance animation", () => {
+    const state = createInitialGame(() => 0.1);
+    const played = [2, 3, 0, 1].map((playerId, index) => ({
+      playerId: playerId as 0 | 1 | 2 | 3,
+      card: state.hands[0][index],
+    }));
+    const trick = { leaderId: 2 as const, cards: played, winnerId: 3 as const, points: 24 };
+    const markup = withPreferences(React.createElement(LastTrickTable, {
+      trick, seats: tableSeatsFor(state), nameFor: (id) => `Joueur ${id}`, onClose: () => undefined,
+    }));
+    expect(markup).toContain('aria-label="Cartes du dernier pli"');
+    for (const [index, position] of ["top", "left", "bottom", "right"].entries()) {
+      expect(markup).toContain(`coinche-trick-card--${position}`);
+      expect(markup).toContain(`data-play-order="${index + 1}" style="z-index:${index + 1}"`);
+      expect(markup).toContain(`aria-label="Carte ${index + 1}"`);
+    }
+    expect(markup).toContain("Joueur 3 gagne · 24 points");
+    expect(markup).toContain("Fermer");
+    expect(markup).not.toContain("coinche-card-play-from-");
   });
 
   it("keeps only the contract-progress title and primary value", () => {
@@ -198,7 +232,7 @@ describe("premium gameplay shell", () => {
       state: view, hand, optimisticCard: { playerId: 2, card },
     }));
     expect(markup.match(/class="coinche-scene-hand-card"/g)).toHaveLength(7);
-    expect(markup.match(/data-player-id="2"/g)).toHaveLength(1);
+    expect(markup.match(/coinche-trick-card--bottom" data-player-id="2"/g)).toHaveLength(1);
     expect(markup).toContain("coinche-card-play-from-bottom");
   });
 });
