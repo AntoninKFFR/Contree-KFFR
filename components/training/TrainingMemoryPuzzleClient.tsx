@@ -28,6 +28,7 @@ export function TrainingMemoryPuzzleClient({ axisId, level }: { axisId: MemoryAx
   const [grade, setGrade] = useState<MemoryGrade | null>(null);
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [newlyUnlockedLevel, setNewlyUnlockedLevel] = useState<number | null>(null);
 
   useEffect(() => {
     const saved = readTrainingProgress();
@@ -42,7 +43,7 @@ export function TrainingMemoryPuzzleClient({ axisId, level }: { axisId: MemoryAx
     try {
       setSeries(generateMemorySeries({ axisId, level, seed: memorySeriesSeed(saved, axisId, level), generatorVersion }));
       setError(null);
-      setIndex(0); setStudying(true); setSelected([]); setAssignments({}); setGrade(null); setScore(0); setFinished(false);
+      setIndex(0); setStudying(true); setSelected([]); setAssignments({}); setGrade(null); setScore(0); setFinished(false); setNewlyUnlockedLevel(null);
     } catch { setError("Impossible de préparer cette série."); }
   };
   const toggle = (id: string) => {
@@ -62,7 +63,9 @@ export function TrainingMemoryPuzzleClient({ axisId, level }: { axisId: MemoryAx
     if (!series || !progress || !grade) return;
     const nextScore = score + grade.score;
     if (index === MEMORY_SERIES_LENGTH - 1) {
+      const previousUnlockedLevel = progress.axes[axisId].unlockedLevel;
       const updated = recordMemorySeries(progress, axisId, level, nextScore);
+      setNewlyUnlockedLevel(updated.axes[axisId].unlockedLevel > previousUnlockedLevel ? updated.axes[axisId].unlockedLevel : null);
       saveTrainingProgress(updated);
       setProgress(updated);
       setScore(nextScore);
@@ -85,10 +88,10 @@ export function TrainingMemoryPuzzleClient({ axisId, level }: { axisId: MemoryAx
     <h1 className="mt-3 text-3xl font-black">Résultat</h1>
     <p className="mt-5 text-5xl font-black text-[var(--accent)]">{score} / {MEMORY_SERIES_LENGTH}</p>
     <p className="mt-3 text-sm">Meilleur score : {progress.axes[axisId].levels[level].bestScore} / 10</p>
-    {level < progress.axes[axisId].unlockedLevel ? <p className="mt-3 font-bold text-[var(--success)]">Niveau {level + 1} débloqué !</p> : null}
+    {newlyUnlockedLevel !== null ? <p className="mt-3 font-bold text-[var(--success)]">Niveau {newlyUnlockedLevel} débloqué !</p> : null}
     <div className="mt-6 flex flex-wrap justify-center gap-2">
       <button className={appPrimaryActionClass} onClick={() => startSeries(progress)} type="button">Rejouer</button>
-      {level < progress.axes[axisId].unlockedLevel ? <Link className={appSecondaryActionClass} href={`/training/puzzle/${axisId}?level=${level + 1}`}>Niveau {level + 1}</Link> : null}
+      {newlyUnlockedLevel !== null ? <Link className={appSecondaryActionClass} href={`/training/puzzle/${axisId}?level=${newlyUnlockedLevel}`}>Niveau {newlyUnlockedLevel}</Link> : null}
       <Link className={appSecondaryActionClass} href="/training">Retour à l’entraînement</Link>
     </div>
   </AppSurface></AppPage>;

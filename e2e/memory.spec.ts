@@ -3,6 +3,7 @@ import { cardId } from "@/engine/cards";
 import { cardAccessibleName } from "@/components/training/CardSelection";
 import { generatorVersion } from "@/engine/training/generator";
 import { generateMemorySeries } from "@/engine/training/memory";
+import { emptyTrainingProgress, memorySeriesSeed } from "@/components/training/progress";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 
 const progress = {
@@ -54,6 +55,32 @@ test("@smoke master cards moves from observation to selection and useful correct
   await expect(question.getByText("Cartes oubliées :")).toBeVisible();
   await expect(question.getByText("Cartes en trop :")).toBeVisible();
   expect(reactWarnings).toEqual([]);
+  monitor.assertClean();
+});
+
+test("@smoke memory result announces only a newly unlocked level, not a replay", async ({ page }) => {
+  const monitor = monitorBrowserErrors(page);
+  const initial = emptyTrainingProgress();
+  const firstSeries = generateMemorySeries({ axisId: "master-cards", level: 1, seed: memorySeriesSeed(initial, "master-cards", 1), generatorVersion });
+  await page.goto("/training/puzzle/master-cards?level=1");
+  for (const [index, exercise] of firstSeries.entries()) {
+    await page.getByRole("button", { name: "Répondre" }).click();
+    const correctCard = exercise.candidates.find((card) => cardId(card) === exercise.expectedIds[0])!;
+    await page.getByRole("region", { name: "Question mémoire" }).getByRole("button", { name: cardAccessibleName(correctCard) }).click();
+    await page.getByRole("button", { name: "Valider la réponse" }).click();
+    await page.getByRole("button", { name: index === 9 ? "Voir le résultat" : "Exercice suivant" }).click();
+  }
+  await expect(page.getByText("Niveau 2 débloqué !")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Niveau 2", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Rejouer" }).click();
+  for (let index = 0; index < 10; index += 1) {
+    await page.getByRole("button", { name: "Répondre" }).click();
+    await page.getByRole("button", { name: "Valider : aucune carte" }).click();
+    await page.getByRole("button", { name: index === 9 ? "Voir le résultat" : "Exercice suivant" }).click();
+  }
+  await expect(page.getByRole("heading", { name: "Résultat" })).toBeVisible();
+  await expect(page.getByText(/Niveau \d+ débloqué !/)).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Niveau 2", exact: true })).toHaveCount(0);
   monitor.assertClean();
 });
 
