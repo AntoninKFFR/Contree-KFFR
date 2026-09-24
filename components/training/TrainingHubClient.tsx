@@ -10,6 +10,24 @@ import {
 } from "@/components/training/progress";
 import { PILE_COUNT_MODES, PILE_COUNT_SERIES_LENGTH, type PileCountMode } from "@/engine/training/pileCount";
 import type { TrickValueChallengeMode } from "@/engine/training/trickValueChallenge";
+import { MEMORY_AXIS_IDS, MEMORY_LABELS, MEMORY_LEVELS, type MemoryAxisId } from "@/engine/training/memory";
+
+function MemoryCard({ axisId, progress }: { axisId: MemoryAxisId; progress: TrainingProgress | null }) {
+  const axis = progress?.axes[axisId];
+  const level = axis?.unlockedLevel ?? 1;
+  const record = axis?.levels[level];
+  return <article className="flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 sm:p-5">
+    <h3 className="text-lg font-black">{MEMORY_LABELS[axisId]}</h3>
+    <p className="mt-2 text-sm text-[var(--text-secondary)]">Niveau débloqué : {level}</p>
+    <p className="mt-1 flex-1 text-sm">{record?.completedSeries ? `Meilleur score : ${record.bestScore} / 10` : "Record à établir"}</p>
+    <div className="mt-3 flex flex-wrap gap-1.5" aria-label={`Niveaux de ${MEMORY_LABELS[axisId]}`}>
+      {Array.from({ length: MEMORY_LEVELS[axisId] }, (_, index) => index + 1).map((availableLevel) => availableLevel <= level
+        ? <Link key={availableLevel} className="rounded-md border border-[var(--border)] px-2 py-1 text-xs font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]" href={`/training/puzzle/${axisId}?level=${availableLevel}`}>Niveau {availableLevel}</Link>
+        : <span key={availableLevel} className="rounded-md border border-[var(--border)] px-2 py-1 text-xs text-[var(--text-secondary)]">Niveau {availableLevel} 🔒</span>)}
+    </div>
+    <Link className={`${appPrimaryActionClass} mt-4 w-full`} href={`/training/puzzle/${axisId}?level=${level}`}>Jouer</Link>
+  </article>;
+}
 
 function PileCountModeCard({ mode, progress }: { mode: PileCountMode; progress: TrainingProgress | null }) {
   const copy = PILE_COUNT_MODE_COPY[mode];
@@ -93,6 +111,10 @@ export function TrainingHubClient() {
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <ChallengeCard mode="survival" progress={progress} unlocked={challengesUnlocked} />
         <ChallengeCard mode="blitz" progress={progress} unlocked={challengesUnlocked} />
+      </div>
+      <div className="mt-7"><AppEyebrow>Mémoriser</AppEyebrow></div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {MEMORY_AXIS_IDS.map((axisId) => <MemoryCard key={axisId} axisId={axisId} progress={progress} />)}
       </div>
     </AppSurface>
     <AppSurface className="mt-4">

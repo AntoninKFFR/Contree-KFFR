@@ -1,6 +1,7 @@
 import { parsePileCountMode, PILE_COUNT_SEED_STRIDE, PILE_COUNT_SERIES_LENGTH, type PileCountMode } from "@/engine/training/pileCount";
 import type { TrickValueLevel } from "@/engine/training/trickValue";
 import { challengeRunSeed, type ChallengeState, type TrickValueChallengeMode } from "@/engine/training/trickValueChallenge";
+import { MEMORY_AXIS_IDS, MEMORY_LEVELS, type MemoryAxisId } from "@/engine/training/memory";
 
 export const TRAINING_PROGRESS_KEY = "coinche:training-progress:v1";
 export const PASSING_SCORE = 8;
@@ -16,9 +17,10 @@ export type PileCountProgress = {
     manual: { completedSeries: number; bestTimeMs: number | null };
   };
 };
+export type MemoryAxisProgress = { unlockedLevel: number; levels: Record<number, LevelProgress> };
 export type TrainingProgress = {
   version: 1;
-  axes: {
+  axes: Record<MemoryAxisId, MemoryAxisProgress> & {
     "trick-value": {
       unlockedLevel: TrickValueLevel;
       levels: Record<TrickValueLevel, LevelProgress>;
@@ -47,9 +49,14 @@ type StorageReader = Pick<Storage, "getItem">;
 type StorageWriter = Pick<Storage, "setItem">;
 
 export function emptyTrainingProgress(): TrainingProgress {
+  const memoryAxes = Object.fromEntries(MEMORY_AXIS_IDS.map((id) => [id, {
+    unlockedLevel: 1,
+    levels: Object.fromEntries(Array.from({ length: MEMORY_LEVELS[id] }, (_, index) => [index + 1, { bestScore: 0, completedSeries: 0 }])),
+  }])) as Record<MemoryAxisId, MemoryAxisProgress>;
   return {
     version: 1,
     axes: {
+      ...memoryAxes,
       "trick-value": {
         unlockedLevel: 1,
         levels: {
@@ -64,6 +71,30 @@ export function emptyTrainingProgress(): TrainingProgress {
       "pile-count": emptyPileCountProgress(),
     },
   };
+}
+
+function readMemoryLevel(value: unknown): LevelProgress {
+  const fields = objectOrNull(value);
+  const score = fields?.bestScore;
+  return {
+    bestScore: typeof score === "number" && Number.isFinite(score) && score >= 0 && score <= 10 ? score : 0,
+    completedSeries: readNonnegativeInteger(fields?.completedSeries),
+  };
+}
+
+function readMemoryAxes(axes: Record<string, unknown> | null): Record<MemoryAxisId, MemoryAxisProgress> {
+  return Object.fromEntries(MEMORY_AXIS_IDS.map((id) => {
+    const stored = objectOrNull(axes?.[id]);
+    const storedLevels = objectOrNull(stored?.levels);
+    const levels = Object.fromEntries(Array.from({ length: MEMORY_LEVELS[id] }, (_, index) => [
+      index + 1, readMemoryLevel(storedLevels?.[String(index + 1)]),
+    ])) as Record<number, LevelProgress>;
+    let earnedLevel = 1;
+    while (earnedLevel < MEMORY_LEVELS[id] && levels[earnedLevel].bestScore >= PASSING_SCORE) earnedLevel += 1;
+    const savedLevel = typeof stored?.unlockedLevel === "number" && Number.isInteger(stored.unlockedLevel)
+      ? Math.min(MEMORY_LEVELS[id], Math.max(1, stored.unlockedLevel)) : 1;
+    return [id, { unlockedLevel: Math.max(earnedLevel, savedLevel), levels }];
+  })) as Record<MemoryAxisId, MemoryAxisProgress>;
 }
 
 function storageOrNull(): Storage | null {
@@ -136,6 +167,7 @@ export function parseTrainingProgress(raw: string | null): TrainingProgress {
     return {
       version: 1,
       axes: {
+        ...readMemoryAxes(axes),
         "trick-value": parseTrickValueAxis(axes?.["trick-value"]),
         "pile-count": parsePileCountAxis(axes?.["pile-count"]),
       },
@@ -207,6 +239,28 @@ export function recordTrickValueSeries(progress: TrainingProgress, level: TrickV
       },
     },
   };
+}
+
+export function isMemoryLevelUnlocked(progress: TrainingProgress, axisId: MemoryAxisId, level: number): boolean {
+  return Number.isInteger(level) && level >= 1 && level <= progress.axes[axisId].unlockedLevel;
+}
+
+export function recordMemorySeries(progress: TrainingProgress, axisId: MemoryAxisId, level: number, score: number): TrainingProgress {
+  if (!isMemoryLevelUnlocked(progress, axisId, level) || !Number.isFinite(score) || score < 0 || score > 10) {
+    throw new Error("Invalid memory series result.");
+  }
+  const previous = progress.axes[axisId];
+  const oldLevel = previous.levels[level];
+  const bestScore = Math.max(oldLevel.bestScore, score);
+  const levels = { ...previous.levels, [level]: { bestScore, completedSeries: oldLevel.completedSeries + 1 } };
+  const unlockedLevel = bestScore >= PASSING_SCORE ? Math.min(MEMORY_LEVELS[axisId], Math.max(previous.unlockedLevel, level + 1)) : previous.unlockedLevel;
+  return { ...progress, axes: { ...progress.axes, [axisId]: { unlockedLevel, levels } } };
+}
+
+export function memorySeriesSeed(progress: TrainingProgress, axisId: MemoryAxisId, level: number): number {
+  if (!isMemoryLevelUnlocked(progress, axisId, level)) throw new Error("Memory level is locked.");
+  const lane = MEMORY_AXIS_IDS.indexOf(axisId);
+  return 1_000_000 + lane * 1_000_000_000 + level * 10_000_000 + progress.axes[axisId].levels[level].completedSeries * 1_000;
 }
 
 export function trickValueSeriesSeed(progress: TrainingProgress, level: TrickValueLevel): number {
