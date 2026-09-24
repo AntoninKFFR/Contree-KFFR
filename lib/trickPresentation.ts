@@ -14,8 +14,63 @@ export type CardPresentation = {
   newKeys: string[];
 };
 
+export type TrickLayer = {
+  key: string;
+  kind: "completed" | "queued" | "current";
+  cards: PlayedCard[];
+  optimisticKey: string | null;
+};
+
 export function playedCardKey(played: PlayedCard): string {
   return `${played.playerId}-${cardId(played.card)}`;
+}
+
+/** A completed trick and the following live trick retain separate, stable React keys. */
+export function selectTrickLayers(input: {
+  scope: string;
+  roundNumber: number;
+  completedCount: number;
+  currentCards: PlayedCard[];
+  presented: PresentedTrick | null;
+  followingCompletedTricks?: CompletedTrick[];
+  optimisticCard?: PlayedCard | null;
+}): TrickLayer[] {
+  const completedCards = input.presented?.trick.cards ?? [];
+  const optimisticKey = input.optimisticCard ? playedCardKey(input.optimisticCard) : null;
+  const alreadyCompleted = optimisticKey !== null && [input.presented?.trick, ...(input.followingCompletedTricks ?? [])]
+    .some((trick) => trick?.cards.some((played) => playedCardKey(played) === optimisticKey));
+  const currentCards = optimisticKey
+    && !alreadyCompleted
+    && !input.currentCards.some((played) => playedCardKey(played) === optimisticKey)
+    ? [...input.currentCards, input.optimisticCard!]
+    : input.currentCards;
+  const current: TrickLayer = {
+    key: `${input.scope}-${input.roundNumber}-${input.completedCount + 1}`,
+    kind: "current",
+    cards: currentCards,
+    optimisticKey: optimisticKey && currentCards.some((played) => playedCardKey(played) === optimisticKey) ? optimisticKey : null,
+  };
+  return input.presented ? [
+    {
+      key: `${input.scope}-${input.roundNumber}-${input.presented.trickIndex}`,
+      kind: "completed", cards: completedCards, optimisticKey: null,
+    },
+    ...(input.followingCompletedTricks ?? []).map((trick, index): TrickLayer => ({
+      key: `${input.scope}-${input.roundNumber}-${input.presented!.trickIndex + index + 1}`,
+      kind: "queued", cards: trick.cards, optimisticKey: null,
+    })),
+    current,
+  ] : [current];
+}
+
+export function planTrickLayerPresentations(
+  previous: ReadonlyMap<string, CardPresentation>,
+  layers: readonly TrickLayer[],
+  animationEnabled: boolean,
+): Map<string, CardPresentation> {
+  return new Map(layers.map((layer) => [layer.key, planCardPresentation(
+    previous.get(layer.key) ?? null, layer.key, layer.cards, animationEnabled, layer.optimisticKey,
+  )]));
 }
 
 /** Keep the animation decision attached to a card for the entire visual trick. */

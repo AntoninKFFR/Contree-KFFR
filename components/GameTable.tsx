@@ -24,9 +24,9 @@ import type { RoomPlayerView } from "@/lib/roomTypes";
 import {
   observeCompletedTricks,
   currentTrickLeaderId,
-  planCardPresentation,
+  planTrickLayerPresentations,
   playedCardKey,
-  selectVisualTrick,
+  selectTrickLayers,
   type CardPresentation,
   type PresentedTrick,
   type TrickObservation,
@@ -329,7 +329,7 @@ export function GameTable({
 }: GameTableProps) {
   const { effectiveReducedMotion, preferences } = usePlayerPreferences();
   const observationRef = useRef<TrickObservation | null>(null);
-  const cardPresentationRef = useRef<CardPresentation | null>(null);
+  const cardPresentationRef = useRef<Map<string, CardPresentation>>(new Map());
   const soundPreferencesRef = useRef(preferences);
   const soundObservationRef = useRef<{ bids: number; plays: number; round: number; scope: string } | null>(null);
   const pendingTricksRef = useRef<PresentedTrick[]>([]);
@@ -339,20 +339,18 @@ export function GameTable({
   const [showLastTrick, setShowLastTrick] = useState(false);
   const seats = tableSeatsFor(state);
   const completionInput = { completedTricks: state.completedTricks, roundNumber: state.roundNumber, scope: presentationScope };
-  const unseenTrick = observeCompletedTricks(observationRef.current, completionInput).additions[0] ?? null;
-  const presentedTrick = animatedCompletedTrick ?? unseenTrick;
-  const visualTrick = selectVisualTrick(state.currentTrick.cards, presentedTrick);
-  const withOptimisticCard = (cards: PlayedCard[]) => optimisticCard && !cards.some((played) =>
-    played.playerId === optimisticCard.playerId && played.card.rank === optimisticCard.card.rank && played.card.suit === optimisticCard.card.suit)
-    ? [...cards, optimisticCard] : cards;
-  const displayedTrickCards = presentedTrick ? visualTrick.cards : withOptimisticCard(visualTrick.cards);
-  const visualTrickKey = `${presentationScope}-${state.roundNumber}-${presentedTrick?.trickIndex ?? state.completedTricks.length + 1}`;
+  const completionTransition = observeCompletedTricks(observationRef.current, completionInput);
+  const presentedTrick = completionTransition.reset ? null : animatedCompletedTrick ?? completionTransition.additions[0] ?? null;
+  const trickLayers = selectTrickLayers({
+    scope: presentationScope, roundNumber: state.roundNumber, completedCount: state.completedTricks.length,
+    currentCards: state.currentTrick.cards, presented: presentedTrick,
+    followingCompletedTricks: presentedTrick ? state.completedTricks.slice(presentedTrick.trickIndex) : [],
+    optimisticCard,
+  });
   const cardPlayEnabled = isPreferenceAnimationEnabled(preferences, "card-play", effectiveReducedMotion);
-  const cardPresentation = planCardPresentation(cardPresentationRef.current, visualTrickKey, displayedTrickCards,
-    cardPlayEnabled, optimisticCard && !presentedTrick ? playedCardKey(optimisticCard) : null);
-  const animatedCardKeys = new Set(cardPresentation.animatedKeys);
+  const cardPresentations = planTrickLayerPresentations(cardPresentationRef.current, trickLayers, cardPlayEnabled);
   const leadPlayerId = currentTrickLeaderId(state);
-  useEffect(() => { cardPresentationRef.current = cardPresentation; });
+  useEffect(() => { cardPresentationRef.current = cardPresentations; });
   const nameFor = (playerId: PlayerId) => playerName(playerId, state.playerNames);
   const inactiveMessage = inactivePlayerMessage(state);
   const connectionFor = (playerId: PlayerId) => {
@@ -491,15 +489,20 @@ export function GameTable({
         immersiveMobileLandscape ? "rounded-none border-0 shadow-none" : "",
       ].join(" ")}
     >
-      <div className={`pointer-events-none absolute inset-0 z-20 ${animatedCompletedTrick && effectiveTrickPresentationPolicy.autoCollect && isPreferenceAnimationEnabled(preferences, "trick", effectiveReducedMotion) ? "coinche-trick-collect" : ""}`}
-        style={animatedCompletedTrick ? {
-          "--coinche-trick-collect-x": trickCollectionOffset(animatedCompletedTrick.trick.winnerId, seats).x,
-          "--coinche-trick-collect-y": trickCollectionOffset(animatedCompletedTrick.trick.winnerId, seats).y,
-          animationDelay: cardPlayEnabled ? `${Math.min(240, effectiveTrickPresentationPolicy.delayMs)}ms` : undefined,
-          animationDuration: `${Math.max(0, effectiveTrickPresentationPolicy.delayMs - (cardPlayEnabled ? 240 : 0))}ms`,
-        } as React.CSSProperties : undefined}>
-        <TrickCenter animatedKeys={animatedCardKeys} cards={displayedTrickCards} seats={seats} />
-      </div>
+      {trickLayers.map((layer, layerIndex) => {
+        const collecting = layer.kind === "completed" && animatedCompletedTrick && effectiveTrickPresentationPolicy.autoCollect;
+        const offset = collecting ? trickCollectionOffset(animatedCompletedTrick.trick.winnerId, seats) : null;
+        return <div className={`pointer-events-none absolute inset-0 ${collecting && isPreferenceAnimationEnabled(preferences, "trick", effectiveReducedMotion) ? "coinche-trick-collect" : ""}`}
+          data-trick-key={layer.key} data-trick-layer={layer.kind} key={layer.key}
+          style={{ zIndex: 20 + layerIndex, ...(offset ? {
+            "--coinche-trick-collect-x": offset.x,
+            "--coinche-trick-collect-y": offset.y,
+            animationDelay: cardPlayEnabled ? `${Math.min(240, effectiveTrickPresentationPolicy.delayMs)}ms` : undefined,
+            animationDuration: `${Math.max(0, effectiveTrickPresentationPolicy.delayMs - (cardPlayEnabled ? 240 : 0))}ms`,
+          } : {}) } as React.CSSProperties}>
+          <TrickCenter animatedKeys={new Set(cardPresentations.get(layer.key)?.animatedKeys)} cards={layer.cards} seats={seats} />
+        </div>;
+      })}
       {showRoundHelp ? <RoundHelpOverlay showLiveScore={showLiveScore && preferences.assistance.showLivePoints} state={state} /> : null}
       {animatedCompletedTrick && !effectiveTrickPresentationPolicy.autoCollect ? <button className="absolute bottom-2 left-1/2 z-40 -translate-x-1/2 rounded-xl border-2 border-white bg-emerald-950 px-5 py-2.5 text-xs font-bold text-white shadow-xl" onClick={dismissPresentedTrick} type="button"><span className="block">Ramasser le pli</span><span className="block text-[10px] font-normal text-white/80">{nameFor(animatedCompletedTrick.trick.winnerId)} gagne · {animatedCompletedTrick.trick.points} pts</span></button> : null}
       {preferences.assistance.showLastTrick && lastTrick && !presentedTrick ? <button aria-expanded={showLastTrick} className="absolute bottom-2 left-2 z-20 rounded-md border border-white/40 bg-black/40 px-2 py-1 text-[10px] font-semibold text-white shadow" onClick={() => setShowLastTrick((visible) => !visible)} type="button">Dernier pli</button> : null}
