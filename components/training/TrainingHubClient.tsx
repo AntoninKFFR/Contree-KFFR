@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppEyebrow, AppPage, AppSurface, appPrimaryActionClass } from "@/components/ui/AppShell";
-import { PILE_COUNT_MODE_COPY, PILE_COUNT_TITLE } from "@/components/training/pileCountCopy";
+import { formatDuration, PILE_COUNT_MODE_COPY, PILE_COUNT_TITLE } from "@/components/training/pileCountCopy";
 import {
   isPileCountModeUnlocked, isTrickValueChallengeUnlocked, isTrickValueLevelUnlocked, PASSING_SCORE, readTrainingProgress,
   type TrainingProgress,
@@ -15,14 +15,16 @@ function PileCountModeCard({ mode, progress }: { mode: PileCountMode; progress: 
   const copy = PILE_COUNT_MODE_COPY[mode];
   const unlocked = progress ? isPileCountModeUnlocked(progress, mode) : mode !== "normal";
   const saved = progress?.axes["pile-count"].modes;
-  const record = mode === "free" || !saved ? null : saved[mode];
+  const status = !saved ? "" : mode === "free"
+    ? "Sans record"
+    : mode === "manual"
+      ? saved.manual.bestTimeMs !== null ? `Record : ${formatDuration(saved.manual.bestTimeMs)}` : "Record à établir (10/10)"
+      : saved[mode].completedSeries ? `Meilleur score : ${saved[mode].bestScore} / ${PILE_COUNT_SERIES_LENGTH}` : "Accessible";
   return <article className="flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 sm:p-5">
     <h3 className="text-xl font-black">{copy.name}</h3>
     <p className="mt-2 flex-1 text-sm text-[var(--text-secondary)]">{copy.description}</p>
     {unlocked ? <>
-      <p className="mt-4 text-sm font-semibold">
-        {record?.completedSeries ? `Meilleur score : ${record.bestScore} / ${PILE_COUNT_SERIES_LENGTH}` : mode === "free" ? "Sans record" : "Accessible"}
-      </p>
+      <p className="mt-4 text-sm font-semibold">{status}</p>
       <Link aria-label={`${PILE_COUNT_TITLE} en mode ${copy.name}`} className={`${appPrimaryActionClass} mt-4 w-full`} href={`/training/puzzle/pile-count?mode=${mode}`}>Commencer</Link>
     </> : <p className="mt-4 text-sm font-semibold">Réussis {PASSING_SCORE}/{PILE_COUNT_SERIES_LENGTH} en Débutant pour débloquer ce mode.</p>}
   </article>;
@@ -96,7 +98,7 @@ export function TrainingHubClient() {
     <AppSurface className="mt-4">
       <h2 className="text-2xl font-black">{PILE_COUNT_TITLE}</h2>
       <p className="mt-2 text-sm text-[var(--text-secondary)]">Les cartes du tas de ton équipe défilent une à une : compte tes points de fin de donne, 10 de der et belote compris.</p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {PILE_COUNT_MODES.map((mode) => <PileCountModeCard key={mode} mode={mode} progress={progress} />)}
       </div>
     </AppSurface>

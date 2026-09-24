@@ -21,7 +21,7 @@ const MAX_ATTEMPTS = 100;
 /** Series seeds are spaced wider than a series and its retries. */
 export const PILE_COUNT_SEED_STRIDE = PILE_COUNT_SERIES_LENGTH * MAX_ATTEMPTS;
 
-export const PILE_COUNT_MODES = ["beginner", "normal", "free"] as const;
+export const PILE_COUNT_MODES = ["beginner", "normal", "free", "manual"] as const;
 export type PileCountMode = (typeof PILE_COUNT_MODES)[number];
 
 export type PileCountExercise = {

@@ -7,9 +7,14 @@ export const PASSING_SCORE = 8;
 
 export type LevelProgress = { bestScore: number; completedSeries: number };
 export type ChallengeProgress = { bestScore: number; bestStreak: number; completedRuns: number };
-/** Beginner and Normal keep a best score; Free is a sandbox without record. */
+/** Beginner and Normal keep a best score; Free is a sandbox without record; Manual keeps the best 10/10 time. */
 export type PileCountProgress = {
-  modes: { beginner: LevelProgress; normal: LevelProgress; free: { completedSeries: number } };
+  modes: {
+    beginner: LevelProgress;
+    normal: LevelProgress;
+    free: { completedSeries: number };
+    manual: { completedSeries: number; bestTimeMs: number | null };
+  };
 };
 export type TrainingProgress = {
   version: 1;
@@ -23,7 +28,9 @@ export type TrainingProgress = {
   };
 };
 
-const PILE_COUNT_SEED_BASE: Record<PileCountMode, number> = { beginner: 3_000_000, normal: 3_200_000, free: 3_400_000 };
+const PILE_COUNT_SEED_BASE: Record<PileCountMode, number> = {
+  beginner: 3_000_000, normal: 3_200_000, free: 3_400_000, manual: 3_600_000,
+};
 
 function emptyPileCountProgress(): PileCountProgress {
   return {
@@ -31,6 +38,7 @@ function emptyPileCountProgress(): PileCountProgress {
       beginner: { bestScore: 0, completedSeries: 0 },
       normal: { bestScore: 0, completedSeries: 0 },
       free: { completedSeries: 0 },
+      manual: { completedSeries: 0, bestTimeMs: null },
     },
   };
 }
@@ -106,11 +114,14 @@ function parseTrickValueAxis(value: unknown): TrainingProgress["axes"]["trick-va
 
 function parsePileCountAxis(value: unknown): PileCountProgress {
   const modes = objectOrNull(objectOrNull(value)?.modes);
+  const manual = objectOrNull(modes?.manual);
+  const bestTimeMs = readNonnegativeInteger(manual?.bestTimeMs);
   return {
     modes: {
       beginner: readLevel(modes?.beginner),
       normal: readLevel(modes?.normal),
       free: { completedSeries: readNonnegativeInteger(objectOrNull(modes?.free)?.completedSeries) },
+      manual: { completedSeries: readNonnegativeInteger(manual?.completedSeries), bestTimeMs: bestTimeMs > 0 ? bestTimeMs : null },
     },
   };
 }
@@ -207,13 +218,30 @@ export function isPileCountModeUnlocked(progress: TrainingProgress, mode: PileCo
   return mode !== "normal" || progress.axes["pile-count"].modes.beginner.bestScore >= PASSING_SCORE;
 }
 
-export function recordPileCountSeries(progress: TrainingProgress, mode: PileCountMode, score: number): TrainingProgress {
+/** `totalTimeMs` is required in manual mode: the sum of the ten pile times. Only a 10/10 series can set a record. */
+export function recordPileCountSeries(
+  progress: TrainingProgress,
+  mode: PileCountMode,
+  score: number,
+  totalTimeMs?: number,
+): TrainingProgress {
   if (!parsePileCountMode(mode)) throw new Error("Invalid pile-count mode.");
   if (!Number.isInteger(score) || score < 0 || score > PILE_COUNT_SERIES_LENGTH) throw new Error("Invalid training score.");
   const modes = progress.axes["pile-count"].modes;
-  const updated: PileCountProgress["modes"] = mode === "free"
-    ? { ...modes, free: { completedSeries: modes.free.completedSeries + 1 } }
-    : { ...modes, [mode]: { bestScore: Math.max(modes[mode].bestScore, score), completedSeries: modes[mode].completedSeries + 1 } };
+  let updated: PileCountProgress["modes"];
+  if (mode === "manual") {
+    if (typeof totalTimeMs !== "number" || !Number.isFinite(totalTimeMs) || totalTimeMs <= 0) {
+      throw new Error("A manual series needs its total time.");
+    }
+    const time = Math.max(1, Math.round(totalTimeMs));
+    const previous = modes.manual.bestTimeMs;
+    const bestTimeMs = score === PILE_COUNT_SERIES_LENGTH && (previous === null || time < previous) ? time : previous;
+    updated = { ...modes, manual: { completedSeries: modes.manual.completedSeries + 1, bestTimeMs } };
+  } else if (mode === "free") {
+    updated = { ...modes, free: { completedSeries: modes.free.completedSeries + 1 } };
+  } else {
+    updated = { ...modes, [mode]: { bestScore: Math.max(modes[mode].bestScore, score), completedSeries: modes[mode].completedSeries + 1 } };
+  }
   return { version: 1, axes: { ...progress.axes, "pile-count": { modes: updated } } };
 }
 

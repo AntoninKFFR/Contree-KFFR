@@ -11,6 +11,7 @@ import {
   emptyTrainingProgress, isPileCountModeUnlocked, parseTrainingProgress, pileCountSeriesSeed, readTrainingProgress,
   recordPileCountSeries, recordTrickValueChallengeRun, recordTrickValueSeries, saveTrainingProgress,
 } from "@/components/training/progress";
+import { formatDuration } from "@/components/training/pileCountCopy";
 
 const series = (seed: number) => generatePileCountSeries({ seed, generatorVersion: pileGeneratorVersion });
 
@@ -148,10 +149,37 @@ describe("pile-count progress", () => {
     expect(readTrainingProgress({ getItem: () => raw })).toEqual(saved);
   });
 
+  it("records a manual time only with a perfect series, and keeps the fastest one", () => {
+    const initial = emptyTrainingProgress();
+    expect(isPileCountModeUnlocked(initial, "manual")).toBe(true);
+    expect(() => recordPileCountSeries(initial, "manual", 10)).toThrow();
+    expect(() => recordPileCountSeries(initial, "manual", 10, 0)).toThrow();
+    const imperfect = recordPileCountSeries(initial, "manual", 9, 40_000);
+    expect(imperfect.axes["pile-count"].modes.manual).toEqual({ completedSeries: 1, bestTimeMs: null });
+    const first = recordPileCountSeries(imperfect, "manual", 10, 65_300.4);
+    expect(first.axes["pile-count"].modes.manual).toEqual({ completedSeries: 2, bestTimeMs: 65_300 });
+    const slower = recordPileCountSeries(first, "manual", 10, 70_000);
+    expect(slower.axes["pile-count"].modes.manual.bestTimeMs).toBe(65_300);
+    const faster = recordPileCountSeries(slower, "manual", 10, 50_000);
+    expect(faster.axes["pile-count"].modes.manual).toEqual({ completedSeries: 4, bestTimeMs: 50_000 });
+    // The other modes are untouched.
+    expect(faster.axes["pile-count"].modes.beginner).toEqual(initial.axes["pile-count"].modes.beginner);
+    const parsed = parseTrainingProgress(JSON.stringify({ version: 1, axes: { "pile-count": { modes: { manual: { completedSeries: 3, bestTimeMs: -5 } } } } }));
+    expect(parsed.axes["pile-count"].modes.manual).toEqual({ completedSeries: 3, bestTimeMs: null });
+    expect(parsePileCountMode("manual")).toBe("manual");
+  });
+
+  it("formats pile times in French", () => {
+    expect(formatDuration(0)).toBe("0,0 s");
+    expect(formatDuration(8_440)).toBe("8,4 s");
+    expect(formatDuration(59_960)).toBe("1 min 00,0 s");
+    expect(formatDuration(65_300)).toBe("1 min 05,3 s");
+  });
+
   it("uses distinct seeds per mode that move forward after each series, and rejects bad input", () => {
     const initial = emptyTrainingProgress();
-    const seeds = (["beginner", "normal", "free"] as const).map((mode) => pileCountSeriesSeed(initial, mode));
-    expect(new Set(seeds).size).toBe(3);
+    const seeds = (["beginner", "normal", "free", "manual"] as const).map((mode) => pileCountSeriesSeed(initial, mode));
+    expect(new Set(seeds).size).toBe(4);
     const after = recordPileCountSeries(initial, "beginner", 0);
     expect(pileCountSeriesSeed(after, "beginner") - pileCountSeriesSeed(initial, "beginner")).toBeGreaterThanOrEqual(1000);
     expect(pileCountSeriesSeed(after, "normal")).toBe(pileCountSeriesSeed(initial, "normal"));
