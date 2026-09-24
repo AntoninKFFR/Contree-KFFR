@@ -89,14 +89,19 @@ export function createMemoryExercise(axisId: MemoryAxisId, level: number, state:
       : level === 2 ? "Quelle est la maîtresse à l’atout ?"
         : `Quelle est la carte maîtresse encore en jeu à ${SUIT_LABELS[suit].toLowerCase()} ?`;
   } else if (axisId === "master-in-hand") {
-    const masters = getMasterCardsStillOutBySuit(state, 0);
+    const remaining = getRemainingCardsBySuit(state, 0);
     const hand = state.hands[0];
+    const handIds = new Set(hand.map(cardId));
     const suitsInHand = SUITS.filter((suit) => hand.some((card) => card.suit === suit));
     const suit = pickSuit(seed, suitsInHand);
     candidates = level === 1 ? hand.filter((card) => card.suit === suit) : [...hand];
-    expected = candidates.filter((card) => {
-      const master = masters[card.suit];
-      return master !== null && cardId(card) === cardId(master);
+    expected = (level === 1 ? [suit] : SUITS).flatMap((candidateSuit) => {
+      const cascade: Card[] = [];
+      for (const card of remaining[candidateSuit]) {
+        if (!handIds.has(cardId(card))) break;
+        cascade.push(card);
+      }
+      return cascade;
     });
     question = level === 1 ? `Quelles cartes sont maîtresses à ${SUIT_LABELS[suit].toLowerCase()} ?` : "Sélectionne toutes tes cartes maîtresses.";
   } else if (axisId === "played-cards") {

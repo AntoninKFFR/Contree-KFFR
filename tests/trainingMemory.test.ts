@@ -15,6 +15,20 @@ function stateWithHistory(): GameState {
   throw new Error("No position with three completed tricks.");
 }
 
+function stateForCascade(hand: Card[], played: Card[] = []): GameState {
+  const state = stateWithHistory();
+  state.trump = "spades";
+  state.contractMode = { kind: "suit", suit: "spades" };
+  state.hands[0] = hand;
+  state.currentTrick.cards = [];
+  state.completedTricks = [{
+    leaderId: 0, winnerId: 0, points: 0,
+    cards: [...played, ...(["7", "8", "9", "J"] as const).slice(0, 4 - played.length).map((rank) => ({ suit: "diamonds" as const, rank }))]
+      .map((card, index) => ({ playerId: (index % 4) as PlayerId, card })),
+  }];
+  return state;
+}
+
 describe("memory axes", () => {
   it("generates deterministic ten-question series on separate seed lanes for every axis and level", () => {
     const progress = emptyTrainingProgress();
@@ -88,6 +102,57 @@ describe("memory axes", () => {
     const changed = structuredClone(found!);
     changed.hands[1] = []; changed.hands[2] = []; changed.hands[3] = [];
     expect(createMemoryExercise("master-in-hand", 2, changed, 19).expectedIds).toEqual(exercise.expectedIds);
+  });
+
+  it("includes consecutive non-trump masters in both master-in-hand levels", () => {
+    const ace = { suit: "hearts", rank: "A" } as const;
+    const ten = { suit: "hearts", rank: "10" } as const;
+    const state = stateForCascade([ace, ten]);
+    for (const level of [1, 2]) {
+      expect(createMemoryExercise("master-in-hand", level, state, 19).expectedIds).toEqual([cardId(ace), cardId(ten)]);
+    }
+  });
+
+  it("stops the cascade at the first card still outside the hand", () => {
+    const ace = { suit: "hearts", rank: "A" } as const;
+    const king = { suit: "hearts", rank: "K" } as const;
+    const state = stateForCascade([ace, king]);
+    for (const level of [1, 2]) {
+      expect(createMemoryExercise("master-in-hand", level, state, 19).expectedIds).toEqual([cardId(ace)]);
+    }
+  });
+
+  it("includes cascades from every suit at level two while level one keeps its chosen suit", () => {
+    const hearts = [{ suit: "hearts", rank: "A" }, { suit: "hearts", rank: "10" }] as const;
+    const spades = [{ suit: "spades", rank: "J" }, { suit: "spades", rank: "9" }] as const;
+    const state = stateForCascade([...hearts, ...spades]);
+    expect(createMemoryExercise("master-in-hand", 1, state, 0).expectedIds).toEqual(hearts.map(cardId));
+    expect(createMemoryExercise("master-in-hand", 2, state, 0).expectedIds).toEqual([...hearts, ...spades].map(cardId));
+  });
+
+  it("continues the cascade from the ten after the ace has been played", () => {
+    const ace = { suit: "hearts", rank: "A" } as const;
+    const ten = { suit: "hearts", rank: "10" } as const;
+    const king = { suit: "hearts", rank: "K" } as const;
+    const state = stateForCascade([ten, king], [ace]);
+    for (const level of [1, 2]) {
+      expect(createMemoryExercise("master-in-hand", level, state, 19).expectedIds).toEqual([cardId(ten), cardId(king)]);
+    }
+  });
+
+  it("uses trump master order and ignores changes to hidden opponent hands", () => {
+    const jack = { suit: "spades", rank: "J" } as const;
+    const nine = { suit: "spades", rank: "9" } as const;
+    const ace = { suit: "spades", rank: "A" } as const;
+    const ten = { suit: "spades", rank: "10" } as const;
+    const state = stateForCascade([jack, nine, ace, ten]);
+    const changed = structuredClone(state);
+    changed.hands[1] = []; changed.hands[2] = []; changed.hands[3] = [];
+    for (const level of [1, 2]) {
+      const expectedIds = [cardId(jack), cardId(nine), cardId(ace), cardId(ten)];
+      expect(createMemoryExercise("master-in-hand", level, state, 19).expectedIds).toEqual(expectedIds);
+      expect(createMemoryExercise("master-in-hand", level, changed, 19).expectedIds).toEqual(expectedIds);
+    }
   });
 
   it("takes played-card answers from remaining-card knowledge for all five scopes", () => {
