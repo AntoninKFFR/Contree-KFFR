@@ -58,6 +58,9 @@ describe("pile-count exercises", () => {
         expect(exercise.cards).toHaveLength(4 * exercise.trickCount);
         expect(exercise.trickCount).toBeGreaterThanOrEqual(1);
         expect(exercise.cardPoints).toBe(exercise.cards.reduce((sum, card) => sum + cardPoints(card, mode), 0));
+        // The after-answer detail: one engine value per card, adding up to the card points.
+        expect(exercise.cardValues).toEqual(exercise.cards.map((card) => cardPoints(card, mode)));
+        expect(exercise.cardValues.reduce((sum, value) => sum + value, 0)).toBe(exercise.cardPoints);
         expect(exercise.hasTenDeDer).toBe(playerTeam(final.completedTricks[7].winnerId) === 0);
         expect(exercise.tenDeDerPoints).toBe(exercise.hasTenDeDer ? 10 : 0);
         expect(exercise.hasBelote).toBe(exercise.belotePoints > 0);
