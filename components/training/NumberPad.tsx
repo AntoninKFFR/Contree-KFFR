@@ -8,9 +8,10 @@ type NumberPadProps = {
   onChange: (value: string) => void;
   onSubmit: () => void;
   disabled?: boolean;
+  label?: string;
 };
 
-export function NumberPad({ value, onChange, onSubmit, disabled = false }: NumberPadProps) {
+export function NumberPad({ value, onChange, onSubmit, disabled = false, label = "Ta réponse en points" }: NumberPadProps) {
   const sanitize = (input: string) => input.replace(/\D/g, "").slice(0, 3);
   const append = (digit: string) => {
     if (!disabled) onChange(sanitize(value + digit));
@@ -27,9 +28,9 @@ export function NumberPad({ value, onChange, onSubmit, disabled = false }: Numbe
   };
 
   return <div className="mx-auto w-full max-w-xs">
-    <label className="block text-sm font-bold" htmlFor="training-answer">Ta réponse en points</label>
+    <label className="block text-sm font-bold" htmlFor="training-answer">{label}</label>
     <input
-      aria-label="Ta réponse en points"
+      aria-label={label}
       className="coinche-input mt-2 h-14 w-full rounded-xl border text-center text-2xl font-black outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
       disabled={disabled}
       id="training-answer"
