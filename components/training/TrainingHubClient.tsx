@@ -11,6 +11,7 @@ import {
 import { PILE_COUNT_MODES, PILE_COUNT_SERIES_LENGTH, type PileCountMode } from "@/engine/training/pileCount";
 import type { TrickValueChallengeMode } from "@/engine/training/trickValueChallenge";
 import { MEMORY_AXIS_IDS, MEMORY_LABELS, MEMORY_LEVELS, type MemoryAxisId } from "@/engine/training/memory";
+import { OPPONENT_VOIDS_LEVELS } from "@/engine/training/opponentVoids";
 
 function MemoryCard({ axisId, progress }: { axisId: MemoryAxisId; progress: TrainingProgress | null }) {
   const axis = progress?.axes[axisId];
@@ -74,6 +75,9 @@ export function TrainingHubClient() {
   const [progress, setProgress] = useState<TrainingProgress | null>(null);
   useEffect(() => setProgress(readTrainingProgress()), []);
   const axis = progress?.axes["trick-value"];
+  const opponentAxis = progress?.axes["opponent-voids"];
+  const opponentLevel = opponentAxis?.unlockedLevel ?? 1;
+  const opponentRecord = opponentAxis?.levels[opponentLevel];
   const level2Unlocked = progress ? isTrickValueLevelUnlocked(progress, 2) : false;
   const challengesUnlocked = progress ? isTrickValueChallengeUnlocked(progress) : false;
 
@@ -115,6 +119,21 @@ export function TrainingHubClient() {
       <div className="mt-7"><AppEyebrow>Mémoriser</AppEyebrow></div>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {MEMORY_AXIS_IDS.map((axisId) => <MemoryCard key={axisId} axisId={axisId} progress={progress} />)}
+      </div>
+      <div className="mt-7"><AppEyebrow>Déduire</AppEyebrow></div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <article className="flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 sm:p-5">
+          <h3 className="text-lg font-black">Jeu des autres</h3>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">Repère les couleurs dont les autres joueurs sont certainement coupés.</p>
+          <p className="mt-2 text-sm">Niveau débloqué : {opponentLevel}</p>
+          <p className="mt-1 flex-1 text-sm">{opponentRecord?.completedSeries ? `Meilleur score : ${opponentRecord.bestScore} / 10` : "Record à établir"}</p>
+          <div className="mt-3 flex flex-wrap gap-1.5" aria-label="Niveaux de Jeu des autres">
+            {Array.from({ length: OPPONENT_VOIDS_LEVELS }, (_, index) => index + 1).map((level) => level <= opponentLevel
+              ? <Link key={level} className="rounded-md border border-[var(--border)] px-2 py-1 text-xs font-bold" href={`/training/puzzle/opponent-voids?level=${level}`}>Niveau {level}</Link>
+              : <span key={level} className="rounded-md border border-[var(--border)] px-2 py-1 text-xs text-[var(--text-secondary)]">Niveau {level} 🔒</span>)}
+          </div>
+          <Link className={`${appPrimaryActionClass} mt-4 w-full`} href={`/training/puzzle/opponent-voids?level=${opponentLevel}`}>Jouer</Link>
+        </article>
       </div>
     </AppSurface>
     <AppSurface className="mt-4">

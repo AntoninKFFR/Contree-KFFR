@@ -4,11 +4,13 @@ import { PileCountClient } from "@/components/training/PileCountClient";
 import { TrainingPuzzleClient } from "@/components/training/TrainingPuzzleClient";
 import { TrainingChallengeClient } from "@/components/training/TrainingChallengeClient";
 import { TrainingMemoryPuzzleClient } from "@/components/training/TrainingMemoryPuzzleClient";
+import { TrainingOpponentVoidsClient } from "@/components/training/TrainingOpponentVoidsClient";
 import { parseTrickValueLevel } from "@/components/training/progress";
 import { isTrainingAxisId, trainingAxes } from "@/engine/training/axes";
 import { parsePileCountMode } from "@/engine/training/pileCount";
 import { parseTrickValueChallengeMode } from "@/engine/training/trickValueChallenge";
 import { isMemoryAxisId, parseMemoryLevel } from "@/engine/training/memory";
+import { parseOpponentVoidsLevel } from "@/engine/training/opponentVoids";
 
 type PageProps = {
   params: Promise<{ axisId: string }>;
@@ -43,6 +45,11 @@ export default async function TrainingPuzzlePage({ params, searchParams }: PageP
     const memoryLevel = parseMemoryLevel(axisId, requestedLevel);
     if (!memoryLevel) notFound();
     return <TrainingMemoryPuzzleClient key={`${axisId}-${memoryLevel}`} axisId={axisId} level={memoryLevel} />;
+  }
+  if (axisId === "opponent-voids") {
+    const opponentVoidsLevel = parseOpponentVoidsLevel(requestedLevel);
+    if (!opponentVoidsLevel) notFound();
+    return <TrainingOpponentVoidsClient key={opponentVoidsLevel} level={opponentVoidsLevel} />;
   }
   const level = parseTrickValueLevel(requestedLevel);
   if (!level) notFound();

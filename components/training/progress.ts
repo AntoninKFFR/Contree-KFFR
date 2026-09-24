@@ -2,6 +2,7 @@ import { parsePileCountMode, PILE_COUNT_SEED_STRIDE, PILE_COUNT_SERIES_LENGTH, t
 import type { TrickValueLevel } from "@/engine/training/trickValue";
 import { challengeRunSeed, type ChallengeState, type TrickValueChallengeMode } from "@/engine/training/trickValueChallenge";
 import { MEMORY_AXIS_IDS, MEMORY_LEVELS, type MemoryAxisId } from "@/engine/training/memory";
+import { OPPONENT_VOIDS_LEVELS } from "@/engine/training/opponentVoids";
 
 export const TRAINING_PROGRESS_KEY = "coinche:training-progress:v1";
 export const PASSING_SCORE = 8;
@@ -20,7 +21,7 @@ export type PileCountProgress = {
 export type MemoryAxisProgress = { unlockedLevel: number; levels: Record<number, LevelProgress> };
 export type TrainingProgress = {
   version: 1;
-  axes: Record<MemoryAxisId, MemoryAxisProgress> & {
+  axes: Record<MemoryAxisId | "opponent-voids", MemoryAxisProgress> & {
     "trick-value": {
       unlockedLevel: TrickValueLevel;
       levels: Record<TrickValueLevel, LevelProgress>;
@@ -69,6 +70,10 @@ export function emptyTrainingProgress(): TrainingProgress {
         },
       },
       "pile-count": emptyPileCountProgress(),
+      "opponent-voids": {
+        unlockedLevel: 1,
+        levels: Object.fromEntries(Array.from({ length: OPPONENT_VOIDS_LEVELS }, (_, index) => [index + 1, { bestScore: 0, completedSeries: 0 }])),
+      },
     },
   };
 }
@@ -95,6 +100,19 @@ function readMemoryAxes(axes: Record<string, unknown> | null): Record<MemoryAxis
       ? Math.min(MEMORY_LEVELS[id], Math.max(1, stored.unlockedLevel)) : 1;
     return [id, { unlockedLevel: Math.max(earnedLevel, savedLevel), levels }];
   })) as Record<MemoryAxisId, MemoryAxisProgress>;
+}
+
+function readOpponentVoidsAxis(value: unknown): MemoryAxisProgress {
+  const stored = objectOrNull(value);
+  const storedLevels = objectOrNull(stored?.levels);
+  const levels = Object.fromEntries(Array.from({ length: OPPONENT_VOIDS_LEVELS }, (_, index) => [
+    index + 1, readMemoryLevel(storedLevels?.[String(index + 1)]),
+  ])) as Record<number, LevelProgress>;
+  let earnedLevel = 1;
+  while (earnedLevel < OPPONENT_VOIDS_LEVELS && levels[earnedLevel].bestScore >= PASSING_SCORE) earnedLevel += 1;
+  const savedLevel = typeof stored?.unlockedLevel === "number" && Number.isInteger(stored.unlockedLevel)
+    ? Math.min(OPPONENT_VOIDS_LEVELS, Math.max(1, stored.unlockedLevel)) : 1;
+  return { unlockedLevel: Math.max(earnedLevel, savedLevel), levels };
 }
 
 function storageOrNull(): Storage | null {
@@ -170,6 +188,7 @@ export function parseTrainingProgress(raw: string | null): TrainingProgress {
         ...readMemoryAxes(axes),
         "trick-value": parseTrickValueAxis(axes?.["trick-value"]),
         "pile-count": parsePileCountAxis(axes?.["pile-count"]),
+        "opponent-voids": readOpponentVoidsAxis(axes?.["opponent-voids"]),
       },
     };
   } catch {
@@ -261,6 +280,27 @@ export function memorySeriesSeed(progress: TrainingProgress, axisId: MemoryAxisI
   if (!isMemoryLevelUnlocked(progress, axisId, level)) throw new Error("Memory level is locked.");
   const lane = MEMORY_AXIS_IDS.indexOf(axisId);
   return 1_000_000 + lane * 1_000_000_000 + level * 10_000_000 + progress.axes[axisId].levels[level].completedSeries * 1_000;
+}
+
+export function isOpponentVoidsLevelUnlocked(progress: TrainingProgress, level: number): boolean {
+  return Number.isInteger(level) && level >= 1 && level <= OPPONENT_VOIDS_LEVELS && level <= progress.axes["opponent-voids"].unlockedLevel;
+}
+
+export function recordOpponentVoidsSeries(progress: TrainingProgress, level: number, score: number): TrainingProgress {
+  if (!isOpponentVoidsLevelUnlocked(progress, level) || !Number.isInteger(score) || score < 0 || score > 10) {
+    throw new Error("Invalid opponent-voids series result.");
+  }
+  const previous = progress.axes["opponent-voids"];
+  const oldLevel = previous.levels[level];
+  const bestScore = Math.max(oldLevel.bestScore, score);
+  const levels = { ...previous.levels, [level]: { bestScore, completedSeries: oldLevel.completedSeries + 1 } };
+  const unlockedLevel = bestScore >= PASSING_SCORE ? Math.min(OPPONENT_VOIDS_LEVELS, Math.max(previous.unlockedLevel, level + 1)) : previous.unlockedLevel;
+  return { ...progress, axes: { ...progress.axes, "opponent-voids": { unlockedLevel, levels } } };
+}
+
+export function opponentVoidsSeriesSeed(progress: TrainingProgress, level: number): number {
+  if (!isOpponentVoidsLevelUnlocked(progress, level)) throw new Error("Opponent-voids level is locked.");
+  return 5_000_000_000 + level * 10_000_000 + progress.axes["opponent-voids"].levels[level].completedSeries * 1_000;
 }
 
 export function trickValueSeriesSeed(progress: TrainingProgress, level: TrickValueLevel): number {
