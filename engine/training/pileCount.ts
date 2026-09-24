@@ -4,7 +4,7 @@ import { chooseProfileCardToPlay } from "@/bots/strategy/cardStrategy";
 import { resolveContractMode } from "@/engine/contractMode";
 import { createInitialGame, makeBid, playCard } from "@/engine/game";
 import { createSeededRandom } from "@/engine/random";
-import { playerTeam } from "@/engine/rules";
+import { cardPoints, playerTeam } from "@/engine/rules";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import type { TrainingAxis } from "@/engine/training/registry";
 import type { Card, ContractStatus, GameState, PlayerId, Suit, TeamId } from "@/engine/types";
@@ -34,6 +34,8 @@ export type PileCountExercise = {
   takerTeam: TeamId;
   /** The tricks won by the player's team, in the order they were won, each in play order. */
   cards: Card[];
+  /** Engine value of each card of `cards` under this trump, for the after-answer detail. */
+  cardValues: number[];
   trickCount: number;
   hasTenDeDer: boolean;
   hasBelote: boolean;
@@ -86,6 +88,7 @@ export function createPileCountExercise(seed: number, final: GameState): PileCou
   if (result.capotTeam !== null || !final.playerNames) return null;
   const won = final.completedTricks.filter((trick) => playerTeam(trick.winnerId) === 0);
   if (won.length === 0) return null;
+  const cards = won.flatMap((trick) => trick.cards.map(({ card }) => card));
   const hasTenDeDer = playerTeam(final.completedTricks[7].winnerId) === 0;
   const tenDeDerPoints = hasTenDeDer ? resolveGameRules(final.settings).trickScoring.lastTrickBonus : 0;
   const teamTrickPoints = result.trickPointsByTeam[0];
@@ -98,7 +101,8 @@ export function createPileCountExercise(seed: number, final: GameState): PileCou
     contractValue: result.contract.value,
     contractStatus: result.contract.status,
     takerTeam: result.contract.teamId,
-    cards: won.flatMap((trick) => trick.cards.map(({ card }) => card)),
+    cards,
+    cardValues: cards.map((card) => cardPoints(card, mode)),
     trickCount: won.length,
     hasTenDeDer,
     hasBelote: belotePoints > 0,

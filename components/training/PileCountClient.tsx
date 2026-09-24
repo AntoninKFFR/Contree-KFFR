@@ -45,17 +45,48 @@ function PileCard({ card, position, total }: { card: Card; position: number; tot
   </div>;
 }
 
-/** Beginner aid at answer time: the whole pile at once. */
-function PileGrid({ cards, id }: { cards: Card[]; id: string }) {
-  return <ol aria-label="Toutes les cartes du tas" className="mt-3 grid grid-cols-6 gap-1.5 sm:grid-cols-8" id={id}>
-    {cards.map((card, index) => <li
-      aria-label={`${card.rank} de ${SUIT_LABELS[card.suit]}`}
-      className={`coinche-card flex aspect-[0.7] flex-col items-center justify-center rounded-md border bg-[#fffef9] text-sm font-bold leading-tight ${isRed(card.suit) ? "border-red-200 text-red-700" : "border-stone-300 text-stone-900"}`}
-      key={index}
-    >
-      <span>{card.rank}</span><span aria-hidden="true">{SUIT_SYMBOLS[card.suit]}</span>
-    </li>)}
-  </ol>;
+/**
+ * The whole pile at once. Without `exercise` values (beginner, before answering) it only shows the cards;
+ * after the correction it adds each card's value and the ten de der / belote bonuses.
+ */
+function PileGrid({ exercise, id, withValues, showValues = true, onToggleValues }: {
+  exercise: PileCountExercise;
+  id: string;
+  withValues: boolean;
+  showValues?: boolean;
+  onToggleValues?: () => void;
+}) {
+  // After the correction the values can be hidden, to recount the pile before checking.
+  const displayValues = withValues && showValues;
+  const bonuses = displayValues ? [
+    ...(exercise.hasTenDeDer ? [{ label: "10 de der", points: exercise.tenDeDerPoints }] : []),
+    ...(exercise.hasBelote ? [{ label: "Belote", points: exercise.belotePoints }] : []),
+  ] : [];
+  return <div id={id}>
+    {withValues && onToggleValues
+      ? <button aria-pressed={showValues} className={`${appSecondaryActionClass} mt-3`} onClick={onToggleValues} type="button">
+        {showValues ? "Masquer les points" : "Afficher les points"}
+      </button>
+      : null}
+    <ol aria-label={withValues ? "Détail du tas" : "Toutes les cartes du tas"} className="mt-3 grid grid-cols-6 gap-x-1.5 gap-y-2 sm:grid-cols-8">
+      {exercise.cards.map((card, index) => {
+        const value = exercise.cardValues[index];
+        return <li aria-label={`${card.rank} de ${SUIT_LABELS[card.suit]}${displayValues ? `, ${formatPoints(value)}` : ""}`} className="min-w-0" key={index}>
+          <div className={`coinche-card flex aspect-[0.7] flex-col items-center justify-center rounded-md border bg-[#fffef9] text-sm font-bold leading-tight ${isRed(card.suit) ? "border-red-200 text-red-700" : "border-stone-300 text-stone-900"}`}>
+            <span>{card.rank}</span><span aria-hidden="true">{SUIT_SYMBOLS[card.suit]}</span>
+          </div>
+          {displayValues
+            ? <p aria-hidden="true" className={`mt-0.5 text-center text-xs font-black tabular-nums ${value > 0 ? "text-[var(--accent)]" : "text-[var(--text-secondary)]"}`}>+{value}</p>
+            : null}
+        </li>;
+      })}
+      {bonuses.map((bonus) => <li aria-label={`${bonus.label}, ${formatPoints(bonus.points)}`} className="col-span-2 min-w-0" key={bonus.label}>
+        <div className="flex aspect-[1.4] items-center justify-center rounded-md border border-[var(--accent)] bg-[var(--accent-soft)] px-1 text-center text-xs font-black leading-tight">{bonus.label}</div>
+        <p aria-hidden="true" className="mt-0.5 text-center text-xs font-black tabular-nums text-[var(--accent)]">+{bonus.points}</p>
+      </li>)}
+    </ol>
+    {displayValues ? <p className="mt-2 text-sm font-bold">Total : {formatPoints(exercise.answer)}</p> : null}
+  </div>;
 }
 
 /** Trump, ten de der and belote: shown before the scroll and kept on screen during it. */
@@ -117,6 +148,7 @@ export function PileCountClient({ mode }: { mode: PileCountMode }) {
   const [shown, setShown] = useState(0);
   const [paused, setPaused] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [showValues, setShowValues] = useState(true);
   const [draft, setDraft] = useState("");
   const [correct, setCorrect] = useState(false);
   const [score, setScore] = useState(0);
@@ -194,6 +226,7 @@ export function PileCountClient({ mode }: { mode: PileCountMode }) {
     setShown(0);
     setPaused(false);
     setReviewOpen(false);
+    setShowValues(true);
     setElapsed(0);
     pileStart.current = performance.now();
     setPhase("scrolling");
@@ -366,11 +399,16 @@ export function PileCountClient({ mode }: { mode: PileCountMode }) {
           <p className="mt-1 text-sm text-[var(--text-secondary)]">Cartes du tas, plus le 10 de der et la belote si ton équipe les a.</p>
           <div className="mt-4"><PileFacts compact exercise={exercise} /></div>
           {isManual && phase === "answer" ? <div className="mt-3"><Chrono ms={elapsed} /></div> : null}
-          {mode === "beginner" ? <div className="mt-4">
+          {/* Before answering, only beginners may look at the pile; after the correction, every mode can, with values. */}
+          {phase === "feedback" || mode === "beginner" ? <div className="mt-4">
             <button aria-controls="pile-review" aria-expanded={reviewOpen} className={appSecondaryActionClass} onClick={() => setReviewOpen(!reviewOpen)} type="button">
-              {reviewOpen ? "Masquer le tas" : "Revoir le tas"}
+              {phase === "feedback"
+                ? reviewOpen ? "Masquer le détail du tas" : "Voir le détail du tas"
+                : reviewOpen ? "Masquer le tas" : "Revoir le tas"}
             </button>
-            {reviewOpen ? <PileGrid cards={exercise.cards} id="pile-review" /> : null}
+            {reviewOpen
+              ? <PileGrid exercise={exercise} id="pile-review" onToggleValues={() => setShowValues(!showValues)} showValues={showValues} withValues={phase === "feedback"} />
+              : null}
           </div> : null}
         </div>
         <div className="min-w-0 md:border-l md:border-[var(--border)] md:pl-8">

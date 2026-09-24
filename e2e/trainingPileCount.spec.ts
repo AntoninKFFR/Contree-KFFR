@@ -59,9 +59,16 @@ test("@smoke pile-count free mode plays a full series at the chosen speed withou
     await page.getByRole("button", { name: "Lancer le défilement" }).click();
     const answer = page.getByRole("textbox", { name: "Ton total en points" });
     await expect(answer).toBeVisible({ timeout: 20_000 });
+    // Outside beginner mode, the pile can only be looked at once the answer is given.
+    if (index === 0) await expect(page.getByRole("button", { name: "Revoir le tas" })).toHaveCount(0);
     await answer.fill(String(index === 0 ? exercise.answer + 1 : exercise.answer));
     await answer.press("Enter");
     await expect(page.getByText(index === 0 ? "Mauvaise réponse" : "Bonne réponse !")).toBeVisible();
+    if (index === 0) {
+      await page.getByRole("button", { name: "Voir le détail du tas" }).click();
+      await expect(page.getByRole("list", { name: "Détail du tas" }).locator("li"))
+        .toHaveCount(exercise.cards.length + Number(exercise.hasTenDeDer) + Number(exercise.hasBelote));
+    }
     await expect(page.getByText(`162 − ${exercise.teamTrickPoints} = ${exercise.otherTeamTrickPoints}`)).toBeVisible();
     await page.getByRole("button", { name: index === series.length - 1 ? "Voir le résultat" : "Tas suivant" }).click();
   }
@@ -83,9 +90,29 @@ test("@smoke pile-count beginner can review the whole pile when answering", asyn
   await expect(page.getByRole("textbox", { name: "Ton total en points" })).toBeVisible({ timeout: first.cards.length * 1500 + 10_000 });
   await expect(page.getByRole("list", { name: "Toutes les cartes du tas" })).toHaveCount(0);
   await page.getByRole("button", { name: "Revoir le tas" }).click();
-  await expect(page.getByRole("list", { name: "Toutes les cartes du tas" }).locator("li")).toHaveCount(first.cards.length);
+  const beforeAnswer = page.getByRole("list", { name: "Toutes les cartes du tas" });
+  await expect(beforeAnswer.locator("li")).toHaveCount(first.cards.length);
+  // No card value before answering: it would give the answer away.
+  await expect(beforeAnswer.getByText(/^\+\d+$/)).toHaveCount(0);
   await page.getByRole("button", { name: "Masquer le tas" }).click();
-  await expect(page.getByRole("list", { name: "Toutes les cartes du tas" })).toHaveCount(0);
+  await expect(beforeAnswer).toHaveCount(0);
+
+  await page.getByRole("textbox", { name: "Ton total en points" }).fill(String(first.answer));
+  await page.getByRole("textbox", { name: "Ton total en points" }).press("Enter");
+  await page.getByRole("button", { name: "Voir le détail du tas" }).click();
+  const detail = page.getByRole("list", { name: "Détail du tas" });
+  await expect(detail.locator("li")).toHaveCount(first.cards.length + Number(first.hasTenDeDer) + Number(first.hasBelote));
+  await expect(detail.getByText(/^\+\d+$/)).toHaveCount(first.cards.length + Number(first.hasTenDeDer) + Number(first.hasBelote));
+  await expect(page.locator("#pile-review").getByText(`Total : ${first.answer} points`)).toBeVisible();
+  // The values can be hidden to recount the pile, then shown again.
+  await page.getByRole("button", { name: "Masquer les points" }).click();
+  await expect(detail.locator("li")).toHaveCount(first.cards.length);
+  await expect(detail.getByText(/^\+\d+$/)).toHaveCount(0);
+  await expect(page.locator("#pile-review").getByText(/^Total : /)).toHaveCount(0);
+  await page.getByRole("button", { name: "Afficher les points" }).click();
+  await expect(detail.getByText(/^\+\d+$/)).toHaveCount(first.cards.length + Number(first.hasTenDeDer) + Number(first.hasBelote));
+  await page.getByRole("button", { name: "Masquer le détail du tas" }).click();
+  await expect(detail).toHaveCount(0);
   browserErrors.assertClean();
 });
 
@@ -122,6 +149,10 @@ test("@smoke pile-count manual mode: arrows and keyboard, timed piles and a 10/1
     await answer.press("Enter");
     await expect(page.getByText("Bonne réponse !")).toBeVisible();
     await expect(page.getByText(/^Temps pour ce tas : /)).toBeVisible();
+    if (index === 0) {
+      await page.getByRole("button", { name: "Voir le détail du tas" }).click();
+      await expect(page.getByRole("list", { name: "Détail du tas" })).toBeVisible();
+    }
     await page.getByRole("button", { name: index === series.length - 1 ? "Voir le résultat" : "Tas suivant" }).click();
   }
   await expect(page.getByText("10 / 10", { exact: true })).toBeVisible();
