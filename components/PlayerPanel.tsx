@@ -9,7 +9,8 @@ type PlayerPanelProps = {
   isConnected?: boolean;
   isBotTakeover?: boolean;
   isCurrent: boolean;
-  hasStartingPlayer: boolean;
+  hasLead: boolean;
+  turnSecondsRemaining?: number | null;
   cardsRemaining?: number;
   isHost?: boolean;
   isRanked?: boolean;
@@ -18,8 +19,10 @@ type PlayerPanelProps = {
 };
 
 export function PlayerPanel({
+  playerId,
   name,
-  hasStartingPlayer,
+  hasLead,
+  turnSecondsRemaining = null,
   isBotTakeover = false,
   isConnected,
   isCurrent,
@@ -33,6 +36,7 @@ export function PlayerPanel({
   return (
     <div
       aria-current={highlight ? "true" : undefined}
+      data-player-id={playerId}
       className={[
         "coinche-player-panel flex min-h-10 min-w-20 items-center justify-center rounded-xl border bg-[#07150f]/72 px-2.5 py-1.5 text-center text-white shadow-lg backdrop-blur-md sm:min-h-12 sm:min-w-28 sm:px-3",
         highlight ? "border-emerald-300/80 coinche-turn-pulse" : "border-white/10",
@@ -55,9 +59,10 @@ export function PlayerPanel({
               {isBotTakeover ? "Bot temporaire" : isConnected ? "En ligne" : "Hors ligne"}
             </p>
           ) : null}
-          {isConnected !== undefined ? <p className="hidden max-w-24 truncate text-[8px] font-bold text-[#f0dfb1]/80 sm:block">{isRanked ? rank : "Placement"}</p> : null}
+          {isConnected !== undefined && isRanked && rank?.trim() ? <p className="hidden max-w-24 truncate text-[8px] font-bold text-[#f0dfb1]/80 sm:block">{rank}</p> : null}
         </div>
-        {hasStartingPlayer ? (
+        {isCurrent && turnSecondsRemaining !== null ? <span aria-label={`${turnSecondsRemaining} secondes restantes avant le coup automatique`} aria-live="off" className={`whitespace-nowrap rounded border px-1 py-0.5 text-[10px] font-bold ${turnSecondsRemaining <= 10 ? "border-amber-300/70 text-amber-200" : "border-white/30 text-white"}`} role="timer">⏱ {turnSecondsRemaining} s</span> : null}
+        {hasLead ? (
           <span className="rounded border border-[#d8c48f]/50 px-1 py-0 text-[10px] font-bold text-[#f0dfb1]">
             P
           </span>

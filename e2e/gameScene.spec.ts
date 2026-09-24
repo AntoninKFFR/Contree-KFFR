@@ -24,6 +24,8 @@ test("@smoke Solo gameplay lives in one responsive table scene", async ({ page }
     await expect(scene).toBeVisible();
     await expect(scene.locator(".coinche-scene-hand-card")).toHaveCount(8);
     await expect(scene.locator(".coinche-player-panel")).toHaveCount(4);
+    await expect(scene.locator(".coinche-player-panel").getByText("P", { exact: true })).toHaveCount(1);
+    await expect(scene.getByText("Placement", { exact: true })).toHaveCount(0);
     await expect(scene.locator(".coinche-scene-bidding .coinche-bidding-panel")).toBeVisible();
     const bidding = scene.locator(".coinche-bidding-panel");
     const announce = await bidding.getByRole("button", { name: "Annoncer" }).boundingBox();
@@ -44,6 +46,9 @@ test("@smoke Solo gameplay lives in one responsive table scene", async ({ page }
 
 test("@smoke Solo keeps the hand and played cards inside the scene", async ({ page }) => {
   test.setTimeout(60_000);
+  const browserErrors: string[] = [];
+  page.on("pageerror", (error) => browserErrors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") browserErrors.push(message.text()); });
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/solo");
   await startSoloGame(page);
@@ -67,11 +72,25 @@ test("@smoke Solo keeps the hand and played cards inside the scene", async ({ pa
   await page.getByRole("switch", { name: "Activer le thème sombre" }).click();
   await playable.click();
   await expect(scene.locator(".coinche-trick-card[data-player-id='0']")).toBeVisible({ timeout: 5_000 });
+  await expect(scene.locator(".coinche-trick-card[data-player-id='0']")).toHaveCount(1);
   await page.screenshot({ path: "test-results/scene-playing-dark-1366.png" });
   await page.setViewportSize({ width: 844, height: 390 });
   await page.screenshot({ path: "test-results/scene-playing-dark-844.png" });
   await page.getByRole("switch", { name: "Activer le thème clair" }).click();
   await page.screenshot({ path: "test-results/scene-playing-light-844.png" });
+  const lastTrickButton = scene.getByRole("button", { name: "Dernier pli" });
+  await expect(lastTrickButton).toBeVisible({ timeout: 20_000 });
+  await lastTrickButton.click();
+  const lastTrick = scene.getByLabel("Dernier pli", { exact: true });
+  await expect(lastTrick.locator(".coinche-trick-card")).toHaveCount(4);
+  for (let order = 1; order <= 4; order += 1) {
+    const card = lastTrick.locator(`.coinche-trick-card[data-play-order='${order}']`);
+    await expect(card).toHaveCSS("z-index", String(order));
+    await expect(card.getByLabel(`Carte ${order}`)).toBeVisible();
+  }
+  expect(await lastTrick.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  await lastTrick.getByRole("button", { name: "Fermer" }).click();
+  expect(browserErrors).toEqual([]);
 });
 
 test("@smoke round success accent follows dark and light KFFR tokens", async ({ page }) => {

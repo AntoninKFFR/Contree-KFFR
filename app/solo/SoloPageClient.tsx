@@ -53,6 +53,7 @@ import {
   shouldShowBotReviewAction,
 } from "@/app/solo/soloAnalysis";
 import { createSoloGame, loadSoloRules, saveSoloRules } from "@/app/solo/soloGameInitialization";
+import { queueForcedHumanLastCard } from "@/lib/soloLastTrick";
 
 const soloSeatAssignments = SOLO_SEAT_ASSIGNMENTS;
 const localHumanPlayerId = firstHumanSeat(soloSeatAssignments) ?? 0;
@@ -197,6 +198,14 @@ export default function SoloPage() {
     }, delayMs);
 
     return () => window.clearTimeout(timeoutId);
+  }, [gameState]);
+
+  useEffect(() => {
+    if (!gameState || !isHumanSeat(soloSeatAssignments, gameState.currentPlayerId)) return;
+    return queueForcedHumanLastCard(gameState, localHumanPlayerId, preferencesRef.current.gameplay.botDelayMs, (currentState, card) => {
+      setGameState((latest) => latest === currentState
+        ? applyGameAction(latest, { type: "play-card", playerId: localHumanPlayerId, card }) : latest);
+    });
   }, [gameState]);
 
   useEffect(() => {

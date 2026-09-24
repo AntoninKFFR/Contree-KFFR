@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 import type { Card, CompletedTrick, PlayedCard, PlayerId } from "@/engine/types";
 import {
   observeCompletedTricks,
+  currentTrickLeaderId,
+  planCardPresentation,
+  playedCardKey,
   selectVisualTrick,
   type TrickObservation,
 } from "@/lib/trickPresentation";
 import { clonePlayerPreferences } from "@/lib/preferences/playerPreferences";
 import { getTrickPresentationPolicy } from "@/lib/preferences/presentation";
+import { createInitialGame } from "@/engine/game";
 
 const cards: Card[] = [
   { rank: "7", suit: "clubs" },
@@ -37,6 +41,62 @@ function observe(
 }
 
 describe("visual completed-trick transition", () => {
+  it("animates each new card only once, including the fourth, through collection and the next trick", () => {
+    const key = "game-1-trick-1";
+    let plan = planCardPresentation(null, key, [], true);
+    for (let count = 1; count <= 4; count += 1) {
+      const next = planCardPresentation(plan, key, trick(0).cards.slice(0, count), true);
+      expect(next.newKeys).toEqual([playedCardKey(trick(0).cards[count - 1])]);
+      expect(next.animatedKeys).toHaveLength(count);
+      plan = next;
+    }
+    const collecting = planCardPresentation(plan, key, trick(0).cards, true);
+    expect(collecting.newKeys).toEqual([]);
+    expect(collecting.animatedKeys).toEqual(plan.animatedKeys);
+    const nextFirst: PlayedCard = { playerId: 2, card: { rank: "A", suit: "hearts" } };
+    const nextTrick = planCardPresentation(collecting, "game-1-trick-2", [nextFirst], true);
+    expect(nextTrick.newKeys).toEqual([playedCardKey(nextFirst)]);
+    expect(planCardPresentation(nextTrick, "game-1-trick-2", [nextFirst], true).newKeys).toEqual([]);
+  });
+
+  it("keeps an optimistic card as the same visual card when the server confirms it", () => {
+    const played = trick(0).cards[0];
+    const initial = planCardPresentation(null, "trick-1", [], true);
+    const optimistic = planCardPresentation(initial, "trick-1", [played], true, playedCardKey(played));
+    const confirmed = planCardPresentation(optimistic, "trick-1", [{ ...played }], true);
+    expect(optimistic.newKeys).toEqual([playedCardKey(played)]);
+    expect(confirmed.newKeys).toEqual([]);
+    expect(confirmed.animatedKeys).toEqual(optimistic.animatedKeys);
+  });
+
+  it("keeps reduced-motion card positions without an entry animation", () => {
+    const initial = planCardPresentation(null, "trick-1", [], false);
+    const reduced = planCardPresentation(initial, "trick-1", trick(0).cards.slice(0, 1), false);
+    expect(reduced.seenKeys).toHaveLength(1);
+    expect(reduced.newKeys).toHaveLength(1);
+    expect(reduced.animatedKeys).toEqual([]);
+    expect(planCardPresentation(reduced, "trick-1", trick(0).cards.slice(0, 1), true).animatedKeys).toEqual([]);
+  });
+
+  it("keeps P on the actual leader until the next trick starts", () => {
+    const state = createInitialGame(() => 0.1);
+    state.phase = "playing";
+    state.startingPlayerId = 0;
+    state.currentPlayerId = 1;
+    state.currentTrick = { leaderId: 1, cards: [] };
+    expect(currentTrickLeaderId(state)).toBe(1);
+    for (let count = 1; count <= 4; count += 1) {
+      state.currentTrick.cards = trick(2, 1).cards.slice(0, count);
+      state.currentPlayerId = ((count + 1) % 4) as PlayerId;
+      expect(currentTrickLeaderId(state)).toBe(1);
+    }
+    state.currentTrick.cards = [];
+    state.currentPlayerId = 3;
+    expect(currentTrickLeaderId(state)).toBe(3);
+    state.currentTrick.cards = [{ playerId: 3, card: cards[0] }];
+    state.currentPlayerId = 0;
+    expect(currentTrickLeaderId(state)).toBe(3);
+  });
   it("uses the preference-controlled client-only presentation window", () => {
     expect(getTrickPresentationPolicy(clonePlayerPreferences()).delayMs).toBe(1_800);
   });
