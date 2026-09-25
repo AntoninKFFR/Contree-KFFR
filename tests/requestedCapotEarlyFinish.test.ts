@@ -3,6 +3,9 @@ import { cardId, createDeck } from "@/engine/cards";
 import { applyGameAction } from "@/engine/actions";
 import { createInitialGame, playCard } from "@/engine/game";
 import { createGameSettings } from "@/engine/rulesets/resolve";
+import { generatorVersion } from "@/engine/training/generator";
+import { trickValueInGame } from "@/engine/training/inGame";
+import { createTrickValueExercise } from "@/engine/training/trickValue";
 import type { Card, CompletedTrick, ContractStatus, GameState, PlayerId } from "@/engine/types";
 import { turnDeadlineForState } from "@/lib/multiplayerTurnTimer";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
@@ -151,6 +154,37 @@ function players(kinds: Array<"human" | "bot"> = ["human", "human", "human", "hu
 }
 
 describe("requested capot early completion", () => {
+  it.each([
+    [5_000, "finished"],
+    [500, "game-over"],
+  ] as const)("builds a trick-value question from the decisive defensive trick in %s-point games", (targetScore, phase) => {
+    const state = capotBeforeThirdTrickEnds();
+    state.settings = createGameSettings({ ruleset: createTestRuleset({ game: { targetScore } }) });
+    const ended = playCard(state, 1, decisiveCard);
+    expect(ended.phase).toBe(phase);
+    expect(ended.completedTricks).toHaveLength(3);
+    expect(ended.currentTrick.cards).toEqual([]);
+
+    const context = { viewerId: 0 as const, level: 1, seed: 43, moment: "trick-end" as const };
+    expect(trickValueInGame.isApplicable(ended, context)).toBe(true);
+    const direct = createTrickValueExercise({ state: ended, seed: context.seed, generatorVersion });
+    expect(direct).toMatchObject({
+      answer: ended.completedTricks.at(-1)!.points,
+      isLastTrick: false,
+      isCapot: false,
+      bonusPoints: 0,
+    });
+    const exercise = trickValueInGame.buildExercise(ended, context);
+    expect(exercise.kind).toBe("number");
+    if (exercise.kind !== "number") throw new Error("Expected a trick-value question.");
+    expect(exercise.data).toMatchObject({
+      answer: ended.completedTricks.at(-1)!.points,
+      isLastTrick: false,
+      isCapot: false,
+      bonusPoints: 0,
+    });
+  });
+
   it.each([
     ["normal", 1, 500],
     ["coinched", 2, 1_000],
