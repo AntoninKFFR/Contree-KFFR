@@ -32,6 +32,25 @@ async function openFirstQuestion(page: Page, rotateForGame = false) {
   return { scene, dialog };
 }
 
+async function expectTrickValueDialogFits(page: Page, dialog: ReturnType<Page["getByRole"]>, action: "Valider" | "Reprendre la partie") {
+  await expect(dialog.getByText("Combien vaut ce pli ?")).toBeVisible();
+  const cards = dialog.locator('[aria-label="Cartes du pli"] [aria-label]');
+  await expect(cards).toHaveCount(4);
+  for (const card of await cards.all()) await expect(card).toBeInViewport();
+  await expect(dialog.getByRole("textbox", { name: "Ta réponse en points" }).or(dialog.getByText(/Ta réponse :/))).toBeInViewport();
+  await expect(dialog.getByRole("button", { name: action, exact: true })).toBeInViewport();
+  const geometry = await dialog.evaluate((element) => {
+    const content = element.querySelector<HTMLElement>(".overflow-y-auto")!;
+    return { dialogHeight: element.clientHeight, dialogScrollHeight: element.scrollHeight,
+      contentHeight: content.clientHeight, contentScrollHeight: content.scrollHeight,
+      contentWidth: content.clientWidth, contentScrollWidth: content.scrollWidth };
+  });
+  expect(geometry.dialogScrollHeight).toBeLessThanOrEqual(geometry.dialogHeight + 2);
+  expect(geometry.contentScrollHeight).toBeLessThanOrEqual(geometry.contentHeight + 2);
+  expect(geometry.contentScrollWidth).toBeLessThanOrEqual(geometry.contentWidth + 2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+}
+
 test("@smoke in-game practice pauses the real Solo loop, corrects and resumes without a games write", async ({ page }) => {
   test.setTimeout(90_000);
   const gamesWrites: string[] = [];
@@ -42,6 +61,8 @@ test("@smoke in-game practice pauses the real Solo loop, corrects and resumes wi
   });
   await page.setViewportSize({ width: 1366, height: 768 });
   const { scene, dialog } = await openFirstQuestion(page);
+  await expectTrickValueDialogFits(page, dialog, "Valider");
+  const heightBefore = await dialog.evaluate((element) => element.getBoundingClientRect().height);
   const puzzleProgressBefore = await page.evaluate((key) => localStorage.getItem(key), TRAINING_PROGRESS_KEY);
   const game = page.getByRole("main", { name: "Partie d’entraînement" });
   const pausedKey = await game.getAttribute("data-game-state-key");
@@ -50,6 +71,9 @@ test("@smoke in-game practice pauses the real Solo loop, corrects and resumes wi
   await dialog.getByRole("textbox", { name: "Ta réponse en points" }).fill("0");
   await dialog.getByRole("button", { name: "Valider", exact: true }).click();
   await expect(dialog.getByText("Ce pli vaut")).toBeVisible();
+  await expect(dialog.getByLabel("Pavé numérique")).toHaveCount(0);
+  await expectTrickValueDialogFits(page, dialog, "Reprendre la partie");
+  expect(await dialog.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(heightBefore + 2);
   await expect(game).toHaveAttribute("data-game-state-key", pausedKey!);
   await dialog.getByRole("button", { name: "Reprendre la partie" }).click();
   await expect(dialog).toHaveCount(0);
@@ -62,6 +86,21 @@ test("@smoke in-game practice pauses the real Solo loop, corrects and resumes wi
   }, { timeout: 10_000 }).toBe(true);
   expect(gamesWrites).toEqual([]);
   expect(await page.evaluate((key) => localStorage.getItem(key), TRAINING_PROGRESS_KEY)).toBe(puzzleProgressBefore);
+});
+
+for (const viewport of [{ width: 667, height: 375 }, { width: 844, height: 390 }, { width: 1024, height: 576 }]) test(`@smoke trick-value question and correction fit ${viewport.width}×${viewport.height}`, async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize(viewport.width === 667 ? { width: 844, height: 390 } : viewport);
+  const { dialog } = await openFirstQuestion(page);
+  if (viewport.width === 667) await page.setViewportSize(viewport);
+  await expectTrickValueDialogFits(page, dialog, "Valider");
+  const heightBefore = await dialog.evaluate((element) => element.getBoundingClientRect().height);
+  await dialog.getByRole("textbox", { name: "Ta réponse en points" }).fill("0");
+  await dialog.getByRole("button", { name: "Valider", exact: true }).click();
+  await expect(dialog.getByText("Ce pli vaut")).toBeVisible();
+  await expect(dialog.getByLabel("Pavé numérique")).toHaveCount(0);
+  await expectTrickValueDialogFits(page, dialog, "Reprendre la partie");
+  expect(await dialog.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(heightBefore + 2);
 });
 
 test("@smoke in-game question stays usable without horizontal overflow on a narrow mobile screen", async ({ page }) => {
