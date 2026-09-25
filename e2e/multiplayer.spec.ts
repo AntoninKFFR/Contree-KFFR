@@ -421,7 +421,34 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
         }
       }
       await pages[1].setViewportSize({ width: 667, height: 375 });
-      await expect(pages[1].getByRole("region", { name: "Résultat de la partie" })).toBeVisible();
+      const compactCard = pages[1].getByRole("region", { name: "Résultat de la partie" });
+      await expect(compactCard).toBeVisible();
+      await expect(compactCard.getByText("Partie terminée", { exact: true })).toBeVisible();
+      await expect(compactCard.getByRole("heading", { level: 1 })).toHaveText(/^(Victoire|Défaite) par abandon$/);
+      const compactLayout = await pages[1].evaluate(() => {
+        const scroller = document.querySelector("main");
+        const card = document.querySelector('section[aria-label="Résultat de la partie"]');
+        const heading = card?.querySelector("h1");
+        const kicker = card?.querySelector(".coinche-ui-kicker");
+        if (!scroller || !card || !heading || !kicker) throw new Error("The finished result structure is missing.");
+        scroller.scrollTop = 0;
+        const viewport = scroller.getBoundingClientRect();
+        const top = {
+          overflowsVertically: scroller.scrollHeight > scroller.clientHeight,
+          card: card.getBoundingClientRect().top,
+          kicker: kicker.getBoundingClientRect().top,
+          headingBottom: heading.getBoundingClientRect().bottom,
+          viewportTop: viewport.top,
+          viewportBottom: viewport.bottom,
+        };
+        scroller.scrollTop = scroller.scrollHeight;
+        return { ...top, cardBottomAtEnd: card.getBoundingClientRect().bottom };
+      });
+      expect(compactLayout.overflowsVertically).toBe(true);
+      expect(compactLayout.card).toBeGreaterThanOrEqual(compactLayout.viewportTop - 1);
+      expect(compactLayout.kicker).toBeGreaterThanOrEqual(compactLayout.viewportTop - 1);
+      expect(compactLayout.headingBottom).toBeLessThanOrEqual(compactLayout.viewportBottom + 1);
+      expect(compactLayout.cardBottomAtEnd).toBeLessThanOrEqual(compactLayout.viewportBottom + 1);
       expect(await pages[1].evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await pages[1].reload();
       await expect(pages[1].getByRole("region", { name: "Résultat de la partie" })).toBeVisible();

@@ -318,9 +318,10 @@ export default function MultiplayerRoomPage() {
           : isLobbyLayout
           ? "coinche-app-page coinche-lobby-shell h-[calc(100dvh-56px)] min-h-0 overflow-hidden px-2 py-2 sm:px-3"
           : isFinishedLayout
-          ? "coinche-app-page flex h-[calc(100dvh-56px)] min-h-0 items-start justify-center overflow-y-auto px-3 py-4 sm:items-center"
+          ? "coinche-app-page flex h-[calc(100dvh-56px)] min-h-0 items-start justify-center overflow-y-auto px-3 py-4"
           : "coinche-app-page min-h-[calc(100dvh-56px)] px-3 py-5 text-stone-50 sm:px-5 sm:py-7"
       }
+      style={isFinishedLayout ? { alignItems: "safe center" } : undefined}
     >
       <div
         className={
