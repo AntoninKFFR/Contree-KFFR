@@ -43,16 +43,26 @@ function Harness({ question }: { question: ScheduledInGameQuestion }) {
 }
 
 describe("in-game question presentation", () => {
-  it("shows one trick-value question and replaces the number pad with correction", () => {
+  it.each(["input", "button"] as const)("moves focus from the %s to the trick-value correction action", (submitFrom) => {
     render(createElement(Harness, { question: numberQuestion }));
     expect(screen.getAllByText("Combien vaut ce pli ?")).toHaveLength(1);
     expect(screen.getByLabelText("Pavé numérique")).toBeTruthy();
-    fireEvent.change(screen.getByRole("textbox", { name: "Ta réponse en points" }), { target: { value: "0" } });
-    fireEvent.click(screen.getByRole("button", { name: "Valider" }));
+    const input = screen.getByRole("textbox", { name: "Ta réponse en points" });
+    fireEvent.change(input, { target: { value: "0" } });
+    if (submitFrom === "input") {
+      input.focus();
+      expect(document.activeElement).toBe(input);
+      fireEvent.keyDown(input, { key: "Enter" });
+    } else {
+      const submitButton = screen.getByRole("button", { name: "Valider" });
+      submitButton.focus();
+      expect(document.activeElement).toBe(submitButton);
+      fireEvent.click(submitButton);
+    }
     expect(screen.queryByLabelText("Pavé numérique")).toBeNull();
     expect(screen.getByText(/Ta réponse :/)).toBeTruthy();
     expect(screen.getByText(/Ce pli vaut/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Reprendre la partie" })).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Reprendre la partie" }));
   });
 
   it.each([true, false])("uses exactly two proof choices at level 1 (proven: %s)", (proven) => {
@@ -64,6 +74,7 @@ describe("in-game question presentation", () => {
     fireEvent.click(screen.getByRole("button", { name: proven ? "Oui, c’est prouvé" : "Non, on ne peut pas l’affirmer" }));
     expect(screen.queryByRole("button", { name: "Oui, c’est prouvé" })).toBeNull();
     const correction = screen.getByRole("button", { name: "Reprendre la partie" }).closest("section")!;
+    expect(document.activeElement).not.toBe(screen.getByRole("button", { name: "Reprendre la partie" }));
     expect(within(correction).getByText(/Bonne réponse !/)).toBeTruthy();
     expect(within(correction).getByText(proven ? "Oui, c’était prouvé." : "On ne pouvait pas l’affirmer.")).toBeTruthy();
     expect(correction.textContent).not.toMatch(/il n’est pas coupé/i);

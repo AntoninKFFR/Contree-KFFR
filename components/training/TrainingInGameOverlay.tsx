@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cardId, SUIT_LABELS } from "@/engine/cards";
 import { trainingAxes } from "@/engine/training/axes";
 import type { InGameAnswer, InGameGrade } from "@/engine/training/inGame";
@@ -66,6 +66,13 @@ export function TrainingInGameOverlay({ question, grade, onGrade, onResume }: {
   const [selectedCells, setSelectedCells] = useState<string[]>([]);
   const [trumpCountInput, setTrumpCountInput] = useState("");
   const exercise = question.exercise;
+  const resumeButtonRef = useRef<HTMLButtonElement>(null);
+  const wasGradedRef = useRef(grade !== null);
+  useEffect(() => {
+    const isGraded = grade !== null;
+    if (!wasGradedRef.current && isGraded && exercise.kind === "number") resumeButtonRef.current?.focus();
+    wasGradedRef.current = isGraded;
+  }, [grade, exercise.kind]);
   const title = trainingAxes.resolve(question.axisId).label;
   const toggleCard = (id: string) => setSelectedIds((current) => current.includes(id)
     ? current.filter((value) => value !== id)
@@ -99,7 +106,7 @@ export function TrainingInGameOverlay({ question, grade, onGrade, onResume }: {
                 {grade.correct ? "Bonne réponse !" : "Correction"} · {grade.earnedScore} / {grade.possibleScore}
               </p>
               <p className="mt-2">Ce pli vaut <strong>{exercise.data.answer} points</strong>.</p>
-              <button className={`${appPrimaryActionClass} mt-4 min-h-11 w-full`} onClick={onResume} type="button">Reprendre la partie</button>
+              <button className={`${appPrimaryActionClass} mt-4 min-h-11 w-full`} onClick={onResume} ref={resumeButtonRef} type="button">Reprendre la partie</button>
             </section>}
         </div>
       </div> : null}
