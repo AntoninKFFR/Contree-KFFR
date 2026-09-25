@@ -145,6 +145,58 @@ test("@smoke manual collection leaves the next trick live and mounted", async ({
   expect(await secondCard!.evaluate((card) => card.isConnected)).toBe(true);
 });
 
+test("@smoke Solo bot lead waits until automatic collection leaves the table", async ({ page }) => {
+  test.setTimeout(60_000);
+  const preferences = clonePlayerPreferences();
+  preferences.gameplay.gameSpeed = "fast";
+  preferences.gameplay.botDelayMs = 300;
+  preferences.gameplay.trickDisplayMs = 650;
+  preferences.gameplay.biddingDelayMs = 0;
+  preferences.gameplay.autoCollectTricks = true;
+  await page.addInitScript(({ key, value }) => {
+    localStorage.setItem(key, value);
+    Math.random = () => 0.1;
+  }, { key: PLAYER_PREFERENCES_STORAGE_KEY, value: JSON.stringify(preferences) });
+  await page.goto("/solo");
+  await startSoloGame(page);
+  const scene = page.locator(".coinche-game-scene");
+  await scene.getByRole("button", { name: "Valeur 160" }).click();
+  await scene.getByRole("button", { name: "Annoncer" }).click();
+  await expect(scene.locator(".coinche-scene-bidding")).toHaveCount(0, { timeout: 15_000 });
+
+  await page.evaluate(() => {
+    const table = document.querySelector(".coinche-game-scene");
+    if (!table) throw new Error("Solo table missing");
+    const status = { botCollectionSeen: false, overlap: false, botLeadAfter: false, botWinnerId: "" };
+    const sample = () => {
+      const completed = table.querySelector('[data-trick-layer="completed"]');
+      const currentCard = table.querySelector('[data-trick-layer="current"] .coinche-trick-card');
+      const leader = [...table.querySelectorAll(".coinche-player-panel")].find((panel) =>
+        [...panel.querySelectorAll("span")].some((span) => span.textContent?.trim() === "P"));
+      const leaderId = leader?.getAttribute("data-player-id") ?? "";
+      if (completed && leaderId && leaderId !== "0") {
+        status.botCollectionSeen = true;
+        status.botWinnerId = leaderId;
+        if (currentCard) status.overlap = true;
+      }
+      if (status.botCollectionSeen && !completed
+        && currentCard?.getAttribute("data-player-id") === status.botWinnerId) status.botLeadAfter = true;
+    };
+    new MutationObserver(sample).observe(table, { childList: true, subtree: true, attributes: true,
+      attributeFilter: ["aria-current", "data-trick-layer"] });
+    Object.assign(window, { __soloBotPacingStatus: status });
+    sample();
+  });
+
+  const playable = scene.locator(".coinche-scene-hand-card button[data-playable='true']:not([disabled])");
+  await expect.poll(async () => {
+    if (await playable.first().isVisible().catch(() => false)) await playable.first().click();
+    return page.evaluate(() => (window as typeof window & { __soloBotPacingStatus: {
+      botCollectionSeen: boolean; overlap: boolean; botLeadAfter: boolean;
+    } }).__soloBotPacingStatus);
+  }, { timeout: 45_000, intervals: [100, 200] }).toMatchObject({ botCollectionSeen: true, overlap: false, botLeadAfter: true });
+});
+
 test("@smoke round success accent follows dark and light KFFR tokens", async ({ page }) => {
   await page.goto("/solo");
   for (const [theme, expected] of [["dark", "rgb(234, 216, 166)"], ["light", "rgb(121, 85, 31)"]] as const) {

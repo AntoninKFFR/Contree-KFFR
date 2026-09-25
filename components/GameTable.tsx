@@ -62,6 +62,7 @@ type GameTableProps = {
   turnSecondsRemaining?: number | null;
   trickPresentationPolicy?: { autoCollect: boolean; delayMs: number };
   optimisticCard?: PlayedCard | null;
+  onAutoCollectComplete?: (trickKey: string) => void;
 };
 
 type AnnouncementBubbleContent = {
@@ -326,6 +327,7 @@ export function GameTable({
   turnSecondsRemaining = null,
   trickPresentationPolicy,
   optimisticCard,
+  onAutoCollectComplete,
 }: GameTableProps) {
   const { effectiveReducedMotion, preferences } = usePlayerPreferences();
   const observationRef = useRef<TrickObservation | null>(null);
@@ -333,6 +335,8 @@ export function GameTable({
   const soundPreferencesRef = useRef(preferences);
   const soundObservationRef = useRef<{ bids: number; plays: number; round: number; scope: string } | null>(null);
   const pendingTricksRef = useRef<PresentedTrick[]>([]);
+  const autoCollectedKeyRef = useRef<string | null>(null);
+  const onAutoCollectCompleteRef = useRef(onAutoCollectComplete);
   const [animatedCompletedTrick, setAnimatedCompletedTrick] = useState<PresentedTrick | null>(
     null,
   );
@@ -341,6 +345,13 @@ export function GameTable({
   const completionInput = { completedTricks: state.completedTricks, roundNumber: state.roundNumber, scope: presentationScope };
   const completionTransition = observeCompletedTricks(observationRef.current, completionInput);
   const presentedTrick = completionTransition.reset ? null : animatedCompletedTrick ?? completionTransition.additions[0] ?? null;
+  useEffect(() => { onAutoCollectCompleteRef.current = onAutoCollectComplete; }, [onAutoCollectComplete]);
+  useEffect(() => {
+    const collectedKey = autoCollectedKeyRef.current;
+    if (!collectedKey || presentedTrick?.key === collectedKey) return;
+    autoCollectedKeyRef.current = null;
+    onAutoCollectCompleteRef.current?.(collectedKey);
+  }, [presentedTrick?.key]);
   const trickLayers = selectTrickLayers({
     scope: presentationScope, roundNumber: state.roundNumber, completedCount: state.completedTricks.length,
     currentCards: state.currentTrick.cards, presented: presentedTrick,
@@ -444,6 +455,7 @@ export function GameTable({
     observationRef.current = transition.observation;
     if (transition.reset) {
       pendingTricksRef.current = [];
+      autoCollectedKeyRef.current = null;
       setAnimatedCompletedTrick(null);
       setShowLastTrick(false);
       return;
@@ -465,6 +477,7 @@ export function GameTable({
     if (!animatedCompletedTrick || !effectiveTrickPresentationPolicy.autoCollect) return;
     const timeoutId = window.setTimeout(() => {
       playPreferenceSound("trick-collect", preferences);
+      autoCollectedKeyRef.current = animatedCompletedTrick.key;
       setAnimatedCompletedTrick((current) => {
         if (current?.key !== animatedCompletedTrick.key) return current;
         return pendingTricksRef.current.shift() ?? null;
