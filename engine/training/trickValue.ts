@@ -52,7 +52,7 @@ export function classifyTrickValueExercise(exercise: TrickValueExercise): { trum
 
 export function createTrickValueExercise(position: TrainingPosition): TrickValueExercise {
   let state = position.state;
-  if (state.phase !== "playing" && !(state.phase === "finished" && state.completedTricks.length === 8)) {
+  if (state.phase !== "playing" && !((state.phase === "finished" || state.phase === "game-over") && state.completedTricks.length === 8)) {
     throw new Error("A trick-value exercise requires a playing position or a completed round.");
   }
   const mode = resolveContractMode(state);

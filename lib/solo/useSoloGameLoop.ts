@@ -26,6 +26,7 @@ export type SoloBotDecision =
 export type SoloGameLoopOptions = {
   preferences: PlayerPreferences;
   effectiveReducedMotion: boolean;
+  paused?: boolean;
   /** A hidden table cannot send a collection-complete signal. */
   tableVisible?: boolean;
   onGameStart?: () => void;
@@ -37,6 +38,7 @@ export type SoloGameLoopOptions = {
 export function useSoloGameLoop({
   preferences,
   effectiveReducedMotion,
+  paused = false,
   tableVisible = true,
   onGameStart,
   onBotDecision,
@@ -46,15 +48,18 @@ export function useSoloGameLoop({
   preferencesRef.current = preferences;
   const reducedMotionRef = useRef(effectiveReducedMotion);
   reducedMotionRef.current = effectiveReducedMotion;
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
   const callbacksRef = useRef({ onGameStart, onBotDecision, onBiddingStateChange });
   callbacksRef.current = { onGameStart, onBotDecision, onBiddingStateChange };
   const botTurnPacerRef = useRef<SoloBotTurnPacer | null>(null);
+  const collectedTrickKeysRef = useRef(new Set<string>());
   const botDecisionNumberRef = useRef(0);
   const [gameState, setGameState] = useState<GameState | null>(null);
 
-  const humanCanPlay = gameState?.phase === "playing"
+  const humanCanPlay = !paused && gameState?.phase === "playing"
     && isHumanSeat(SOLO_SEAT_ASSIGNMENTS, gameState.currentPlayerId);
-  const humanCanBid = gameState?.phase === "bidding"
+  const humanCanBid = !paused && gameState?.phase === "bidding"
     && isHumanSeat(SOLO_SEAT_ASSIGNMENTS, gameState.currentPlayerId);
   const currentContract = useMemo(() => gameState ? getCurrentContract(gameState) : null, [gameState]);
   const gameRules = useMemo(() => gameState ? resolveGameRules(gameState.settings) : null, [gameState]);
@@ -67,7 +72,7 @@ export function useSoloGameLoop({
   }, [gameState, humanCanPlay]);
 
   function dispatchGameAction(action: GameAction) {
-    if (!gameState) return;
+    if (!gameState || pausedRef.current) return;
     const nextState = applyGameAction(gameState, action);
     if (gameState.phase === "bidding") callbacksRef.current.onBiddingStateChange?.(nextState);
     setGameState(nextState);
@@ -75,6 +80,7 @@ export function useSoloGameLoop({
 
   function startGame(ruleset?: GameRulesetSnapshot) {
     botDecisionNumberRef.current = 0;
+    collectedTrickKeysRef.current.clear();
     callbacksRef.current.onGameStart?.();
     setGameState(createInitialGame(Math.random, createGameSettings(ruleset ? { ruleset } : {})));
   }
@@ -84,11 +90,12 @@ export function useSoloGameLoop({
   }
 
   const onAutoCollectComplete = useCallback((trickKey: string) => {
+    collectedTrickKeysRef.current.add(trickKey);
     botTurnPacerRef.current?.autoCollected(trickKey);
   }, []);
 
   useEffect(() => {
-    if (!gameState || (gameState.phase !== "playing" && gameState.phase !== "bidding")
+    if (paused || !gameState || (gameState.phase !== "playing" && gameState.phase !== "bidding")
       || !isBotSeat(SOLO_SEAT_ASSIGNMENTS, gameState.currentPlayerId)) return;
 
     const currentState = gameState;
@@ -116,30 +123,31 @@ export function useSoloGameLoop({
     const currentPreferences = preferencesRef.current;
     const delayMs = currentState.phase === "bidding"
       ? currentPreferences.gameplay.biddingDelayMs : currentPreferences.gameplay.botDelayMs;
-    const pacer = scheduleSoloBotTurn(delayMs,
-      soloBotCollectionKey(currentState, currentPreferences, reducedMotionRef.current),
-      () => setGameState((latest) => latest === currentState ? nextState : latest));
+    const collectionKey = soloBotCollectionKey(currentState, currentPreferences, reducedMotionRef.current);
+    const pacer = scheduleSoloBotTurn(delayMs, collectionKey,
+      () => setGameState((latest) => !pausedRef.current && latest === currentState ? nextState : latest));
     botTurnPacerRef.current = pacer;
+    if (collectionKey && collectedTrickKeysRef.current.has(collectionKey)) pacer.autoCollected(collectionKey);
     return () => {
       pacer.cancel();
       if (botTurnPacerRef.current === pacer) botTurnPacerRef.current = null;
     };
-  }, [gameState]);
+  }, [gameState, paused]);
 
   useEffect(() => {
     if (gameState && (!tableVisible || soloBotCollectionKey(gameState, preferences, effectiveReducedMotion) === null)) {
       botTurnPacerRef.current?.releaseCollection();
     }
-  }, [effectiveReducedMotion, gameState, preferences, tableVisible]);
+  }, [effectiveReducedMotion, gameState, paused, preferences, tableVisible]);
 
   useEffect(() => {
-    if (!gameState || !isHumanSeat(SOLO_SEAT_ASSIGNMENTS, gameState.currentPlayerId)) return;
+    if (paused || !gameState || !isHumanSeat(SOLO_SEAT_ASSIGNMENTS, gameState.currentPlayerId)) return;
     return queueForcedHumanLastCard(gameState, humanPlayerId, preferencesRef.current.gameplay.botDelayMs,
       (currentState, card) => {
-        setGameState((latest) => latest === currentState
+        setGameState((latest) => !pausedRef.current && latest === currentState
           ? applyGameAction(latest, { type: "play-card", playerId: humanPlayerId, card }) : latest);
       });
-  }, [gameState]);
+  }, [gameState, paused]);
 
   return {
     gameState,

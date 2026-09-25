@@ -203,4 +203,82 @@ describe("useSoloGameLoop", () => {
     advance(settings.gameplay.botDelayMs);
     expect(result.current.gameState!.currentTrick.cards).toHaveLength(1);
   });
+
+  it("pauses a pending bot bid, blocks human bidding, then resumes exactly one bid", () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    const settings = preferences();
+    const { result, rerender } = renderHook(({ paused }) => useSoloGameLoop({
+      preferences: settings, effectiveReducedMotion: false, paused,
+    }), { initialProps: { paused: false } });
+    act(() => result.current.startGame());
+    rerender({ paused: true });
+    expect(result.current.humanCanBid).toBe(false);
+    act(() => result.current.dispatchGameAction({ type: "bid", playerId: 0, value: 80, trump: "clubs" }));
+    expect(result.current.gameState!.bids).toHaveLength(0);
+    rerender({ paused: false });
+    act(() => result.current.dispatchGameAction({ type: "bid", playerId: 0, value: 80, trump: "clubs" }));
+    const waiting = result.current.gameState!;
+    advance(10);
+    rerender({ paused: true });
+    advance(100);
+    expect(result.current.gameState).toBe(waiting);
+    expect(vi.getTimerCount()).toBe(0);
+    rerender({ paused: false });
+    advance(24);
+    expect(result.current.gameState).toBe(waiting);
+    advance(1);
+    expect(result.current.gameState!.bids).toHaveLength(2);
+    expect(result.current.gameState!.currentPlayerId).toBe(2);
+  });
+
+  it("pauses the automatic human last card and blocks human card actions", () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    const settings = preferences();
+    const { result, rerender } = renderHook(({ paused }) => useSoloGameLoop({
+      preferences: settings, effectiveReducedMotion: false, paused,
+    }), { initialProps: { paused: false } });
+    act(() => result.current.startGame());
+    driveUntil(result, ({ gameState }) => gameState?.phase === "playing"
+      && gameState.completedTricks.length === 7 && gameState.currentPlayerId === 0);
+    const waiting = result.current.gameState!;
+    expect(result.current.humanCanPlay).toBe(true);
+    rerender({ paused: true });
+    expect(result.current.humanCanPlay).toBe(false);
+    act(() => result.current.dispatchGameAction({ type: "play-card", playerId: 0, card: waiting.hands[0][0] }));
+    advance(100);
+    expect(result.current.gameState).toBe(waiting);
+    rerender({ paused: false });
+    advance(39);
+    expect(result.current.gameState).toBe(waiting);
+    advance(1);
+    expect(result.current.gameState).not.toBe(waiting);
+  });
+
+  it("remembers collection completed while paused and lets the winning bot lead after its normal delay", () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    const settings = preferences();
+    const { result, rerender } = renderHook(({ paused }) => useSoloGameLoop({
+      preferences: settings, effectiveReducedMotion: false, paused,
+    }), { initialProps: { paused: false } });
+    act(() => result.current.startGame());
+    driveUntil(result, ({ gameState }) => gameState?.phase === "playing"
+      && gameState.currentTrick.cards.length === 0 && gameState.completedTricks.length > 0
+      && soloBotCollectionKey(gameState, settings, false) !== null);
+    const waiting = result.current.gameState!;
+    const key = soloBotCollectionKey(waiting, settings, false)!;
+    rerender({ paused: true });
+    advance(100);
+    expect(result.current.gameState).toBe(waiting);
+    act(() => result.current.onAutoCollectComplete(key));
+    rerender({ paused: false });
+    advance(39);
+    expect(result.current.gameState).toBe(waiting);
+    advance(1);
+    expect(result.current.gameState!.currentTrick.cards).toHaveLength(1);
+    advance(100);
+    expect(result.current.gameState!.currentTrick.cards.length).toBeGreaterThanOrEqual(1);
+  });
 });

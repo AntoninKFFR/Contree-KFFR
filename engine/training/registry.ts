@@ -1,9 +1,11 @@
 import type { TrainingPosition } from "@/engine/training/generator";
+import type { InGameCapability } from "@/engine/training/inGame";
 
 export type TrainingAxis<TExercise = unknown> = {
   id: string;
   label: string;
   createExercise: (position: TrainingPosition) => TExercise;
+  inGame?: InGameCapability;
 };
 
 export function createTrainingAxisRegistry(axes: readonly TrainingAxis[] = []) {
