@@ -54,14 +54,18 @@ import {
 } from "@/app/solo/soloAnalysis";
 import { createSoloGame, loadSoloRules, saveSoloRules } from "@/app/solo/soloGameInitialization";
 import { queueForcedHumanLastCard } from "@/lib/soloLastTrick";
+import { scheduleSoloBotTurn, soloBotCollectionKey, type SoloBotTurnPacer } from "@/lib/soloBotPacing";
 
 const soloSeatAssignments = SOLO_SEAT_ASSIGNMENTS;
 const localHumanPlayerId = firstHumanSeat(soloSeatAssignments) ?? 0;
 
 export default function SoloPage() {
-  const { preferences } = usePlayerPreferences();
+  const { preferences, effectiveReducedMotion } = usePlayerPreferences();
   const preferencesRef = useRef(preferences);
   preferencesRef.current = preferences;
+  const reducedMotionRef = useRef(effectiveReducedMotion);
+  reducedMotionRef.current = effectiveReducedMotion;
+  const botTurnPacerRef = useRef<SoloBotTurnPacer | null>(null);
   const gameIdRef = useRef<string | null>(null);
   const hasLoadedRulesRef = useRef(false);
   const savedGameIdsRef = useRef(new Set<string>());
@@ -193,12 +197,24 @@ export default function SoloPage() {
     }
     const currentPreferences = preferencesRef.current;
     const delayMs = currentState.phase === "bidding" ? currentPreferences.gameplay.biddingDelayMs : currentPreferences.gameplay.botDelayMs;
-    const timeoutId = window.setTimeout(() => {
-      setGameState((latest) => latest === currentState ? nextState : latest);
-    }, delayMs);
+    const pacer = scheduleSoloBotTurn(
+      delayMs,
+      soloBotCollectionKey(currentState, currentPreferences, reducedMotionRef.current),
+      () => setGameState((latest) => latest === currentState ? nextState : latest),
+    );
+    botTurnPacerRef.current = pacer;
 
-    return () => window.clearTimeout(timeoutId);
+    return () => {
+      pacer.cancel();
+      if (botTurnPacerRef.current === pacer) botTurnPacerRef.current = null;
+    };
   }, [gameState]);
+
+  useEffect(() => {
+    if (gameState && (isMobilePortrait || soloBotCollectionKey(gameState, preferences, effectiveReducedMotion) === null)) {
+      botTurnPacerRef.current?.releaseCollection();
+    }
+  }, [effectiveReducedMotion, gameState, isMobilePortrait, preferences]);
 
   useEffect(() => {
     if (!gameState || !isHumanSeat(soloSeatAssignments, gameState.currentPlayerId)) return;
@@ -384,6 +400,7 @@ export default function SoloPage() {
               /> : null}
               immersiveMobileLandscape={isMobileLandscape}
               minimalHud={isFocusMode}
+              onAutoCollectComplete={(trickKey) => botTurnPacerRef.current?.autoCollected(trickKey)}
               state={gameState}
               showLiveScore={preferences.assistance.showLivePoints}
             />
