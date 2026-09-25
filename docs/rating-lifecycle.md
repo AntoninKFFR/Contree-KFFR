@@ -27,3 +27,5 @@ Si un compte est supprimé, sa ligne `player_ratings` disparaît ; les liens `us
 `npm run rating:retry -- --allow-host=<hôte exact> --limit=20` liste les pending sans mutation. Pour traiter au plus 20 matches, ajouter `--execute`. Le script exige `RATING_RETRY_SUPABASE_URL` et `RATING_RETRY_SERVICE_ROLE_KEY` dans l'environnement serveur et un hôte explicitement confirmé ; aucune clé n'est affichée. Le traitement appelle la même RPC idempotente et affiche un résultat par `source_game_id`. Aucun Cron ou worker externe n'est ajouté.
 
 Les RPC de lecture, le résumé personnel et le leaderboard minimal restent pour la PR C. L'interface peut montrer temporairement l'ancien Elo tant qu'un match est `pending`.
+
+L'écran de fin multijoueur lit désormais le résultat du match par `source_game_id` dans une RPC privée au participant. Le statut `pending` reste affiché comme calcul en cours, avec quelques nouvelles lectures espacées ; `applied` affiche les trois valeurs déjà inscrites au ledger, et une partie sans match ne présente aucun faux delta. Le retour de l'hôte au lobby conserve l'archive et remet `active_game_id` à `null` ; le démarrage suivant en crée un nouveau.

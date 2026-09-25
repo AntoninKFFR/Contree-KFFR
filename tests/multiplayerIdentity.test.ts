@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createInitialGame } from "@/engine/game";
+import type { GameState } from "@/engine/types";
 import type { RoomPlayerRow, RoomRow } from "@/lib/roomTypes";
 import { createRoom, executeIntent, resolveRoomUsername, roomView } from "@/lib/server/multiplayerService";
 import { parseRoomIntent } from "@/lib/server/roomIntentValidation";
@@ -10,8 +12,9 @@ const state: {
   ratings: Record<string, { rating: number; rated_games: number }>;
   room: RoomRow | null;
   players: RoomPlayerRow[];
+  game: GameState | null;
 } = {
-  usernames: {}, ratings: {}, room: null, players: [],
+  usernames: {}, ratings: {}, room: null, players: [], game: null,
 };
 
 const db = {
@@ -52,6 +55,9 @@ const db = {
       },
       select: () => ({ eq: () => ({ order: async () => ({ data: state.players, error: null }) }) }),
     };
+    if (table === "room_game_states") return {
+      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: state.game ? { state: state.game } : null, error: null }) }) }),
+    };
     throw new Error(`Unexpected table ${table}`);
   },
   async rpc(name: string, params: Record<string, unknown>) {
@@ -77,6 +83,7 @@ beforeEach(() => {
   };
   state.room = null;
   state.players = [];
+  state.game = null;
 });
 
 describe("server-authoritative multiplayer identity", () => {
@@ -102,6 +109,20 @@ describe("server-authoritative multiplayer identity", () => {
   it("does not create a room for an account without a profile", async () => {
     await expect(createRoom({ userId: "missing", rules: { presetId: "contree-kffr" } })).rejects.toMatchObject({ code: "profile_required" });
     expect(state.room).toBeNull();
+  });
+
+  it("projects the precise game id only to a seated participant while retaining room privacy", async () => {
+    await createRoom({ userId: "host", rules: { presetId: "contree-kffr" } });
+    expect((await roomView("room-1", "outsider")).gameId).toBeNull();
+    state.room!.status = "playing";
+    state.room!.game_phase = "bidding";
+    state.room!.active_game_id = "00000000-0000-4000-8000-000000000001";
+    state.game = createInitialGame(() => 0.1);
+    const seated = await roomView("room-1", "host");
+    expect(seated.gameId).toBe(state.room!.active_game_id);
+    expect(seated.room).not.toHaveProperty("active_game_id");
+    expect(seated.room).not.toHaveProperty("host_user_id");
+    await expect(roomView("room-1", "outsider")).rejects.toMatchObject({ status: 403 });
   });
 
   it("refuses a lobby seat without a profile and uses the latest name on a new seat", async () => {

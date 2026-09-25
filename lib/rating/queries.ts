@@ -21,6 +21,14 @@ export type LeaderboardEntry = {
   position: number;
 };
 
+export type RatingMatchResult = {
+  status: "pending" | "applied" | "void";
+  ratingBefore: number | null;
+  delta: number | null;
+  ratingAfter: number | null;
+  forfeited: boolean;
+};
+
 export const LEADERBOARD_DEFAULT_LIMIT = 50;
 export const LEADERBOARD_MAX_LIMIT = 100;
 
@@ -46,6 +54,31 @@ function nullableString(record: Record<string, unknown>, key: string): string | 
 function nullableInteger(record: Record<string, unknown>, key: string): number | null {
   if (record[key] === null) return null;
   return integer(record, key, 1);
+}
+
+function signedInteger(record: Record<string, unknown>, key: string): number {
+  if (!Number.isSafeInteger(record[key])) throw new Error(`Invalid rating field: ${key}`);
+  return record[key] as number;
+}
+
+export function parseRatingMatchResult(value: unknown): RatingMatchResult | null {
+  if (value === null) return null;
+  if (!isRecord(value) || !["pending", "applied", "void"].includes(String(value.status))
+    || typeof value.forfeited !== "boolean") throw new Error("Invalid rating match result");
+  const result: RatingMatchResult = {
+    status: value.status as RatingMatchResult["status"],
+    ratingBefore: value.rating_before === null ? null : integer(value, "rating_before"),
+    delta: value.delta === null ? null : signedInteger(value, "delta"),
+    ratingAfter: value.rating_after === null ? null : integer(value, "rating_after"),
+    forfeited: value.forfeited,
+  };
+  if (result.status === "applied") {
+    if (result.ratingBefore === null || result.delta === null || result.ratingAfter === null
+      || result.ratingBefore + result.delta !== result.ratingAfter) throw new Error("Inconsistent rating match result");
+  } else if (result.ratingBefore !== null || result.delta !== null || result.ratingAfter !== null) {
+    throw new Error("Inconsistent rating match result");
+  }
+  return result;
 }
 
 export function parseRatingSummary(value: unknown): RatingSummary {
@@ -101,6 +134,18 @@ export async function getMyRatingSummary(supabase: SupabaseClient): Promise<Rati
   const { data, error } = await supabase.rpc("get_my_rating_summary");
   if (error) throw error;
   return parseRatingSummary(data);
+}
+
+export async function getMyRatingMatchResult(
+  supabase: SupabaseClient,
+  sourceGameId: string,
+): Promise<RatingMatchResult | null> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sourceGameId)) {
+    throw new RangeError("Invalid source game id");
+  }
+  const { data, error } = await supabase.rpc("get_my_rating_match_result", { p_source_game_id: sourceGameId });
+  if (error) throw error;
+  return parseRatingMatchResult(data);
 }
 
 export async function getRatingLeaderboard(

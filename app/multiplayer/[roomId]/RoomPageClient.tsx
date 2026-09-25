@@ -16,6 +16,7 @@ import { useMultiplayerGameActions } from "@/components/multiplayer/useMultiplay
 import { useMultiplayerRoomActions } from "@/components/multiplayer/useMultiplayerRoomActions";
 import { useMultiplayerRoomSync } from "@/components/multiplayer/useMultiplayerRoomSync";
 import { useMultiplayerRoomTimers } from "@/components/multiplayer/useMultiplayerRoomTimers";
+import { useFinishedRatingResult } from "@/components/multiplayer/useFinishedRatingResult";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import {
   appDangerActionClass,
@@ -27,7 +28,6 @@ import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesPro
 import { canCoinche, canSurcoinche, getCurrentContractFromBids } from "@/engine/bidding";
 import { resolveContractMode } from "@/engine/contractMode";
 import { explainIllegalCard } from "@/engine/illegalCardExplanation";
-import { teamName } from "@/engine/players";
 import { getLegalCards } from "@/engine/rules";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import { rulesetToCustomInput, type CustomRulesetInput } from "@/engine/rulesets/custom";
@@ -38,6 +38,7 @@ import { handWithoutPendingCard, visiblePendingCard } from "@/lib/multiplayerOpt
 import { loginPath } from "@/lib/authRedirect";
 import type { RoomPlayerRow } from "@/lib/roomTypes";
 import { normalizeMultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
+import { finishedRoomPresentation } from "@/lib/multiplayerPostgame";
 import { acceptGameInvitation, socialErrorMessage } from "@/lib/socialApi";
 
 function roomIdFromParams(value: string | string[] | undefined): string | null {
@@ -139,17 +140,10 @@ export default function MultiplayerRoomPage() {
     roomWithPlayers?.room.status === "finished" && gameState?.phase !== "game-over"
       ? "playing"
       : roomWithPlayers?.room.status;
-  const finalWinner =
-    displayedRoomStatus === "finished" &&
-    gameState?.winnerTeam !== null &&
-    gameState?.winnerTeam !== undefined
-      ? teamName(gameState.winnerTeam, gameState.playerNames)
-      : null;
-  const finalOutcome = finalWinner
-    ? gameState?.endReason === "forfeit"
-      ? `${finalWinner} gagnent par abandon.`
-      : `${finalWinner} gagnent`
-    : "Fin de partie";
+  const finishedGameId = displayedRoomStatus === "finished" ? roomWithPlayers?.gameId ?? null : null;
+  const finishedRating = useFinishedRatingResult(finishedGameId, accessToken);
+  const finishedPresentation = displayedRoomStatus === "finished" && gameState && roomWithPlayers
+    ? finishedRoomPresentation(gameState, roomWithPlayers.players, roomWithPlayers.viewerSeatIndex) : null;
   const canPlayCard = Boolean(
     gameState &&
       currentSeat &&
@@ -324,7 +318,7 @@ export default function MultiplayerRoomPage() {
           : isLobbyLayout
           ? "coinche-app-page coinche-lobby-shell h-[calc(100dvh-56px)] min-h-0 overflow-hidden px-2 py-2 sm:px-3"
           : isFinishedLayout
-          ? "coinche-app-page flex h-[calc(100dvh-56px)] min-h-0 items-center justify-center px-3 py-4"
+          ? "coinche-app-page flex h-[calc(100dvh-56px)] min-h-0 items-start justify-center overflow-y-auto px-3 py-4 sm:items-center"
           : "coinche-app-page min-h-[calc(100dvh-56px)] px-3 py-5 text-stone-50 sm:px-5 sm:py-7"
       }
     >
@@ -335,7 +329,7 @@ export default function MultiplayerRoomPage() {
             : isLobbyLayout
             ? "mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col gap-2"
             : isFinishedLayout
-            ? "mx-auto flex w-full max-w-xl flex-col"
+            ? "mx-auto flex w-full max-w-2xl flex-col"
             : "mx-auto flex max-w-5xl flex-col gap-4"
         }
       >
@@ -369,14 +363,13 @@ export default function MultiplayerRoomPage() {
 
         {pageState === "ready" && roomWithPlayers ? (
           <>
-            {displayedRoomStatus === "finished" && gameState ? (
+            {displayedRoomStatus === "finished" && finishedPresentation ? (
               <FinishedRoomCard
                 isHost={roomWithPlayers.isHost}
                 isResettingRoom={isResettingRoom}
                 onRematch={handleRematch}
-                onReturn={() => void loadRoom()}
-                outcome={finalOutcome}
-                scores={gameState.totalScore}
+                presentation={finishedPresentation}
+                rating={finishedRating}
               />
             ) : null}
 

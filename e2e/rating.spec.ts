@@ -4,7 +4,7 @@ import { effectiveRatingDelta, eloDelta, expectedScore, kFactor, redistributeFor
 import type { RatingSummary } from "../lib/rating/queries";
 import { fourPlayerCredentials, loginAs } from "./helpers/auth";
 import { createRoomThroughUi, joinRoomThroughUi } from "./helpers/multiplayerUi";
-import { ownPublicUsername, ratingLeaderboard, ratingSummary, waitForApplied, waitForNoPending } from "./helpers/rating";
+import { ownPublicUsername, ratingLeaderboard, ratingMatchResult, ratingSummary, waitForApplied, waitForNoPending } from "./helpers/rating";
 import { bestEffortFinishRoom, expectRoom, roomView, sendIntent } from "./helpers/room";
 
 const auth = fourPlayerCredentials();
@@ -58,6 +58,7 @@ test.describe("@multiplayer @rating authenticated Elo lifecycle", () => {
       expect((await sendIntent(pages[0], roomId, playing.room.state_version, { type: "forfeit-game" })).status).toBe(200);
       const finished = await expectRoom(pages[0], roomId, "rated forfeit finished", (view) =>
         view.room.status === "finished" && view.game?.endReason === "forfeit");
+      expect(finished.gameId).toMatch(/^[0-9a-f-]{36}$/i);
       expect(finished.game?.winnerTeam).toBe(1);
       expect(finished.game?.forfeitingTeam).toBe(0);
       const after = await Promise.all(pages.map((page, index) => waitForApplied(page, before[index].ratedGames, `four-human account ${index + 1}`)));
@@ -81,6 +82,16 @@ test.describe("@multiplayer @rating authenticated Elo lifecycle", () => {
         expect(playerAfter.losses).toBe(playerBefore.losses + (seat % 2 === 0 ? 1 : 0));
         expect(playerAfter.forfeits).toBe(playerBefore.forfeits + (seat === 0 ? 1 : 0));
         expect(playerAfter.peakRating).toBe(Math.max(playerBefore.peakRating, rating));
+        const ledger = await ratingMatchResult(pages[seat], finished.gameId!);
+        expect(ledger).toMatchObject({ status: "applied", ratingBefore: playerBefore.rating,
+          delta: playerAfter.rating - playerBefore.rating, ratingAfter: playerAfter.rating,
+          forfeited: seat === 0 });
+        const resultCard = pages[seat].getByRole("region", { name: "Résultat de la partie" });
+        await expect(resultCard.getByRole("region", { name: "Elo KFFR" })).toContainText(
+          playerAfter.rating - playerBefore.rating > 0
+            ? `+${playerAfter.rating - playerBefore.rating}` : String(playerAfter.rating - playerBefore.rating),
+          { timeout: 20_000 },
+        );
         await assertRankState(pages[seat], playerAfter);
       }
       await pages[0].goto("/profile");

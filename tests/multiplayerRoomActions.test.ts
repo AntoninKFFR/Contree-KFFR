@@ -30,6 +30,7 @@ function roomView(
   status: MultiplayerRoomView["room"]["status"] = "lobby",
 ): MultiplayerRoomView {
   return {
+    gameId: status === "lobby" ? null : "00000000-0000-4000-8000-000000000001",
     room: {
       id: "room",
       code: "ABC123",
@@ -306,6 +307,12 @@ describe("multiplayer room and lobby actions", () => {
       harness.input.session,
     );
     expect(harness.state.isResettingRoom.history).toEqual([true, false]);
+  });
+
+  it("never sends the host-only lobby transition for a non-host", async () => {
+    const harness = actionHarness({ isHost: false });
+    await harness.handlers.handleRematch();
+    expect(harness.services.sendRoomIntent).not.toHaveBeenCalled();
   });
 
   it("starts the next round only when the action is available", async () => {

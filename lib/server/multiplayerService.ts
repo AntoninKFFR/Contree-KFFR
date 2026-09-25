@@ -164,6 +164,8 @@ export async function roomView(
   void _activeGameId;
   return {
     room: { ...publicRoom, presentation_settings: normalizeMultiplayerTablePreferences(publicRoom.presentation_settings) },
+    gameId: seatIndex !== null && (result.room.status === "playing" || result.room.status === "finished")
+      ? result.room.active_game_id : null,
     players: projectRoomPlayers(result.players, nowMs, result.room.host_user_id, ratingsByUserId),
     isHost: result.room.host_user_id === userId,
     canClaimHost: canClaimRoomHost(result.room, result.players, userId, nowMs),

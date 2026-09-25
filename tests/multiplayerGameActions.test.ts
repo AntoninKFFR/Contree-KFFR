@@ -18,6 +18,7 @@ const suitMode: ContractMode = { kind: "suit", suit: "hearts" };
 
 function roomView(version = 7): MultiplayerRoomView {
   return {
+    gameId: "00000000-0000-4000-8000-000000000001",
     room: {
       id: "room",
       code: "ABC123",

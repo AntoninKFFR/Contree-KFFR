@@ -16,6 +16,7 @@ export type E2EPlayerView = {
 };
 
 export type E2ERoomView = {
+  gameId: string | null;
   room: {
     id: string;
     code: string;
@@ -159,6 +160,14 @@ function assertSafePayload(payload: unknown): void {
       visit(nested);
     }
     const record = value as Record<string, unknown>;
+    if ("gameId" in record && "viewerSeatIndex" in record) {
+      const visible = record.viewerSeatIndex !== null && ["playing", "finished"].includes(
+        String((record.room as { status?: unknown } | undefined)?.status),
+      );
+      if (visible ? typeof record.gameId !== "string" : record.gameId !== null) {
+        throw new Error("Privacy violation: invalid participant game id projection.");
+      }
+    }
     if ("seat_index" in record && "kind" in record) {
       const ranked = record.is_ranked === true;
       if (ranked) {

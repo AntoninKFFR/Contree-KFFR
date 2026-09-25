@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   getMyRatingSummary,
+  getMyRatingMatchResult,
   getRatingLeaderboard,
   parseLeaderboard,
+  parseRatingMatchResult,
   parseRatingSummary,
 } from "@/lib/rating/queries";
+import { shouldRetryFinishedRating } from "@/components/multiplayer/useFinishedRatingResult";
 
 const unranked = {
   rating: 1012,
@@ -21,6 +24,33 @@ const unranked = {
 };
 
 describe("rating read queries", () => {
+  it("accepts only bounded own-match projections and never invents an Elo delta", () => {
+    expect(parseRatingMatchResult(null)).toBeNull();
+    const pending = { status: "pending", rating_before: null, delta: null, rating_after: null, forfeited: false };
+    expect(parseRatingMatchResult(pending)).toEqual({ status: "pending", ratingBefore: null,
+      delta: null, ratingAfter: null, forfeited: false });
+    expect(parseRatingMatchResult({ ...pending, status: "applied", rating_before: 1040,
+      delta: -14, rating_after: 1026, user_id: "not projected" })).toEqual({
+      status: "applied", ratingBefore: 1040, delta: -14, ratingAfter: 1026, forfeited: false,
+    });
+    expect(() => parseRatingMatchResult({ ...pending, status: "applied" })).toThrow("Inconsistent");
+    expect(() => parseRatingMatchResult({ ...pending, status: "applied", rating_before: 1040,
+      delta: -14, rating_after: 1030 })).toThrow("Inconsistent");
+    expect(() => parseRatingMatchResult({ ...pending, delta: 0 })).toThrow("Inconsistent");
+    expect(shouldRetryFinishedRating(parseRatingMatchResult(pending), 1)).toBe(true);
+    expect(shouldRetryFinishedRating(parseRatingMatchResult(pending), 6)).toBe(false);
+    expect(shouldRetryFinishedRating(null, 1)).toBe(false);
+  });
+
+  it("reads one source game through the viewer-only RPC", async () => {
+    const gameId = "00000000-0000-4000-8000-000000000001";
+    const rpc = vi.fn().mockResolvedValue({ data: { status: "applied", rating_before: 1012,
+      delta: 18, rating_after: 1030, forfeited: false }, error: null });
+    expect(await getMyRatingMatchResult({ rpc } as never, gameId)).toMatchObject({ delta: 18 });
+    expect(rpc).toHaveBeenCalledWith("get_my_rating_match_result", { p_source_game_id: gameId });
+    await expect(getMyRatingMatchResult({ rpc } as never, "not-a-uuid")).rejects.toThrow(RangeError);
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
   it("maps the snake_case summary to the app type", () => {
     expect(parseRatingSummary(unranked)).toEqual({
       rating: 1012,

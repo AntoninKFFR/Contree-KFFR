@@ -16,6 +16,7 @@ const suffix = randomUUID().replaceAll("-", "").slice(0, 8);
 const identities = [];
 const roomIds = [];
 const gameIds = [];
+let matchSequence = 0;
 
 function checked(result, label) {
   if (result.error) throw new Error(`${label}: ${result.error.message}`);
@@ -51,8 +52,9 @@ async function leaderboard(who, args = undefined) {
 }
 
 async function createPendingMatch(who) {
+  matchSequence += 1;
   const room = checked(await admin.from("rooms").insert({
-    code: `Q${suffix.slice(0, 5)}`.toUpperCase(), host_user_id: who.id,
+    code: `Q${suffix.slice(0, 4)}${matchSequence}`.toUpperCase(), host_user_id: who.id,
     status: "finished", scoring_mode: "ffb", target_score: 1000,
   }).select("id").single(), "read-test room");
   roomIds.push(room.id);
@@ -96,7 +98,7 @@ async function createPendingMatch(who) {
     bot_profile_id: seat.bot_profile_id ?? null, bot_version: seat.bot_version ?? null,
     bot_rating_snapshot: seat.bot_rating_snapshot ?? null, result: seat.team_id === 0 ? 1 : 0,
   }))), "read-test match seats");
-  return match.id;
+  return { matchId: match.id, gameId };
 }
 
 async function run() {
@@ -174,20 +176,48 @@ async function run() {
   await rejected(anonymous.from("profiles").select("id,username"), /permission|denied/i);
   await rejected(anonymous.rpc("get_my_rating_summary"), /permission|authentication|schema cache/i);
   await rejected(anonymous.rpc("get_rating_leaderboard"), /permission|authentication|schema cache/i);
+  await rejected(anonymous.rpc("get_my_rating_match_result", { p_source_game_id: randomUUID() }), /permission|authentication|schema cache/i);
   await rejected(a.client.rpc("apply_rating_match", { p_source_game_id: randomUUID() }), /permission|denied|schema cache/i);
   await rejected(anonymous.rpc("apply_rating_match", { p_source_game_id: randomUUID() }), /permission|denied|schema cache/i);
   await rejected(a.client.from("player_ratings").select("*"), /permission|denied/i);
   await rejected(a.client.from("player_ratings").update({ rating: 9999 }).eq("user_id", a.id), /permission|denied/i);
+  await rejected(a.client.from("rating_matches").select("*"), /permission|denied/i);
+  await rejected(a.client.from("rating_match_participants").select("*"), /permission|denied/i);
 
   // Pending counts are scoped to the authenticated human participant and stop
   // counting once the match has already been applied.
-  const pendingMatchId = await createPendingMatch(fresh);
+  const pending = await createPendingMatch(fresh);
+  const readMatch = async (who, gameId) => checked(await who.client.rpc("get_my_rating_match_result", {
+    p_source_game_id: gameId,
+  }), `match result ${who.username}`);
+  assert.deepEqual(await readMatch(fresh, pending.gameId), {
+    status: "pending", rating_before: null, delta: null, rating_after: null, forfeited: false,
+  });
+  assert.equal(await readMatch(a, pending.gameId), null);
+  assert.equal(await readMatch(fresh, randomUUID()), null);
+  await rejected(fresh.client.rpc("get_my_rating_match_result", { p_source_game_id: null }), /invalid_source_game_id/i);
   assert.equal((await summary(fresh)).pending_matches, 1);
   assert.equal((await summary(a)).pending_matches, 0);
+  checked(await admin.from("rating_match_participants").update({
+    rating_before_apply: 1000, delta: 8, rating_after_apply: 1008,
+  }).eq("match_id", pending.matchId).eq("user_id", fresh.id), "applied read-test participant");
   checked(await admin.from("rating_matches").update({
     status: "applied", processed_at: new Date().toISOString(),
-  }).eq("id", pendingMatchId), "mark read-test match applied");
+  }).eq("id", pending.matchId), "mark read-test match applied");
+  const applied = await readMatch(fresh, pending.gameId);
+  assert.deepEqual(applied, { status: "applied", rating_before: 1000, delta: 8,
+    rating_after: 1008, forfeited: false });
+  assert.equal(applied.rating_before + applied.delta, applied.rating_after);
+  assert.deepEqual(Object.keys(applied).sort(), ["delta", "forfeited", "rating_after", "rating_before", "status"]);
+  assert.equal(await readMatch(b, pending.gameId), null);
   assert.equal((await summary(fresh)).pending_matches, 0);
+
+  const voided = await createPendingMatch(b);
+  checked(await admin.from("rating_matches").update({ status: "void", winner_team: null,
+    end_reason: null, forfeiting_seat_index: null }).eq("id", voided.matchId), "void read-test match");
+  assert.deepEqual(await readMatch(b, voided.gameId), { status: "void", rating_before: null,
+    delta: null, rating_after: null, forfeited: false });
+  assert.equal(await readMatch(fresh, voided.gameId), null);
 
   checked(await admin.from("player_ratings").update({
     rating: 1040, rated_games: 5, wins: 4, losses: 1, peak_rating: 1040,

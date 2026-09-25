@@ -62,6 +62,8 @@ export type RoomPlayerView = Pick<
 
 export type MultiplayerRoomView = {
   room: Omit<RoomRow, "host_user_id" | "active_game_id">;
+  /** Current archived/active game identifier, visible only to a seated participant. */
+  gameId: string | null;
   players: RoomPlayerView[];
   isHost: boolean;
   canClaimHost: boolean;

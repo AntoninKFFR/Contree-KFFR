@@ -48,6 +48,7 @@ function roomView({
 } = {}): MultiplayerRoomView {
   const game = toPlayerGameView(createInitialGame(() => 0.1), 0);
   return {
+    gameId: "00000000-0000-4000-8000-000000000001",
     room: {
       id: "room",
       code: "ABC123",
