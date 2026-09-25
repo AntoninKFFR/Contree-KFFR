@@ -27,6 +27,6 @@ export function TrickValueBoard({ exercise }: { exercise: TrickValueExercise }) 
     <ol aria-label="Cartes du pli" className="mt-4 grid grid-cols-4 gap-1.5 sm:gap-3">
       {exercise.cards.map((played, cardIndex) => <TrainingCard card={played.card} index={cardIndex} key={`${played.playerId}-${cardIndex}`} />)}
     </ol>
-    {exercise.isLastTrick ? <div className="mt-4 flex items-center gap-3 text-xs font-bold tracking-wide text-[var(--accent)]"><span className="h-px flex-1 bg-[var(--border-strong)]" /><span>Dernier pli · 10 de der</span><span className="h-px flex-1 bg-[var(--border-strong)]" /></div> : null}
+    {exercise.isLastTrick ? <div className="mt-4 flex items-center gap-3 text-xs font-bold tracking-wide text-[var(--accent)]"><span className="h-px flex-1 bg-[var(--border-strong)]" /><span>{exercise.isCapot ? `Dernier pli · bonus capot (+${exercise.bonusPoints})` : "Dernier pli · 10 de der"}</span><span className="h-px flex-1 bg-[var(--border-strong)]" /></div> : null}
   </>;
 }

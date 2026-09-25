@@ -87,6 +87,11 @@ export function TrainingHubClient() {
       <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Entraînement</h1>
       <p className="mt-3 max-w-2xl text-[var(--text-secondary)]">Apprends les points des plis, puis tente les défis chronométrés. Aucun compte n’est nécessaire.</p>
     </header>
+    <AppSurface className="mb-4">
+      <h2 className="text-2xl font-black">Jouer une partie</h2>
+      <p className="mt-2 text-sm text-[var(--text-secondary)]">Joue une vraie partie contre les bots et réponds à des questions aux moments clés.</p>
+      <Link className={`${appPrimaryActionClass} mt-4 w-full sm:w-auto`} href="/training/game">Entraînement en partie</Link>
+    </AppSurface>
     <AppSurface>
       <h2 className="text-2xl font-black">Valeur d’un pli</h2>
       <div className="mt-5"><AppEyebrow>Apprentissage</AppEyebrow></div>
