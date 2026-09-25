@@ -15,6 +15,7 @@ function player(seat: 0 | 1 | 2 | 3, kind: RoomPlayerView["kind"] = "empty"): Ro
 
 function roomView(version: number, overrides: Partial<MultiplayerRoomView> = {}): MultiplayerRoomView {
   return {
+    gameId: null,
     room: {
       id: "room", code: "ABC123", status: "lobby", scoring_mode: "ffb", target_score: 1_000,
       game_phase: null, state_version: version, turn_deadline_at: null,

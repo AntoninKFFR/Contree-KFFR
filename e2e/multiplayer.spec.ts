@@ -407,6 +407,51 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       expect(finished.game?.forfeitingTeam).toBe(forfeitingTeam);
       expect(finished.game?.winnerTeam).toBe(forfeitingTeam === 0 ? 1 : 0);
       expect(finished.players.every((player) => !player.bot_takeover)).toBe(true);
+      expect(finished.gameId).toMatch(/^[0-9a-f-]{36}$/i);
+      for (const page of pages) {
+        const card = page.getByRole("region", { name: "Résultat de la partie" });
+        await expect(card).toBeVisible({ timeout: 20_000 });
+        for (const player of finished.players) await expect(card).toContainText(player.display_name!);
+        await expect(card).not.toContainText("Score équipe 0");
+        await expect(card).not.toContainText("Score équipe 1");
+        expect((await roomView(page, roomId)).gameId).toBe(finished.gameId);
+        if (page !== hostPage) {
+          await expect(card.getByRole("button", { name: "Retour au lobby" })).toHaveCount(0);
+          await expect(card).toContainText("En attente de l’hôte");
+        }
+      }
+      await pages[1].setViewportSize({ width: 667, height: 375 });
+      const compactCard = pages[1].getByRole("region", { name: "Résultat de la partie" });
+      await expect(compactCard).toBeVisible();
+      await expect(compactCard.getByText("Partie terminée", { exact: true })).toBeVisible();
+      await expect(compactCard.getByRole("heading", { level: 1 })).toHaveText(/^(Victoire|Défaite) par abandon$/);
+      const compactLayout = await pages[1].evaluate(() => {
+        const scroller = document.querySelector("main");
+        const card = document.querySelector('section[aria-label="Résultat de la partie"]');
+        const heading = card?.querySelector("h1");
+        const kicker = card?.querySelector(".coinche-ui-kicker");
+        if (!scroller || !card || !heading || !kicker) throw new Error("The finished result structure is missing.");
+        scroller.scrollTop = 0;
+        const viewport = scroller.getBoundingClientRect();
+        const top = {
+          overflowsVertically: scroller.scrollHeight > scroller.clientHeight,
+          card: card.getBoundingClientRect().top,
+          kicker: kicker.getBoundingClientRect().top,
+          headingBottom: heading.getBoundingClientRect().bottom,
+          viewportTop: viewport.top,
+          viewportBottom: viewport.bottom,
+        };
+        scroller.scrollTop = scroller.scrollHeight;
+        return { ...top, cardBottomAtEnd: card.getBoundingClientRect().bottom };
+      });
+      expect(compactLayout.overflowsVertically).toBe(true);
+      expect(compactLayout.card).toBeGreaterThanOrEqual(compactLayout.viewportTop - 1);
+      expect(compactLayout.kicker).toBeGreaterThanOrEqual(compactLayout.viewportTop - 1);
+      expect(compactLayout.headingBottom).toBeLessThanOrEqual(compactLayout.viewportBottom + 1);
+      expect(compactLayout.cardBottomAtEnd).toBeLessThanOrEqual(compactLayout.viewportBottom + 1);
+      expect(await pages[1].evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await pages[1].reload();
+      await expect(pages[1].getByRole("region", { name: "Résultat de la partie" })).toBeVisible();
       const ratingsAfter = await Promise.all(pages.map(ratingSummary));
       for (let index = 0; index < 4; index += 1) {
         expect([ratingsAfter[index].rating, ratingsAfter[index].ratedGames, ratingsAfter[index].pendingMatches],
@@ -437,8 +482,11 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
         .map((player) => [player.seat_index, player.display_name, player.kind])
         .sort(([first], [second]) => Number(first) - Number(second));
       await hostPage.goto(`/multiplayer/${roomId}`);
-      await expect(hostPage.getByRole("button", { name: "Rejouer" })).toBeVisible();
-      await hostPage.getByRole("button", { name: "Rejouer" }).click();
+      await expect(hostPage.getByRole("button", { name: "Retour au lobby" })).toBeVisible();
+      const disconnectedIndex = 2;
+      const disconnectedStorage = await contexts[disconnectedIndex].storageState();
+      await contexts[disconnectedIndex].close();
+      await hostPage.getByRole("button", { name: "Retour au lobby" }).click();
       const rematch = await expectRoom(
         hostPage,
         roomId,
@@ -455,6 +503,28 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       expect(rematch.players.filter((player) => player.kind === "human").every((player) => !player.is_ready)).toBe(true);
       expect(rematch.room.status).toBe("lobby");
       expect(rematch.game).toBeNull();
+      expect(rematch.gameId).toBeNull();
+      for (const page of [pages[1], pages[3]]) {
+        await expect(page.getByRole("button", { name: "Prêt", exact: true })).toBeVisible({ timeout: 20_000 });
+        await expect(page.getByRole("region", { name: "Résultat de la partie" })).toHaveCount(0);
+        expect((await roomView(page, roomId)).room.status).toBe("lobby");
+      }
+      contexts[disconnectedIndex] = await browser.newContext({ baseURL, storageState: disconnectedStorage,
+        viewport: { width: 1280, height: 720 } });
+      pages[disconnectedIndex] = await contexts[disconnectedIndex].newPage();
+      await pages[disconnectedIndex].goto(`/multiplayer/${roomId}`);
+      await expect(pages[disconnectedIndex].getByRole("button", { name: "Prêt", exact: true })).toBeVisible({ timeout: 20_000 });
+      await expect(pages[disconnectedIndex].getByRole("region", { name: "Résultat de la partie" })).toHaveCount(0);
+      expect((await roomView(pages[disconnectedIndex], roomId)).room.status).toBe("lobby");
+      for (const page of pages) {
+        const lobbyView = await roomView(page, roomId);
+        expect((await sendIntent(page, roomId, lobbyView.room.state_version, { type: "set-ready", ready: true })).status).toBe(200);
+      }
+      const readyAgain = await expectRoom(hostPage, roomId, "same lobby ready for a new game", (view) =>
+        view.players.filter((player) => player.kind === "human").every((player) => player.is_ready));
+      expect((await sendIntent(hostPage, roomId, readyAgain.room.state_version, { type: "start-game" })).status).toBe(200);
+      const nextGame = await expectRoom(hostPage, roomId, "new game id after rematch", (view) => view.room.status === "playing");
+      expect(nextGame.gameId).not.toBe(finished.gameId);
 
       await hostPrivacy.assertSafeTraffic();
       await reconnectPrivacy.assertSafeTraffic();

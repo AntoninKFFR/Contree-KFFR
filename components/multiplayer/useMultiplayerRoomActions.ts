@@ -304,7 +304,7 @@ export function createMultiplayerRoomActionHandlers({
   async function handleRematch() {
     const supabase = services.getSupabaseClient();
 
-    if (!supabase || !roomWithPlayers || !session || isResettingRoom) return;
+    if (!supabase || !roomWithPlayers || !session || !isHost || isResettingRoom) return;
 
     setIsResettingRoom(true);
     setError(null);

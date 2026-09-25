@@ -29,6 +29,7 @@ function player(seat: 0 | 1 | 2 | 3, kind: RoomPlayerView["kind"] = "empty"): Ro
 
 function roomView(version: number, viewerSeatIndex: 0 | 1 | 2 | 3 | null = 0): MultiplayerRoomView {
   return {
+    gameId: null,
     room: {
       id: "room",
       code: "ABC123",
@@ -214,6 +215,43 @@ describe("multiplayer room synchronization", () => {
 
     await vi.waitFor(() => expect(loadRoom).toHaveBeenCalledWith({ silent: true }));
     expect(unsubscribe).toBe(cleanup);
+  });
+
+  it("converges a non-host from finished to the host's lobby and recovers after reconnect", async () => {
+    const finished = roomView(5, 1);
+    finished.room.status = "finished";
+    finished.gameId = "00000000-0000-4000-8000-000000000001";
+    finished.players[1] = player(1, "human");
+    const lobby = roomView(6, 1);
+    lobby.players[1] = player(1, "human");
+    const finishedReload = syncState();
+    await loadMultiplayerRoom(loadInput(finishedReload, servicesFor(session(), vi.fn(async () => finished)).services));
+    expect(finishedReload.roomWithPlayers.value?.room.status).toBe("finished");
+    expect(finishedReload.roomWithPlayers.value?.gameId).toBe(finished.gameId);
+    const state = syncState(finished);
+    const fetchRoom = vi.fn(async () => lobby);
+    const { services } = servicesFor(session(), fetchRoom);
+    const subscribe = vi.fn((_supabase, _roomId, refresh: () => void | Promise<void>) => {
+      void refresh();
+      return () => undefined;
+    });
+
+    subscribeToMultiplayerRoomSync({} as SupabaseClient, "room", () => loadMultiplayerRoom(
+      loadInput(state, services, { silent: true }),
+    ), subscribe);
+    await vi.waitFor(() => expect(state.roomWithPlayers.value).toBe(lobby));
+    expect(state.roomWithPlayers.value?.room.status).toBe("lobby");
+    expect(state.roomWithPlayers.value?.gameId).toBeNull();
+    expect(state.roomWithPlayers.value?.players.filter((seat) => seat.kind === "human").map((seat) => seat.seat_index)).toEqual([0, 1]);
+    expect(state.pageState.history).not.toContain("loading");
+
+    fetchRoom.mockResolvedValueOnce(finished);
+    await loadMultiplayerRoom(loadInput(state, services, { silent: true }));
+    expect(state.roomWithPlayers.value).toBe(lobby);
+    const reconnected = syncState();
+    await loadMultiplayerRoom(loadInput(reconnected, services));
+    expect(reconnected.roomWithPlayers.value?.room.status).toBe("lobby");
+    expect(reconnected.roomWithPlayers.value?.gameId).toBeNull();
   });
 
   it("does not start presence heartbeat without a viewer seat", () => {

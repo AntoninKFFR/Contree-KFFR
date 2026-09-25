@@ -29,9 +29,15 @@ Le rang de position est calculé avec `DENSE_RANK()` sur l'Elo décroissant avan
 
 L'identifiant interne sert uniquement à stabiliser l'ordre et n'est jamais renvoyé. Aucun email, UUID, compteur privé ou autre donnée de profil n'est exposé.
 
+## Résultat de la partie terminée
+
+`get_my_rating_match_result(p_source_game_id uuid)` lit uniquement le participant humain authentifié du match Elo associé à cette partie. La projection de room participant fournit `gameId`, qui est l'`active_game_id` autoritaire et correspond à `multiplayer_games.id` ainsi qu'à `rating_matches.source_game_id`. La room ne transmet toujours ni `host_user_id` ni `active_game_id` dans son objet public ; `gameId` vaut `null` au lobby ou pour un visiteur non assis.
+
+La RPC renvoie seulement `status`, `rating_before`, `delta`, `rating_after` et `forfeited` pour le caller. Les trois valeurs de cote restent `null` pendant `pending` ou `void`. Une partie non éligible, un identifiant inconnu ou un utilisateur extérieur au match reçoivent `null`, sans indication sur les autres participants. Le client ne recalcule jamais le delta : il affiche le ledger appliqué, indique « Calcul Elo en cours… » pendant un nombre borné de lectures si le match est pending, ou « Partie non classée » si aucun match n'existe.
+
 ## Sécurité
 
-Les deux RPC publiques sont accordées à `authenticated` seulement. Elles appellent des fonctions privées bornées qui vérifient `auth.uid()`. Les rôles `public` et `anon` n'ont aucun droit d'exécution. Les politiques et droits de `profiles` restent inchangés : un utilisateur ne peut lire directement que son propre profil.
+Les trois RPC publiques sont accordées à `authenticated` seulement. Elles appellent des fonctions privées bornées qui vérifient `auth.uid()`. Les rôles `public` et `anon` n'ont aucun droit d'exécution. Les politiques et droits de `profiles` restent inchangés : un utilisateur ne peut lire directement que son propre profil.
 
 Les tables Elo restent sans accès direct pour `anon` et `authenticated`. `apply_rating_match` reste réservé à `service_role`.
 

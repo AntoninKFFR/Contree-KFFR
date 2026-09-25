@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page } from "@playwright/test";
-import { parseLeaderboard, parseRatingSummary, type LeaderboardEntry, type RatingSummary } from "../../lib/rating/queries";
+import { parseLeaderboard, parseRatingMatchResult, parseRatingSummary, type LeaderboardEntry, type RatingMatchResult, type RatingSummary } from "../../lib/rating/queries";
 
 function publicSupabaseConfig(): { url: string; key: string } {
   let local = "";
@@ -44,6 +44,15 @@ async function userRequest(page: Page, path: string, body?: unknown): Promise<un
 
 export async function ratingSummary(page: Page): Promise<RatingSummary> {
   return parseRatingSummary(await userRequest(page, "/rest/v1/rpc/get_my_rating_summary", {}));
+}
+
+export async function ratingMatchResult(page: Page, gameId: string): Promise<RatingMatchResult | null> {
+  const result = await userRequest(page, "/rest/v1/rpc/get_my_rating_match_result", { p_source_game_id: gameId });
+  if (result !== null && (typeof result !== "object" || Array.isArray(result)
+    || Object.keys(result).sort().join(",") !== "delta,forfeited,rating_after,rating_before,status")) {
+    throw new Error("Match result exposed fields outside the viewer-only contract.");
+  }
+  return parseRatingMatchResult(result);
 }
 
 export async function ratingLeaderboard(page: Page, limit = 50, offset = 0): Promise<LeaderboardEntry[]> {

@@ -109,15 +109,24 @@ describe("compact multiplayer lobby and finish", () => {
   it("uses theme text, surface and border tokens for the finished scores", () => {
     const markup = renderToStaticMarkup(React.createElement(FinishedRoomCard, {
       isHost: true, isResettingRoom: false, onRematch: () => undefined,
-      onReturn: () => undefined, outcome: "Nous gagnons", scores: { 0: 720, 1: 640 },
+      presentation: {
+        title: "Victoire",
+        teams: [
+          { id: 0, name: "Koyora et Max", players: ["Koyora", "Max"], score: 720, isWinner: true },
+          { id: 1, name: "Zazou et Thomas", players: ["Zazou", "Thomas"], score: 640, isWinner: false },
+        ],
+      },
+      rating: { kind: "unrated" },
     }));
     expect(markup).toContain("Partie terminée");
-    expect(markup).toContain("Score équipe 0");
-    expect(markup).toContain("Score équipe 1");
+    expect(markup).toContain("Koyora et Max");
+    expect(markup).toContain("Zazou et Thomas");
+    expect(markup).not.toContain("Score équipe 0");
+    expect(markup).not.toContain("Score équipe 1");
     expect(markup).toContain("text-[color:var(--text-primary)]");
     expect(markup).toContain("text-[color:var(--text-secondary)]");
     expect(markup).not.toContain("text-stone-800");
-    expect(markup).toContain("Rejouer");
-    expect(markup).toContain("Retour à la table");
+    expect(markup).toContain("Retour au lobby");
+    expect(markup).not.toContain("Retour à la table");
   });
 });
