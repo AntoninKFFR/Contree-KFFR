@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { chooseBotBidWithTrace, chooseBotCard } from "@/bots/simpleBot";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { BotReviewHistory, BotReviewPanel } from "@/components/BotReviewPanel";
 import { SoloBotHandsPanel } from "@/components/BotHandAnalysis";
@@ -16,22 +15,12 @@ import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { appDangerActionClass, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
-import { applyGameAction, type GameAction } from "@/engine/actions";
-import { canCoinche, canSurcoinche } from "@/engine/bidding";
-import { resolveContractMode } from "@/engine/contractMode";
 import { explainIllegalCard } from "@/engine/illegalCardExplanation";
 import {
-  getCurrentContract,
-  playableCardsForCurrentPlayer,
-} from "@/engine/game";
-import {
   firstHumanSeat,
-  isBotSeat,
-  isHumanSeat,
   SOLO_SEAT_ASSIGNMENTS,
 } from "@/engine/seats";
-import type { BidValue, Card, ContractMode, GameState } from "@/engine/types";
-import { resolveGameRules } from "@/engine/rulesets/resolve";
+import type { BidValue, Card, ContractMode } from "@/engine/types";
 import { buildCustomRuleset, rulesetToCustomInput, type CustomRulesetInput } from "@/engine/rulesets/custom";
 import { saveCompletedGame } from "@/lib/games";
 import { getSupabaseClient } from "@/lib/supabaseClient";
@@ -52,28 +41,20 @@ import {
   soloMainClassName,
   shouldShowBotReviewAction,
 } from "@/app/solo/soloAnalysis";
-import { createSoloGame, loadSoloRules, saveSoloRules } from "@/app/solo/soloGameInitialization";
-import { queueForcedHumanLastCard } from "@/lib/soloLastTrick";
-import { scheduleSoloBotTurn, soloBotCollectionKey, type SoloBotTurnPacer } from "@/lib/soloBotPacing";
+import { loadSoloRules, saveSoloRules } from "@/app/solo/soloGameInitialization";
+import { useSoloGameLoop } from "@/lib/solo/useSoloGameLoop";
 
 const soloSeatAssignments = SOLO_SEAT_ASSIGNMENTS;
 const localHumanPlayerId = firstHumanSeat(soloSeatAssignments) ?? 0;
 
 export default function SoloPage() {
   const { preferences, effectiveReducedMotion } = usePlayerPreferences();
-  const preferencesRef = useRef(preferences);
-  preferencesRef.current = preferences;
-  const reducedMotionRef = useRef(effectiveReducedMotion);
-  reducedMotionRef.current = effectiveReducedMotion;
-  const botTurnPacerRef = useRef<SoloBotTurnPacer | null>(null);
   const gameIdRef = useRef<string | null>(null);
   const hasLoadedRulesRef = useRef(false);
   const savedGameIdsRef = useRef(new Set<string>());
-  const botDecisionNumberRef = useRef(0);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
-  const [gameState, setGameState] = useState<GameState | null>(null);
   const [hasLoadedRules, setHasLoadedRules] = useState(false);
   const [lastBotReview, setLastBotReview] = useState<BotReviewScenarioV1 | null>(null);
   const [botReviewHistory, setBotReviewHistory] = useState<BotReviewScenarioV1[]>(createEmptyBotReviewHistory);
@@ -87,21 +68,29 @@ export default function SoloPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isNewGameConfirmationOpen, setIsNewGameConfirmationOpen] = useState(false);
 
-  const humanCanPlay =
-    gameState?.phase === "playing" &&
-    isHumanSeat(soloSeatAssignments, gameState.currentPlayerId);
-  const humanCanBid =
-    gameState?.phase === "bidding" &&
-    isHumanSeat(soloSeatAssignments, gameState.currentPlayerId);
-  const currentContract = useMemo(() => gameState ? getCurrentContract(gameState) : null, [gameState]);
-  const gameRules = useMemo(() => gameState ? resolveGameRules(gameState.settings) : null, [gameState]);
-  const currentMode = useMemo(() => gameState ? resolveContractMode(gameState) : null, [gameState]);
-  const humanCanCoinche = humanCanBid && canCoinche(localHumanPlayerId, currentContract, gameRules?.bidding);
-  const humanCanSurcoinche = humanCanBid && canSurcoinche(localHumanPlayerId, currentContract, gameRules?.bidding);
-  const legalHumanCards = useMemo(() => {
-    if (!humanCanPlay || !gameState) return [];
-    return playableCardsForCurrentPlayer(gameState);
-  }, [gameState, humanCanPlay]);
+  const {
+    gameState, humanCanPlay, humanCanBid, currentContract, gameRules, currentMode,
+    humanCanCoinche, humanCanSurcoinche, legalHumanCards, dispatchGameAction,
+    startGame, startNextRound, onAutoCollectComplete,
+  } = useSoloGameLoop({
+    preferences,
+    effectiveReducedMotion,
+    tableVisible: !isMobilePortrait,
+    onGameStart: () => {
+      gameIdRef.current = crypto.randomUUID();
+      resetBotReview();
+    },
+    onBotDecision: BOT_REVIEW_MODE_ENABLED ? (decision) => {
+      const scenario = captureBotReviewScenario(decision.state, decision.kind === "bid"
+        ? { decisionNumber: decision.decisionNumber, elapsedMs: decision.elapsedMs, chosenBid: decision.chosenBid, biddingTrace: decision.biddingTrace }
+        : { decisionNumber: decision.decisionNumber, elapsedMs: decision.elapsedMs, chosenCard: decision.chosenCard });
+      setLastBotReview(scenario);
+      setBotReviewHistory((history) => appendBotReviewHistory(history, scenario));
+    } : undefined,
+    onBiddingStateChange: BOT_REVIEW_MODE_ENABLED
+      ? (state) => setBotReviewPublicAuctions((auctions) => updateBotReviewPublicAuctions(auctions, state))
+      : undefined,
+  });
   const displayedBotReview = useMemo(
     () => botReviewHistory.find((scenario) => scenario.decisionId === selectedBotReviewId) ?? lastBotReview,
     [botReviewHistory, lastBotReview, selectedBotReviewId],
@@ -147,82 +136,6 @@ export default function SoloPage() {
       window.removeEventListener("resize", update);
     };
   }, []);
-
-  function dispatchGameAction(action: GameAction) {
-    if (!gameState) {
-      return;
-    }
-
-    const nextState = applyGameAction(gameState, action);
-    if (BOT_REVIEW_MODE_ENABLED && gameState.phase === "bidding") {
-      setBotReviewPublicAuctions((auctions) => updateBotReviewPublicAuctions(auctions, nextState));
-    }
-    setGameState(nextState);
-  }
-
-  useEffect(() => {
-    if (
-      !gameState ||
-      (gameState.phase !== "playing" && gameState.phase !== "bidding") ||
-      !isBotSeat(soloSeatAssignments, gameState.currentPlayerId)
-    ) {
-      return;
-    }
-
-    const currentState = gameState;
-    botDecisionNumberRef.current += 1;
-    const started = performance.now();
-    let nextState: GameState;
-    if (currentState.phase === "bidding") {
-      const { bid: botBid, biddingTrace } = chooseBotBidWithTrace(currentState);
-      const elapsedMs = performance.now() - started;
-      if (BOT_REVIEW_MODE_ENABLED) {
-        const scenario = captureBotReviewScenario(currentState, { decisionNumber: botDecisionNumberRef.current, elapsedMs, chosenBid: botBid, biddingTrace });
-        setLastBotReview(scenario);
-        setBotReviewHistory((history) => appendBotReviewHistory(history, scenario));
-      }
-      nextState = botBid.action === "bid" || botBid.action === "generale"
-        ? applyGameAction(currentState, { type: botBid.action, playerId: currentState.currentPlayerId, ...("value" in botBid ? { value: botBid.value } : {}), ...("trump" in botBid ? { trump: botBid.trump } : {}), contractMode: botBid.contractMode } as GameAction)
-        : applyGameAction(currentState, { type: botBid.action, playerId: currentState.currentPlayerId });
-      if (BOT_REVIEW_MODE_ENABLED) setBotReviewPublicAuctions((auctions) => updateBotReviewPublicAuctions(auctions, nextState));
-    } else {
-      const botCard = chooseBotCard(currentState);
-      const elapsedMs = performance.now() - started;
-      if (BOT_REVIEW_MODE_ENABLED) {
-        const scenario = captureBotReviewScenario(currentState, { decisionNumber: botDecisionNumberRef.current, elapsedMs, chosenCard: botCard });
-        setLastBotReview(scenario);
-        setBotReviewHistory((history) => appendBotReviewHistory(history, scenario));
-      }
-      nextState = applyGameAction(currentState, { type: "play-card", playerId: currentState.currentPlayerId, card: botCard });
-    }
-    const currentPreferences = preferencesRef.current;
-    const delayMs = currentState.phase === "bidding" ? currentPreferences.gameplay.biddingDelayMs : currentPreferences.gameplay.botDelayMs;
-    const pacer = scheduleSoloBotTurn(
-      delayMs,
-      soloBotCollectionKey(currentState, currentPreferences, reducedMotionRef.current),
-      () => setGameState((latest) => latest === currentState ? nextState : latest),
-    );
-    botTurnPacerRef.current = pacer;
-
-    return () => {
-      pacer.cancel();
-      if (botTurnPacerRef.current === pacer) botTurnPacerRef.current = null;
-    };
-  }, [gameState]);
-
-  useEffect(() => {
-    if (gameState && (isMobilePortrait || soloBotCollectionKey(gameState, preferences, effectiveReducedMotion) === null)) {
-      botTurnPacerRef.current?.releaseCollection();
-    }
-  }, [effectiveReducedMotion, gameState, isMobilePortrait, preferences]);
-
-  useEffect(() => {
-    if (!gameState || !isHumanSeat(soloSeatAssignments, gameState.currentPlayerId)) return;
-    return queueForcedHumanLastCard(gameState, localHumanPlayerId, preferencesRef.current.gameplay.botDelayMs, (currentState, card) => {
-      setGameState((latest) => latest === currentState
-        ? applyGameAction(latest, { type: "play-card", playerId: localHumanPlayerId, card }) : latest);
-    });
-  }, [gameState]);
 
   useEffect(() => {
     const gameId = gameIdRef.current;
@@ -294,7 +207,6 @@ export default function SoloPage() {
   }
 
   function resetBotReview() {
-    botDecisionNumberRef.current = 0;
     setLastBotReview(null);
     setBotReviewHistory(createEmptyBotReviewHistory());
     setBotReviewPublicAuctions([]);
@@ -303,9 +215,7 @@ export default function SoloPage() {
   }
 
   function startSoloGame(ruleset = buildCustomRuleset(rulesInput)) {
-    gameIdRef.current = crypto.randomUUID();
-    resetBotReview();
-    setGameState(createSoloGame(Math.random, ruleset));
+    startGame(ruleset);
   }
 
   function activeGameId(): string {
@@ -330,7 +240,7 @@ export default function SoloPage() {
   }
 
   function handleNextRound() {
-    dispatchGameAction({ type: "start-next-round" });
+    startNextRound();
   }
 
   const rulesDialog = isRulesOpen ? <AccessibleDialog description={gameState ? "Ces règles remplaceront la partie en cours." : "Ces règles seront utilisées au démarrage de la partie."} footer={<div className="grid items-center gap-2 sm:grid-cols-[1fr_auto]"><div className="hidden sm:block"><RulesetSummary ruleset={buildCustomRuleset(rulesDraft)} compact /></div><button className={`${appPrimaryActionClass} w-full sm:w-auto`} type="button" onClick={applyRules}>{gameState ? "Appliquer et nouvelle partie" : "Enregistrer les règles"}</button></div>} onClose={() => setIsRulesOpen(false)} stableHeight title="Règles de la prochaine partie"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null;
@@ -400,7 +310,7 @@ export default function SoloPage() {
               /> : null}
               immersiveMobileLandscape={isMobileLandscape}
               minimalHud={isFocusMode}
-              onAutoCollectComplete={(trickKey) => botTurnPacerRef.current?.autoCollected(trickKey)}
+              onAutoCollectComplete={onAutoCollectComplete}
               state={gameState}
               showLiveScore={preferences.assistance.showLivePoints}
             />
