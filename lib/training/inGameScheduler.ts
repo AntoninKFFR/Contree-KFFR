@@ -15,6 +15,7 @@ export type InGameBoundary = {
 export type InGameSchedulerState = {
   roundNumber: number;
   askedThisRound: number;
+  lastAskedTrick: number;
   seenKeys: readonly string[];
   countsByAxis: Readonly<Partial<Record<InGameAxisId, number>>>;
   questionCount: number;
@@ -28,7 +29,19 @@ export type ScheduledInGameQuestion = {
 };
 
 export function emptyInGameSchedulerState(): InGameSchedulerState {
-  return { roundNumber: 0, askedThisRound: 0, seenKeys: [], countsByAxis: {}, questionCount: 0 };
+  return { roundNumber: 0, askedThisRound: 0, lastAskedTrick: 0, seenKeys: [], countsByAxis: {}, questionCount: 0 };
+}
+
+const QUESTION_TRICK_PATTERNS: Record<1 | 2 | 3, readonly (readonly number[])[]> = {
+  1: [[2], [3], [4], [5], [6], [7]],
+  2: [[2, 5], [2, 6], [2, 7], [3, 5], [3, 6], [3, 7], [4, 6], [4, 7]],
+  3: [[2, 4, 6], [2, 4, 7], [2, 5, 7], [2, 5, 8], [3, 5, 7], [3, 5, 8], [3, 6, 8], [4, 6, 8]],
+};
+
+/** Session-specific, spaced checkpoints; an inapplicable question can move later, never earlier. */
+export function plannedQuestionTricks(sessionSeed: number, roundNumber: number, budget: 1 | 2 | 3): readonly number[] {
+  const patterns = QUESTION_TRICK_PATTERNS[budget];
+  return patterns[(((sessionSeed >>> 0) + Math.imul(roundNumber, 0x9e3779b1)) >>> 0) % patterns.length];
 }
 
 /** A completed trick is one boundary, even though it is also the next trick's start. */
@@ -65,29 +78,34 @@ export function scheduleInGameQuestion(
   if (current.seenKeys.includes(boundary.key)) return { state: current, question: null };
   const roundChanged = current.roundNumber !== boundary.roundNumber;
   const askedThisRound = roundChanged ? 0 : current.askedThisRound;
+  const lastAskedTrick = roundChanged ? 0 : current.lastAskedTrick;
   const base: InGameSchedulerState = {
-    ...current, roundNumber: boundary.roundNumber, askedThisRound, seenKeys: [...current.seenKeys, boundary.key],
+    ...current, roundNumber: boundary.roundNumber, askedThisRound, lastAskedTrick,
+    seenKeys: [...current.seenKeys, boundary.key],
   };
+  const budget = configuration.budgetPerRound;
+  if (askedThisRound >= budget || boundary.trickIndex < plannedQuestionTricks(sessionSeed, boundary.roundNumber, budget)[askedThisRound]
+    || (lastAskedTrick > 0 && boundary.trickIndex - lastAskedTrick < 2)) return { state: base, question: null };
   const options = configuration.axes.flatMap((choice) => {
     if (!choice.enabled) return [];
     const axis = registry.resolve(choice.id);
     const capability = axis.inGame;
     if (!capability || !Number.isInteger(choice.level) || choice.level < 1 || choice.level > capability.levelCount) return [];
     const moment = boundary.moments.find((candidate) => capability.moments.includes(candidate));
-    if (!moment || (moment !== "round-end" && askedThisRound >= Math.min(3, configuration.budgetPerRound))) return [];
+    if (!moment) return [];
     const seed = inGameQuestionSeed(sessionSeed, boundary, choice.id, current.questionCount);
     const context = { viewerId: 0 as const, level: choice.level, seed, moment };
     return capability.isApplicable(boundary.state, context) ? [{ choice, capability, context, moment }] : [];
   });
-  const order = new Map(registry.list().map((axis, index) => [axis.id, index]));
   options.sort((left, right) =>
     (current.countsByAxis[left.choice.id] ?? 0) - (current.countsByAxis[right.choice.id] ?? 0)
-    || (order.get(left.choice.id) ?? 0) - (order.get(right.choice.id) ?? 0));
+    || inGameQuestionSeed(sessionSeed, boundary, left.choice.id, current.questionCount)
+      - inGameQuestionSeed(sessionSeed, boundary, right.choice.id, current.questionCount));
   const selected = options[0];
   if (!selected) return { state: base, question: null };
   const exercise = selected.capability.buildExercise(boundary.state, selected.context);
   return {
-    state: { ...base, askedThisRound: askedThisRound + Number(selected.moment !== "round-end"),
+    state: { ...base, askedThisRound: askedThisRound + 1, lastAskedTrick: boundary.trickIndex,
       countsByAxis: { ...current.countsByAxis, [selected.choice.id]: (current.countsByAxis[selected.choice.id] ?? 0) + 1 },
       questionCount: current.questionCount + 1 },
     question: { eventKey: boundary.key, axisId: selected.choice.id, level: selected.choice.level,

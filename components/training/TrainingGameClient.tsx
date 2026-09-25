@@ -10,6 +10,7 @@ import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { AppEyebrow, AppPage, AppSurface, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { TrainingInGameOverlay } from "@/components/training/TrainingInGameOverlay";
+import { inGameAxisLabel } from "@/components/training/inGameLabels";
 import { readTrainingProgress, type TrainingProgress } from "@/components/training/progress";
 import { explainIllegalCard } from "@/engine/illegalCardExplanation";
 import { buildCustomRuleset } from "@/engine/rulesets/custom";
@@ -23,6 +24,7 @@ import { defaultInGameConfiguration, readInGameConfiguration, saveInGameConfigur
 import { inGameSuccessPercent, recordInGameAnswer, type InGameSummary } from "@/lib/training/inGameSummary";
 
 const TRAINING_RULESET = buildCustomRuleset({ presetId: "contree-kffr" });
+export const IN_GAME_QUESTION_REVEAL_MS = 600;
 
 function levelUnlocked(progress: TrainingProgress, id: InGameAxisId): number {
   return progress.axes[id].unlockedLevel;
@@ -34,6 +36,7 @@ export function TrainingGameClient() {
   const [configuration, setConfiguration] = useState<InGameConfiguration>(defaultInGameConfiguration);
   const [screen, setScreen] = useState<"setup" | "game">("setup");
   const [question, setQuestion] = useState<ScheduledInGameQuestion | null>(null);
+  const [pendingQuestion, setPendingQuestion] = useState<ScheduledInGameQuestion | null>(null);
   const [grade, setGrade] = useState<InGameGrade | null>(null);
   const [summary, setSummary] = useState<InGameSummary>({});
   const [mobileLandscape, setMobileLandscape] = useState(false);
@@ -46,7 +49,8 @@ export function TrainingGameClient() {
     gameState, humanCanPlay, humanCanBid, humanCanCoinche, humanCanSurcoinche,
     currentContract, currentMode, gameRules, legalHumanCards,
     dispatchGameAction, startGame, startNextRound, onAutoCollectComplete,
-  } = useSoloGameLoop({ preferences, effectiveReducedMotion, paused: question !== null, tableVisible: !mobilePortrait });
+  } = useSoloGameLoop({ preferences, effectiveReducedMotion,
+    paused: pendingQuestion !== null || question !== null, tableVisible: !mobilePortrait });
 
   useEffect(() => {
     const savedProgress = readTrainingProgress();
@@ -70,8 +74,17 @@ export function TrainingGameClient() {
     if (!boundary) return;
     const scheduled = scheduleInGameQuestion(schedulerRef.current, boundary, configuration, sessionSeedRef.current);
     schedulerRef.current = scheduled.state;
-    if (scheduled.question) { setGrade(null); setQuestion(scheduled.question); }
+    if (scheduled.question) { setGrade(null); setPendingQuestion(scheduled.question); }
   }, [configuration, gameState, screen]);
+
+  useEffect(() => {
+    if (!pendingQuestion) return;
+    const timer = window.setTimeout(() => {
+      setQuestion(pendingQuestion);
+      setPendingQuestion(null);
+    }, IN_GAME_QUESTION_REVEAL_MS);
+    return () => window.clearTimeout(timer);
+  }, [pendingQuestion]);
 
   const updateConfiguration = (next: InGameConfiguration) => {
     setConfiguration(next);
@@ -82,7 +95,7 @@ export function TrainingGameClient() {
     schedulerRef.current = emptyInGameSchedulerState();
     gradedQuestionKeyRef.current = null;
     sessionSeedRef.current = crypto.getRandomValues(new Uint32Array(1))[0];
-    setSummary({}); setQuestion(null); setGrade(null); setScreen("game");
+    setSummary({}); setPendingQuestion(null); setQuestion(null); setGrade(null); setScreen("game");
     startGame(TRAINING_RULESET);
   };
   const handleGrade = (answer: InGameAnswer) => {
@@ -116,7 +129,7 @@ export function TrainingGameClient() {
               <label className="flex min-h-11 items-center gap-3 font-bold">
                 <input type="checkbox" checked={choice.enabled} onChange={(event) => updateConfiguration({ ...configuration,
                   axes: configuration.axes.map((item) => item.id === choice.id ? { ...item, enabled: event.target.checked } : item) })} />
-                {axis.label}
+                {inGameAxisLabel(choice.id)}
               </label>
               <label className="mt-2 block text-sm" htmlFor={`level-${choice.id}`}>Niveau</label>
               <select id={`level-${choice.id}`} className="coinche-input mt-1 min-h-11 w-full rounded-lg border px-3"
@@ -129,6 +142,7 @@ export function TrainingGameClient() {
           })}
         </div>
         <fieldset className="mt-6"><legend className="font-bold">Questions par manche</legend>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">Maximum total, tous axes confondus, même en fin de manche.</p>
           <div className="mt-2 flex flex-wrap gap-2">{([1, 2, 3] as const).map((budget) => <label key={budget}
             className={`flex min-h-11 items-center gap-2 rounded-lg border px-4 ${configuration.budgetPerRound === budget ? "border-[var(--accent)]" : "border-[var(--border)]"}`}>
             <input type="radio" name="budget" value={budget} checked={configuration.budgetPerRound === budget}
@@ -143,7 +157,7 @@ export function TrainingGameClient() {
 
   if (!gameState) return <AppPage><p role="status">Préparation de la partie…</p></AppPage>;
 
-  if (gameState.phase === "game-over" && !question) {
+  if (gameState.phase === "game-over" && !question && !pendingQuestion) {
     return <AppPage width="medium">
       <AppSurface className="mx-auto w-full max-w-2xl py-8">
         <AppEyebrow>Partie terminée</AppEyebrow>
@@ -152,7 +166,7 @@ export function TrainingGameClient() {
         <div className="mt-5 space-y-3">{configuration.axes.filter((axis) => axis.enabled && summary[axis.id]?.questions).map((axis) => {
           const record = summary[axis.id]!;
           return <section key={axis.id} className="rounded-xl border border-[var(--border)] p-4">
-            <h2 className="font-black">{trainingAxes.resolve(axis.id).label}</h2>
+            <h2 className="font-black">{inGameAxisLabel(axis.id)}</h2>
             <p className="mt-1 text-sm">{record.questions} question{record.questions > 1 ? "s" : ""} · {record.earnedScore} / {record.possibleScore} point{record.possibleScore > 1 ? "s" : ""} · {inGameSuccessPercent(record)} %</p>
           </section>;
         })}</div>
@@ -174,6 +188,7 @@ export function TrainingGameClient() {
     surcoinche: () => dispatchGameAction({ type: "surcoinche", playerId: 0 }),
   };
   return <main aria-label="Partie d’entraînement"
+    data-training-question-pending={pendingQuestion !== null}
     data-game-state-key={`${gameState.phase}:${gameState.roundNumber}:${gameState.completedTricks.length}:${gameState.currentPlayerId}:${gameState.currentTrick.cards.length}:${gameState.bids.length}`}
     className={`coinche-game-shell h-[calc(100dvh-56px)] min-h-0 overflow-x-hidden overflow-y-auto px-2 py-2 sm:px-3 lg:overflow-hidden ${mobileLandscape ? "overflow-hidden px-0 py-0 sm:px-4" : ""}`}>
     {mobilePortrait ? <MobileLandscapeNotice /> : <div className="mx-auto flex h-full w-full max-w-none flex-col gap-2">
@@ -191,7 +206,8 @@ export function TrainingGameClient() {
             onPlayCard={(card) => dispatchGameAction({ type: "play-card", playerId: 0, card })} /> : null} />
       </div>
     </div>}
-    {gameState.phase === "finished" && !question ? <RoundCompletionCard actionLabel="Manche suivante" onAction={startNextRound} state={gameState} /> : null}
+    {gameState.phase === "finished" && !question && !pendingQuestion ? <RoundCompletionCard actionLabel="Manche suivante" onAction={startNextRound} state={gameState} /> : null}
+    {pendingQuestion ? <p className="pointer-events-none fixed bottom-20 left-1/2 z-40 -translate-x-1/2 rounded-full border border-[var(--border)] bg-[var(--surface-raised)]/90 px-4 py-2 text-sm font-bold shadow-lg" role="status">Observe la table…</p> : null}
     {question ? <TrainingInGameOverlay key={question.eventKey} question={question} grade={grade} onGrade={handleGrade}
       onResume={() => { if (grade) { setQuestion(null); setGrade(null); } }} /> : null}
   </main>;

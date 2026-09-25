@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cardId, SUIT_LABELS } from "@/engine/cards";
-import { trainingAxes } from "@/engine/training/axes";
 import type { InGameAnswer, InGameGrade } from "@/engine/training/inGame";
 import { MEMORY_PLAYERS } from "@/engine/training/memory";
 import { voidCellId } from "@/engine/training/opponentVoids";
@@ -15,6 +14,7 @@ import { NumberPad } from "@/components/training/NumberPad";
 import { PlayerSuitGrid } from "@/components/training/PlayerSuitGrid";
 import { TrickValueBoard } from "@/components/training/TrickValueBoard";
 import { ValueGuide } from "@/components/training/TrainingPuzzleClient";
+import { inGameAxisLabel } from "@/components/training/inGameLabels";
 
 function suitName(suit: Suit): string {
   return suit === "hearts" ? "cœur" : SUIT_LABELS[suit].toLowerCase();
@@ -33,11 +33,10 @@ function VoidCorrection({ question, grade }: {
   if (exercise.level === 1) {
     const key = voidCellId(exercise.players[0], exercise.suits[0]);
     const proof = exercise.proofs[key];
-    return <div className="mt-2 space-y-1 text-sm">
-      <p className="font-bold">{exercise.expectedCells.includes(key) ? "Oui, c’était prouvé." : "On ne pouvait pas l’affirmer."}</p>
+    return <div className="mt-2 text-sm">
       {proof
-        ? <p>Au pli {proof.trickNumber}, {exercise.playerNames[proof.playerId]} n’a pas fourni {suitName(proof.suit)} alors que {suitName(proof.suit)} était demandé.</p>
-        : <p>Aucun pli joué ne prouve que {exercise.playerNames[exercise.players[0]]} n’a plus de {suitName(exercise.suits[0])}.</p>}
+        ? <p><strong>Oui, c’était prouvé :</strong> au pli {proof.trickNumber}, {exercise.playerNames[proof.playerId]} n’a pas fourni {suitName(proof.suit)} alors que {suitName(proof.suit)} était demandé.</p>
+        : <p><strong>On ne pouvait pas l’affirmer :</strong> aucun pli joué ne prouve que {exercise.playerNames[exercise.players[0]]} n’a plus de {suitName(exercise.suits[0])}.</p>}
     </div>;
   }
   const label = (key: string) => {
@@ -45,9 +44,9 @@ function VoidCorrection({ question, grade }: {
     return `${exercise.playerNames[Number(player) as PlayerId]} · ${SUIT_LABELS[suit as Suit]}`;
   };
   return <div className="mt-3 space-y-1 text-sm">
-    <p>Coupures prouvées trouvées : {grade.details.correctCells.map(label).join(", ") || "aucune"}.</p>
-    <p>Coupures prouvées oubliées : {grade.details.missedCells.map(label).join(", ") || "aucune"}.</p>
-    <p>Cases cochées sans preuve : {grade.details.unprovedCells.map(label).join(", ") || "aucune"}.</p>
+    <p>Absences prouvées trouvées : {grade.details.correctCells.map(label).join(", ") || "aucune"}.</p>
+    <p>Absences prouvées oubliées : {grade.details.missedCells.map(label).join(", ") || "aucune"}.</p>
+    <p>Couleurs cochées sans preuve : {grade.details.unprovedCells.map(label).join(", ") || "aucune"}.</p>
     <p>Une case non prouvée ne dit rien de la main réelle du joueur.</p>
     {Object.entries(exercise.proofs).map(([key, proof]) => <p key={key}>Au pli {proof.trickNumber}, {exercise.playerNames[proof.playerId]} n’a pas fourni {SUIT_LABELS[proof.suit]}.</p>)}
     {exercise.level === 3 ? <p>Atouts restant hors de ta main : {exercise.expectedTrumpCount}.</p> : null}
@@ -73,7 +72,7 @@ export function TrainingInGameOverlay({ question, grade, onGrade, onResume }: {
     if (!wasGradedRef.current && isGraded && exercise.kind === "number") resumeButtonRef.current?.focus();
     wasGradedRef.current = isGraded;
   }, [grade, exercise.kind]);
-  const title = trainingAxes.resolve(question.axisId).label;
+  const title = inGameAxisLabel(question.axisId);
   const toggleCard = (id: string) => setSelectedIds((current) => current.includes(id)
     ? current.filter((value) => value !== id)
     : exercise.kind === "cards" && exercise.data.maxSelections !== undefined && current.length >= exercise.data.maxSelections
@@ -89,7 +88,7 @@ export function TrainingInGameOverlay({ question, grade, onGrade, onResume }: {
     }
   };
 
-  return <AccessibleDialog title={title} description={exercise.kind === "number" ? undefined : "La partie est en pause pendant cette question."}
+  return <AccessibleDialog title={title} backdropClassName="coinche-training-game-backdrop" description={exercise.kind === "number" ? undefined : "La partie est en pause pendant cette question."}
     minimalHeader={exercise.kind === "number"} onClose={() => {}} showCloseButton={false} width="medium">
     <div className={`min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-4 ${exercise.kind === "number" ? "py-3 sm:px-5" : "py-5 sm:px-6"}`}>
       <p className="text-xs font-black uppercase tracking-widest text-[var(--ui-kicker)]">Entraînement en partie · Niveau {question.level}</p>
@@ -110,6 +109,13 @@ export function TrainingInGameOverlay({ question, grade, onGrade, onResume }: {
             </section>}
         </div>
       </div> : null}
+      {exercise.kind === "boolean" ? <>
+        <h3 className="mt-2 text-lg font-black">{exercise.data.question}</h3>
+        {!grade ? <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <button className={`${appPrimaryActionClass} min-h-14 px-4`} onClick={() => onGrade({ kind: "boolean", value: true })} type="button">Oui, je suis maître</button>
+          <button className="coinche-secondary-action min-h-14 rounded-xl border px-4 font-bold" onClick={() => onGrade({ kind: "boolean", value: false })} type="button">Non, je ne suis pas maître</button>
+        </div> : null}
+      </> : null}
       {exercise.kind === "cards" ? <>
         <h3 className="mt-2 text-lg font-black">{exercise.data.question}</h3>
         {exercise.axisId === "master-in-hand" ? <p className="mt-1 text-sm">Sélectionne parmi les cartes de ta main.</p> : null}
@@ -129,8 +135,8 @@ export function TrainingInGameOverlay({ question, grade, onGrade, onResume }: {
       </> : null}
       {exercise.kind === "voids" ? <>
         <h3 className="mt-2 text-lg font-black">{exercise.data.level === 1
-          ? `Peut-on affirmer que ${exercise.data.playerNames[exercise.data.players[0]]} est coupé à ${suitName(exercise.data.suits[0])} ?`
-          : "Quelles coupures sont certaines ?"}</h3>
+          ? `Peut-on prouver que ${exercise.data.playerNames[exercise.data.players[0]]} n’a plus de ${suitName(exercise.data.suits[0])} ?`
+          : "Quelles absences de couleur sont prouvées ?"}</h3>
         {exercise.data.level === 1 ? !grade ? <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <button className={`${appPrimaryActionClass} min-h-14 px-4`} onClick={() => onGrade({ kind: "voids",
             selectedCells: [voidCellId(exercise.data.players[0], exercise.data.suits[0])], trumpCount: null })} type="button">Oui, c’est prouvé</button>
@@ -153,12 +159,15 @@ export function TrainingInGameOverlay({ question, grade, onGrade, onResume }: {
           {grade.correct ? "Bonne réponse !" : "Correction"} · {grade.earnedScore} / {grade.possibleScore}
         </p>
         {exercise.kind === "cards" && grade.kind === "cards" ? <div className="mt-2 space-y-1 text-sm">
-          <p>Bonnes sélections : {namesFor(exercise.data, grade.details.correctIds)}.</p>
-          <p>Cartes oubliées : {namesFor(exercise.data, grade.details.missedIds)}.</p>
-          <p>Cartes en trop : {namesFor(exercise.data, grade.details.extraIds)}.</p>
-          {exercise.data.requiresPlayers ? <p>{grade.details.correctPlayers}/4 joueurs correctement attribués.</p> : null}
+          <p>{exercise.axisId === "played-cards" ? "Encore en jeu" : exercise.axisId === "trick-recall" ? "Le pli à retrouver" : "Cartes attendues"} : {namesFor(exercise.data, exercise.data.expectedIds)}.</p>
+          {grade.details.missedIds.length > 0 ? <p>Il te manquait {namesFor(exercise.data, grade.details.missedIds)}.</p> : null}
+          {grade.details.extraIds.length > 0 ? <p>Tu as ajouté {namesFor(exercise.data, grade.details.extraIds)} en trop.</p> : null}
+          {exercise.data.requiresPlayers ? <p>Joueurs retrouvés : {grade.details.correctPlayers}/4.</p> : null}
           {grade.details.wrongPlayers.length > 0 ? <p>Attributions à revoir : {namesFor(exercise.data, grade.details.wrongPlayers)}.</p> : null}
         </div> : null}
+        {exercise.kind === "boolean" ? <p className="mt-2 text-sm">{exercise.data.expectedIds.length > 0
+          ? `Oui. ${namesFor(exercise.data, exercise.data.expectedIds.slice(0, 1))} te donne la maîtrise.`
+          : "Non. Une carte plus forte est encore en jeu."}</p> : null}
         {exercise.kind === "voids" && grade.kind === "voids" ? <VoidCorrection question={exercise} grade={grade} /> : null}
         <button className={`${appPrimaryActionClass} mt-5 min-h-11`} onClick={onResume} type="button">Reprendre la partie</button>
       </section> : null}

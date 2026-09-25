@@ -67,7 +67,8 @@ function expectedFrom(candidates: Card[], correctCards: Card[]): string[] {
   return candidates.map(cardId).filter((id) => ids.has(id));
 }
 
-export function createMemoryExercise(axisId: MemoryAxisId, level: number, state: GameState, seed: number): MemoryExercise {
+export function createMemoryExercise(axisId: MemoryAxisId, level: number, state: GameState, seed: number,
+  options: { trickIndex?: number } = {}): MemoryExercise {
   if (!Number.isInteger(level) || level < 1 || level > MEMORY_LEVELS[axisId]) throw new Error("Invalid memory level.");
   if (!state.trump || state.completedTricks.length < (axisId === "trick-recall" && level === 3 ? 2 : 1)) {
     throw new Error("Memory exercise requires a trump and completed tricks.");
@@ -118,7 +119,8 @@ export function createMemoryExercise(axisId: MemoryAxisId, level: number, state:
   } else {
     const tricks = state.completedTricks;
     if (level === 4 && tricks.length < 3) throw new Error("Historical recall requires several completed tricks.");
-    const trickIndex = level === 3 ? tricks.length - 2 : level === 4 ? (seed >>> 0) % tricks.length : tricks.length - 1;
+    const trickIndex = options.trickIndex ?? (level === 3 ? tricks.length - 2 : level === 4 ? (seed >>> 0) % tricks.length : tricks.length - 1);
+    if (!Number.isInteger(trickIndex) || trickIndex < 0 || trickIndex >= tricks.length) throw new Error("Invalid recalled trick.");
     const played = tricks[trickIndex].cards;
     candidates = createDeck();
     expected = played.map(({ card }) => card);

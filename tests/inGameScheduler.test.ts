@@ -3,7 +3,7 @@ import { createInitialGame, makeBid, playCard, playableCardsForCurrentPlayer } f
 import { createTrainingAxisRegistry } from "@/engine/training/registry";
 import { createTrickValueExercise } from "@/engine/training/trickValue";
 import { trickValueInGame } from "@/engine/training/inGame";
-import { detectInGameBoundary, emptyInGameSchedulerState, inGameQuestionSeed, scheduleInGameQuestion,
+import { detectInGameBoundary, emptyInGameSchedulerState, inGameQuestionSeed, plannedQuestionTricks, scheduleInGameQuestion,
   type InGameBoundary, type InGameConfiguration } from "@/lib/training/inGameScheduler";
 
 function states() {
@@ -15,8 +15,8 @@ function states() {
   return { firstTrickStart, state };
 }
 
-function boundary(key = "round:1:after-trick:3", roundNumber = 1): InGameBoundary {
-  return { key, roundNumber, trickIndex: 3, moments: ["trick-end", "trick-start"], state: states().state };
+function boundary(key = "round:1:after-trick:3", roundNumber = 1, trickIndex = 3): InGameBoundary {
+  return { key, roundNumber, trickIndex, moments: ["trick-end", "trick-start"], state: states().state };
 }
 
 const both: InGameConfiguration = { budgetPerRound: 3, axes: [
@@ -38,24 +38,24 @@ describe("in-game scheduler", () => {
   it("asks nothing with no active axes, and never selects a disabled axis", () => {
     const empty = scheduleInGameQuestion(emptyInGameSchedulerState(), boundary(), { budgetPerRound: 3, axes: [] }, 7);
     expect(empty.question).toBeNull();
-    const onlyRecall = scheduleInGameQuestion(emptyInGameSchedulerState(), boundary(), { ...both,
+    const onlyRecall = scheduleInGameQuestion(emptyInGameSchedulerState(), boundary("late", 1, 8), { ...both,
       axes: both.axes.map((choice) => choice.id === "trick-value" ? { ...choice, enabled: false } : choice) }, 7);
     expect(onlyRecall.question?.axisId).toBe("trick-recall");
   });
 
   it("filters by moment and pure applicability", () => {
     const start = { ...boundary(), moments: ["trick-start"] as const };
-    expect(scheduleInGameQuestion(emptyInGameSchedulerState(), start, both, 7).question).toBeNull();
+    expect(scheduleInGameQuestion(emptyInGameSchedulerState(), { ...start, trickIndex: 8 }, both, 7).question).toBeNull();
     const registry = createTrainingAxisRegistry([{ id: "trick-value", label: "Test",
       createExercise: createTrickValueExercise,
       inGame: { ...trickValueInGame, isApplicable: () => false } }]);
-    expect(scheduleInGameQuestion(emptyInGameSchedulerState(), boundary(), { ...both, axes: [both.axes[0]] }, 7, registry).question).toBeNull();
+    expect(scheduleInGameQuestion(emptyInGameSchedulerState(), boundary("late", 1, 8), { ...both, axes: [both.axes[0]] }, 7, registry).question).toBeNull();
   });
 
   it("asks at most once per boundary, even if the same key is observed again", () => {
-    const first = scheduleInGameQuestion(emptyInGameSchedulerState(), boundary(), both, 7);
+    const first = scheduleInGameQuestion(emptyInGameSchedulerState(), boundary("late", 1, 8), both, 7);
     expect(first.question).not.toBeNull();
-    const repeated = scheduleInGameQuestion(first.state, boundary(), both, 7);
+    const repeated = scheduleInGameQuestion(first.state, boundary("late", 1, 8), both, 7);
     expect(repeated.question).toBeNull();
     expect(repeated.state).toBe(first.state);
   });
@@ -63,20 +63,20 @@ describe("in-game scheduler", () => {
   it("alternates fairly and deterministically between eligible axes", () => {
     let scheduler = emptyInGameSchedulerState();
     const asked: string[] = [];
-    for (let index = 0; index < 3; index += 1) {
-      const next = scheduleInGameQuestion(scheduler, boundary(`round:1:after-trick:${index + 1}`), both, 7);
+    for (const trickIndex of plannedQuestionTricks(7, 1, 3)) {
+      const next = scheduleInGameQuestion(scheduler, boundary(`round:1:after-trick:${trickIndex}`, 1, trickIndex), both, 7);
       scheduler = next.state;
       asked.push(next.question!.axisId);
     }
-    expect(asked).toEqual(["trick-value", "trick-recall", "trick-value"]);
-    expect(scheduler.countsByAxis).toMatchObject({ "trick-value": 2, "trick-recall": 1 });
+    expect(new Set(asked).size).toBe(2);
+    expect(Object.values(scheduler.countsByAxis).sort()).toEqual([1, 2]);
   });
 
   it.each([1, 2, 3] as const)("respects a %i-question budget and the hard maximum of three", (budget) => {
     let scheduler = emptyInGameSchedulerState();
     let questions = 0;
-    for (let index = 0; index < 6; index += 1) {
-      const next = scheduleInGameQuestion(scheduler, boundary(`round:1:after-trick:${index + 1}`), { ...both, budgetPerRound: budget }, 7);
+    for (let trickIndex = 1; trickIndex <= 8; trickIndex += 1) {
+      const next = scheduleInGameQuestion(scheduler, boundary(`round:1:after-trick:${trickIndex}`, 1, trickIndex), { ...both, budgetPerRound: budget }, 7);
       scheduler = next.state;
       questions += Number(next.question !== null);
     }
@@ -84,20 +84,47 @@ describe("in-game scheduler", () => {
     expect(scheduler.askedThisRound).toBe(budget);
   });
 
-  it("allows round-end outside the budget and resets the budget in a new round", () => {
+  it("includes round-end in the strict cap and resets only in a new round", () => {
     const registry = createTrainingAxisRegistry([{ id: "trick-value", label: "Test",
       createExercise: createTrickValueExercise,
       inGame: { ...trickValueInGame, moments: ["trick-end", "round-end"], isApplicable: () => true } }]);
     const config = { budgetPerRound: 1 as const, axes: [both.axes[0]] };
-    const first = scheduleInGameQuestion(emptyInGameSchedulerState(), boundary("first"), config, 7, registry);
-    const normal = scheduleInGameQuestion(first.state, boundary("second"), config, 7, registry);
+    const firstTrick = plannedQuestionTricks(7, 1, 1)[0];
+    const first = scheduleInGameQuestion(emptyInGameSchedulerState(), boundary("first", 1, firstTrick), config, 7, registry);
+    const normal = scheduleInGameQuestion(first.state, boundary("second", 1, firstTrick + 1), config, 7, registry);
     expect(normal.question).toBeNull();
-    const roundEnd = scheduleInGameQuestion(normal.state, { ...boundary("last"), moments: ["round-end"] }, config, 7, registry);
-    expect(roundEnd.question?.moment).toBe("round-end");
+    const roundEnd = scheduleInGameQuestion(normal.state, { ...boundary("last", 1, 8), moments: ["round-end"] }, config, 7, registry);
+    expect(roundEnd.question).toBeNull();
     expect(roundEnd.state.askedThisRound).toBe(1);
-    const newRound = scheduleInGameQuestion(roundEnd.state, boundary("round-two", 2), config, 7, registry);
+    const nextTrick = plannedQuestionTricks(7, 2, 1)[0];
+    const newRound = scheduleInGameQuestion(roundEnd.state, boundary("round-two", 2, nextTrick), config, 7, registry);
     expect(newRound.question).not.toBeNull();
     expect(newRound.state.askedThisRound).toBe(1);
+  });
+
+  it("spreads questions across the round and varies checkpoints between sessions", () => {
+    const schedules = Array.from({ length: 16 }, (_, seed) => plannedQuestionTricks(seed, 1, 3));
+    expect(new Set(schedules.map((slots) => slots.join(","))).size).toBeGreaterThan(4);
+    for (const slots of schedules) {
+      expect(slots[0]).toBeGreaterThanOrEqual(2);
+      expect(slots[1] - slots[0]).toBeGreaterThanOrEqual(2);
+      expect(slots[2] - slots[1]).toBeGreaterThanOrEqual(2);
+      expect(slots[2]).toBeLessThanOrEqual(8);
+    }
+    let scheduler = emptyInGameSchedulerState();
+    const seen: number[] = [];
+    for (let trickIndex = 1; trickIndex <= 8; trickIndex += 1) {
+      const next = scheduleInGameQuestion(scheduler, boundary(`window:${trickIndex}`, 1, trickIndex), both, 7);
+      scheduler = next.state;
+      if (next.question) seen.push(trickIndex);
+    }
+    expect(seen).toEqual(plannedQuestionTricks(7, 1, 3));
+  });
+
+  it("varies the first eligible axis between session seeds", () => {
+    const selected = Array.from({ length: 32 }, (_, sessionSeed) => scheduleInGameQuestion(
+      emptyInGameSchedulerState(), boundary("late", 1, 8), both, sessionSeed).question?.axisId);
+    expect(new Set(selected)).toEqual(new Set(["trick-value", "trick-recall"]));
   });
 
   it("derives a stable seed from the session, boundary, axis and question index", () => {
