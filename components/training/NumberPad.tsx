@@ -46,8 +46,9 @@ export function NumberPad({ value, onChange, onSubmit, disabled = false, label =
       {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) =>
         <button className={`coinche-secondary-action rounded-xl border font-bold touch-manipulation disabled:opacity-50 ${compact ? "min-h-11 text-base" : "min-h-12 text-lg"}`} disabled={disabled || value.length >= 3} key={digit} onClick={() => append(digit)} type="button">{digit}</button>,
       )}
+      {compact ? <button className="coinche-secondary-action min-h-11 rounded-xl border text-lg font-bold touch-manipulation disabled:opacity-50" disabled={disabled || value.length >= 3} onClick={() => append("0")} type="button">0</button> : null}
       <button aria-label="Tout effacer" className={`coinche-secondary-action rounded-xl border text-sm font-bold touch-manipulation disabled:opacity-50 ${compact ? "min-h-11" : "min-h-12"}`} disabled={disabled || !value} onClick={() => onChange("")} type="button">Effacer</button>
-      <button className={`coinche-secondary-action rounded-xl border text-lg font-bold touch-manipulation disabled:opacity-50 ${compact ? "min-h-11" : "min-h-12"}`} disabled={disabled || value.length >= 3} onClick={() => append("0")} type="button">0</button>
+      {!compact ? <button className="coinche-secondary-action min-h-12 rounded-xl border text-lg font-bold touch-manipulation disabled:opacity-50" disabled={disabled || value.length >= 3} onClick={() => append("0")} type="button">0</button> : null}
       <button aria-label="Corriger" className={`coinche-secondary-action rounded-xl border text-lg font-bold touch-manipulation disabled:opacity-50 ${compact ? "min-h-11" : "min-h-12"}`} disabled={disabled || !value} onClick={erase} type="button">⌫</button>
     </div>
     <button className={`${appPrimaryActionClass} w-full text-base ${compact ? "mt-2 min-h-11" : "mt-3 min-h-12"}`} disabled={disabled || !value} onClick={onSubmit} type="button">Valider</button>

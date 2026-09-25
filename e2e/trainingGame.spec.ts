@@ -24,11 +24,32 @@ async function openFirstQuestion(page: Page, rotateForGame = false) {
   await expect(scene).toBeVisible();
   await scene.getByRole("button", { name: "Valeur 160" }).click();
   await scene.getByRole("button", { name: "Annoncer" }).click();
+  await page.evaluate(() => {
+    const timing = { pendingAt: 0, dialogAt: 0, stateAtPending: "", stateAtDialog: "", tableVisible: false };
+    (window as typeof window & { __trainingQuestionTiming?: typeof timing }).__trainingQuestionTiming = timing;
+    const observer = new MutationObserver(() => {
+      const game = document.querySelector<HTMLElement>('[aria-label="Partie d’entraînement"]');
+      if (!timing.pendingAt && game?.dataset.trainingQuestionPending === "true") {
+        timing.pendingAt = performance.now();
+        timing.stateAtPending = game.dataset.gameStateKey ?? "";
+        timing.tableVisible = !!document.querySelector(".coinche-game-scene");
+      }
+      if (timing.pendingAt && !timing.dialogAt && document.querySelector('[role="dialog"]')) {
+        timing.dialogAt = performance.now();
+        timing.stateAtDialog = game?.dataset.gameStateKey ?? "";
+        observer.disconnect();
+      }
+    });
+    observer.observe(document, { subtree: true, childList: true, attributes: true });
+  });
   const playable = scene.locator(".coinche-scene-hand-card button[data-playable='true']:not([disabled])").first();
-  await expect(playable).toBeVisible({ timeout: 15_000 });
-  await playable.click();
   const dialog = page.getByRole("dialog", { name: "Valeur d’un pli" });
-  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  await expect.poll(async () => {
+    if (await dialog.isVisible()) return true;
+    if (await page.getByRole("main", { name: "Partie d’entraînement" }).getAttribute("data-training-question-pending") === "true") return false;
+    if (await playable.isVisible().catch(() => false)) await playable.click();
+    return await dialog.isVisible();
+  }, { timeout: 60_000, intervals: [100, 200, 300] }).toBe(true);
   return { scene, dialog };
 }
 
@@ -61,6 +82,13 @@ test("@smoke in-game practice pauses the real Solo loop, corrects and resumes wi
   });
   await page.setViewportSize({ width: 1366, height: 768 });
   const { scene, dialog } = await openFirstQuestion(page);
+  const timing = await page.evaluate(() => (window as typeof window & { __trainingQuestionTiming?: {
+    pendingAt: number; dialogAt: number; stateAtPending: string; stateAtDialog: string; tableVisible: boolean;
+  } }).__trainingQuestionTiming!);
+  expect(timing.pendingAt).toBeGreaterThan(0);
+  expect(timing.dialogAt - timing.pendingAt).toBeGreaterThanOrEqual(500);
+  expect(timing.stateAtDialog).toBe(timing.stateAtPending);
+  expect(timing.tableVisible).toBe(true);
   await expectTrickValueDialogFits(page, dialog, "Valider");
   const heightBefore = await dialog.evaluate((element) => element.getBoundingClientRect().height);
   const puzzleProgressBefore = await page.evaluate((key) => localStorage.getItem(key), TRAINING_PROGRESS_KEY);

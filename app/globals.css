@@ -697,6 +697,11 @@ summary:focus-visible {
 }
 
 .coinche-dialog-backdrop { background: var(--overlay) !important; }
+.coinche-dialog-backdrop.coinche-training-game-backdrop {
+  background: color-mix(in srgb, var(--overlay) 65%, transparent) !important;
+  backdrop-filter: blur(1px);
+}
+.coinche-training-game-backdrop .coinche-dialog { box-shadow: 0 18px 50px var(--shadow) !important; }
 
 .coinche-theme-toggle {
   display: inline-grid;
