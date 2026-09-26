@@ -73,6 +73,10 @@ test("@smoke public training hub shows level 1 and locks level 2", async ({ page
 
 test("@smoke completes ten level-1 exercises without an account on mobile", async ({ page }) => {
   const browserErrors = monitorBrowserErrors(page);
+  const trainingPosts: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().includes("/api/training/series")) trainingPosts.push(request.url());
+  });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/training");
   await expect(page.getByRole("heading", { name: "Entraînement" })).toBeVisible();
@@ -101,6 +105,7 @@ test("@smoke completes ten level-1 exercises without an account on mobile", asyn
   const stored = await page.evaluate(() => localStorage.getItem("coinche:training-progress:v1"));
   expect(JSON.parse(stored ?? "null").axes["trick-value"].levels["1"].completedSeries).toBe(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  expect(trainingPosts).toEqual([]);
   browserErrors.assertClean();
 });
 

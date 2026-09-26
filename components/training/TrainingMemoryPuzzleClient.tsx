@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cardId } from "@/engine/cards";
 import { generatorVersion } from "@/engine/training/generator";
 import { generateMemorySeries, gradeMemoryExercise, MEMORY_LABELS, MEMORY_PLAYERS, MEMORY_SERIES_LENGTH, type MemoryAxisId, type MemoryExercise, type MemoryGrade } from "@/engine/training/memory";
@@ -10,6 +10,8 @@ import { AppEyebrow, AppPage, AppSurface, appPrimaryActionClass, appSecondaryAct
 import { CardSelection, cardAccessibleName } from "@/components/training/CardSelection";
 import { MemoryStudyPhase } from "@/components/training/MemoryStudyPhase";
 import { isMemoryLevelUnlocked, memorySeriesSeed, readTrainingProgress, recordMemorySeries, saveTrainingProgress, type TrainingProgress } from "@/components/training/progress";
+import { submitCompletedPuzzleSeries } from "@/lib/trainingApi";
+import type { SubmittedTrainingAnswer } from "@/engine/training/seriesContract";
 
 function cardNames(exercise: MemoryExercise, ids: readonly string[]): string {
   const byId = new Map(exercise.candidates.map((card) => [cardId(card), cardAccessibleName(card)]));
@@ -17,6 +19,10 @@ function cardNames(exercise: MemoryExercise, ids: readonly string[]): string {
 }
 
 export function TrainingMemoryPuzzleClient({ axisId, level }: { axisId: MemoryAxisId; level: number }) {
+  const seriesSeed = useRef(0);
+  const seriesStartedAt = useRef(0);
+  const seriesEndedAt = useRef(0);
+  const submittedAnswers = useRef<SubmittedTrainingAnswer[]>([]);
   const [progress, setProgress] = useState<TrainingProgress | null>(null);
   const [locked, setLocked] = useState(false);
   const [series, setSeries] = useState<MemoryExercise[] | null>(null);
@@ -29,21 +35,28 @@ export function TrainingMemoryPuzzleClient({ axisId, level }: { axisId: MemoryAx
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
   const [newlyUnlockedLevel, setNewlyUnlockedLevel] = useState<number | null>(null);
+  const [syncStatus, setSyncStatus] = useState<"saving" | "saved" | "failed" | null>(null);
 
   useEffect(() => {
     const saved = readTrainingProgress();
     setProgress(saved);
     if (!isMemoryLevelUnlocked(saved, axisId, level)) { setLocked(true); return; }
-    try { setSeries(generateMemorySeries({ axisId, level, seed: memorySeriesSeed(saved, axisId, level), generatorVersion })); }
+    try {
+      const seed = memorySeriesSeed(saved, axisId, level);
+      setSeries(generateMemorySeries({ axisId, level, seed, generatorVersion }));
+      seriesSeed.current = seed; seriesStartedAt.current = performance.now(); submittedAnswers.current = [];
+    }
     catch { setError("Impossible de préparer cette série."); }
   }, [axisId, level]);
 
   const exercise = series?.[index];
   const startSeries = (saved: TrainingProgress) => {
     try {
-      setSeries(generateMemorySeries({ axisId, level, seed: memorySeriesSeed(saved, axisId, level), generatorVersion }));
+      const seed = memorySeriesSeed(saved, axisId, level);
+      setSeries(generateMemorySeries({ axisId, level, seed, generatorVersion }));
+      seriesSeed.current = seed; seriesStartedAt.current = performance.now(); submittedAnswers.current = [];
       setError(null);
-      setIndex(0); setStudying(true); setSelected([]); setAssignments({}); setGrade(null); setScore(0); setFinished(false); setNewlyUnlockedLevel(null);
+      setIndex(0); setStudying(true); setSelected([]); setAssignments({}); setGrade(null); setScore(0); setFinished(false); setNewlyUnlockedLevel(null); setSyncStatus(null);
     } catch { setError("Impossible de préparer cette série."); }
   };
   const toggle = (id: string) => {
@@ -57,6 +70,8 @@ export function TrainingMemoryPuzzleClient({ axisId, level }: { axisId: MemoryAx
   };
   const submit = () => {
     if (!exercise || grade || (exercise.axisId === "trick-recall" && selected.length !== 4)) return;
+    submittedAnswers.current[index] = { kind: "cards", selectedIds: [...selected], assignments: { ...assignments } };
+    if (index === MEMORY_SERIES_LENGTH - 1) seriesEndedAt.current = performance.now();
     setGrade(gradeMemoryExercise(exercise, selected, assignments));
   };
   const next = () => {
@@ -70,6 +85,10 @@ export function TrainingMemoryPuzzleClient({ axisId, level }: { axisId: MemoryAx
       setProgress(updated);
       setScore(nextScore);
       setFinished(true);
+      setSyncStatus("saving");
+      void submitCompletedPuzzleSeries({ axisId, level, seed: seriesSeed.current,
+        answers: [...submittedAnswers.current], durationMs: Math.round(seriesEndedAt.current - seriesStartedAt.current) })
+        .then((status) => setSyncStatus(status === "signed-out" ? null : status));
     } else {
       setScore(nextScore); setIndex(index + 1); setStudying(true); setSelected([]); setAssignments({}); setGrade(null);
     }
@@ -88,6 +107,8 @@ export function TrainingMemoryPuzzleClient({ axisId, level }: { axisId: MemoryAx
     <h1 className="mt-3 text-3xl font-black">Résultat</h1>
     <p className="mt-5 text-5xl font-black text-[var(--accent)]">{score} / {MEMORY_SERIES_LENGTH}</p>
     <p className="mt-3 text-sm">Meilleur score : {progress.axes[axisId].levels[level].bestScore} / 10</p>
+    {syncStatus === "saved" ? <p className="mt-2 text-sm" role="status">Record sauvegardé sur ton compte.</p> : null}
+    {syncStatus === "failed" ? <p className="mt-2 text-sm" role="status">Record local sauvegardé · synchronisation impossible.</p> : null}
     {newlyUnlockedLevel !== null ? <p className="mt-3 font-bold text-[var(--success)]">Niveau {newlyUnlockedLevel} débloqué !</p> : null}
     <div className="mt-6 flex flex-wrap justify-center gap-2">
       <button className={appPrimaryActionClass} onClick={() => startSeries(progress)} type="button">Rejouer</button>
