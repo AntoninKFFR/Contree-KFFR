@@ -61,9 +61,16 @@ async function run() {
     const perfect = await write(a, "trick-value", 1, 10, 30_000);
     assert.equal(perfect.record.best_score, 10);
     assert.equal(perfect.record.best_duration_ms, 30_000);
-    assert.equal((await write(a, "trick-value", 1, 10, 40_000)).record.best_duration_ms, 30_000);
-    assert.equal((await write(a, "trick-value", 1, 10, 15_000)).record.best_duration_ms, 15_000);
-    assert.equal((await write(a, "trick-value", 1, 10, 1_000, false)).record.best_duration_ms, 15_000);
+    assert.equal(perfect.record.series_id, perfect.series.id);
+    const slowerPerfect = await write(a, "trick-value", 1, 10, 40_000);
+    assert.equal(slowerPerfect.record.best_duration_ms, 30_000);
+    assert.equal(slowerPerfect.record.series_id, perfect.series.id);
+    const fasterPerfect = await write(a, "trick-value", 1, 10, 15_000);
+    assert.equal(fasterPerfect.record.best_duration_ms, 15_000);
+    assert.equal(fasterPerfect.record.series_id, fasterPerfect.series.id);
+    const untimedPerfect = await write(a, "trick-value", 1, 10, 1_000, false);
+    assert.equal(untimedPerfect.record.best_duration_ms, 15_000);
+    assert.equal(untimedPerfect.record.series_id, fasterPerfect.series.id);
     const bSeries = await write(b, "trick-value", 1, 7, 20_000);
     assert.equal(bSeries.record.best_score, 7);
 

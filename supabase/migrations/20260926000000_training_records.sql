@@ -82,8 +82,15 @@ begin
       when public.training_records.best_duration_ms is null then excluded.best_duration_ms
       else least(public.training_records.best_duration_ms, excluded.best_duration_ms)
     end,
-    series_id = case when excluded.best_score > public.training_records.best_score
-      then excluded.series_id else public.training_records.series_id end,
+    series_id = case
+      when excluded.best_score > public.training_records.best_score then excluded.series_id
+      when excluded.best_score = public.training_records.best_score
+        and excluded.best_duration_ms is not null
+        and (public.training_records.best_duration_ms is null
+          or excluded.best_duration_ms < public.training_records.best_duration_ms)
+        then excluded.series_id
+      else public.training_records.series_id
+    end,
     updated_at = now()
   returning * into v_record;
 

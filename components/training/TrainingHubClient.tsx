@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppEyebrow, AppPage, AppSurface, appPrimaryActionClass } from "@/components/ui/AppShell";
 import { formatDuration, PILE_COUNT_MODE_COPY, PILE_COUNT_TITLE } from "@/components/training/pileCountCopy";
 import {
@@ -83,16 +83,26 @@ function ChallengeCard({ mode, unlocked, progress }: {
 export function TrainingHubClient() {
   const [progress, setProgress] = useState<TrainingProgress | null>(null);
   useEffect(() => setProgress(readTrainingProgress()), []);
+  const refreshGeneration = useRef(0);
   const [account, setAccount] = useState<{ signedIn: boolean; records: AccountTrainingRecord[]; failed: boolean } | null>(null);
   useEffect(() => {
     let active = true;
-    const refresh = () => { void readAccountTrainingRecords().then((result) => { if (active) setAccount(result); }); };
+    const refresh = () => {
+      const generation = ++refreshGeneration.current;
+      void readAccountTrainingRecords().then((result) => {
+        if (active && generation === refreshGeneration.current) setAccount(result);
+      });
+    };
     refresh();
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     const listener = getSupabaseClient()?.auth.onAuthStateChange((_event, session) => {
+      ++refreshGeneration.current;
       if (refreshTimer !== null) clearTimeout(refreshTimer);
       if (!session) setAccount({ signedIn: false, records: [], failed: false });
-      else refreshTimer = setTimeout(refresh, 0);
+      else {
+        setAccount(null);
+        refreshTimer = setTimeout(refresh, 0);
+      }
     });
     return () => { active = false; if (refreshTimer !== null) clearTimeout(refreshTimer); listener?.data.subscription.unsubscribe(); };
   }, []);
