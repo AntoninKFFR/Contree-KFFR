@@ -74,12 +74,17 @@ test("@smoke public training hub shows level 1 and locks level 2", async ({ page
 test("@smoke completes ten level-1 exercises without an account on mobile", async ({ page }) => {
   const browserErrors = monitorBrowserErrors(page);
   const trainingPosts: string[] = [];
+  const leaderboardRequests: string[] = [];
   page.on("request", (request) => {
     if (request.method() === "POST" && request.url().includes("/api/training/series")) trainingPosts.push(request.url());
+    if (request.url().includes("/rpc/get_friends_training_leaderboard")) leaderboardRequests.push(request.url());
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/training");
   await expect(page.getByRole("heading", { name: "Entraînement" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Classement entre amis" })).toBeVisible();
+  await expect(page.getByText("Connecte-toi pour comparer tes records avec ceux de tes amis.")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Classement entre amis" })).toHaveCount(0);
   await page.getByRole("button", { name: "Ouvrir le menu" }).click();
   await expect(page.getByRole("navigation", { name: "Navigation mobile" }).getByRole("link", { name: "Entraînement" })).toBeVisible();
   await page.getByRole("button", { name: "Ouvrir le menu" }).click();
@@ -106,6 +111,7 @@ test("@smoke completes ten level-1 exercises without an account on mobile", asyn
   expect(JSON.parse(stored ?? "null").axes["trick-value"].levels["1"].completedSeries).toBe(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   expect(trainingPosts).toEqual([]);
+  expect(leaderboardRequests).toEqual([]);
   browserErrors.assertClean();
 });
 

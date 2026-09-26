@@ -14,6 +14,7 @@ import { MEMORY_AXIS_IDS, MEMORY_LABELS, MEMORY_LEVELS, type MemoryAxisId } from
 import { OPPONENT_VOIDS_LEVELS } from "@/engine/training/opponentVoids";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { readAccountTrainingRecords, type AccountTrainingRecord } from "@/lib/trainingRecordsClient";
+import { TrainingFriendsLeaderboard } from "@/components/training/TrainingFriendsLeaderboard";
 
 function AccountRecord({ record, showLevel = false }: { record: AccountTrainingRecord | undefined; showLevel?: boolean }) {
   if (!record) return null;
@@ -84,11 +85,13 @@ export function TrainingHubClient() {
   const [progress, setProgress] = useState<TrainingProgress | null>(null);
   useEffect(() => setProgress(readTrainingProgress()), []);
   const refreshGeneration = useRef(0);
+  const [authEpoch, setAuthEpoch] = useState(0);
   const [account, setAccount] = useState<{ signedIn: boolean; records: AccountTrainingRecord[]; failed: boolean } | null>(null);
   useEffect(() => {
     let active = true;
     const refresh = () => {
       const generation = ++refreshGeneration.current;
+      setAuthEpoch(generation);
       void readAccountTrainingRecords().then((result) => {
         if (active && generation === refreshGeneration.current) setAccount(result);
       });
@@ -96,7 +99,7 @@ export function TrainingHubClient() {
     refresh();
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     const listener = getSupabaseClient()?.auth.onAuthStateChange((_event, session) => {
-      ++refreshGeneration.current;
+      setAuthEpoch(++refreshGeneration.current);
       if (refreshTimer !== null) clearTimeout(refreshTimer);
       if (!session) setAccount({ signedIn: false, records: [], failed: false });
       else {
@@ -184,6 +187,7 @@ export function TrainingHubClient() {
         </article>
       </div>
     </AppSurface>
+    <TrainingFriendsLeaderboard signedIn={account?.signedIn ?? null} authEpoch={authEpoch} authGeneration={refreshGeneration} />
     <AppSurface className="mt-4">
       <h2 className="text-2xl font-black">{PILE_COUNT_TITLE}</h2>
       <p className="mt-2 text-sm text-[var(--text-secondary)]">Les cartes du tas de ton équipe défilent une à une : compte tes points de fin de donne, 10 de der et belote compris.</p>

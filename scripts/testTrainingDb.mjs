@@ -24,13 +24,18 @@ async function denied(promise, label) {
   assert.match(result.error.message, /permission|denied|not found|function/i, label);
 }
 async function identity(label) {
+  const who = await fixtureIdentity(label);
+  const client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  checked(await client.auth.signInWithPassword({ email: who.email, password: who.password }), `sign in ${label}`);
+  return { ...who, client };
+}
+async function fixtureIdentity(label) {
+  const username = `Training${label}${suffix}`;
   const email = `training-${label}-${suffix}@example.test`;
   const password = `Local-${randomUUID()}-test`;
   const created = checked(await admin.auth.admin.createUser({ email, password, email_confirm: true,
-    user_metadata: { username: `Training${label}${suffix}` } }), `create ${label}`);
-  const client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  checked(await client.auth.signInWithPassword({ email, password }), `sign in ${label}`);
-  const who = { id: created.user.id, client };
+    user_metadata: { username } }), `create ${label}`);
+  const who = { id: created.user.id, username, email, password };
   users.push(who);
   return who;
 }
@@ -42,6 +47,81 @@ async function write(user, axisId, level, score, durationMs, timed = true) {
     p_seed: 480_000, p_answers: answers, p_question_count: 10, p_score: score,
     p_duration_ms: durationMs, p_timed: timed,
   }), "record verified series");
+}
+async function friend(left, right) {
+  const [user_low, user_high] = [left.id, right.id].sort();
+  checked(await admin.from("friendships").insert({ user_low, user_high }), "create friendship");
+  return { user_low, user_high };
+}
+async function leaderboard(user, axisId = "master-cards", level = 1) {
+  return checked(await user.client.rpc("get_friends_training_leaderboard", {
+    p_axis_id: axisId, p_level: level,
+  }), "friends training leaderboard");
+}
+
+async function testFriendsLeaderboard(a, b) {
+  const c = await identity("C"); // Friend with no record for this axis.
+  const d = await identity("D"); // Non-friend with a stronger record.
+  const e = await identity("E"); // Pending request, never a friendship.
+  const f = await identity("F"); // Friend with a fractional score.
+  const ab = await friend(a, b);
+  await friend(a, c);
+  await friend(a, f);
+  checked(await admin.from("friend_requests").insert({ requester_id: a.id, recipient_id: e.id }), "pending friend request");
+
+  await write(a, "master-cards", 1, 10, 30_000);
+  await write(b, "master-cards", 1, 10, 15_000);
+  await write(f, "master-cards", 1, 9.75, 20_000);
+  await write(d, "master-cards", 1, 10, 5_000);
+  await write(e, "master-cards", 1, 10, 6_000);
+  const entries = await leaderboard(a);
+  assert.deepEqual(entries.map((entry) => entry.username), [b.username, a.username, f.username]);
+  assert.deepEqual(entries.map((entry) => entry.best_score), [10, 10, 9.75]);
+  assert.deepEqual(entries.map((entry) => entry.best_duration_ms), [15_000, 30_000, null]);
+  assert.ok(entries.every((entry) => JSON.stringify(Object.keys(entry).sort())
+    === JSON.stringify(["best_duration_ms", "best_score", "username"])));
+  assert.equal(JSON.stringify(entries).includes("@example.test"), false);
+  assert.equal(JSON.stringify(entries).includes(d.username), false);
+  assert.equal(JSON.stringify(entries).includes(e.username), false);
+  assert.equal(JSON.stringify(entries).includes(c.username), false);
+  assert.deepEqual(await leaderboard(a, "master-cards", 2), []);
+  assert.deepEqual((await leaderboard(d)).map((entry) => entry.username), [d.username]);
+  assert.deepEqual((await leaderboard(b)).map((entry) => entry.username), [b.username, a.username]);
+
+  // Equal scores without a perfect timed result use stable username ordering.
+  await write(a, "played-cards", 1, 8, 20_000, false);
+  await write(b, "played-cards", 1, 8, 20_000, false);
+  assert.deepEqual((await leaderboard(a, "played-cards")).map((entry) => entry.username), [a.username, b.username]);
+
+  const anonymousResult = await anonymous.rpc("get_friends_training_leaderboard", { p_axis_id: "master-cards", p_level: 1 });
+  assert.ok(anonymousResult.error, "anonymous leaderboard RPC should be refused");
+  assert.match(anonymousResult.error.message, /permission|denied|not found|function/i);
+  for (const query of [
+    { p_axis_id: "master-cards", p_level: 0 },
+    { p_axis_id: "", p_level: 1 },
+    { p_axis_id: " ", p_level: 1 },
+    { p_axis_id: "x".repeat(65), p_level: 1 },
+  ]) {
+    const { error } = await a.client.rpc("get_friends_training_leaderboard", query);
+    assert.equal(error?.message, "invalid_training_leaderboard_query");
+    assert.equal(error?.code, "P0001");
+  }
+
+  checked(await admin.from("friendships").delete().eq("user_low", ab.user_low).eq("user_high", ab.user_high), "remove friendship");
+  assert.deepEqual((await leaderboard(a)).map((entry) => entry.username), [a.username, f.username]);
+
+  // Actor + 49 friends with records + F = 51 eligible records, but only 50 rows.
+  for (let index = 0; index < 49; index += 1) {
+    const extra = await fixtureIdentity(`L${String(index).padStart(2, "0")}`);
+    await friend(a, extra);
+    await write(extra, "master-cards", 1, 1, 25_000);
+  }
+  const limited = await leaderboard(a);
+  assert.equal(limited.length, 50);
+  assert.deepEqual(limited.slice(0, 2).map((entry) => entry.username), [a.username, f.username]);
+  assert.equal(limited.filter((entry) => entry.best_score === 1).length, 48);
+  assert.ok(limited.every((entry) => ![b.username, d.username, e.username].includes(entry.username)));
+  console.log("Friends leaderboard confidentiality, sorting, parameter and 51-to-50 cap tests passed with local Auth JWTs.");
 }
 
 async function run() {
@@ -108,6 +188,7 @@ async function run() {
     assert.equal(record.series_id, null);
     assert.equal(checked(await admin.from("training_series").select("id").eq("user_id", b.id), "B quota isolation").length, 1);
     assert.equal(checked(await admin.from("training_records").select("best_score").eq("user_id", b.id).single(), "B record isolation").best_score, 7);
+    await testFriendsLeaderboard(a, b);
     console.log("Training DB/RLS/atomic record/quota tests passed with two real Auth JWTs.");
   } finally {
     for (const user of users) checked(await admin.auth.admin.deleteUser(user.id), `delete ${user.id}`);
