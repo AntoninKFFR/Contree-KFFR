@@ -12,6 +12,8 @@ import { TrickValueBoard } from "@/components/training/TrickValueBoard";
 import { isTrickValueLevelUnlocked, readTrainingProgress, recordTrickValueSeries, saveTrainingProgress, trickValueSeriesSeed, type TrainingProgress } from "@/components/training/progress";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { playPreferenceSound } from "@/lib/preferences/audio";
+import { submitCompletedPuzzleSeries } from "@/lib/trainingApi";
+import type { SubmittedTrainingAnswer } from "@/engine/training/seriesContract";
 
 const TRUMP_RANKS: Rank[] = ["J", "9", "A", "10", "K", "Q", "8", "7"];
 const SIDE_RANKS: Rank[] = ["A", "10", "K", "Q", "J", "9", "8", "7"];
@@ -41,6 +43,10 @@ export function ValueGuide() {
 export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
   const { preferences } = usePlayerPreferences();
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seriesSeed = useRef(0);
+  const seriesStartedAt = useRef(0);
+  const seriesEndedAt = useRef(0);
+  const submittedAnswers = useRef<SubmittedTrainingAnswer[]>([]);
   const [progress, setProgress] = useState<TrainingProgress | null>(null);
   const [locked, setLocked] = useState(false);
   const [series, setSeries] = useState<TrickValueExercise[] | null>(null);
@@ -50,6 +56,7 @@ export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
   const [justUnlocked, setJustUnlocked] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<"saving" | "saved" | "failed" | null>(null);
   const levelName = level === 1 ? "Fondamentaux" : "Confirmé";
 
   useEffect(() => {
@@ -60,7 +67,11 @@ export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
       return;
     }
     setLocked(false);
-    setSeries(generateTrickValueSeries({ seed: trickValueSeriesSeed(saved, level), generatorVersion, level }));
+    const seed = trickValueSeriesSeed(saved, level);
+    setSeries(generateTrickValueSeries({ seed, generatorVersion, level }));
+    seriesSeed.current = seed;
+    seriesStartedAt.current = performance.now();
+    submittedAnswers.current = [];
   }, [level]);
 
   useEffect(() => () => {
@@ -76,13 +87,18 @@ export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
   const startSeries = (saved: TrainingProgress) => {
     if (advanceTimer.current !== null) clearTimeout(advanceTimer.current);
     advanceTimer.current = null;
-    setSeries(generateTrickValueSeries({ seed: trickValueSeriesSeed(saved, level), generatorVersion, level }));
+    const seed = trickValueSeriesSeed(saved, level);
+    setSeries(generateTrickValueSeries({ seed, generatorVersion, level }));
+    seriesSeed.current = seed;
+    seriesStartedAt.current = performance.now();
+    submittedAnswers.current = [];
     setIndex(0);
     setAnswer("");
     setFeedback(null);
     setScore(0);
     setFinished(false);
     setJustUnlocked(false);
+    setSyncStatus(null);
   };
 
   const exercise = series?.[index];
@@ -95,6 +111,10 @@ export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
       setProgress(updated);
       setScore(nextScore);
       setFinished(true);
+      setSyncStatus("saving");
+      void submitCompletedPuzzleSeries({ axisId: "trick-value", level, seed: seriesSeed.current,
+        answers: [...submittedAnswers.current], durationMs: Math.round(seriesEndedAt.current - seriesStartedAt.current) })
+        .then((status) => setSyncStatus(status === "signed-out" ? null : status));
     } else {
       setScore(nextScore);
       setIndex(index + 1);
@@ -105,6 +125,8 @@ export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
   const submit = () => {
     if (!exercise || feedback !== null || !answer) return;
     const correct = Number(answer) === exercise.answer;
+    submittedAnswers.current[index] = { kind: "number", value: Number(answer) };
+    if (index === TRICK_VALUE_SERIES_LENGTH - 1) seriesEndedAt.current = performance.now();
     setFeedback(correct);
     playPreferenceSound(correct ? "training-correct" : "training-wrong", preferences);
     if (level === 2) {
@@ -140,6 +162,8 @@ export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
         <p className="mt-5 text-5xl font-black text-[var(--accent)]">{score} / {TRICK_VALUE_SERIES_LENGTH}</p>
         <p className="mt-2 text-lg font-semibold">{score * 10} % de bonnes réponses</p>
         <p className="mt-4 text-sm text-[var(--text-secondary)]">Meilleur score du niveau {level} : {best} / 10</p>
+        {syncStatus === "saved" ? <p className="mt-2 text-sm" role="status">Record sauvegardé sur ton compte.</p> : null}
+        {syncStatus === "failed" ? <p className="mt-2 text-sm" role="status">Record local sauvegardé · synchronisation impossible.</p> : null}
         {justUnlocked ? <p className="mt-3 font-bold text-[var(--success)]" role="status">Niveau 2 débloqué !</p> : null}
         <div className="mt-7 flex flex-col justify-center gap-2 sm:flex-row sm:flex-wrap">
           <button className={appPrimaryActionClass} onClick={() => startSeries(progress)} type="button">Rejouer le niveau {level}</button>

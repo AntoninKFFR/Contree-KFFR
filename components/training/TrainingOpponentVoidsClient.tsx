@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SUIT_LABELS } from "@/engine/cards";
 import { generatorVersion } from "@/engine/training/generator";
 import { generateOpponentVoidsSeries, gradeOpponentVoidsExercise, OPPONENT_VOIDS_SERIES_LENGTH, type OpponentVoidsExercise, type OpponentVoidsGrade } from "@/engine/training/opponentVoids";
@@ -11,6 +11,8 @@ import { TrainingOwnHand, TrainingStudyPhase } from "@/components/training/Memor
 import { NumberPad } from "@/components/training/NumberPad";
 import { PlayerSuitGrid } from "@/components/training/PlayerSuitGrid";
 import { isOpponentVoidsLevelUnlocked, opponentVoidsSeriesSeed, readTrainingProgress, recordOpponentVoidsSeries, saveTrainingProgress, type TrainingProgress } from "@/components/training/progress";
+import { submitCompletedPuzzleSeries } from "@/lib/trainingApi";
+import type { SubmittedTrainingAnswer } from "@/engine/training/seriesContract";
 
 function cellLabel(exercise: OpponentVoidsExercise, key: string): string {
   const [player, suit] = key.split(":");
@@ -18,6 +20,10 @@ function cellLabel(exercise: OpponentVoidsExercise, key: string): string {
 }
 
 export function TrainingOpponentVoidsClient({ level }: { level: number }) {
+  const seriesSeed = useRef(0);
+  const seriesStartedAt = useRef(0);
+  const seriesEndedAt = useRef(0);
+  const submittedAnswers = useRef<SubmittedTrainingAnswer[]>([]);
   const [progress, setProgress] = useState<TrainingProgress | null>(null);
   const [locked, setLocked] = useState(false);
   const [series, setSeries] = useState<OpponentVoidsExercise[] | null>(null);
@@ -30,12 +36,17 @@ export function TrainingOpponentVoidsClient({ level }: { level: number }) {
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
   const [newlyUnlockedLevel, setNewlyUnlockedLevel] = useState<number | null>(null);
+  const [syncStatus, setSyncStatus] = useState<"saving" | "saved" | "failed" | null>(null);
 
   useEffect(() => {
     const saved = readTrainingProgress();
     setProgress(saved);
     if (!isOpponentVoidsLevelUnlocked(saved, level)) { setLocked(true); return; }
-    try { setSeries(generateOpponentVoidsSeries({ level, seed: opponentVoidsSeriesSeed(saved, level), generatorVersion })); }
+    try {
+      const seed = opponentVoidsSeriesSeed(saved, level);
+      setSeries(generateOpponentVoidsSeries({ level, seed, generatorVersion }));
+      seriesSeed.current = seed; seriesStartedAt.current = performance.now(); submittedAnswers.current = [];
+    }
     catch { setError("Impossible de préparer cette série."); }
   }, [level]);
 
@@ -46,6 +57,9 @@ export function TrainingOpponentVoidsClient({ level }: { level: number }) {
   };
   const submit = () => {
     if (!exercise || grade || (level === 3 && trumpCountInput === "")) return;
+    submittedAnswers.current[index] = { kind: "voids", selectedCells: [...selected],
+      trumpCount: level === 3 ? Number(trumpCountInput) : null };
+    if (index === OPPONENT_VOIDS_SERIES_LENGTH - 1) seriesEndedAt.current = performance.now();
     setGrade(gradeOpponentVoidsExercise(exercise, selected, level === 3 ? Number(trumpCountInput) : null));
   };
   const next = () => {
@@ -59,6 +73,10 @@ export function TrainingOpponentVoidsClient({ level }: { level: number }) {
       setProgress(updated);
       setScore(nextScore);
       setFinished(true);
+      setSyncStatus("saving");
+      void submitCompletedPuzzleSeries({ axisId: "opponent-voids", level, seed: seriesSeed.current,
+        answers: [...submittedAnswers.current], durationMs: Math.round(seriesEndedAt.current - seriesStartedAt.current) })
+        .then((status) => setSyncStatus(status === "signed-out" ? null : status));
     } else {
       setScore(nextScore); setIndex(index + 1); setStudying(true); setSelected([]); setTrumpCountInput(""); setGrade(null);
     }
@@ -66,9 +84,11 @@ export function TrainingOpponentVoidsClient({ level }: { level: number }) {
   const replay = () => {
     if (!progress) return;
     try {
-      setSeries(generateOpponentVoidsSeries({ level, seed: opponentVoidsSeriesSeed(progress, level), generatorVersion }));
+      const seed = opponentVoidsSeriesSeed(progress, level);
+      setSeries(generateOpponentVoidsSeries({ level, seed, generatorVersion }));
+      seriesSeed.current = seed; seriesStartedAt.current = performance.now(); submittedAnswers.current = [];
       setError(null); setIndex(0); setStudying(true); setSelected([]); setTrumpCountInput(""); setGrade(null);
-      setScore(0); setFinished(false); setNewlyUnlockedLevel(null);
+      setScore(0); setFinished(false); setNewlyUnlockedLevel(null); setSyncStatus(null);
     } catch { setError("Impossible de préparer cette série."); }
   };
 
@@ -85,6 +105,8 @@ export function TrainingOpponentVoidsClient({ level }: { level: number }) {
     <h1 className="mt-3 text-3xl font-black">Résultat</h1>
     <p className="mt-5 text-5xl font-black text-[var(--accent)]">{score} / {OPPONENT_VOIDS_SERIES_LENGTH}</p>
     <p className="mt-3 text-sm">Meilleur score : {progress.axes["opponent-voids"].levels[level].bestScore} / 10</p>
+    {syncStatus === "saved" ? <p className="mt-2 text-sm" role="status">Record sauvegardé sur ton compte.</p> : null}
+    {syncStatus === "failed" ? <p className="mt-2 text-sm" role="status">Record local sauvegardé · synchronisation impossible.</p> : null}
     {newlyUnlockedLevel !== null ? <p className="mt-3 font-bold text-[var(--success)]">Niveau {newlyUnlockedLevel} débloqué !</p> : null}
     <div className="mt-6 flex flex-wrap justify-center gap-2">
       <button className={appPrimaryActionClass} onClick={replay} type="button">Rejouer</button>
