@@ -42,6 +42,15 @@ describe("friends training leaderboard on the hub", () => {
     expect(rows[1]).not.toContain("null");
   });
 
+  it("displays eighth-point records without rounding them", async () => {
+    mocks.read.mockResolvedValue({ status: "ready", entries: [
+      { username: "Camille", bestScore: 9.875, bestDurationMs: null },
+    ] });
+    render(createElement(TrainingFriendsLeaderboard, { signedIn: true, authEpoch: 0, authGeneration: { current: 0 } }));
+    expect(await screen.findByText("9,875 / 10")).toBeTruthy();
+    expect(screen.queryByText("9,88 / 10")).toBeNull();
+  });
+
   it("shows empty and error states without blocking the hub", async () => {
     const authGeneration = { current: 0 };
     const view = render(createElement(TrainingFriendsLeaderboard, { signedIn: true, authEpoch: 0, authGeneration }));

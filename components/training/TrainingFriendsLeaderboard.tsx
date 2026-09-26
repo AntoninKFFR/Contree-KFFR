@@ -15,7 +15,7 @@ const AXES: { id: PersistablePuzzleAxisId; label: string; levels: number }[] = [
 ];
 
 type QueryResult = { key: string; result: TrainingLeaderboardResult };
-const scoreFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 });
+const scoreFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 3 });
 
 export function TrainingFriendsLeaderboard({ signedIn, authEpoch, authGeneration }: {
   signedIn: boolean | null;
