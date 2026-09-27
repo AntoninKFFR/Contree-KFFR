@@ -6,7 +6,8 @@ import { TrainingChallengeClient } from "@/components/training/TrainingChallenge
 import { TrainingMemoryPuzzleClient } from "@/components/training/TrainingMemoryPuzzleClient";
 import { TrainingOpponentVoidsClient } from "@/components/training/TrainingOpponentVoidsClient";
 import { TrainingBiddingPuzzleClient } from "@/components/training/TrainingBiddingPuzzleClient";
-import { parseBiddingLevel, parseTrickValueLevel } from "@/components/training/progress";
+import { TrainingBidReadingPuzzleClient } from "@/components/training/TrainingBidReadingPuzzleClient";
+import { parseBidReadingLevel, parseBiddingLevel, parseTrickValueLevel } from "@/components/training/progress";
 import { isTrainingAxisId, trainingAxes } from "@/engine/training/axes";
 import { parsePileCountMode } from "@/engine/training/pileCount";
 import { parseTrickValueChallengeMode } from "@/engine/training/trickValueChallenge";
@@ -56,6 +57,11 @@ export default async function TrainingPuzzlePage({ params, searchParams }: PageP
     const biddingLevel = parseBiddingLevel(requestedLevel);
     if (!biddingLevel) notFound();
     return <TrainingBiddingPuzzleClient key={biddingLevel} level={biddingLevel} />;
+  }
+  if (axisId === "bid-reading") {
+    const bidReadingLevel = parseBidReadingLevel(requestedLevel);
+    if (!bidReadingLevel) notFound();
+    return <TrainingBidReadingPuzzleClient key={bidReadingLevel} level={bidReadingLevel} />;
   }
   const level = parseTrickValueLevel(requestedLevel);
   if (!level) notFound();

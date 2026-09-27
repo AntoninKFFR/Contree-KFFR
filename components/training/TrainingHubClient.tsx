@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppEyebrow, AppPage, AppSurface, appPrimaryActionClass } from "@/components/ui/AppShell";
 import { formatDuration, PILE_COUNT_MODE_COPY, PILE_COUNT_TITLE } from "@/components/training/pileCountCopy";
 import {
-  isBiddingLevelUnlocked, isPileCountModeUnlocked, isTrickValueChallengeUnlocked, isTrickValueLevelUnlocked, PASSING_SCORE, readTrainingProgress,
+  isBidReadingLevelUnlocked, isBiddingLevelUnlocked, isPileCountModeUnlocked, isTrickValueChallengeUnlocked, isTrickValueLevelUnlocked, PASSING_SCORE, readTrainingProgress,
   type TrainingProgress,
 } from "@/components/training/progress";
 import { PILE_COUNT_MODES, PILE_COUNT_SERIES_LENGTH, type PileCountMode } from "@/engine/training/pileCount";
@@ -13,6 +13,7 @@ import type { TrickValueChallengeMode } from "@/engine/training/trickValueChalle
 import { MEMORY_AXIS_IDS, MEMORY_LABELS, MEMORY_LEVELS, type MemoryAxisId } from "@/engine/training/memory";
 import { OPPONENT_VOIDS_LEVELS } from "@/engine/training/opponentVoids";
 import { BIDDING_LEVEL_NAMES, BIDDING_LEVELS, type BiddingLevel } from "@/engine/training/bidding";
+import { BID_READING_LEVEL_NAMES, BID_READING_LEVELS, type BidReadingLevel } from "@/engine/training/bidReading";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { readAccountTrainingRecords, type AccountTrainingRecord } from "@/lib/trainingRecordsClient";
 import { TrainingFriendsLeaderboard } from "@/components/training/TrainingFriendsLeaderboard";
@@ -120,6 +121,8 @@ export function TrainingHubClient() {
   const opponentRecord = opponentAxis?.levels[opponentLevel];
   const biddingLevel = progress?.axes.bidding.unlockedLevel ?? 1;
   const biddingRecord = progress?.axes.bidding.levels[biddingLevel as BiddingLevel];
+  const bidReadingLevel = progress?.axes["bid-reading"].unlockedLevel ?? 1;
+  const bidReadingRecord = progress?.axes["bid-reading"].levels[bidReadingLevel as BidReadingLevel];
   const level2Unlocked = progress ? isTrickValueLevelUnlocked(progress, 2) : false;
   const challengesUnlocked = progress ? isTrickValueChallengeUnlocked(progress) : false;
 
@@ -205,6 +208,23 @@ export function TrainingHubClient() {
           <div className="mt-4 flex flex-wrap gap-2">
             <Link className={appPrimaryActionClass} href={`/training/puzzle/bidding?level=${biddingLevel}`}>Jouer</Link>
             <Link className="coinche-ui-link self-center text-sm font-bold" href="/training/conventions/bidding">Voir les conventions</Link>
+          </div>
+          <p className="mt-2 text-xs text-[var(--text-secondary)]">Progression conservée sur cet appareil.</p>
+        </article>
+        <article className="flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 sm:p-5">
+          <h3 className="text-xl font-black">Lire les enchères</h3>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">Apprends ce qu’une annonce permet réellement d’affirmer sur la main du partenaire ou d’un adversaire.</p>
+          <p className="mt-3 text-sm">Niveau débloqué : {bidReadingLevel} · {BID_READING_LEVEL_NAMES[bidReadingLevel as BidReadingLevel]}</p>
+          <p className="mt-1 text-sm">{bidReadingRecord?.completedSeries ? `Meilleur score local : ${bidReadingRecord.bestScore} / 10` : "Record local à établir"}</p>
+          <div className="mt-3 flex flex-wrap gap-1.5" aria-label="Niveaux de Lire les enchères">
+            {Array.from({ length: BID_READING_LEVELS }, (_, index) => (index + 1) as BidReadingLevel).map((level) => progress && isBidReadingLevelUnlocked(progress, level)
+              ? <Link key={level} className="rounded-md border border-[var(--border)] px-2 py-1 text-xs font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]" href={`/training/puzzle/bid-reading?level=${level}`}>Niveau {level} · {BID_READING_LEVEL_NAMES[level]}</Link>
+              : level === 1 ? <Link key={level} className="rounded-md border border-[var(--border)] px-2 py-1 text-xs font-bold" href="/training/puzzle/bid-reading?level=1">Niveau 1 · Lire une ouverture</Link>
+                : <span key={level} className="rounded-md border border-[var(--border)] px-2 py-1 text-xs text-[var(--text-secondary)]">Niveau {level} · {BID_READING_LEVEL_NAMES[level]} 🔒</span>)}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link className={appPrimaryActionClass} href={`/training/puzzle/bid-reading?level=${bidReadingLevel}`}>Jouer</Link>
+            <Link className="coinche-ui-link self-center text-sm font-bold" href="/training/conventions/bidding">Conventions de lecture</Link>
           </div>
           <p className="mt-2 text-xs text-[var(--text-secondary)]">Progression conservée sur cet appareil.</p>
         </article>

@@ -20,6 +20,11 @@ export default function BiddingConventionsPage() {
         <p className="mt-2">Avec le Valet sans le 9, ou le 9 sans le Valet, annoncer 80 peut montrer la couleur et rechercher la carte manquante chez le partenaire. Ce message ne promet pas à lui seul une main autonome.</p>
         <p className="mt-2 rounded-lg border border-[var(--border)] p-3">Exemple : 9♥ A♥ 7♥ et des contrôles limités → 80 ♥ pour chercher le Valet.</p>
       </AppSurface>
+      <AppSurface><h2 className="text-xl font-black">Promesse ≠ main exacte</h2>
+        <p className="mt-2">80 ♥ ne permet pas à lui seul de savoir si le joueur possède le Valet ou le 9. Plusieurs mains différentes peuvent produire le même message.</p>
+        <p className="mt-2">Une enchère décrit ce que la doctrine promet publiquement, pas toutes les cartes de la main. Dans « Lire les enchères », une main révélée après la réponse illustre seulement une possibilité compatible.</p>
+        <Link className="coinche-ui-link mt-3 inline-block font-bold" href="/training/puzzle/bid-reading?level=1">S’entraîner à lire les enchères</Link>
+      </AppSurface>
       <AppSurface><h2 className="text-xl font-black">Quatre atouts sans Valet ni 9</h2>
         <p className="mt-2 font-bold">4+ atouts sans Valet ni 9 : 80 maximum.</p>
         <p className="mt-2">Cette longueur ne mène pas automatiquement à 80 : il faut aussi des contrôles extérieurs crédibles. Elle ne justifie jamais 90 ou plus, même si le partenaire soutient ensuite la couleur.</p>
