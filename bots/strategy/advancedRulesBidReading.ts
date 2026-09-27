@@ -16,7 +16,7 @@ export type BidPromiseAssertion =
 
 export type BidMeaning =
   | "single-major-probe" | "weak-long-80" | "autonomous-opening"
-  | "partner-major-support" | "strong-partner-support" | "rebid-after-support"
+  | "partner-major-support" | "strong-partner-support" | "competitive-partner-support" | "rebid-after-support"
   | "competitive-overcall" | "partner-suit-override"
   | "classical-coinche" | "side-controls-coinche" | "trump-lock-coinche" | "combined-coinche"
   | "surcoinche" | "personal-capot" | "partner-supported-capot" | "pass-or-no-higher-bid";
@@ -129,6 +129,10 @@ export function interpretAdvancedRulesBid(
         possibleMeanings.push("strong-partner-support");
         explanation.push("Le soutien fort demande au moins une majeure et un fit utile, sans promettre nécessairement Valet et 9 ensemble.");
       }
+    } else if (partnerSuit === suit && current && current.teamId !== playerTeam(player) && priorOwn.length === 0) {
+      guaranteed.add("supports-partner-suit");
+      possibleMeanings.push("competitive-partner-support");
+      explanation.push("C’est un soutien compétitif de la couleur du partenaire après une surenchère adverse ; le fit exact et les majeures ne sont pas révélés.");
     } else if (priorOwn.length > 0 && partnerSuit === suit && current?.teamId === playerTeam(player)) {
       guaranteed.add("has-at-least-one-major");
       possibleMeanings.push("rebid-after-support");

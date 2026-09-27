@@ -6,7 +6,7 @@ import {
 } from "@/components/training/progress";
 import { cardId } from "@/engine/cards";
 import {
-  BID_READING_AXIS_VERSION, BID_READING_LEVEL_SLOTS, BID_READING_SERIES_LENGTH,
+  BID_READING_AXIS_VERSION, BID_READING_LEVEL_SLOTS, BID_READING_MEANING_LABELS, BID_READING_SERIES_LENGTH,
   bidReadingAxis, generateBidReadingSeries, gradeBidReadingExercise, type BidReadingLevel,
 } from "@/engine/training/bidReading";
 import { trainingAxes } from "@/engine/training/axes";
@@ -71,6 +71,16 @@ describe("doctrinal bid reading", () => {
         expect(gradeBidReadingExercise(exercise, malformed)).toEqual({ correct: false, score: 0 });
       }
     }
+  });
+
+  it("marks the level-four competitive fit as partner support in its correction", () => {
+    const exercise = generateBidReadingSeries(options(4)).find((item) => item.slotFamily === "fit dans une compétition");
+    expect(exercise).toBeDefined();
+    expect(exercise!.promise.guaranteed).toContain("supports-partner-suit");
+    expect(exercise!.promise.possibleMeanings).toContain("competitive-partner-support");
+    expect(BID_READING_MEANING_LABELS["competitive-partner-support"])
+      .toBe("un soutien de la couleur du partenaire dans une enchère compétitive");
+    expect(exercise!.promise.guaranteed).not.toContain("strong-partner-fit");
   });
 
   it("keeps local bid-reading progress independent and resets only this axis on version change", () => {

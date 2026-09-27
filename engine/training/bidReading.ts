@@ -50,6 +50,7 @@ export const BID_READING_MEANING_LABELS: Record<AdvancedRulesBidPromise["possibl
   "autonomous-opening": "une ouverture soutenue par la main",
   "partner-major-support": "une majeure utile au soutien du partenaire",
   "strong-partner-support": "un soutien fort de la couleur partenaire",
+  "competitive-partner-support": "un soutien de la couleur du partenaire dans une enchère compétitive",
   "rebid-after-support": "une relance après le soutien du partenaire",
   "competitive-overcall": "une surenchère au plus petit palier utile",
   "partner-suit-override": "un changement exceptionnel de la couleur du partenaire",

@@ -148,6 +148,52 @@ describe("Advanced Rules V4.1 public bid reading", () => {
     }
   });
 
+  it("reads 90♥ → 100♦ → 110♥ as competitive partner support without inventing major cards or strong fit", () => {
+    const examples = [
+      [c("9", "hearts"), c("A", "clubs"), c("10", "clubs"), c("A", "spades"),
+        c("10", "spades"), c("A", "diamonds"), c("10", "diamonds"), c("7", "clubs")],
+      [c("J", "hearts"), c("A", "clubs"), c("10", "clubs"), c("A", "spades"),
+        c("10", "spades"), c("A", "diamonds"), c("10", "diamonds"), c("7", "clubs")],
+      [c("9", "hearts"), c("7", "hearts"), c("A", "clubs"), c("10", "clubs"),
+        c("A", "spades"), c("10", "spades"), c("A", "diamonds"), c("10", "diamonds")],
+    ];
+    const readings = examples.map((hand) => {
+      const initial = stateWithHand(hand);
+      const rotated = { ...initial, startingPlayerId: 2 as const, currentPlayerId: 2 as const };
+      const partner = makeBid(rotated, 2, { action: "bid", value: 90, trump: "hearts" });
+      const opposed = makeBid(partner, 3, { action: "bid", value: 100, trump: "diamonds" });
+      return { hand, prior: opposed.bids, ...forwardAndRead(opposed) };
+    });
+    expect(readings.map(({ decision }) => decision.trace.reasonCode)).toEqual([
+      "partner-fit", "partner-fit", "strong-partner-fit",
+    ]);
+    for (const reading of readings) {
+      expect(reading.prior).toMatchObject([
+        { playerId: 2, action: "bid", value: 90, trump: "hearts" },
+        { playerId: 3, action: "bid", value: 100, trump: "diamonds" },
+      ]);
+      expect(reading.observed).toMatchObject({ playerId: 0, action: "bid", value: 110, trump: "hearts" });
+      expect(reading.promise.guaranteed).toEqual(["shows-suit", "supports-partner-suit"]);
+      expect(reading.promise.possibleMeanings).toEqual(["competitive-partner-support"]);
+      expect(reading.promise.explanation.join(" ")).toMatch(/soutien compétitif/);
+      for (const excluded of ["has-jack", "has-nine", "has-at-least-one-major", "has-both-majors",
+        "strong-partner-fit", "at-least-two-trumps"] as const) {
+        expect(reading.promise.guaranteed).not.toContain(excluded);
+      }
+      assertPromiseSatisfiedByHand(reading.promise, reading.hand, reading.observed, reading.prior);
+    }
+    expect(readings[0].promise).toEqual(readings[1].promise);
+    expect(readings[1].promise).toEqual(readings[2].promise);
+    expect(readings[0].hand.filter((card) => card.suit === "hearts")).toHaveLength(1);
+    expect(readings[1].hand.filter((card) => card.suit === "hearts")).toHaveLength(1);
+    const minorOnly = stateWithHand([c("7", "hearts"), c("8", "hearts"), c("Q", "hearts"), c("K", "hearts"),
+      c("A", "clubs"), c("10", "clubs"), c("A", "spades"), c("10", "spades")]);
+    const first = makeBid({ ...minorOnly, startingPlayerId: 2, currentPlayerId: 2 }, 2,
+      { action: "bid", value: 90, trump: "hearts" });
+    const second = makeBid(first, 3, { action: "bid", value: 100, trump: "diamonds" });
+    expect(forwardAndRead(second).observed.action).toBe("pass");
+  });
+
   it("keeps 120/130 Coinche classical, but does not invent J+9 at 140/150/160", () => {
     const samples = series(3);
     for (const index of [3, 4]) {
