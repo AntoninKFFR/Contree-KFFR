@@ -6,6 +6,7 @@ on:
       - "supabase/migrations/**"
       - "scripts/testTrainingDb.mjs"
       - "scripts/testTrainingDuoDb.mjs"
+      - "scripts/testTrainingDuoRateLimitSchema.sql"
       - ".github/workflows/training-db.yml"
       - "package.json"
   push:
@@ -14,6 +15,7 @@ on:
       - "supabase/migrations/**"
       - "scripts/testTrainingDb.mjs"
       - "scripts/testTrainingDuoDb.mjs"
+      - "scripts/testTrainingDuoRateLimitSchema.sql"
       - ".github/workflows/training-db.yml"
       - "package.json"
 
@@ -33,6 +35,8 @@ jobs:
           version: latest
       - run: supabase start
       - run: supabase db reset --local
+      - name: Verify duo rate limit grants and publication
+        run: supabase db query --local --file scripts/testTrainingDuoRateLimitSchema.sql
       - name: Lint local database schema
         run: supabase db lint --local --level warning --fail-on error
       - name: Run local Supabase advisors

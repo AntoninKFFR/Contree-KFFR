@@ -37,5 +37,11 @@ export default defineConfig({
       // Auth actions can contain passwords. Never put those action arguments in a trace.
       use: { ...devices["Desktop Chrome"], trace: "off" },
     },
+    {
+      name: "training-duo",
+      grep: /@training-duo/,
+      // Auth actions contain passwords; never record them in a Playwright trace.
+      use: { ...devices["Desktop Chrome"], trace: "off" },
+    },
   ],
 });

@@ -2,6 +2,24 @@ import { expect, type Page } from "@playwright/test";
 
 export type E2ECredentials = { email: string; password: string };
 
+export function twoPlayerCredentials(): { credentials: E2ECredentials[]; missing: string[] } {
+  const credentials: E2ECredentials[] = [];
+  const missing: string[] = [];
+  for (let player = 1; player <= 2; player += 1) {
+    const emailName = `E2E_USER_${player}_EMAIL`;
+    const passwordName = `E2E_USER_${player}_PASSWORD`;
+    const email = process.env[emailName]?.trim();
+    const password = process.env[passwordName];
+    if (!email) missing.push(emailName);
+    if (!password) missing.push(passwordName);
+    if (email && password) credentials.push({ email, password });
+  }
+  if (credentials.length === 2 && credentials[0].email.toLocaleLowerCase() === credentials[1].email.toLocaleLowerCase()) {
+    missing.push("E2E_USER_EMAILS_MUST_BE_DISTINCT");
+  }
+  return { credentials, missing };
+}
+
 export function fourPlayerCredentials(): { credentials: E2ECredentials[]; missing: string[] } {
   const credentials: E2ECredentials[] = [];
   const missing: string[] = [];

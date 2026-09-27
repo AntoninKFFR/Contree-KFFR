@@ -1,6 +1,6 @@
 // Run only against a disposable local Supabase after `supabase db reset --local`.
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.DUO_TEST_SUPABASE_URL;
@@ -189,6 +189,60 @@ async function checkSecurity(a, b, stranger) {
   }
 }
 
+async function checkRateLimit(a, b) {
+  const accountA = randomBytes(32).toString("hex");
+  const accountB = randomBytes(32).toString("hex");
+  const sharedIp = randomBytes(32).toString("hex");
+  const args = (accountHash, ipLimit = 10, accountLimit = 5) => ({
+    p_scope: "join", p_account_hash: accountHash, p_ip_hash: sharedIp,
+    p_account_limit: accountLimit, p_ip_limit: ipLimit, p_window_seconds: 60,
+  });
+  const burst = await Promise.all(Array.from({ length: 11 }, () => admin.rpc("training_duo_consume_rate_limit", args(accountA))));
+  const values = burst.map((result) => checked(result, "concurrent rate consumption"));
+  assert.equal(values.filter((value) => value === 0).length, 5, "atomic account quota has exactly five successes");
+  assert.equal(values.filter((value) => value > 0).length, 6, "all excess concurrent calls are refused");
+  assert.ok(values.every((value) => Number.isInteger(value) && value >= 0 && value <= 60));
+  const stored = checked(await admin.from("training_duo_rate_limits").select("scope,key_hash,request_count,window_started_at")
+    .eq("key_hash", accountA), "account limit row");
+  assert.equal(stored.length, 1);
+  assert.equal(stored[0].request_count, 5);
+  assert.equal(stored[0].scope, "join:account");
+  assert.equal(checked(await admin.from("training_duo_rate_limits").select("request_count")
+    .eq("scope", "join:ip").eq("key_hash", sharedIp), "shared IP row")[0].request_count, 5);
+  assert.equal(checked(await admin.rpc("training_duo_consume_rate_limit", args(accountB, 10, 10)), "second account"), 0);
+  assert.equal(checked(await admin.from("training_duo_rate_limits").select("request_count")
+    .eq("scope", "join:ip").eq("key_hash", sharedIp), "shared IP after second account")[0].request_count, 6);
+  const ipBurst = await Promise.all(Array.from({ length: 5 }, () => admin.rpc("training_duo_consume_rate_limit", args(accountB, 10, 10))));
+  const ipValues = ipBurst.map((result) => checked(result, "shared IP consumption"));
+  assert.equal(ipValues.filter((value) => value === 0).length, 4, "shared IP reaches its exact limit");
+  assert.equal(ipValues.filter((value) => value > 0).length, 1, "shared IP blocks another account");
+  const secondCount = checked(await admin.from("training_duo_rate_limits").select("request_count")
+    .eq("scope", "join:account").eq("key_hash", accountB), "second account row")[0].request_count;
+  assert.equal(secondCount, 5);
+  checked(await admin.from("training_duo_rate_limits").update({ window_started_at: new Date(Date.now() - 61_000).toISOString() })
+    .eq("scope", "join:account").eq("key_hash", accountA), "age account window");
+  checked(await admin.from("training_duo_rate_limits").update({ window_started_at: new Date(Date.now() - 61_000).toISOString() })
+    .eq("scope", "join:ip").eq("key_hash", sharedIp), "age IP window");
+  assert.equal(checked(await admin.rpc("training_duo_consume_rate_limit", args(accountA)), "new window"), 0);
+  assert.equal(checked(await admin.from("training_duo_rate_limits").select("request_count")
+    .eq("scope", "join:account").eq("key_hash", accountA), "reset account")[0].request_count, 1);
+  for (const client of [anonymous, a.client, b.client]) {
+    await rejected(client.from("training_duo_rate_limits").select("*"), "rate table read");
+    await rejected(client.from("training_duo_rate_limits").insert({ scope: "join:account", key_hash: accountA,
+      window_started_at: new Date().toISOString(), request_count: 1 }), "rate table insert");
+    await rejected(client.from("training_duo_rate_limits").update({ request_count: 999 })
+      .eq("key_hash", accountA), "rate table update");
+    await rejected(client.from("training_duo_rate_limits").delete().eq("key_hash", accountA), "rate table delete");
+    await rejected(client.rpc("training_duo_consume_rate_limit", args(accountA)), "rate RPC");
+  }
+  assert.ok(stored.every((row) => /^[0-9a-f]{64}$/.test(row.key_hash)));
+  assert.equal(JSON.stringify(stored).includes("203.0.113."), false, "no raw IP is stored");
+  checked(await admin.from("training_duo_rate_limits").delete().eq("key_hash", accountA), "cleanup account A");
+  checked(await admin.from("training_duo_rate_limits").delete().eq("key_hash", accountB), "cleanup account B");
+  checked(await admin.from("training_duo_rate_limits").delete().eq("key_hash", sharedIp), "cleanup IP");
+  console.log("Training duo DB rate limit: concurrent exact quota, shared IP, window reset and role isolation passed.");
+}
+
 async function checkConcurrency(a, b, c) {
   const id = await create(a);
   const codeRow = checked(await admin.from("training_duo_sessions").select("code").eq("id", id).single(), "race code");
@@ -337,6 +391,7 @@ async function run() {
     const [a, b, c] = await Promise.all([identity("A"), identity("B"), identity("C")]);
     const unrelatedBefore = await unrelatedCounts();
     await checkSecurity(a, b, c);
+    await checkRateLimit(a, b);
     await checkConcurrency(a, b, c);
     await checkLeaveAndExpiry(a, b);
     await checkFormerGuestDeletion(a);
