@@ -2,7 +2,7 @@
 
 > **Statut : spécification du module, non implémentée.** Ce document décrit le comportement à livrer dans de futures PR. Il est fondé sur `main` après la PR #22 (`c06f781`). Aucune route, table, composant ni logique d'entraînement n'existe encore. Il complète [PRD-socle.md](PRD-socle.md) et suit la forme de [PRD-social.md](PRD-social.md).
 >
-> **Note de compatibilité (revérifié sur `main` à jour, ~88 commits plus tard).** Le socle moteur, `trickKnowledge`, le chemin solo et le module social sont intacts. Deux références ont été mises à jour dans ce document : la navigation (`AppDrawerNav` → `AppTopNav`, barre de navigation haute) et le bot officiel (`human_doctrine_v3_1_conversation_mc_v1` → `advanced_rules_v4`). La doctrine de référence des axes doctrinaux (`bidding`, `bid-reading`) reste une **décision ouverte, à trancher en PR J** (cf. §10).
+> **Note de compatibilité.** Le socle moteur, `trickKnowledge`, le chemin solo et le module social sont intacts. La navigation utilise `AppTopNav` et le bot officiel est `advanced_rules_v4`. Pour l’axe `bidding`, la décision est fixée à la révision d’enchères 4.1, documentée dans [bidding-doctrine-v4-1.md](../reports/bidding-doctrine-v4-1.md), avec `axisVersion = 1`. L’axe `bid-reading` relève d’un chantier doctrinal distinct.
 
 ## 1. Objectif et socle audité
 
@@ -16,7 +16,7 @@ Le module s'appuie presque entièrement sur des briques existantes. Le moteur sa
 | `CompletedTrick.points` est calculé par le moteur et inclut déjà le dernier pli et le bonus de capot ; `RoundResult` détaille points de plis, belote, annonces, total et score marqué ([types](../engine/types.ts), [rules](../engine/rules.ts)) | Les axes de comptage lisent leur réponse attendue dans l'état ; ils ne recalculent aucun barème. |
 | `bots/strategy/trickKnowledge.ts` calcule cartes jouées, cartes restantes par couleur, carte maîtresse par couleur, atouts restants, couleurs coupées déduites ([trickKnowledge](../bots/strategy/trickKnowledge.ts)) | Source des axes de mémoire et de déduction. **Mais** elle vit dans `bots/` et raisonne depuis `state.currentPlayerId` : elle doit être extraite et paramétrée par le siège observateur (§4.2). |
 | `toPlayerGameView` est l'unique point de filtrage de l'information par siège ([views](../engine/views.ts)) | Aucune question in-game ne doit exposer plus que ce que le siège humain sait légitimement. |
-| Bot officiel `advanced_rules_v4` ([rapport](../reports/bot-advanced-rules.md), [profiles](../bots/profiles.ts), [simpleBot](../bots/simpleBot.ts)) ; l'ancien profil `human_doctrine_v3_1_conversation_mc_v1` existe toujours dans le registre mais n'est plus officiel | Référence de correction de l'axe « annonces ». **Décision ouverte (PR J)** : enseigner la doctrine officielle actuelle (`advanced_rules_v4`, déjà documentée) ou figer un autre profil. La version retenue doit être figée dans `axis_version` et affichée. À vérifier en PR J : que le bot retenu produise une trace d'enchère exploitable pour la correction. |
+| Bot officiel `advanced_rules_v4` ([rapport](../reports/bot-advanced-rules.md), [profiles](../bots/profiles.ts), [simpleBot](../bots/simpleBot.ts)) ; l'ancien profil `human_doctrine_v3_1_conversation_mc_v1` existe toujours dans le registre mais n'est plus officiel | Référence de correction de l'axe « annonces » : `advanced_rules_v4`, révision `4.1`, `axisVersion = 1`. La trace d’enchère exploitable et la décision sont documentées dans [la doctrine V4.1](../reports/bidding-doctrine-v4-1.md). |
 | Le solo tourne entièrement dans le navigateur ([SoloPageClient](../app/solo/SoloPageClient.tsx)) | Le mode in-game réutilise ce chemin : aucune infrastructure serveur nécessaire pour jouer. |
 | Module social livré : `friendships`, fonctions privées + wrappers RPC ([migration sociale](../supabase/migrations/20260921000000_social_schema_security.sql), [PRD social](PRD-social.md)) | Le classement entre amis se construit sur `friendships`, avec le même patron de sécurité. |
 | Accueil : liens « Jouer en solo » et « Multijoueur » ([accueil](../app/page.tsx)) ; barre de navigation haute ([nav](../components/AppTopNav.tsx)) | Point d'entrée du bouton « Entraînement ». |
@@ -197,7 +197,7 @@ Chaque axe est documenté dans `engine/training/axes/<axisId>.ts` avec : compét
 
 - **Compétence** : annoncer selon la doctrine de l'application.
 - **Modes** : puzzle.
-- **Réponse attendue** : décision de la doctrine épinglée (bot officiel `advanced_rules_v4` à la rédaction ; profil de référence à confirmer en PR J, cf. §10) pour le siège 0, avec sa trace.
+- **Réponse attendue** : décision de `advanced_rules_v4`, révision `4.1`, pour le siège 0, avec sa trace. La version de l’axe est `1` ; une autre révision doit être explicitement prise en charge avant de générer des exercices.
 - **Niveaux** : 1 — le joueur parle en premier ; 2 — une enchère adverse avant lui ; 3 — enchère du partenaire à soutenir ou non ; 4 — séquence compétitive complète.
 - **Prérequis** : une page de conventions lisible dans l'application, décrivant la doctrine. Sans elle, l'axe n'est pas livrable au grand public.
 - **Correction** : la trace de la doctrine est reformulée en explication courte. L'écran indique toujours « selon la doctrine de l'application ».
@@ -279,9 +279,10 @@ Chaque point porte une décision par défaut, appliquée tant que l'équipe ne l
 | Les parties d'entraînement comptent-elles dans les statistiques ? | Non. Ni `games`, ni tableau de bord. |
 | Score : vitesse ou précision ? | Précision d'abord, temps en départage. La vitesse n'est un critère principal que pour `round-count`. |
 | Classements multiples | Un classement entre amis par axe et par niveau. Pas de classement global. |
-| Quelle version de doctrine sert de référence à `bidding` ? | La doctrine du bot officiel (actuellement `advanced_rules_v4`), épinglée par identifiant dans `axis_version`. **Décision à trancher en PR J** : garder l'officiel courant ou figer un autre profil. Un changement de doctrine incrémente la version de l'axe et ouvre de nouveaux records. |
-| Faut-il un rapport de décision pour la doctrine avant de s'en servir comme correcteur ? | Le bot officiel actuel `advanced_rules_v4` dispose déjà d'un rapport (`reports/bot-advanced-rules.md`). Prérequis de la PR J : confirmer le profil de référence et vérifier qu'il produit une trace d'enchère exploitable. |
+| Quelle version de doctrine sert de référence à `bidding` ? | `advanced_rules_v4`, révision `4.1`, `axisVersion = 1`. Un changement de doctrine impose une nouvelle version de l’axe et des records distincts. |
+| Faut-il un rapport de décision pour la doctrine avant de s'en servir comme correcteur ? | Oui : [la décision V4.1](../reports/bidding-doctrine-v4-1.md) décrit la trace d’enchère et les conventions épinglées. |
 | La progression locale est-elle transférée au compte à la connexion ? | Non en MVP. |
+| Pourquoi les records de `bidding` restent-ils locaux ? | `training_records` est actuellement clé sur `(user_id, axis_id, level)` et ne distingue pas `axis_version`. La persistance serveur des axes doctrinaux est différée jusqu’à ce que cette clé la distingue ; aucun record compte ni classement amis `bidding` en version 1. |
 | Que devient une série jouée sous une ancienne `generator_version` ? | Elle reste valide et vérifiable ; le serveur conserve les versions de générateur publiées. |
 | Un axe interroge sur une position où il n'y a rien à demander (ex. aucune couleur coupée) | `isApplicable` renvoie `false` et le générateur tire une autre position. |
 
@@ -309,7 +310,7 @@ Chaque point porte une décision par défaut, appliquée tant que l'équipe ne l
 | **G — mode in-game** | `/training/game`, paramétrage, planificateur et budget, surimpression de question, récapitulatif. | Aucune fuite d'information ; rien dans `games`. |
 | **H — persistance et records** | Migration `training_series` et `training_records`, route de soumission avec recalcul serveur, records affichés sur le hub. | Score forgé ignoré ; RLS vérifiée ; migrations reproductibles. |
 | **I — classement entre amis** | Fonction privée et wrapper, affichage par axe et niveau. | Isolation stricte aux amis. |
-| **J — annonces** | Rapport de décision de la doctrine de référence, page de conventions, axe `bidding` sur le composant d'enchère existant. | Correction affichée comme doctrine ; trace reformulée. |
+| **J — annonces** | Doctrine V4.1 déjà décidée, page de conventions, axe `bidding` sur le composant d'enchère existant ; progression locale en attendant des records serveur versionnés. | Correction affichée comme doctrine ; trace reformulée. |
 | **K — lecture des enchères** | Module d'interprétation des enchères, composant `bid-reading`, axe en solo. | Promesses de la doctrine testées sur séquences de référence. |
 | **L — duo multijoueur** | Spécification réseau dédiée à rédiger avant tout code. | — |
 
