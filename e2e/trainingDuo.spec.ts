@@ -326,8 +326,15 @@ test.describe("@training-duo two authenticated browser contexts", () => {
       expect((await duoView(pageA, sessionId)).session.status).toBe("lobby");
       await joinDuoThroughUi(pageB, code, sessionId);
       await expect.poll(async () => (await duoView(pageA, sessionId)).participants.length).toBe(2);
+      await pageA.reload();
+      await expect(pageA.getByRole("heading", { name: "Salon duo" })).toBeVisible();
+      await expect(pageA.getByText(/Place B ·/)).not.toContainText("En attente d’un joueur");
+      const cancelResponse = pageA.waitForResponse((response) => response.request().method() === "POST"
+        && new URL(response.url()).pathname === `/api/training/duo/sessions/${sessionId}`);
       await pageA.getByRole("button", { name: "Annuler le duo" }).click();
-      for (const page of [pageA, pageB]) await expect(page.getByRole("heading", { name: "Session interrompue" })).toBeVisible();
+      expect((await cancelResponse).status()).toBe(200);
+      expect((await duoView(pageA, sessionId)).session.status).toBe("cancelled");
+      for (const page of [pageA, pageB]) await expect(page.getByRole("heading", { name: "Session interrompue" })).toBeVisible({ timeout: 30_000 });
       errors.forEach((monitor) => monitor.assertClean());
     } finally { await Promise.all(contexts.map((context) => context.close())); }
   });
