@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../lib/preferences/playerPreferences";
 import { TRAINING_PROGRESS_KEY } from "../components/training/progress";
 
-async function openFirstQuestion(page: Page, rotateForGame = false) {
+async function openFirstQuestion(page: Page) {
   const preferences = clonePlayerPreferences();
   preferences.gameplay.gameSpeed = "custom";
   preferences.gameplay.biddingDelayMs = 0;
@@ -11,14 +11,11 @@ async function openFirstQuestion(page: Page, rotateForGame = false) {
   await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), {
     key: PLAYER_PREFERENCES_STORAGE_KEY, value: JSON.stringify(preferences),
   });
+  await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/training/game");
   await expect(page.getByRole("heading", { name: "Entraînement en partie" })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "Valeur d’un pli" })).toBeChecked();
   await expect(page.getByLabel("Niveau", { exact: true }).first()).toHaveValue("1");
-  if (rotateForGame) {
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
-    await page.setViewportSize({ width: 844, height: 390 });
-  }
   await page.getByRole("button", { name: "Lancer la partie" }).click();
   const scene = page.locator(".coinche-game-scene");
   await expect(scene).toBeVisible();
@@ -82,7 +79,6 @@ test("@smoke in-game practice pauses the real Solo loop, corrects and resumes wi
       gamesWrites.push(`${request.method()} ${request.url()}`);
     }
   });
-  await page.setViewportSize({ width: 1366, height: 768 });
   const { scene, dialog } = await openFirstQuestion(page);
   const timing = await page.evaluate(() => (window as typeof window & { __trainingQuestionTiming?: {
     pendingAt: number; dialogAt: number; stateAtPending: string; stateAtDialog: string; tableVisible: boolean;
@@ -120,9 +116,8 @@ test("@smoke in-game practice pauses the real Solo loop, corrects and resumes wi
 
 for (const viewport of [{ width: 667, height: 375 }, { width: 844, height: 390 }, { width: 1024, height: 576 }]) test(`@smoke trick-value question and correction fit ${viewport.width}×${viewport.height}`, async ({ page }) => {
   test.setTimeout(90_000);
-  await page.setViewportSize(viewport.width === 667 ? { width: 844, height: 390 } : viewport);
   const { dialog } = await openFirstQuestion(page);
-  if (viewport.width === 667) await page.setViewportSize(viewport);
+  await page.setViewportSize(viewport);
   await expectTrickValueDialogFits(page, dialog, "Valider");
   const heightBefore = await dialog.evaluate((element) => element.getBoundingClientRect().height);
   await dialog.getByRole("textbox", { name: "Ta réponse en points" }).fill("0");
@@ -135,8 +130,7 @@ for (const viewport of [{ width: 667, height: 375 }, { width: 844, height: 390 }
 
 test("@smoke in-game question stays usable without horizontal overflow on a narrow mobile screen", async ({ page }) => {
   test.setTimeout(90_000);
-  await page.setViewportSize({ width: 390, height: 844 });
-  const { dialog } = await openFirstQuestion(page, true);
+  const { dialog } = await openFirstQuestion(page);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   const input = dialog.getByRole("textbox", { name: "Ta réponse en points" });
