@@ -76,6 +76,7 @@ async function submitEmpty(page: Page) {
 }
 
 async function readyBoth(pageA: Page, pageB: Page, sessionId: string) {
+  await expect(pageA.getByText(/Place B ·/)).not.toContainText("En attente d’un joueur", { timeout: 30_000 });
   await pageA.getByRole("button", { name: "Je suis prêt" }).click();
   await expect.poll(async () => (await duoView(pageA, sessionId)).participants
     .find((participant) => participant.slot === 0)?.isReady).toBe(true);
