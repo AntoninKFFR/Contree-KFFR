@@ -95,10 +95,25 @@ async function waitSubscribed(channel) {
     });
   });
 }
-async function waitEvent(events, length) {
+async function waitEvent(events, matches, label) {
   const until = Date.now() + 10_000;
-  while (events.length < length && Date.now() < until) await new Promise((resolve) => setTimeout(resolve, 50));
-  assert.ok(events.length >= length, "Expected a Realtime change event");
+  while (!events.some(matches) && Date.now() < until) await new Promise((resolve) => setTimeout(resolve, 50));
+  const event = events.find(matches);
+  assert.ok(event, `Expected ${label} Realtime change event`);
+  return event;
+}
+
+async function primeRealtime(id, actor, sessionEvents, participantEvents) {
+  // SUBSCRIBED confirms the socket join, not that the local replication worker is ready.
+  // Probe both published tables until a real authorized change reaches each subscriber.
+  for (let attempt = 0; attempt < 20 && (!sessionEvents.length || !participantEvents.length); attempt += 1) {
+    if (!sessionEvents.length) checked(await admin.from("training_duo_sessions")
+      .update({ updated_at: new Date().toISOString() }).eq("id", id), "Realtime session probe");
+    if (!participantEvents.length) await rpc("training_duo_heartbeat", { p_session_id: id, p_actor: actor.id });
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  assert.ok(sessionEvents.length > 0, "Authorized session changes must be delivered through Realtime");
+  assert.ok(participantEvents.length > 0, "Authorized participant changes must be delivered through Realtime");
 }
 
 async function checkSecurity(a, b, stranger) {
@@ -148,11 +163,15 @@ async function checkSecurity(a, b, stranger) {
   try {
     await Promise.all([waitSubscribed(sChannel), waitSubscribed(pChannel), waitSubscribed(xChannel),
       waitSubscribed(answerChannel), waitSubscribed(secretChannel)]);
+    await primeRealtime(id, a, sessionEvents, participantEvents);
+    const nextVersion = (await state(id)).state_version + 1;
     checked(await mutate(id, a, (await state(id)).state_version, "set-ready", { p_ready: true }), "Realtime ready");
-    await waitEvent(sessionEvents, 1);
-    await waitEvent(participantEvents, 1);
-    assert.deepEqual(Object.keys(sessionEvents[0].new).sort(), [...SESSION_COLUMNS].sort());
-    assert.deepEqual(Object.keys(participantEvents[0].new).sort(), [...PARTICIPANT_COLUMNS].sort());
+    const sessionReadyEvent = await waitEvent(sessionEvents,
+      (event) => Number(event.new.state_version) === nextVersion, "ready session");
+    const participantReadyEvent = await waitEvent(participantEvents,
+      (event) => event.new.is_ready === true, "ready participant");
+    assert.deepEqual(Object.keys(sessionReadyEvent.new).sort(), [...SESSION_COLUMNS].sort());
+    assert.deepEqual(Object.keys(participantReadyEvent.new).sort(), [...PARTICIPANT_COLUMNS].sort());
     assert.equal(JSON.stringify([...sessionEvents, ...participantEvents]).includes(a.id), false);
     assert.equal(JSON.stringify([...sessionEvents, ...participantEvents]).includes(b.id), false);
     checked(await mutate(id, b, (await state(id)).state_version, "set-ready", { p_ready: true }), "Realtime partner ready");
