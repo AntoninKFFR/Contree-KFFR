@@ -77,6 +77,9 @@ async function submitEmpty(page: Page) {
 
 async function readyBoth(pageA: Page, pageB: Page, sessionId: string) {
   await pageA.getByRole("button", { name: "Je suis prêt" }).click();
+  await expect.poll(async () => (await duoView(pageA, sessionId)).participants
+    .find((participant) => participant.slot === 0)?.isReady).toBe(true);
+  await expect(pageB.getByText("Hôte · Prêt · En ligne")).toBeVisible({ timeout: 30_000 });
   await pageB.getByRole("button", { name: "Je suis prêt" }).click();
   await expect.poll(async () => (await duoView(pageA, sessionId)).participants
     .every((participant) => participant.isReady && participant.isConnected), { timeout: 30_000 }).toBe(true);
