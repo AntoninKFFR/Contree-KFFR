@@ -242,7 +242,7 @@ describe("advanced rules bidding", () => {
     expect(chooseAdvancedRulesBid(allTrumpDefense).action).toBe("coinche");
   });
 
-  it("refuses speculative suit Coinche while keeping a well-controlled high-contract Coinche", () => {
+  it("Coinches an exceptional overbid defense while keeping the classical J9 path", () => {
     const sideControls = [c("7", "hearts"), c("8", "hearts"), c("A", "clubs"), c("10", "clubs"),
       c("A", "diamonds"), c("10", "diamonds"), c("A", "spades"), c("10", "spades")];
     const robustDefense = [c("J", "hearts"), c("9", "hearts"), c("A", "clubs"), c("10", "clubs"),
@@ -250,7 +250,7 @@ describe("advanced rules bidding", () => {
     const against = (hand: Card[], value: 80 | 140) => ({ ...biddingState(hand),
       currentPlayerId: 1 as PlayerId, hands: { ...biddingState(hand).hands, 1: hand },
       bids: [{ playerId: 0 as PlayerId, action: "bid" as const, value, trump: "hearts" as const }] });
-    expect(chooseAdvancedRulesBid(against(sideControls, 140)).action).not.toBe("coinche");
+    expect(chooseAdvancedRulesBid(against(sideControls, 140)).action).toBe("coinche");
     expect(chooseAdvancedRulesBid(against(robustDefense, 80)).action).not.toBe("coinche");
     expect(chooseAdvancedRulesBid(against(robustDefense, 140)).action).toBe("coinche");
   });

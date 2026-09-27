@@ -1,5 +1,7 @@
 # Bots et règles avancées — audit et expérimentation V4
 
+> Rapport historique de l’évaluation initiale. Le profil `advanced_rules_v4` a depuis été promu officiel ; sa révision d’enchères 4.1 est décrite dans [bidding-doctrine-v4-1.md](bidding-doctrine-v4-1.md). Les chiffres ci-dessous ne mesurent pas cette révision.
+
 ## Audit initial
 
 Le profil officiel reste `human_doctrine_v3_1_conversation_mc_v1` (`bots/profiles.ts`). Ses enchères couleur suivent Human Doctrine V3.1 et ses cartes Monte Carlo V1. `bots/simpleBot.ts` traitait SA/TA séparément : une main jugée suffisante pour 80 pouvait annoncer n'importe quelle valeur suivante, sans plafond lié au contrat demandé. Cette voie empêchait aussi Coinche/Surcoinche sur un contrat SA/TA courant. Le bot ne demandait pas volontairement Capot. Générale avait un évaluateur séparé et strict. Les annonces de la main ne pesaient pas sur l'enchère ; le jeu SA/TA était essentiellement un choix de carte légale peu coûteuse. Monte Carlo V1 examinait un seul candidat si `state.trump` était nul. En couleur, il pouvait choisir une entame atout volontaire en défense.
