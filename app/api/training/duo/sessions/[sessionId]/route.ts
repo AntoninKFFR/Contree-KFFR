@@ -23,9 +23,11 @@ export async function POST(request: Request, context: Context) {
     const userId = await authenticatedUserId(request);
     const { sessionId } = await context.params;
     const { expectedVersion, intent } = parseDuoMutation(await readDuoJson(request));
-    return NextResponse.json({ data: await executeTrainingDuoIntent(
+    const view = await executeTrainingDuoIntent(
       parseDuoSessionId(sessionId), userId, expectedVersion, intent,
-    ) }, { headers: { "Cache-Control": "no-store" } });
+    );
+    if (view === null) return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ data: view }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return duoApiFailure(error, "/api/training/duo/sessions/[sessionId]");
   }

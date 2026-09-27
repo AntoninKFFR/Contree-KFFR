@@ -1,5 +1,4 @@
 -- L1: server-authoritative training duo. No multiplayer game or training record is written here.
-create extension if not exists pgcrypto;
 
 create table public.training_duo_sessions (
   id uuid primary key default gen_random_uuid(),

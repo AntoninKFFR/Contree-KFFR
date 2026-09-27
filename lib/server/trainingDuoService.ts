@@ -117,11 +117,14 @@ export async function joinTrainingDuo(code: string, userId: string): Promise<Tra
 
 export async function executeTrainingDuoIntent(
   sessionId: string, userId: string, expectedVersion: number, intent: TrainingDuoIntent,
-): Promise<TrainingDuoView> {
+): Promise<TrainingDuoView | null> {
   const current = await snapshot(sessionId, userId);
   if (current.session.status === "cancelled" && current.session.cancel_reason === "expired") {
     throw new TrainingDuoError("duo_session_expired");
   }
+  const guestLeavingLobby = intent.type === "leave" && current.session.status === "lobby"
+    && current.participants.some((participant) => participant.user_id === userId
+      && participant.slot === 1 && participant.left_at === null);
   let seed: number | null = null;
   let answer: BidReadingAnswer | null = null;
   let score: 0 | 1 | null = null;
@@ -159,6 +162,7 @@ export async function executeTrainingDuoIntent(
     p_answer: answer, p_score: score,
   });
   if (error) duoDatabaseError(error);
+  if (guestLeavingLobby) return null;
   return trainingDuoView(sessionId, userId);
 }
 

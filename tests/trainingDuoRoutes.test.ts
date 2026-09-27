@@ -20,6 +20,7 @@ import { POST as create } from "@/app/api/training/duo/sessions/route";
 import { POST as join } from "@/app/api/training/duo/sessions/join/route";
 import { GET as get, POST as mutate } from "@/app/api/training/duo/sessions/[sessionId]/route";
 import { POST as heartbeat } from "@/app/api/training/duo/sessions/[sessionId]/presence/route";
+import { TrainingDuoError } from "@/lib/server/trainingDuoError";
 
 const ID = "a61e2320-39c4-4c98-9f98-37fb187f7a21";
 const context = { params: Promise.resolve({ sessionId: ID }) };
@@ -55,6 +56,23 @@ describe("training duo authenticated routes", () => {
     const beat = await heartbeat(request(`/${ID}/presence`), context);
     expect(beat.status).toBe(200);
     expect(heartbeatTrainingDuo).toHaveBeenCalledWith(ID, "jwt-user");
+  });
+
+  it("acknowledges a lobby guest leave with an empty 204 and denies a later GET", async () => {
+    vi.mocked(executeTrainingDuoIntent).mockResolvedValueOnce(null);
+    const departed = await mutate(request(`/${ID}`, {
+      expectedVersion: 2, intent: { type: "leave" },
+    }), context);
+    expect(departed.status).toBe(204);
+    expect(departed.headers.get("Cache-Control")).toBe("no-store");
+    expect(await departed.text()).toBe("");
+
+    vi.mocked(trainingDuoView).mockRejectedValueOnce(new TrainingDuoError("duo_session_not_found"));
+    const afterLeave = await get(new Request(`http://localhost/${ID}`, {
+      headers: { Authorization: "Bearer valid" },
+    }), context);
+    expect(afterLeave.status).toBe(404);
+    expect(await afterLeave.json()).toMatchObject({ code: "duo_session_not_found" });
   });
 
   it("rejects forged identities, invalid codes and unauthenticated calls", async () => {

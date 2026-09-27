@@ -9,11 +9,12 @@ Référence : [spécification réseau validée](../docs/training-duo-network-spe
 - RPC service-role : création, adhésion atomique, expiration paresseuse, heartbeat sans incrément de version métier et mutations sous verrou de session avec CAS. L'API utilise le JWT Supabase pour l'identité, puis projette une vue HTTP propre au membre.
 - `start` exige deux membres prêts et connectés ; le seed cryptographique reste serveur et la série `bid-reading` versionnée est générée avant le commit. Les réponses sont validées et notées côté serveur, immuables ; la deuxième révèle, les deux `ready-next` avancent ou terminent.
 - Routes `POST /api/training/duo/sessions`, `POST /join`, `GET/POST /[sessionId]` et `POST /[sessionId]/presence`, toutes sans cache et sans acteur transmis dans le corps.
+- Le départ du slot 1 en lobby répond `204 No Content` après commit : son appartenance est alors perdue, sans projection postérieure. Les départs de l'hôte en lobby et des membres en actif répondent `200` avec la session annulée.
 
 ## Vérification et limites
 
 Les tests Vitest dédiés couvrent validation, projections publiques/révélées, versions, notation, précondition de présence et routes. Le script `npm run test:db:training-duo` est destiné à un Supabase **local jetable** après migration ; il couvre JWT/RLS, payloads Realtime, accès direct, concurrence, dix questions, expiration, départs et suppression de compte dans les états lobby/actif/terminal. Il ne doit jamais être pointé vers une base distante ou de production.
 
-Dans l'environnement de développement de cette PR, `supabase status` échoue car Docker/Podman n'est pas présent sur le PATH, et les trois variables `DUO_TEST_SUPABASE_*` ne sont pas fournies. Le script DB est donc écrit mais sa réussite réelle reste **non vérifiée** ici. La migration, les grants et les triggers doivent être exécutés et vérifiés dans un environnement Supabase local avant déploiement.
+Dans l'environnement de développement local, `supabase status` échoue car Docker/Podman n'est pas présent sur le PATH. Le workflow `Training DB security` applique les migrations dans son Supabase local jetable, exécute le test des records puis `test:db:training-duo` avec ses propres variables `DUO_TEST_SUPABASE_*`. Sa réussite réelle doit être constatée dans les logs CI avant déploiement.
 
 L2 reste responsable de l'UI, du formulaire et de la synchronisation navigateur ; L3 des E2E authentifiés complets, du rate limiting compte/IP, de l'observabilité et de la maintenance de purge après 24 h. Aucun enregistrement de partie, record d'entraînement, Elo ou invitation ami n'est créé par L1.
