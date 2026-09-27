@@ -21,6 +21,9 @@ export function monitorDuoTraffic(page: Page) {
     const revealAllowedAtRequest = revealed;
     pending.push((async () => {
       try {
+        // A navigation can cancel an earlier response after its headers arrived.
+        // Only complete API responses can be inspected for projection privacy.
+        if (await response.finished()) return;
         const payload: unknown = await response.json();
         const phase = (payload as { data?: { session?: { questionPhase?: string } } })?.data?.session?.questionPhase;
         const mustRemainPublic = phase === "answering" || !revealAllowedAtRequest;
@@ -38,7 +41,10 @@ export function monitorDuoTraffic(page: Page) {
         const serialized = JSON.stringify(payload);
         for (const id of accountIds) if (serialized.includes(id)) errors.push("Duo API exposed an account UUID.");
         inspected += 1;
-      } catch { errors.push("Could not inspect a successful duo API response."); }
+      } catch {
+        if (response.request().failure()) return;
+        errors.push("Could not inspect a successful duo API response.");
+      }
     })());
   };
   const requestHandler = (request: { url: () => string; method: () => string }) => {

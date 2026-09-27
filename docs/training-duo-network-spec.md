@@ -1,6 +1,6 @@
 # Spécification réseau validée — « Lire les enchères à deux »
 
-> **Statut : VALIDÉE ; durcissement L3 de l’implémentation V1 en validation dans [#48](https://github.com/AntoninKFFR/Contree-KFFR/issues/48).** Ce document reste le contrat V1 de référence pour les tables, l’API et l’UI duo. Référence fonctionnelle : [PRD entraînement](PRD-entrainement.md), PR L. Les 16 décisions produit ont été validées humainement le 27 septembre 2026.
+> **Statut : VALIDÉE ; implémentation V1 livrée en PR #80 pour [#48](https://github.com/AntoninKFFR/Contree-KFFR/issues/48).** Ce document reste le contrat V1 de référence pour les tables, l’API et l’UI duo. Référence fonctionnelle : [PRD entraînement](PRD-entrainement.md), PR L. Les 16 décisions produit ont été validées humainement le 27 septembre 2026.
 
 ## Audit de l’existant
 

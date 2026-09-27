@@ -35,7 +35,7 @@ Les règles de [CONTRIBUTING.md](../CONTRIBUTING.md) s'appliquent : branche + PR
 
 ### Hors MVP
 
-Puzzles de situations tactiques (quelle carte jouer, motifs de jeu), bouton d'aide en partie (PRD dédié, il concerne aussi les parties normales), classement public et ELO de puzzles, entraînement sous règles personnalisées, migration de la progression locale vers un compte, puzzle du jour partagé, notifications. Le duo multijoueur sur les annonces est en validation finale dans le lot PR L (§12) selon sa [spécification réseau validée](training-duo-network-spec.md).
+Puzzles de situations tactiques (quelle carte jouer, motifs de jeu), bouton d'aide en partie (PRD dédié, il concerne aussi les parties normales), classement public et ELO de puzzles, entraînement sous règles personnalisées, migration de la progression locale vers un compte, puzzle du jour partagé, notifications. Le duo multijoueur sur les annonces est livré dans le lot PR L (§12) selon sa [spécification réseau validée](training-duo-network-spec.md).
 
 ## 3. Vocabulaire
 
@@ -314,6 +314,6 @@ Chaque point porte une décision par défaut, appliquée tant que l'équipe ne l
 | **I — classement entre amis** | Fonction privée et wrapper, affichage par axe et niveau. | Isolation stricte aux amis. |
 | **J — annonces** | Doctrine V4.1 déjà décidée, page de conventions, axe `bidding` sur le composant d'enchère existant ; progression locale en attendant des records serveur versionnés. | Correction affichée comme doctrine ; trace reformulée. |
 | **K — lecture des enchères** | Interpréteur inverse public Advanced Rules V4.1, `bid-reading` version 1, formulaire solo à quatre niveaux et progression locale. | Garanties et possibilités séparées ; contre-exemples et séquences de référence testés ; aucune main cachée dans l'interpréteur. |
-| **L — duo multijoueur** | **Validation finale en cours** : [spécification réseau validée](training-duo-network-spec.md), domaine de session distinct, réponses privées jusqu'aux deux validations, synchronisation, reconnexion, limitation compte/IP et E2E authentifié à deux navigateurs ([rapport L3](../reports/training-duo-l3.md)). | Les 16 décisions produit V1 ont été validées humainement ; les tests de la protection anti-rafale sont en validation sur la PR #80. L'issue #48 reste ouverte. |
+| **L — duo multijoueur** | **Livré en PR #80** : [spécification réseau validée](training-duo-network-spec.md), domaine de session distinct, réponses privées jusqu'aux deux validations, synchronisation, reconnexion, limitation compte/IP et E2E authentifié à deux navigateurs ([rapport L3](../reports/training-duo-l3.md)). | Les 16 décisions produit V1 ont été validées humainement ; les tests de la protection anti-rafale, de la sécurité DB et du parcours authentifié sont verts. L'issue #48 reste ouverte jusqu'au merge. |
 
 Dépendances : A précède tout ; F précède G ; H précède I. B à E sont indépendantes entre elles une fois A mergée et peuvent être menées en parallèle. Chaque PR part d'un `main` à jour, porte ses propres tests et reste soumise à revue humaine et preview avant merge.
