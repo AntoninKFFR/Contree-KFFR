@@ -115,7 +115,7 @@ export function TrainingDuoSessionView({ view, pending, onAction }: { view: Trai
 
 export function TrainingDuoSessionClient({ sessionId }: { sessionId: string }) {
   const router = useRouter();
-  const { pageState, session, view, error, setError, acceptView, refresh } = useTrainingDuoSync(sessionId);
+  const { pageState, session, view, error, setError, acceptView, refresh, markTerminalError } = useTrainingDuoSync(sessionId);
   const [pending, setPending] = useState(false);
   const pendingRef = useRef(false);
   const action = async (intent: TrainingDuoIntent) => {
@@ -125,7 +125,11 @@ export function TrainingDuoSessionClient({ sessionId }: { sessionId: string }) {
       const next = await sendTrainingDuoIntentWithRetry(view, intent, session);
       if (next === null) { router.replace(duoPath); return; }
       acceptView(next);
-    } catch (cause) { setError(duoErrorMessage(cause)); }
+    } catch (cause) {
+      if (markTerminalError(cause)) {
+        await refresh();
+      } else setError(duoErrorMessage(cause));
+    }
     finally { pendingRef.current = false; setPending(false); }
   };
   return <AppPage width="wide">

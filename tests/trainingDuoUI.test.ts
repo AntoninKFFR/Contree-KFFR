@@ -75,7 +75,8 @@ it("maps final scores to the viewer and hides pending correction on cancellation
   expect(screen.getByText("Score de Alice").parentElement?.textContent).toContain("8 / 10");
   expect(screen.getByText("Réussites communes").parentElement?.textContent).toContain("5 / 10");
   expect(screen.getByText("Cette session duo ne modifie pas ta progression ni tes records.")).toBeTruthy();
-  rerender(element(duoFixture("cancelled"), vi.fn()));
+  const left = duoFixture("cancelled"); left.session.cancelReason = "left";
+  rerender(element(left, vi.fn()));
   expect(screen.getByRole("heading", { name: "Session interrompue" })).toBeTruthy();
   expect(screen.queryByText("Selon la doctrine de l’application")).toBeNull();
 });

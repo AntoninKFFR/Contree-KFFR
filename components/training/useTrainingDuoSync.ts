@@ -10,6 +10,13 @@ import { getSupabaseClient } from "@/lib/supabaseClient";
 
 export type DuoPageState = "loading" | "ready" | "signed-out" | "missing" | "expired" | "unsupported" | "unavailable";
 export const duoErrorMessage = (error: unknown) => error instanceof Error ? error.message : "Action impossible pour le moment.";
+export function terminalDuoPageState(error: unknown): DuoPageState | null {
+  if (!(error instanceof TrainingDuoApiError)) return null;
+  if (error.code === "duo_session_expired") return "expired";
+  if (error.code === "duo_version_unsupported") return "unsupported";
+  if (error.code === "duo_session_not_found" || error.code === "duo_not_member") return "missing";
+  return null;
+}
 
 export function newerDuoView(current: TrainingDuoView | null, next: TrainingDuoView) {
   return current?.session.id === next.session.id && current.session.stateVersion > next.session.stateVersion ? current : next;
@@ -27,20 +34,27 @@ const servicesDefault: TrainingDuoSyncServices = {
 };
 
 export function startTrainingDuoHeartbeat(sessionId: string, token: { access_token: string },
-  send: typeof sendTrainingDuoPresence, accept: (view: TrainingDuoView) => void) {
+  send: typeof sendTrainingDuoPresence, accept: (view: TrainingDuoView) => void,
+  refresh: () => Promise<void>) {
   let active = true;
   let inFlight = false;
+  let refreshInFlight: Promise<void> | null = null;
+  const refreshCanonical = () => {
+    if (!active || refreshInFlight) return;
+    refreshInFlight = refresh().catch(() => { /* A later resume or refetch can retry. */ })
+      .finally(() => { refreshInFlight = null; });
+  };
   const heartbeat = async () => {
     if (inFlight || !active) return;
     inFlight = true;
     try { const view = await send(sessionId, token); if (active) accept(view); }
-    catch { /* A later heartbeat or refetch handles a temporary outage. */ }
+    catch { refreshCanonical(); }
     finally { inFlight = false; }
   };
   void heartbeat();
   const interval = window.setInterval(heartbeat, PRESENCE_HEARTBEAT_INTERVAL_MS);
-  const visible = () => { if (document.visibilityState === "visible") void heartbeat(); };
-  const resume = () => void heartbeat();
+  const resume = () => { void heartbeat(); refreshCanonical(); };
+  const visible = () => { if (document.visibilityState === "visible") resume(); };
   document.addEventListener("visibilitychange", visible);
   window.addEventListener("focus", resume);
   window.addEventListener("online", resume);
@@ -60,6 +74,7 @@ export function useTrainingDuoSync(sessionId: string, services: TrainingDuoSyncS
   const [error, setError] = useState<string | null>(null);
   const generation = useRef(0);
   const authActive = useRef(false);
+  const latestView = useRef<TrainingDuoView | null>(null);
 
   useEffect(() => {
     const client = services.getSupabaseClient();
@@ -71,6 +86,7 @@ export function useTrainingDuoSync(sessionId: string, services: TrainingDuoSyncS
       invalidateRequests();
       authActive.current = Boolean(next);
       setSession(next);
+      latestView.current = null;
       setView(null);
       setError(null);
       setPageState(next ? "loading" : "signed-out");
@@ -82,6 +98,7 @@ export function useTrainingDuoSync(sessionId: string, services: TrainingDuoSyncS
 
   useEffect(() => {
     generation.current++;
+    latestView.current = null;
     setView(null);
     setError(null);
     setPageState((current) => current === "signed-out" || current === "unavailable" ? current : "loading");
@@ -89,10 +106,21 @@ export function useTrainingDuoSync(sessionId: string, services: TrainingDuoSyncS
 
   const acceptView = useCallback((next: TrainingDuoView) => {
     if (!authActive.current || next.session.id !== sessionId) return;
-    setView((current) => newerDuoView(current, next));
+    const accepted = newerDuoView(latestView.current, next);
+    latestView.current = accepted;
+    setView(accepted);
     setError(null);
-    setPageState("ready");
+    setPageState(accepted.session.status === "cancelled" && accepted.session.cancelReason === "expired" ? "expired" : "ready");
   }, [sessionId]);
+
+  const markTerminalError = useCallback((cause: unknown) => {
+    const terminal = terminalDuoPageState(cause);
+    if (!terminal || !authActive.current) return false;
+    generation.current++;
+    setError(null);
+    setPageState(terminal);
+    return true;
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!session) return;
@@ -102,15 +130,11 @@ export function useTrainingDuoSync(sessionId: string, services: TrainingDuoSyncS
       if (requestGeneration === generation.current) acceptView(next);
     } catch (cause) {
       if (requestGeneration !== generation.current) return;
-      if (cause instanceof TrainingDuoApiError) {
-        if (cause.code === "duo_session_expired") { setPageState("expired"); return; }
-        if (cause.code === "duo_version_unsupported") { setPageState("unsupported"); return; }
-        if (cause.code === "duo_session_not_found" || cause.code === "duo_not_member") { setPageState("missing"); return; }
-      }
+      if (markTerminalError(cause)) return;
       setError(duoErrorMessage(cause));
-      setPageState((current) => current === "ready" ? current : "unavailable");
+      setPageState((current) => ["ready", "expired", "unsupported", "missing"].includes(current) ? current : "unavailable");
     }
-  }, [session, sessionId, services, acceptView]);
+  }, [session, sessionId, services, acceptView, markTerminalError]);
 
   useEffect(() => { if (session) void refresh(); }, [session, refresh]);
   useEffect(() => {
@@ -124,8 +148,8 @@ export function useTrainingDuoSync(sessionId: string, services: TrainingDuoSyncS
     const requestGeneration = generation.current;
     return startTrainingDuoHeartbeat(sessionId, session, services.sendPresence, (next) => {
       if (requestGeneration === generation.current) acceptView(next);
-    });
-  }, [session, activeStatus, sessionId, pageState, services, acceptView]);
+    }, refresh);
+  }, [session, activeStatus, sessionId, pageState, services, acceptView, refresh]);
 
-  return { pageState, session, view, error, setError, acceptView, refresh };
+  return { pageState, session, view, error, setError, acceptView, refresh, markTerminalError };
 }
