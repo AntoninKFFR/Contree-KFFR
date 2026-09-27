@@ -14,4 +14,6 @@ Le scénario soumet les dix exercices, teste la barrière des deux réponses et 
 
 Le workflow `Training duo E2E` démarre un Supabase jetable, applique les migrations, crée deux comptes Auth confirmés temporaires sous les noms de variables `E2E_USER_1_*` et `E2E_USER_2_*`, construit l'application puis lance Playwright en production. Les traces d'authentification sont désactivées et le rapport Playwright n'est téléversé qu'en échec. La suite peut être ignorée localement sans ces identifiants ; le job CI doit l'exécuter réellement.
 
+Vérification L3 : le job authentifié de la PR #80 a exécuté les cinq scénarios sur deux `BrowserContext` et a affiché `5 passed`, sans test duo ignoré. Localement, `npm test` a réussi 1 476 tests, et le smoke séquentiel a réussi 78 tests. Le typecheck, le lint et le build sont verts.
+
 La spécification ne fixe ni seuil ni stockage pour un limiteur compte/IP ; aucun limiteur nouveau n'a été inventé dans L3. Le code aléatoire, l'authentification et l'erreur générique protègent déjà l'adhésion. La purge physique après 24 h reste une maintenance séparée conformément à la spécification ; l'expiration paresseuse et le TTL actif sont livrés. La journalisation duo courante ne contient que la route et le code d'erreur, sans code de session complet, graine, réponse brute, courriel ni jeton.
