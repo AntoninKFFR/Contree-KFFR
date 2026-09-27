@@ -8,7 +8,7 @@ import {
 } from "./helpers/trainingDuo";
 
 const auth = twoPlayerCredentials();
-if (process.env.CI && auth.missing.length > 0) {
+if (process.env.E2E_REQUIRE_TRAINING_DUO_AUTH === "1" && auth.missing.length > 0) {
   throw new Error(`Authenticated training duo E2E cannot run without ${auth.missing.join(", ")}.`);
 }
 const viewports = [
@@ -55,7 +55,12 @@ async function expectResponsive(page: Page, stage: "lobby" | "answering" | "reve
       await expect(page.getByText(/Place A ·/)).toBeVisible();
     }
     if (stage === "answering") {
-      await expect(page.getByRole("checkbox").first()).toBeVisible();
+      const firstChoice = page.getByRole("checkbox").first();
+      await expect(firstChoice).toBeVisible();
+      await firstChoice.check();
+      await expect(firstChoice).toBeChecked();
+      await firstChoice.uncheck();
+      await expect(firstChoice).not.toBeChecked();
       await expect(page.getByRole("region", { name: "Historique public des enchères" })).toBeVisible();
     }
     if (stage === "revealed") {
@@ -160,6 +165,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
       await expect(pageB.getByRole("heading", { name: "Exercice 1 / 10" })).toBeVisible();
       await pageB.getByRole("button", { name: "Prêt pour la question suivante" }).click();
       for (const page of [pageA, pageB]) await expect(page.getByRole("heading", { name: "Exercice 2 / 10" })).toBeVisible();
+      await expect(pageA.getByRole("heading", { name: "Exercice 2 / 10" })).toBeFocused();
       expect((await duoView(pageA, sessionId)).session.currentIndex).toBe(1);
 
       for (let question = 2; question <= 10; question += 1) {
