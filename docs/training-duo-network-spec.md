@@ -1,6 +1,6 @@
-# Spécification réseau proposée — « Lire les enchères à deux »
+# Spécification réseau validée — « Lire les enchères à deux »
 
-> **Statut : PROPOSÉE, à valider humainement avant toute implémentation de [#48](https://github.com/AntoninKFFR/Contree-KFFR/issues/48).** Ce document décrit le contrat V1 ; il ne livre ni table, ni API, ni UI. Référence fonctionnelle : [PRD entraînement](PRD-entrainement.md), PR L. Les décisions en fin de document restent ouvertes.
+> **Statut : VALIDÉE pour implémentation de [#48](https://github.com/AntoninKFFR/Contree-KFFR/issues/48).** Ce document décrit le contrat V1 ; il ne livre ni table, ni API, ni UI. Référence fonctionnelle : [PRD entraînement](PRD-entrainement.md), PR L. Les 16 décisions produit ont été validées humainement le 27 septembre 2026.
 
 ## Audit de l’existant
 
@@ -178,21 +178,21 @@ Après validation humaine, ajouter une migration **nouvelle et versionnée** qui
 
 ## Décisions produit à valider avant implémentation
 
-La spécification reste **PROPOSÉE** jusqu'à validation humaine de ces choix ; aucune case n'est validée par cette PR.
+Les 16 décisions produit V1 ci-dessous ont été validées humainement le 27 septembre 2026. Cette spécification constitue désormais le contrat de référence pour l’implémentation de l’issue #48.
 
-- [ ] Deux comptes authentifiés obligatoires.
-- [ ] Les deux participants doivent être connectés au moment du démarrage.
-- [ ] Même question pour les deux participants.
-- [ ] Réponses indépendantes et immuables.
-- [ ] Correction seulement après les deux réponses.
-- [ ] Réponse du partenaire visible après révélation.
-- [ ] Question suivante seulement après les deux confirmations.
-- [ ] Niveau choisi par l'hôte, sans contrainte de déblocage solo.
-- [ ] Aucun record, progression ou Elo en duo V1.
-- [ ] Adhésion par code uniquement en V1.
-- [ ] Aucune invitation ami en V1.
-- [ ] Aucun bot ni takeover.
-- [ ] Hors ligne après 60 s ne vaut pas abandon.
-- [ ] Départ explicite en session active annule la session.
-- [ ] Aucun transfert d'hôte en V1.
-- [ ] Session et données distinctes de `rooms`.
+- [x] Deux comptes authentifiés obligatoires.
+- [x] Les deux participants doivent être connectés au moment du démarrage.
+- [x] Même question pour les deux participants.
+- [x] Réponses indépendantes et immuables.
+- [x] Correction seulement après les deux réponses.
+- [x] Réponse du partenaire visible après révélation.
+- [x] Question suivante seulement après les deux confirmations.
+- [x] Niveau choisi par l'hôte, sans contrainte de déblocage solo.
+- [x] Aucun record, progression ou Elo en duo V1.
+- [x] Adhésion par code uniquement en V1.
+- [x] Aucune invitation ami en V1.
+- [x] Aucun bot ni takeover.
+- [x] Hors ligne après 60 s ne vaut pas abandon.
+- [x] Départ explicite en session active annule la session.
+- [x] Aucun transfert d'hôte en V1.
+- [x] Session et données distinctes de `rooms`.
