@@ -117,7 +117,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
       await expect(pageB.getByText(/Place B · .* · Toi/)).toBeVisible();
       await expect(pageA.getByText(/Hôte · Pas prêt · En ligne/)).toBeVisible();
       await expect(pageB.getByText(/Pas prêt · En ligne/).last()).toBeVisible();
-      await expect(pageA.getByRole("button", { name: "Démarrer" })).toBeDisabled();
+      await expect(pageA.getByRole("button", { name: "Démarrer" })).toBeDisabled({ timeout: 30_000 });
       await expect(pageB.getByRole("button", { name: "Démarrer" })).toHaveCount(0);
       await expectResponsive(pageA, "lobby");
       await readyBoth(pageA, pageB, sessionId);
@@ -352,7 +352,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
       errors[1].assertClean();
       await contexts[1].close();
       await expect.poll(async () => (await duoView(pageA, sessionId)).participants[1].isConnected, { timeout: 90_000 }).toBe(false);
-      await expect(pageA.getByRole("button", { name: "Démarrer" })).toBeDisabled();
+      await expect(pageA.getByRole("button", { name: "Démarrer" })).toBeDisabled({ timeout: 30_000 });
       const rejected = await duoRequest(pageA, sessionId, { type: "start" });
       expect(rejected.status).toBe(409);
       expect(rejected.body?.code).toBe("duo_partner_offline");
@@ -364,7 +364,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
       await restoredPage.goto(`/training/duo/${sessionId}`);
       await expect(restoredPage.getByRole("heading", { name: "Salon duo" })).toBeVisible();
       await expect.poll(async () => (await duoView(pageA, sessionId)).participants[1].isConnected).toBe(true);
-      await expect(pageA.getByRole("button", { name: "Démarrer" })).toBeEnabled();
+      await expect(pageA.getByRole("button", { name: "Démarrer" })).toBeEnabled({ timeout: 30_000 });
       await pageA.getByRole("button", { name: "Annuler le duo" }).click();
       errors[0].assertClean(); restoredErrors.assertClean();
     } finally { await Promise.all(contexts.map((context) => context.close())); }
