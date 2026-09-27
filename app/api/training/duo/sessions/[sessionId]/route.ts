@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { duoApiFailure } from "@/lib/server/trainingDuoError";
+import { enforceDuoRateLimit } from "@/lib/server/trainingDuoRateLimit";
 import { executeTrainingDuoIntent, trainingDuoView } from "@/lib/server/trainingDuoService";
 import { parseDuoMutation, parseDuoSessionId, readDuoJson } from "@/lib/server/trainingDuoValidation";
 import { authenticatedUserId } from "@/lib/server/supabaseAdmin";
@@ -21,6 +22,7 @@ export async function GET(request: Request, context: Context) {
 export async function POST(request: Request, context: Context) {
   try {
     const userId = await authenticatedUserId(request);
+    await enforceDuoRateLimit(request, userId, "mutation");
     const { sessionId } = await context.params;
     const { expectedVersion, intent } = parseDuoMutation(await readDuoJson(request));
     const view = await executeTrainingDuoIntent(

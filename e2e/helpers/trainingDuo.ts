@@ -18,10 +18,12 @@ export function monitorDuoTraffic(page: Page) {
   const responseHandler = (response: Response) => {
     const path = new URL(response.url()).pathname;
     if (!path.startsWith(apiPrefix) || !response.ok() || response.status() === 204) return;
-    const mustRemainPublic = !revealed;
+    const revealAllowedAtRequest = revealed;
     pending.push((async () => {
       try {
         const payload: unknown = await response.json();
+        const phase = (payload as { data?: { session?: { questionPhase?: string } } })?.data?.session?.questionPhase;
+        const mustRemainPublic = phase === "answering" || !revealAllowedAtRequest;
         const visit = (value: unknown): void => {
           if (!value || typeof value !== "object") return;
           if (Array.isArray(value)) { for (const item of value) visit(item); return; }
@@ -99,6 +101,26 @@ export async function duoView(page: Page, sessionId: string): Promise<TrainingDu
   expect(result.status).toBe(200);
   if (!result.body?.data) throw new Error("Duo projection is missing.");
   return result.body.data;
+}
+
+export async function attemptDuoJoin(page: Page, code: string): Promise<{
+  status: number; retryAfter: string | null; body: Record<string, unknown>;
+}> {
+  return page.evaluate(async (attemptedCode) => {
+    let token: string | null = null;
+    for (const key of Object.keys(localStorage)) {
+      if (!key.startsWith("sb-") || !key.endsWith("-auth-token")) continue;
+      const session = JSON.parse(localStorage.getItem(key) ?? "null") as { access_token?: string };
+      if (session?.access_token) { token = session.access_token; break; }
+    }
+    if (!token) throw new Error("Authenticated duo session is missing.");
+    const response = await fetch("/api/training/duo/sessions/join", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ code: attemptedCode }),
+    });
+    return { status: response.status, retryAfter: response.headers.get("Retry-After"),
+      body: await response.json() as Record<string, unknown> };
+  }, code);
 }
 
 export async function createDuoThroughUi(page: Page, level: 1 | 2 | 3 | 4 = 4) {

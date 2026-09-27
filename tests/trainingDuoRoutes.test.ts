@@ -3,6 +3,9 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/server/supabaseAdmin", () => ({
   authenticatedUserId: vi.fn(async () => "jwt-user"),
 }));
+vi.mock("@/lib/server/trainingDuoRateLimit", () => ({
+  enforceDuoRateLimit: vi.fn(async () => {}),
+}));
 vi.mock("@/lib/server/trainingDuoService", () => ({
   createTrainingDuo: vi.fn(async () => ({ session: { id: "created" } })),
   joinTrainingDuo: vi.fn(async () => ({ session: { id: "joined" } })),
@@ -12,6 +15,7 @@ vi.mock("@/lib/server/trainingDuoService", () => ({
 }));
 
 import { authenticatedUserId } from "@/lib/server/supabaseAdmin";
+import { enforceDuoRateLimit } from "@/lib/server/trainingDuoRateLimit";
 import {
   createTrainingDuo, executeTrainingDuoIntent, heartbeatTrainingDuo,
   joinTrainingDuo, trainingDuoView,
@@ -88,5 +92,21 @@ describe("training duo authenticated routes", () => {
     const unauthenticated = await create(request("/create", { level: 1 }));
     expect(unauthenticated.status).toBe(401);
     expect(unauthenticated.headers.get("Cache-Control")).toBe("no-store");
+  });
+
+  it("returns a generic 429 before a join code can be parsed or looked up", async () => {
+    vi.mocked(enforceDuoRateLimit).mockRejectedValue(new TrainingDuoError("duo_rate_limited", 42));
+    for (const body of ["{", JSON.stringify({ code: "ABCDEFGHIJ" })]) {
+      const response = await join(new Request("http://localhost/api/training/duo/sessions/join", {
+        method: "POST", headers: { Authorization: "Bearer valid" }, body,
+      }));
+      expect(response.status).toBe(429);
+      expect(response.headers.get("Retry-After")).toBe("42");
+      expect(await response.json()).toEqual({
+        code: "duo_rate_limited", error: "Trop de tentatives. Réessaie dans un instant.",
+      });
+    }
+    expect(joinTrainingDuo).not.toHaveBeenCalled();
+    expect(enforceDuoRateLimit).toHaveBeenCalledWith(expect.any(Request), "jwt-user", "join");
   });
 });

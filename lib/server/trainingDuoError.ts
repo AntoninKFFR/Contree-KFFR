@@ -6,7 +6,7 @@ export type TrainingDuoErrorCode =
   | "duo_not_member" | "duo_host_required" | "duo_wrong_status"
   | "duo_version_conflict" | "duo_already_answered" | "duo_waiting_for_partner"
   | "duo_already_ready" | "duo_partner_offline" | "duo_invalid_answer"
-  | "duo_version_unsupported" | "duo_invalid_request";
+  | "duo_version_unsupported" | "duo_invalid_request" | "duo_rate_limited";
 
 const ERROR_DETAILS: Record<TrainingDuoErrorCode, { status: number; message: string }> = {
   duo_session_not_found: { status: 404, message: "Session introuvable ou inaccessible." },
@@ -23,11 +23,12 @@ const ERROR_DETAILS: Record<TrainingDuoErrorCode, { status: number; message: str
   duo_invalid_answer: { status: 400, message: "Réponse invalide." },
   duo_version_unsupported: { status: 409, message: "Cette version de la série n'est plus prise en charge." },
   duo_invalid_request: { status: 400, message: "Requête invalide." },
+  duo_rate_limited: { status: 429, message: "Trop de tentatives. Réessaie dans un instant." },
 };
 
 export class TrainingDuoError extends Error {
   readonly status: number;
-  constructor(readonly code: TrainingDuoErrorCode) {
+  constructor(readonly code: TrainingDuoErrorCode, readonly retryAfterSeconds?: number) {
     super(ERROR_DETAILS[code].message);
     this.status = ERROR_DETAILS[code].status;
     this.name = "TrainingDuoError";
@@ -42,8 +43,12 @@ export function duoDatabaseError(error: { message?: string; code?: string }): ne
 
 export function duoApiFailure(error: unknown, route: string) {
   if (error instanceof TrainingDuoError) {
+    const headers: Record<string, string> = { "Cache-Control": "no-store" };
+    if (error.code === "duo_rate_limited" && error.retryAfterSeconds) {
+      headers["Retry-After"] = String(error.retryAfterSeconds);
+    }
     return NextResponse.json({ code: error.code, error: error.message }, {
-      status: error.status, headers: { "Cache-Control": "no-store" },
+      status: error.status, headers,
     });
   }
   if (error instanceof Error && error.message === "Authentication required.") {

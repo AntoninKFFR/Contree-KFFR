@@ -3,7 +3,7 @@ import { BID_READING_ASSERTION_LABELS, BID_READING_MEANING_LABELS } from "@/engi
 import { twoPlayerCredentials, loginAs } from "./helpers/auth";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 import {
-  accountId, assertNoPrematureReveal, createDuoThroughUi, duoRequest, duoView,
+  accountId, assertNoPrematureReveal, attemptDuoJoin, createDuoThroughUi, duoRequest, duoView,
   joinDuoThroughUi, monitorDuoTraffic,
 } from "./helpers/trainingDuo";
 
@@ -217,9 +217,12 @@ test.describe("@training-duo two authenticated browser contexts", () => {
           contexts[1] = restoredContext;
           pageB = await restoredContext.newPage();
           errorB = duoBrowserErrors(pageB);
-          trafficB = monitorDuoTraffic(pageB); trafficB.setAccountIds(ids); trafficB.allowReveal();
+          trafficB = monitorDuoTraffic(pageB); trafficB.setAccountIds(ids); trafficB.withholdReveal();
           await pageB.goto(`/training/duo/${sessionId}`);
           await expect(pageB.getByRole("heading", { name: "Exercice 4 / 10" })).toBeVisible();
+          await expect(pageB.getByRole("button", { name: "Valider" })).toBeVisible();
+          await assertNoPrematureReveal(pageB);
+          await trafficB.assertSafeTraffic();
           const after = await duoView(pageB, sessionId);
           expect(after.viewerSlot).toBe(prior.viewerSlot);
           expect(after.session.status).toBe("active");
@@ -368,5 +371,33 @@ test.describe("@training-duo two authenticated browser contexts", () => {
       await pageA.getByRole("button", { name: "Annuler le duo" }).click();
       errors[0].assertClean(); restoredErrors.assertClean();
     } finally { await Promise.all(contexts.map((context) => context.close())); }
+  });
+
+  test("bounds authenticated join bursts without revealing prejoin metadata", async ({ browser, baseURL }) => {
+    test.setTimeout(120_000);
+    const context = await browser.newContext({ baseURL, viewport: { width: 1366, height: 768 } });
+    try {
+      const page = await context.newPage();
+      await loginAs(page, auth.credentials[1]);
+      let genericFailures = 0;
+      let limited = false;
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        const response = await attemptDuoJoin(page, attempt % 2 === 0 ? "AAAAAAAAAA" : "BBBBBBBBBB");
+        expect(Object.keys(response.body).sort()).toEqual(["code", "error"]);
+        if (response.status === 429) {
+          expect(response.body).toEqual({ code: "duo_rate_limited",
+            error: "Trop de tentatives. Réessaie dans un instant." });
+          expect(Number(response.retryAfter)).toBeGreaterThan(0);
+          limited = true;
+          break;
+        }
+        expect(response.status).toBe(404);
+        expect(response.body).toEqual({ code: "duo_session_not_found",
+          error: "Session introuvable ou inaccessible." });
+        genericFailures += 1;
+      }
+      expect(genericFailures).toBeGreaterThan(0);
+      expect(limited, "the authenticated burst must be capped within 20 attempts").toBe(true);
+    } finally { await context.close(); }
   });
 });
