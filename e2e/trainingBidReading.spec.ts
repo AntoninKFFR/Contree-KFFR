@@ -21,7 +21,8 @@ test("@smoke bid-reading hub, ten questions, local progress and no server record
   await expect(card).toBeVisible();
   await expect(card.getByText("Niveau débloqué : 1", { exact: false })).toBeVisible();
   await expect(card.getByRole("link", { name: "Conventions de lecture" })).toBeVisible();
-  await card.getByRole("link", { name: "Jouer" }).click();
+  await expect(card.getByRole("link", { name: "Jouer à deux" })).toHaveAttribute("href", "/training/duo");
+  await card.getByRole("link", { name: "Jouer", exact: true }).click();
   for (let index = 1; index <= 10; index += 1) {
     await expect(page.getByLabel(`Exercice ${index} sur 10`)).toBeVisible();
     const history = page.getByRole("region", { name: "Historique public des enchères" });

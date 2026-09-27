@@ -3,46 +3,19 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { BidReadingForm } from "@/components/training/BidReadingForm";
-import { cardAccessibleName } from "@/components/training/CardSelection";
-import { formatPublicBidLabel, TRAINING_BID_ROLES } from "@/components/training/bidRoles";
+import { BidReadingDoctrineCorrection, BidReadingPublicAuction } from "@/components/training/BidReadingShared";
+import { TRAINING_BID_ROLES } from "@/components/training/bidRoles";
 import {
   bidReadingSeriesSeed, isBidReadingLevelUnlocked, readTrainingProgress,
   recordBidReadingSeries, saveTrainingProgress, type TrainingProgress,
 } from "@/components/training/progress";
 import { AppEyebrow, AppPage, AppSurface, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
-import { cardId, SUIT_SYMBOLS } from "@/engine/cards";
 import {
   BID_READING_ASSERTION_LABELS, BID_READING_AXIS_VERSION, BID_READING_LEVEL_NAMES,
-  BID_READING_MEANING_LABELS, BID_READING_SERIES_LENGTH, generateBidReadingSeries,
+  BID_READING_SERIES_LENGTH, generateBidReadingSeries,
   gradeBidReadingExercise, type BidReadingAnswer, type BidReadingExercise, type BidReadingLevel,
 } from "@/engine/training/bidReading";
 import { generatorVersion } from "@/engine/training/generator";
-
-function PublicAuction({ exercise }: { exercise: BidReadingExercise }) {
-  return <section aria-label="Historique public des enchères" className="min-w-0 rounded-xl border border-[var(--border)] p-3">
-    <h2 className="font-black">Enchères publiques</h2>
-    <p className="mt-1 text-xs text-[var(--text-secondary)]">Lecture depuis ta place : partenaire en face, adversaires à droite et à gauche.</p>
-    <ol className="mt-3 flex flex-wrap gap-2">
-      {exercise.publicBids.map((bid, index) => <li key={index} aria-current={index === exercise.targetBidIndex ? "step" : undefined}
-        className={`min-w-0 rounded-xl border p-2 text-sm ${index === exercise.targetBidIndex ? "border-[var(--accent)] bg-[var(--surface-raised)] ring-2 ring-[var(--accent)]" : "border-[var(--border)]"}`}>
-        <span className="block font-bold">{TRAINING_BID_ROLES[bid.playerId]} · {exercise.playerNames[bid.playerId]}</span>
-        <span className="block">{formatPublicBidLabel(bid)}{index === exercise.targetBidIndex ? " · annonce à lire" : ""}</span>
-      </li>)}
-    </ol>
-  </section>;
-}
-
-function CompatibleHand({ exercise }: { exercise: BidReadingExercise }) {
-  return <section aria-label="Exemple de main compatible" className="mt-4 rounded-xl border border-[var(--border)] p-3">
-    <h3 className="font-black">Exemple de main compatible</h3>
-    <p className="mt-1 text-sm font-semibold">Une main compatible parmi d’autres</p>
-    <p className="mt-1 text-xs text-[var(--text-secondary)]">Voici la main utilisée pour cet exemple. Elle illustre une possibilité, mais l’enchère seule ne révèle pas toutes ces cartes.</p>
-    <div className="mt-3 flex flex-wrap gap-1.5">{exercise.illustrationHand.map((card) => <span key={cardId(card)}
-      aria-label={cardAccessibleName(card)} className="rounded-md border border-[var(--border)] bg-[#fffef9] px-2 py-1 font-bold text-stone-900">
-      {card.rank}{SUIT_SYMBOLS[card.suit]}
-    </span>)}</div>
-  </section>;
-}
 
 export function TrainingBidReadingPuzzleClient({ level }: { level: BidReadingLevel }) {
   const [progress, setProgress] = useState<TrainingProgress | null>(null);
@@ -131,23 +104,15 @@ export function TrainingBidReadingPuzzleClient({ level }: { level: BidReadingLev
           <p className="mt-1 text-sm text-[var(--text-secondary)]">{BID_READING_LEVEL_NAMES[level]} · Doctrine KFFR Advanced Rules V4.1</p></div>
         <span aria-label={`Exercice ${index + 1} sur ${BID_READING_SERIES_LENGTH}`} className="rounded-full border border-[var(--border)] px-3 py-1.5 text-sm font-bold">{index + 1} / {BID_READING_SERIES_LENGTH}</span>
       </div>
-      <div className="mt-4"><PublicAuction exercise={exercise} /></div>
+      <div className="mt-4"><BidReadingPublicAuction exercise={exercise} /></div>
       <div className="mt-4 min-w-0">
         <p className="mb-3 font-semibold">Que peux-tu affirmer sur l’enchère de {targetName} ({TRAINING_BID_ROLES[exercise.targetPlayerId]}) ?</p>
-        {!grade ? <BidReadingForm key={index} exercise={exercise} onAnswer={submit} />
+        {!grade ? <BidReadingForm key={index} assertionChoices={exercise.assertionChoices} onAnswer={submit} />
           : <section aria-live="polite" aria-label="Correction de la lecture" className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
             <p className={`font-black ${grade.correct ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{grade.correct ? "Bonne réponse !" : "Mauvaise réponse"}</p>
             <p className="mt-2 text-sm">Ta sélection : {answer?.selectedAssertionIds.length
               ? answer.selectedAssertionIds.map((id) => BID_READING_ASSERTION_LABELS[id]).join(" ; ") : "Aucune affirmation"}</p>
-            <h2 className="mt-4 font-black">Selon la doctrine de l’application</h2>
-            <h3 className="mt-2 font-bold">Tu peux affirmer :</h3>
-            {exercise.promise.guaranteed.length > 0 ? <ul className="mt-1 list-disc pl-5 text-sm">{exercise.promise.guaranteed.map((id) =>
-              <li key={id}>{BID_READING_ASSERTION_LABELS[id]}</li>)}</ul> : <p className="mt-1 text-sm">Aucune carte précise n’est garantie par cette annonce.</p>}
-            <h3 className="mt-3 font-bold">Cette enchère peut correspondre à :</h3>
-            <ul className="mt-1 list-disc pl-5 text-sm">{exercise.promise.possibleMeanings.map((meaning) =>
-              <li key={meaning}>{BID_READING_MEANING_LABELS[meaning]}</li>)}</ul>
-            {exercise.promise.explanation.map((line, lineIndex) => <p key={lineIndex} className="mt-2 text-sm text-[var(--text-secondary)]">{line}</p>)}
-            <CompatibleHand exercise={exercise} />
+            <BidReadingDoctrineCorrection promise={exercise.promise} illustrationHand={exercise.illustrationHand} />
             <button ref={nextButtonRef} className={`${appPrimaryActionClass} mt-4 min-h-11`} onClick={next} type="button">{index === BID_READING_SERIES_LENGTH - 1 ? "Voir le résultat" : "Exercice suivant"}</button>
           </section>}
       </div>

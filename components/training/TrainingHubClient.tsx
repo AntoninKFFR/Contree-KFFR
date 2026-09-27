@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AppEyebrow, AppPage, AppSurface, appPrimaryActionClass } from "@/components/ui/AppShell";
+import { AppEyebrow, AppPage, AppSurface, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { formatDuration, PILE_COUNT_MODE_COPY, PILE_COUNT_TITLE } from "@/components/training/pileCountCopy";
 import {
   isBidReadingLevelUnlocked, isBiddingLevelUnlocked, isPileCountModeUnlocked, isTrickValueChallengeUnlocked, isTrickValueLevelUnlocked, PASSING_SCORE, readTrainingProgress,
@@ -224,6 +224,7 @@ export function TrainingHubClient() {
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link className={appPrimaryActionClass} href={`/training/puzzle/bid-reading?level=${bidReadingLevel}`}>Jouer</Link>
+            <Link className={appSecondaryActionClass} href="/training/duo">Jouer à deux</Link>
             <Link className="coinche-ui-link self-center text-sm font-bold" href="/training/conventions/bidding">Conventions de lecture</Link>
           </div>
           <p className="mt-2 text-xs text-[var(--text-secondary)]">Progression conservée sur cet appareil.</p>
