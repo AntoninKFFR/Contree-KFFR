@@ -1,10 +1,11 @@
 import { assessCapotHand, evaluateAdvancedModeHand, evaluateCapotHand, estimateDefensiveTricks, ruleBonusForHand, type ModeHandEvaluation } from "@/bots/evaluation/advancedRulesEvaluation";
 import { evaluateGenerale } from "@/bots/evaluation/generaleEvaluation";
 import { chooseHumanDoctrineV31Bid, type HumanDoctrineV31Trace } from "@/bots/strategy/humanDoctrineV31";
+import { RANKS } from "@/engine/cards";
 import { BID_VALUES, canBidCapot, canBidGenerale, canBidGeneraleMode, canCoinche, canSurcoinche, getAvailableBidValues } from "@/engine/bidding";
 import { resolveContractMode } from "@/engine/contractMode";
 import { getCurrentContract } from "@/engine/game";
-import { playerTeam } from "@/engine/rules";
+import { cardStrength, playerTeam } from "@/engine/rules";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import type { BidValue, Card, Contract, ContractMode, GameState, Suit } from "@/engine/types";
 
@@ -18,7 +19,18 @@ export type DefensiveBidAssessment = {
   hardControls: number;
   pairedSideControls: number;
   trumpControl: "both" | "jack" | "nine" | "none";
+  declaredTrump: {
+    count: number;
+    topSequenceLength: number;
+    hasJack: boolean;
+    hasNine: boolean;
+    hasAce: boolean;
+    hasTen: boolean;
+  };
   overbidThreshold: number | null;
+  sideControlsQualify: boolean;
+  trumpLockQualifies: boolean;
+  overbidEvidence: "side-controls" | "trump-lock" | "combined" | null;
   overbidQualifies: boolean;
 };
 
@@ -43,6 +55,7 @@ export type AdvancedRulesBidTrace = {
   selectedSuit?: Suit;
   defensiveAssessment?: DefensiveBidAssessment;
   coincheReason?: "control" | "overbid" | "special";
+  overbidEvidence?: NonNullable<DefensiveBidAssessment["overbidEvidence"]>;
   weakTrumpCapApplied: boolean;
   suitFoundation?: HumanDoctrineV31Trace["trumpFoundation"];
   intrinsicCeiling?: BidValue | null;
@@ -72,25 +85,58 @@ function specialModes(state: GameState): ContractMode[] {
 }
 
 function assessSuitDefense(hand: Card[], suit: Suit, value: number): DefensiveBidAssessment {
-  const trumps = new Set(hand.filter((card) => card.suit === suit).map((card) => card.rank));
+  const declaredTrumpCards = hand.filter((card) => card.suit === suit);
+  const trumps = new Set(declaredTrumpCards.map((card) => card.rank));
+  const mode = { kind: "suit" as const, suit };
+  const orderedTrumpRanks = [...RANKS].sort((first, second) =>
+    cardStrength({ rank: second, suit }, mode) - cardStrength({ rank: first, suit }, mode));
+  const firstMissing = orderedTrumpRanks.findIndex((rank) => !trumps.has(rank));
+  const topSequenceLength = firstMissing < 0 ? orderedTrumpRanks.length : firstMissing;
   const sideSuits = ["clubs", "diamonds", "hearts", "spades"] as const;
   const sideRanks = sideSuits.filter((side) => side !== suit).map((side) =>
     new Set(hand.filter((card) => card.suit === side).map((card) => card.rank)));
   const hardControls = sideRanks.filter((ranks) => ranks.has("A")).length;
   const pairedSideControls = sideRanks.filter((ranks) => ranks.has("A") && ranks.has("10")).length;
-  const estimatedTricks = estimateDefensiveTricks(hand, { kind: "suit", suit });
+  const estimatedTricks = estimateDefensiveTricks(hand, mode);
   const overbidThreshold = value >= 160 ? 3.1 : value >= 150 ? 3.95 : value >= 140 ? 4.65 : null;
   // Two side A-10 controls are the minimum credible independent defense;
   // 140 additionally requires all three side suits to be controlled in sequence.
-  const overbidQualifies = overbidThreshold !== null && estimatedTricks + 1e-9 >= overbidThreshold
+  const sideControlsQualify = overbidThreshold !== null && estimatedTricks + 1e-9 >= overbidThreshold
     && hardControls >= (value >= 160 ? 2 : 3)
     && pairedSideControls >= (value >= 150 ? 2 : 3);
+  // Trump lock is independent of the side-control estimator. At 140 it still
+  // needs an outside Ace; at 150 four masters suffice, or three plus A-10;
+  // at 160 three masters plus an outside Ace also expose an obvious overbid.
+  const trumpLockQualifies = value >= 160
+    ? topSequenceLength >= 4 || (topSequenceLength >= 3 && hardControls >= 1)
+    : value >= 150
+      ? topSequenceLength >= 4 || (topSequenceLength >= 3 && pairedSideControls >= 1)
+      : value >= 140 && topSequenceLength >= 4 && hardControls >= 1;
+  const trumpNeedsSideControl = topSequenceLength < 4 || value < 150;
+  const overbidEvidence = (sideControlsQualify && trumpLockQualifies) || (trumpLockQualifies && trumpNeedsSideControl)
+    ? "combined" : sideControlsQualify ? "side-controls" : trumpLockQualifies ? "trump-lock" : null;
   return {
     estimatedTricks, hardControls, pairedSideControls,
     trumpControl: trumps.has("J") && trumps.has("9") ? "both"
       : trumps.has("J") ? "jack" : trumps.has("9") ? "nine" : "none",
-    overbidThreshold, overbidQualifies,
+    declaredTrump: {
+      count: declaredTrumpCards.length, topSequenceLength,
+      hasJack: trumps.has("J"), hasNine: trumps.has("9"),
+      hasAce: trumps.has("A"), hasTen: trumps.has("10"),
+    },
+    overbidThreshold, sideControlsQualify, trumpLockQualifies,
+    overbidEvidence, overbidQualifies: sideControlsQualify || trumpLockQualifies,
   };
+}
+
+function describeOverbid(value: number, assessment: DefensiveBidAssessment | undefined): string {
+  if (assessment?.overbidEvidence === "trump-lock") {
+    return `Le contrat à ${value} est excessif : la main contrôle les quatre plus hauts atouts adverses.`;
+  }
+  if (assessment?.overbidEvidence === "combined") {
+    return `Le contrat à ${value} est excessif : une séquence maîtresse d’atout est renforcée par des contrôles extérieurs.`;
+  }
+  return `Le contrat à ${value} est excessif : plusieurs contrôles défensifs hors atout sont indépendants.`;
 }
 
 function coincheReason(
@@ -205,9 +251,11 @@ export function chooseAdvancedRulesBidWithTrace(state: GameState): {
     if (reason) return finish({ action: "coinche" }, reason === "overbid" ? "coinche-overbid" : "coinche-control",
       reason === "overbid" ? "coinche-obvious-overbid"
         : reason === "control" ? "coinche-strong-trump-control" : "coinche-special-control",
-      reason === "overbid" ? "Le contrat adverse très élevé se heurte à plusieurs contrôles défensifs indépendants."
+      reason === "overbid" ? describeOverbid(current.value, defensiveAssessment)
         : "La main possède des contrôles défensifs suffisants pour Coincher.",
-      { selectedMode: currentMode, coincheReason: reason });
+      { selectedMode: currentMode, coincheReason: reason,
+        ...(reason === "overbid" && defensiveAssessment?.overbidEvidence
+          ? { overbidEvidence: defensiveAssessment.overbidEvidence } : {}) });
   }
   if (current?.status && current.status !== "normal") return finish({ action: "pass" }, "pass",
     "pass-contract-blocked", "Le contrat déjà doublé bloque une nouvelle enchère ordinaire.");

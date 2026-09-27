@@ -47,6 +47,8 @@ async function openFirstQuestion(page: Page, rotateForGame = false) {
   await expect.poll(async () => {
     if (await dialog.isVisible()) return true;
     if (await page.getByRole("main", { name: "Partie d’entraînement" }).getAttribute("data-training-question-pending") === "true") return false;
+    const pass = scene.getByRole("button", { name: "Passer", exact: true });
+    if (await pass.isVisible().catch(() => false) && await pass.isEnabled()) await pass.click();
     if (await playable.isVisible().catch(() => false)) await playable.click();
     return await dialog.isVisible();
   }, { timeout: 60_000, intervals: [100, 200, 300] }).toBe(true);

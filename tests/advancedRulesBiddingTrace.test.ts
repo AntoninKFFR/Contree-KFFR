@@ -22,6 +22,14 @@ const weak = [c("7", "hearts"), c("8", "hearts"), c("Q", "hearts"), c("K", "hear
   c("7", "clubs"), c("8", "clubs"), c("7", "diamonds"), c("8", "diamonds")];
 const show80 = [c("7", "hearts"), c("8", "hearts"), c("Q", "hearts"), c("K", "hearts"),
   c("A", "clubs"), c("10", "clubs"), c("A", "diamonds"), c("10", "diamonds")];
+const trumpLock = [c("J", "hearts"), c("9", "hearts"), c("A", "hearts"), c("10", "hearts"),
+  c("7", "clubs"), c("8", "clubs"), c("7", "diamonds"), c("8", "diamonds")];
+const trumpLockWithAce = [c("J", "hearts"), c("9", "hearts"), c("A", "hearts"), c("10", "hearts"),
+  c("A", "clubs"), c("7", "clubs"), c("7", "diamonds"), c("7", "spades")];
+const topThreeWithPair = [c("J", "hearts"), c("9", "hearts"), c("A", "hearts"),
+  c("A", "clubs"), c("10", "clubs"), c("7", "diamonds"), c("8", "diamonds"), c("7", "spades")];
+const topThreeWithAce = [c("J", "hearts"), c("9", "hearts"), c("A", "hearts"),
+  c("A", "clubs"), c("7", "clubs"), c("7", "diamonds"), c("8", "diamonds"), c("7", "spades")];
 
 function stateWithHand(seat: PlayerId, hand: Card[], options: { generale?: boolean; sa?: boolean } = {}): GameState {
   expect(hand).toHaveLength(8);
@@ -76,7 +84,7 @@ describe("advanced rules V4.1 defensive bidding", () => {
     expect(result.bid.action).toBe(action);
     if (action === "coinche") {
       expect(result.trace).toMatchObject({ decisionBranch: "coinche-overbid",
-        reasonCode: "coinche-obvious-overbid", coincheReason: "overbid" });
+        reasonCode: "coinche-obvious-overbid", coincheReason: "overbid", overbidEvidence: "side-controls" });
     }
     expect(() => makeBid(state, state.currentPlayerId, result.bid)).not.toThrow();
   });
@@ -89,8 +97,77 @@ describe("advanced rules V4.1 defensive bidding", () => {
     }
   });
 
+  it("Coinches 160 with the four highest declared trumps and no outside Ace", () => {
+    const state = against(trumpLock, 160);
+    const result = chooseAdvancedRulesBidWithTrace(state);
+    expect(result.bid).toEqual({ action: "coinche" });
+    expect(result.trace).toMatchObject({
+      decisionBranch: "coinche-overbid", reasonCode: "coinche-obvious-overbid",
+      coincheReason: "overbid", overbidEvidence: "trump-lock",
+      defensiveAssessment: {
+        trumpControl: "both", hardControls: 0,
+        declaredTrump: { count: 4, topSequenceLength: 4, hasJack: true,
+          hasNine: true, hasAce: true, hasTen: true },
+        sideControlsQualify: false, trumpLockQualifies: true,
+      },
+    });
+    expect(result.trace.defensiveAssessment?.estimatedTricks).toBeCloseTo(1.95);
+    expect(result.trace.shortReason).toContain("quatre plus hauts atouts");
+    expect(() => makeBid(state, state.currentPlayerId, result.bid)).not.toThrow();
+  });
+
+  it.each([
+    ["J seul", [c("J", "hearts"), c("7", "clubs"), c("8", "clubs"), c("Q", "clubs"),
+      c("7", "diamonds"), c("8", "diamonds"), c("7", "spades"), c("8", "spades")], 1],
+    ["J et 9 isolés", [c("J", "hearts"), c("9", "hearts"), c("7", "clubs"), c("8", "clubs"),
+      c("7", "diamonds"), c("8", "diamonds"), c("7", "spades"), c("8", "spades")], 2],
+    ["J et A sans 9", [c("J", "hearts"), c("A", "hearts"), c("7", "clubs"), c("8", "clubs"),
+      c("7", "diamonds"), c("8", "diamonds"), c("7", "spades"), c("8", "spades")], 1],
+  ] as const)("does not mistake %s for a trump lock at 160", (_label, hand, sequence) => {
+    const result = chooseAdvancedRulesBidWithTrace(against([...hand], 160));
+    expect(result.bid).toEqual({ action: "pass" });
+    expect(result.trace.defensiveAssessment?.declaredTrump.topSequenceLength).toBe(sequence);
+    expect(result.trace.defensiveAssessment?.trumpLockQualifies).toBe(false);
+  });
+
+  it("keeps 140 conservative: top four trumps need an outside Ace", () => {
+    const alone = chooseAdvancedRulesBidWithTrace(against(trumpLock, 140));
+    expect(alone.bid.action).not.toBe("coinche");
+    expect(alone.trace.defensiveAssessment?.trumpLockQualifies).toBe(false);
+
+    const state = against(trumpLockWithAce, 140);
+    const supported = chooseAdvancedRulesBidWithTrace(state);
+    expect(supported).toMatchObject({ bid: { action: "coinche" },
+      trace: { overbidEvidence: "combined", defensiveAssessment: {
+        declaredTrump: { topSequenceLength: 4 }, hardControls: 1, trumpLockQualifies: true } } });
+    expect(() => makeBid(state, state.currentPlayerId, supported.bid)).not.toThrow();
+  });
+
+  it("at 150 accepts top four alone or top three plus a side Ace-Ten pair", () => {
+    const lockState = against(trumpLock, 150);
+    const lock = chooseAdvancedRulesBidWithTrace(lockState);
+    expect(lock).toMatchObject({ bid: { action: "coinche" }, trace: { overbidEvidence: "trump-lock" } });
+    expect(() => makeBid(lockState, lockState.currentPlayerId, lock.bid)).not.toThrow();
+
+    expect(chooseAdvancedRulesBidWithTrace(against(topThreeWithAce, 150)).bid.action).not.toBe("coinche");
+    const combinedState = against(topThreeWithPair, 150);
+    const combined = chooseAdvancedRulesBidWithTrace(combinedState);
+    expect(combined).toMatchObject({ bid: { action: "coinche" }, trace: { overbidEvidence: "combined",
+      defensiveAssessment: { declaredTrump: { topSequenceLength: 3 }, pairedSideControls: 1 } } });
+    expect(() => makeBid(combinedState, combinedState.currentPlayerId, combined.bid)).not.toThrow();
+  });
+
+  it("at 160 accepts top three with one independent outside Ace", () => {
+    const state = against(topThreeWithAce, 160);
+    const result = chooseAdvancedRulesBidWithTrace(state);
+    expect(result).toMatchObject({ bid: { action: "coinche" }, trace: { overbidEvidence: "combined",
+      defensiveAssessment: { declaredTrump: { topSequenceLength: 3 }, hardControls: 1 } } });
+    expect(() => makeBid(state, state.currentPlayerId, result.bid)).not.toThrow();
+  });
+
   it("gives the same bid and trace when all three hidden hands are permuted", () => {
-    for (const state of [against(strong, 150), stateWithHand(0, show80)]) {
+    for (const state of [against(strong, 150), against(trumpLock, 160),
+      against(topThreeWithPair, 150), stateWithHand(0, show80)]) {
       expect(chooseAdvancedRulesBidWithTrace(permuteHidden(state)))
         .toEqual(chooseAdvancedRulesBidWithTrace(state));
     }
