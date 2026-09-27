@@ -1,4 +1,5 @@
 import { pileCountAxis } from "@/engine/training/pileCount";
+import { biddingAxis } from "@/engine/training/bidding";
 import { createTrainingAxisRegistry } from "@/engine/training/registry";
 import { trickValueAxis } from "@/engine/training/trickValue";
 import { createMemoryExercise, MEMORY_AXIS_IDS, MEMORY_LABELS } from "@/engine/training/memory";
@@ -8,6 +9,7 @@ import { memoryInGame, opponentVoidsInGame, trickValueInGame } from "@/engine/tr
 export const trainingAxes = createTrainingAxisRegistry([
   Object.assign(trickValueAxis, { inGame: trickValueInGame }),
   pileCountAxis,
+  biddingAxis,
   Object.assign(opponentVoidsAxis, { inGame: opponentVoidsInGame }),
   ...MEMORY_AXIS_IDS.map((id) => ({ id, label: MEMORY_LABELS[id], createExercise: (position: Parameters<typeof trickValueAxis.createExercise>[0]) =>
     createMemoryExercise(id, 1, position.state, position.seed), inGame: memoryInGame(id) })),
