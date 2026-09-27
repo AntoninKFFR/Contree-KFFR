@@ -5,7 +5,7 @@ import type { BiddingExercise } from "@/engine/training/bidding";
 import type { Bid, PlayerId } from "@/engine/types";
 
 const ROLES: Record<PlayerId, string> = {
-  0: "Toi", 1: "Adversaire gauche", 2: "Partenaire", 3: "Adversaire droite",
+  0: "Toi", 1: "Adversaire droite", 2: "Partenaire", 3: "Adversaire gauche",
 };
 
 function publicBidLabel(bid: Bid): string {
