@@ -76,6 +76,8 @@ export function BotReviewPanel({ scenario, onClose, createFullBundle }: BotRevie
     ? scenario.currentTrick.cards.map((played) => `P${played.playerId}: ${formatCard(played.card)}`).join(", ")
     : "Début de pli";
   const biddingTrace = scenario.trace.bidding;
+  const v4Trace = biddingTrace && "doctrineRevision" in biddingTrace
+    && biddingTrace.doctrineRevision === "4.1" ? biddingTrace : null;
   const v3Trace = biddingTrace && "version" in biddingTrace && biddingTrace.version === 3
     ? biddingTrace
     : null;
@@ -158,6 +160,25 @@ export function BotReviewPanel({ scenario, onClose, createFullBundle }: BotRevie
                 <dt className="font-semibold">Palier de rebid choisi :</dt><dd>{v31Trace.selectedRebidStep ?? "Aucun"}</dd>
               </>
             ) : null}
+          </dl>
+        </section>
+      ) : null}
+
+      {v4Trace ? (
+        <section className="mt-3 rounded-md border border-amber-300 bg-white/80 p-3">
+          <h2 className="text-sm font-bold">Doctrine d’enchères V4.1</h2>
+          <dl className="mt-2 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1">
+            <dt className="font-semibold">Branche :</dt><dd>{v4Trace.decisionBranch}</dd>
+            <dt className="font-semibold">Raison :</dt><dd>{v4Trace.shortReason} ({v4Trace.reasonCode})</dd>
+            <dt className="font-semibold">Fondation atout :</dt><dd>{v4Trace.suitFoundation ?? v4Trace.defensiveAssessment?.trumpControl ?? "Sans objet"}</dd>
+            <dt className="font-semibold">Plafond effectif :</dt><dd>{v4Trace.effectiveCeiling ?? "Aucun"}</dd>
+            {v4Trace.defensiveAssessment ? <>
+              <dt className="font-semibold">Défense estimée :</dt><dd>{v4Trace.defensiveAssessment.estimatedTricks}</dd>
+              <dt className="font-semibold">Contrôles hors atout :</dt><dd>{v4Trace.defensiveAssessment.hardControls}</dd>
+            </> : null}
+            {v4Trace.coincheReason ? <>
+              <dt className="font-semibold">Motif Coinche :</dt><dd>{v4Trace.coincheReason}</dd>
+            </> : null}
           </dl>
         </section>
       ) : null}

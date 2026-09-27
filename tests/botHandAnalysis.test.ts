@@ -2,14 +2,14 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { captureBotReviewScenario, createBotReviewBundle, isBotReviewModeEnabled } from "@/bots/botReview";
-import { chooseBotCard } from "@/bots/simpleBot";
+import { chooseBotBidWithTrace, chooseBotCard } from "@/bots/simpleBot";
 import { chooseHumanDoctrineV31Bid } from "@/bots/strategy/humanDoctrineV31";
 import {
   SoloBotHandsPanel,
   sortCardsForAnalysis,
 } from "@/components/BotHandAnalysis";
 import { BotReviewHistory, BotReviewPanel } from "@/components/BotReviewPanel";
-import { cardId } from "@/engine/cards";
+import { cardId, createDeck } from "@/engine/cards";
 import { createInitialGame, makeBid } from "@/engine/game";
 import { createSeededRandom } from "@/engine/random";
 import type { Card, GameState } from "@/engine/types";
@@ -133,6 +133,33 @@ describe("solo bot hand analysis", () => {
       "Escalade après fit",
       "Palier de rebid choisi",
     ]) {
+      expect(markup).toContain(label);
+    }
+  });
+
+  it("renders the official V4.1 decision and defense diagnostics in Bot Review", () => {
+    let state = createInitialGame(createSeededRandom(8210));
+    const defense = [
+      { rank: "7", suit: "hearts" }, { rank: "8", suit: "hearts" },
+      { rank: "A", suit: "clubs" }, { rank: "10", suit: "clubs" },
+      { rank: "A", suit: "diamonds" }, { rank: "10", suit: "diamonds" },
+      { rank: "A", suit: "spades" }, { rank: "K", suit: "spades" },
+    ] satisfies Card[];
+    const remaining = createDeck().filter((card) => !defense.some((held) => cardId(held) === cardId(card)));
+    state = { ...state, hands: { 0: remaining.slice(0, 8), 1: defense,
+      2: remaining.slice(8, 16), 3: remaining.slice(16, 24) } };
+    state = makeBid(state, state.currentPlayerId, { action: "bid", value: 150, trump: "hearts" });
+    const decision = chooseBotBidWithTrace(state);
+    expect(decision.bid).toEqual({ action: "coinche" });
+    const scenario = captureBotReviewScenario(state, {
+      decisionNumber: 3, elapsedMs: 1, chosenBid: decision.bid,
+      biddingTrace: decision.biddingTrace,
+    });
+    const markup = renderToStaticMarkup(React.createElement(BotReviewPanel, {
+      onClose: () => undefined, scenario,
+    }));
+    for (const label of ["Doctrine d’enchères V4.1", "Branche", "Raison", "Fondation atout",
+      "Plafond effectif", "Défense estimée", "Motif Coinche", "coinche-overbid"]) {
       expect(markup).toContain(label);
     }
   });

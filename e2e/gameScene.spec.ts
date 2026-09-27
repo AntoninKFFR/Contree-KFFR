@@ -56,10 +56,14 @@ test("@smoke Solo keeps the hand and played cards inside the scene", async ({ pa
   const scene = page.locator(".coinche-game-scene");
   await scene.getByRole("button", { name: "Valeur 160" }).click();
   await scene.getByRole("button", { name: "Annoncer" }).click();
-  await expect(scene.locator(".coinche-scene-bidding")).toHaveCount(0, { timeout: 30_000 });
-  await expect(scene.locator(".coinche-scene-hand-card")).toHaveCount(8);
   const playable = scene.locator(".coinche-scene-hand-card button[data-playable='true']:not([disabled])").first();
-  await expect(playable).toBeVisible({ timeout: 15_000 });
+  await expect.poll(async () => {
+    const pass = scene.getByRole("button", { name: "Passer", exact: true });
+    if (await pass.isVisible().catch(() => false) && await pass.isEnabled()) await pass.click();
+    return await playable.isVisible().catch(() => false);
+  }, { timeout: 30_000 }).toBe(true);
+  await expect(scene.locator(".coinche-scene-bidding")).toHaveCount(0);
+  await expect(scene.locator(".coinche-scene-hand-card")).toHaveCount(8);
   await expect(playable).toHaveAttribute("data-highlighted", "true");
   expect(await playable.evaluate((card) => getComputedStyle(card).boxShadow)).not.toContain("234, 216, 166");
   await page.keyboard.press("Tab");

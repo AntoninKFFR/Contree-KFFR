@@ -254,6 +254,11 @@ describe("human bot decision review", () => {
     expect(history[1].ownHand.map(cardId)).toEqual(secondState.hands[secondState.currentPlayerId].map(cardId));
     expect(history[0]).toMatchObject({ botProfile: "advanced_rules_v4", decisionEngine: "advanced_rules_v4" });
     expect(history[1]).toMatchObject({ botProfile: "advanced_rules_v4", decisionEngine: "advanced_rules_v4" });
+    expect(history[0].trace.bidding).toMatchObject({ doctrineId: "advanced_rules_v4",
+      doctrineRevision: "4.1", finalAction: firstDecision.bid });
+    const json = serializeBotReviewScenario(firstScenario);
+    expect(JSON.parse(json).trace.bidding).toMatchObject({ doctrineRevision: "4.1" });
+    expect(json).not.toContain('"hands"');
 
     const capped = Array.from({ length: BOT_REVIEW_HISTORY_LIMIT + 1 }, (_, index) => ({
       ...firstScenario,

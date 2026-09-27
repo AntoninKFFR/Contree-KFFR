@@ -3,6 +3,7 @@ import { buildTrickKnowledge } from "@/bots/strategy/trickKnowledge";
 import type { HumanDoctrineV2Trace } from "@/bots/strategy/humanDoctrineV2";
 import type { HumanDoctrineV3Trace } from "@/bots/strategy/humanDoctrineV3";
 import type { HumanDoctrineV31Trace } from "@/bots/strategy/humanDoctrineV31";
+import type { AdvancedRulesBidTrace } from "@/bots/strategy/advancedRulesBidding";
 import { cardId, createDeck } from "@/engine/cards";
 import { getCurrentContract, playableCardsForCurrentPlayer } from "@/engine/game";
 import { normalizeGameSettings, resolveGameRules } from "@/engine/rulesets/resolve";
@@ -73,7 +74,7 @@ export type BotReviewScenarioV1 = {
   trace: {
     source: "legacy-heuristic" | "human-doctrine-v2-communication" | "auction-doctrine-v3-conversation" | "monte-carlo-v1" | "advanced-rules-v4";
     knowledge?: BotReviewKnowledgeV1;
-    bidding?: HumanDoctrineV2Trace | HumanDoctrineV3Trace | HumanDoctrineV31Trace;
+    bidding?: HumanDoctrineV2Trace | HumanDoctrineV3Trace | HumanDoctrineV31Trace | AdvancedRulesBidTrace;
   };
   humanComment?: string;
 };
@@ -130,7 +131,7 @@ type CaptureOptions = {
   chosenCard?: Card;
   chosenBid?: BotReviewBidDecision;
   botProfile?: string;
-  biddingTrace?: HumanDoctrineV2Trace | HumanDoctrineV3Trace | HumanDoctrineV31Trace;
+  biddingTrace?: HumanDoctrineV2Trace | HumanDoctrineV3Trace | HumanDoctrineV31Trace | AdvancedRulesBidTrace;
   capturedAt?: string;
 };
 

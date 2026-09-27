@@ -15,7 +15,7 @@ import { resolveContractMode } from "@/engine/contractMode";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import { evaluateAllTrumpHand, evaluateNoTrumpHand } from "@/bots/evaluation/contractModeEvaluation";
 import { evaluateGenerale } from "@/bots/evaluation/generaleEvaluation";
-import { chooseAdvancedRulesBid } from "@/bots/strategy/advancedRulesBidding";
+import { chooseAdvancedRulesBidWithTrace, type AdvancedRulesBidTrace } from "@/bots/strategy/advancedRulesBidding";
 import { chooseAdvancedRulesCard } from "@/bots/strategy/advancedRulesCard";
 
 export function chooseV31RulesBaselineCard(state: GameState): Card {
@@ -121,10 +121,11 @@ export function chooseV31RulesBaselineBid(state: GameState): OfficialBotBid {
 
 export function chooseBotBidWithTrace(state: GameState): {
   bid: OfficialBotBid;
-  biddingTrace?: HumanDoctrineV3Trace;
+  biddingTrace?: HumanDoctrineV3Trace | AdvancedRulesBidTrace;
 } {
   if (OFFICIAL_BOT_PROFILE_ID === "advanced_rules_v4") {
-    return { bid: chooseAdvancedRulesBid(state) };
+    const decision = chooseAdvancedRulesBidWithTrace(state);
+    return { bid: decision.bid, biddingTrace: decision.trace };
   }
   if (OFFICIAL_BOT_PROFILE_ID === "human_doctrine_v3_1_conversation_mc_v1") {
     return chooseV31RulesBaselineBidWithTrace(state);
