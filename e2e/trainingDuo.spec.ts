@@ -75,6 +75,14 @@ async function submitEmpty(page: Page) {
   await page.getByRole("button", { name: "Valider" }).click();
 }
 
+async function readyBoth(pageA: Page, pageB: Page, sessionId: string) {
+  await pageA.getByRole("button", { name: "Je suis prêt" }).click();
+  await pageB.getByRole("button", { name: "Je suis prêt" }).click();
+  await expect.poll(async () => (await duoView(pageA, sessionId)).participants
+    .every((participant) => participant.isReady && participant.isConnected), { timeout: 30_000 }).toBe(true);
+  await expect(pageA.getByRole("button", { name: "Démarrer" })).toBeEnabled({ timeout: 30_000 });
+}
+
 test.describe("@training-duo two authenticated browser contexts", () => {
   test.skip(auth.missing.length > 0, `Missing authenticated E2E variables: ${auth.missing.join(", ")}`);
   test.describe.configure({ mode: "serial" });
@@ -108,9 +116,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
       await expect(pageA.getByRole("button", { name: "Démarrer" })).toBeDisabled();
       await expect(pageB.getByRole("button", { name: "Démarrer" })).toHaveCount(0);
       await expectResponsive(pageA, "lobby");
-      await pageA.getByRole("button", { name: "Je suis prêt" }).click();
-      await pageB.getByRole("button", { name: "Je suis prêt" }).click();
-      await expect(pageA.getByRole("button", { name: "Démarrer" })).toBeEnabled();
+      await readyBoth(pageA, pageB, sessionId);
       await pageA.getByRole("button", { name: "Démarrer" }).click();
       for (const page of [pageA, pageB]) await expect(page.getByRole("heading", { name: "Exercice 1 / 10" })).toBeVisible();
       const firstA = await duoView(pageA, sessionId);
@@ -252,9 +258,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
     try {
       const { sessionId, code } = await createDuoThroughUi(pageA);
       await joinDuoThroughUi(pageB, code, sessionId);
-      await pageA.getByRole("button", { name: "Je suis prêt" }).click();
-      await pageB.getByRole("button", { name: "Je suis prêt" }).click();
-      await expect(pageA.getByRole("button", { name: "Démarrer" })).toBeEnabled();
+      await readyBoth(pageA, pageB, sessionId);
       await pageA.getByRole("button", { name: "Démarrer" }).click();
       await expect(pageB.getByRole("heading", { name: "Exercice 1 / 10" })).toBeVisible();
       const storage = await contexts[1].storageState();
@@ -285,9 +289,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
     try {
       const { sessionId, code } = await createDuoThroughUi(pageA);
       await joinDuoThroughUi(pageB, code, sessionId);
-      await pageA.getByRole("button", { name: "Je suis prêt" }).click();
-      await pageB.getByRole("button", { name: "Je suis prêt" }).click();
-      await expect(pageA.getByRole("button", { name: "Démarrer" })).toBeEnabled();
+      await readyBoth(pageA, pageB, sessionId);
       await pageA.getByRole("button", { name: "Démarrer" }).click();
       for (const page of pages) await expect(page.getByRole("heading", { name: "Exercice 1 / 10" })).toBeVisible();
       const leaveResponse = pageB.waitForResponse((response) => response.request().method() === "POST"
@@ -334,9 +336,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
     try {
       const { sessionId, code } = await createDuoThroughUi(pageA);
       await joinDuoThroughUi(pageB, code, sessionId);
-      await pageA.getByRole("button", { name: "Je suis prêt" }).click();
-      await pageB.getByRole("button", { name: "Je suis prêt" }).click();
-      await expect(pageA.getByRole("button", { name: "Démarrer" })).toBeEnabled();
+      await readyBoth(pageA, pageB, sessionId);
       const storage = await contexts[1].storageState();
       errors[1].assertClean();
       await contexts[1].close();
