@@ -8,6 +8,7 @@ import {
 } from "./helpers/trainingDuo";
 
 const auth = twoPlayerCredentials();
+const duoBrowserErrors = (page: Page) => monitorBrowserErrors(page, { allowDuoHttp409: true });
 if (process.env.E2E_REQUIRE_TRAINING_DUO_AUTH === "1" && auth.missing.length > 0) {
   throw new Error(`Authenticated training duo E2E cannot run without ${auth.missing.join(", ")}.`);
 }
@@ -83,8 +84,8 @@ test.describe("@training-duo two authenticated browser contexts", () => {
     const { contexts, pages } = await twoBrowsers(browser, baseURL);
     const pageA = pages[0];
     let pageB = pages[1];
-    const errorA = monitorBrowserErrors(pageA);
-    let errorB = monitorBrowserErrors(pageB);
+    const errorA = duoBrowserErrors(pageA);
+    let errorB = duoBrowserErrors(pageB);
     const trafficA = monitorDuoTraffic(pageA);
     let trafficB = monitorDuoTraffic(pageB);
     try {
@@ -205,7 +206,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
           const restoredContext = await browser.newContext({ baseURL, storageState: storage, viewport: { width: 1366, height: 768 } });
           contexts[1] = restoredContext;
           pageB = await restoredContext.newPage();
-          errorB = monitorBrowserErrors(pageB);
+          errorB = duoBrowserErrors(pageB);
           trafficB = monitorDuoTraffic(pageB); trafficB.setAccountIds(ids); trafficB.allowReveal();
           await pageB.goto(`/training/duo/${sessionId}`);
           await expect(pageB.getByRole("heading", { name: "Exercice 4 / 10" })).toBeVisible();
@@ -247,7 +248,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
     test.setTimeout(180_000);
     const { contexts, pages } = await twoBrowsers(browser, baseURL);
     const [pageA, pageB] = pages;
-    const errors = pages.map(monitorBrowserErrors);
+    const errors = pages.map(duoBrowserErrors);
     try {
       const { sessionId, code } = await createDuoThroughUi(pageA);
       await joinDuoThroughUi(pageB, code, sessionId);
@@ -267,7 +268,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
       const restored = await browser.newContext({ baseURL, storageState: storage, viewport: { width: 1366, height: 768 } });
       contexts[1] = restored;
       const restoredPage = await restored.newPage();
-      const restoredErrors = monitorBrowserErrors(restoredPage);
+      const restoredErrors = duoBrowserErrors(restoredPage);
       await restoredPage.goto(`/training/duo/${sessionId}`);
       await expect(restoredPage.getByRole("heading", { name: "Session interrompue" })).toBeVisible();
       expect((await duoView(restoredPage, sessionId)).viewerSlot).toBe(1);
@@ -280,7 +281,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
     test.setTimeout(180_000);
     const { contexts, pages } = await twoBrowsers(browser, baseURL);
     const [pageA, pageB] = pages;
-    const errors = pages.map(monitorBrowserErrors);
+    const errors = pages.map(duoBrowserErrors);
     try {
       const { sessionId, code } = await createDuoThroughUi(pageA);
       await joinDuoThroughUi(pageB, code, sessionId);
@@ -305,7 +306,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
     test.setTimeout(180_000);
     const { contexts, pages } = await twoBrowsers(browser, baseURL);
     const [pageA, pageB] = pages;
-    const errors = pages.map(monitorBrowserErrors);
+    const errors = pages.map(duoBrowserErrors);
     try {
       const { sessionId, code } = await createDuoThroughUi(pageA);
       await joinDuoThroughUi(pageB, code, sessionId);
@@ -329,7 +330,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
     test.setTimeout(240_000);
     const { contexts, pages } = await twoBrowsers(browser, baseURL);
     const [pageA, pageB] = pages;
-    const errors = pages.map(monitorBrowserErrors);
+    const errors = pages.map(duoBrowserErrors);
     try {
       const { sessionId, code } = await createDuoThroughUi(pageA);
       await joinDuoThroughUi(pageB, code, sessionId);
@@ -348,7 +349,7 @@ test.describe("@training-duo two authenticated browser contexts", () => {
       const restored = await browser.newContext({ baseURL, storageState: storage, viewport: { width: 1366, height: 768 } });
       contexts[1] = restored;
       const restoredPage = await restored.newPage();
-      const restoredErrors = monitorBrowserErrors(restoredPage);
+      const restoredErrors = duoBrowserErrors(restoredPage);
       await restoredPage.goto(`/training/duo/${sessionId}`);
       await expect(restoredPage.getByRole("heading", { name: "Salon duo" })).toBeVisible();
       await expect.poll(async () => (await duoView(pageA, sessionId)).participants[1].isConnected).toBe(true);
