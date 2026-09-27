@@ -4,6 +4,7 @@ import { challengeRunSeed, type ChallengeState, type TrickValueChallengeMode } f
 import { MEMORY_AXIS_IDS, MEMORY_LEVELS, type MemoryAxisId } from "@/engine/training/memory";
 import { OPPONENT_VOIDS_LEVELS } from "@/engine/training/opponentVoids";
 import { BIDDING_AXIS_VERSION, BIDDING_LEVELS, BIDDING_SERIES_LENGTH, type BiddingLevel } from "@/engine/training/bidding";
+import { BID_READING_AXIS_VERSION, BID_READING_LEVELS, BID_READING_SERIES_LENGTH, type BidReadingLevel } from "@/engine/training/bidReading";
 
 export const TRAINING_PROGRESS_KEY = "coinche:training-progress:v1";
 export const PASSING_SCORE = 8;
@@ -32,8 +33,10 @@ export type TrainingProgress = {
     };
     "pile-count": PileCountProgress;
     bidding: BiddingAxisProgress;
+    "bid-reading": BidReadingAxisProgress;
   };
 };
+export type BidReadingAxisProgress = { axisVersion: typeof BID_READING_AXIS_VERSION; unlockedLevel: number; levels: Record<BidReadingLevel, LevelProgress> };
 
 const PILE_COUNT_SEED_BASE: Record<PileCountMode, number> = {
   beginner: 3_000_000, normal: 3_200_000, free: 3_400_000, manual: 3_600_000,
@@ -52,6 +55,12 @@ function emptyPileCountProgress(): PileCountProgress {
 
 function emptyBiddingProgress(): BiddingAxisProgress {
   return { axisVersion: BIDDING_AXIS_VERSION, unlockedLevel: 1,
+    levels: { 1: { bestScore: 0, completedSeries: 0 }, 2: { bestScore: 0, completedSeries: 0 },
+      3: { bestScore: 0, completedSeries: 0 }, 4: { bestScore: 0, completedSeries: 0 } } };
+}
+
+function emptyBidReadingProgress(): BidReadingAxisProgress {
+  return { axisVersion: BID_READING_AXIS_VERSION, unlockedLevel: 1,
     levels: { 1: { bestScore: 0, completedSeries: 0 }, 2: { bestScore: 0, completedSeries: 0 },
       3: { bestScore: 0, completedSeries: 0 }, 4: { bestScore: 0, completedSeries: 0 } } };
 }
@@ -81,6 +90,7 @@ export function emptyTrainingProgress(): TrainingProgress {
       },
       "pile-count": emptyPileCountProgress(),
       bidding: emptyBiddingProgress(),
+      "bid-reading": emptyBidReadingProgress(),
       "opponent-voids": {
         unlockedLevel: 1,
         levels: Object.fromEntries(Array.from({ length: OPPONENT_VOIDS_LEVELS }, (_, index) => [index + 1, { bestScore: 0, completedSeries: 0 }])),
@@ -138,6 +148,20 @@ function readBiddingAxis(value: unknown): BiddingAxisProgress {
   const savedLevel = typeof stored.unlockedLevel === "number" && Number.isInteger(stored.unlockedLevel)
     ? Math.min(BIDDING_LEVELS, Math.max(1, stored.unlockedLevel)) : 1;
   return { axisVersion: BIDDING_AXIS_VERSION, unlockedLevel: Math.max(earnedLevel, savedLevel), levels };
+}
+
+function readBidReadingAxis(value: unknown): BidReadingAxisProgress {
+  const stored = objectOrNull(value);
+  if (stored?.axisVersion !== BID_READING_AXIS_VERSION) return emptyBidReadingProgress();
+  const storedLevels = objectOrNull(stored.levels);
+  const levels = Object.fromEntries(Array.from({ length: BID_READING_LEVELS }, (_, index) => [
+    index + 1, readLevel(storedLevels?.[String(index + 1)]),
+  ])) as Record<BidReadingLevel, LevelProgress>;
+  let earnedLevel = 1;
+  while (earnedLevel < BID_READING_LEVELS && levels[earnedLevel as BidReadingLevel].bestScore >= PASSING_SCORE) earnedLevel += 1;
+  const savedLevel = typeof stored.unlockedLevel === "number" && Number.isInteger(stored.unlockedLevel)
+    ? Math.min(BID_READING_LEVELS, Math.max(1, stored.unlockedLevel)) : 1;
+  return { axisVersion: BID_READING_AXIS_VERSION, unlockedLevel: Math.max(earnedLevel, savedLevel), levels };
 }
 
 function storageOrNull(): Storage | null {
@@ -214,6 +238,7 @@ export function parseTrainingProgress(raw: string | null): TrainingProgress {
         "trick-value": parseTrickValueAxis(axes?.["trick-value"]),
         "pile-count": parsePileCountAxis(axes?.["pile-count"]),
         bidding: readBiddingAxis(axes?.bidding),
+        "bid-reading": readBidReadingAxis(axes?.["bid-reading"]),
         "opponent-voids": readOpponentVoidsAxis(axes?.["opponent-voids"]),
       },
     };
@@ -397,4 +422,33 @@ export function recordBiddingSeries(progress: TrainingProgress, level: BiddingLe
 export function biddingSeriesSeed(progress: TrainingProgress, level: BiddingLevel): number {
   if (!isBiddingLevelUnlocked(progress, level)) throw new Error("Bidding level is locked.");
   return 7_000_000_000 + level * 10_000_000 + progress.axes.bidding.levels[level].completedSeries * 10_000;
+}
+
+export function parseBidReadingLevel(value: unknown): BidReadingLevel | null {
+  const number = typeof value === "string" && /^[1-4]$/.test(value) ? Number(value) : null;
+  return number !== null ? number as BidReadingLevel : null;
+}
+
+export function isBidReadingLevelUnlocked(progress: TrainingProgress, level: BidReadingLevel): boolean {
+  return level >= 1 && level <= progress.axes["bid-reading"].unlockedLevel;
+}
+
+export function recordBidReadingSeries(progress: TrainingProgress, level: BidReadingLevel, score: number): TrainingProgress {
+  if (!isBidReadingLevelUnlocked(progress, level) || !Number.isInteger(score) || score < 0 || score > BID_READING_SERIES_LENGTH) {
+    throw new Error("Invalid bid-reading series result.");
+  }
+  const previous = progress.axes["bid-reading"];
+  const oldLevel = previous.levels[level];
+  const bestScore = Math.max(oldLevel.bestScore, score);
+  const levels = { ...previous.levels, [level]: { bestScore, completedSeries: oldLevel.completedSeries + 1 } };
+  return { ...progress, axes: { ...progress.axes, "bid-reading": {
+    axisVersion: BID_READING_AXIS_VERSION,
+    unlockedLevel: bestScore >= PASSING_SCORE ? Math.min(BID_READING_LEVELS, Math.max(previous.unlockedLevel, level + 1)) : previous.unlockedLevel,
+    levels,
+  } } };
+}
+
+export function bidReadingSeriesSeed(progress: TrainingProgress, level: BidReadingLevel): number {
+  if (!isBidReadingLevelUnlocked(progress, level)) throw new Error("Bid-reading level is locked.");
+  return 8_000_000_000 + level * 10_000_000 + progress.axes["bid-reading"].levels[level].completedSeries * 10_000;
 }

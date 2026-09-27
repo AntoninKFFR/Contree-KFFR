@@ -205,9 +205,11 @@ Chaque axe est documenté dans `engine/training/axes/<axisId>.ts` avec : compét
 ### 5.10 `bid-reading` — Lire les enchères · doctrinal
 
 - **Compétence** : déduire ce que promettent les enchères du partenaire et des adversaires.
-- **Modes** : puzzle ; in-game à la fin des enchères ; duo multijoueur en dernier lot.
-- **Réponse attendue** : ce que **promet** l'enchère selon la doctrine (ex. nombre minimal d'atouts, présence du Valet), pas la main réelle. La main réelle est révélée après la réponse, en illustration.
-- **Risque principal** : la doctrine actuelle décide *quoi annoncer* ; elle ne sait pas dire *ce qu'une enchère promet*. Cet axe exige un module d'interprétation inverse, qui n'existe pas. C'est le chantier le plus lourd du module.
+- **Mode livré en PR K** : puzzle solo, quatre niveaux de dix exercices. Le mode in-game et le duo multijoueur restent hors périmètre.
+- **Doctrine** : `advanced_rules_v4`, révision `4.1`, `bid-reading axisVersion = 1`.
+- **Réponse attendue** : interprétation inverse conservatrice des seules enchères et informations publiques. `guaranteed` regroupe les propriétés communes à toutes les voies compatibles ; `possibleMeanings` décrit séparément les lectures possibles. La trace d'une main précise ne suffit pas à établir une promesse publique.
+- **Illustration** : la main compatible utilisée pour produire l'annonce est révélée après la réponse seulement ; elle ne devient jamais une garantie.
+- **Progression** : niveaux et records locaux, déblocage à 8/10. La persistance serveur doctrinale attend une clé `training_records` distinguant `axis_version` ; aucun record compte ou classement `bid-reading` dans cette version.
 
 ## 6. Parcours UX — mode puzzle
 
@@ -311,7 +313,7 @@ Chaque point porte une décision par défaut, appliquée tant que l'équipe ne l
 | **H — persistance et records** | Migration `training_series` et `training_records`, route de soumission avec recalcul serveur, records affichés sur le hub. | Score forgé ignoré ; RLS vérifiée ; migrations reproductibles. |
 | **I — classement entre amis** | Fonction privée et wrapper, affichage par axe et niveau. | Isolation stricte aux amis. |
 | **J — annonces** | Doctrine V4.1 déjà décidée, page de conventions, axe `bidding` sur le composant d'enchère existant ; progression locale en attendant des records serveur versionnés. | Correction affichée comme doctrine ; trace reformulée. |
-| **K — lecture des enchères** | Module d'interprétation des enchères, composant `bid-reading`, axe en solo. | Promesses de la doctrine testées sur séquences de référence. |
+| **K — lecture des enchères** | Interpréteur inverse public Advanced Rules V4.1, `bid-reading` version 1, formulaire solo à quatre niveaux et progression locale. | Garanties et possibilités séparées ; contre-exemples et séquences de référence testés ; aucune main cachée dans l'interpréteur. |
 | **L — duo multijoueur** | Spécification réseau dédiée à rédiger avant tout code. | — |
 
 Dépendances : A précède tout ; F précède G ; H précède I. B à E sont indépendantes entre elles une fois A mergée et peuvent être menées en parallèle. Chaque PR part d'un `main` à jour, porte ses propres tests et reste soumise à revue humaine et preview avant merge.
