@@ -151,8 +151,9 @@ test.describe("@training-duo two authenticated browser contexts", () => {
         await expect(page.getByText("Cette enchère peut correspondre à :")).toBeVisible();
         for (const answer of revealed.exercise.answers) {
           const label = answer.slot === (page === pageA ? 0 : 1) ? "Toi" : revealed.participants[answer.slot].displayName;
-          await expect(page.getByRole("heading", { name: label })).toBeVisible();
-          await expect(page.getByText(`${answer.correct ? "Bonne" : "Mauvaise"} réponse · ${answer.score} / 1`)).toBeVisible();
+          const answerCard = page.getByRole("heading", { name: label }).locator("..");
+          await expect(answerCard).toBeVisible();
+          await expect(answerCard.getByText(`${answer.correct ? "Bonne" : "Mauvaise"} réponse · ${answer.score} / 1`)).toBeVisible();
         }
         for (const id of revealed.exercise.promise.guaranteed) await expect(page.getByText(BID_READING_ASSERTION_LABELS[id])).toBeVisible();
         for (const meaning of revealed.exercise.promise.possibleMeanings) await expect(page.getByText(BID_READING_MEANING_LABELS[meaning])).toBeVisible();

@@ -19,6 +19,8 @@ for (let player = 1; player <= 2; player += 1) {
     user_metadata: { username: `DuoE2E${player}${suffix}` },
   });
   if (error) throw new Error(`Could not provision player ${player}: ${error.message}`);
+  // GitHub displays GITHUB_ENV variables in later step headers; mask before exporting.
+  process.stdout.write(`::add-mask::${email}\n::add-mask::${password}\n`);
   appendFileSync(output, `E2E_USER_${player}_EMAIL=${email}\nE2E_USER_${player}_PASSWORD=${password}\n`);
 }
 console.log("Provisioned two disposable authenticated training duo E2E accounts.");
