@@ -64,7 +64,7 @@ export function TrainingDuoSessionView({ view, pending, onAction }: { view: Trai
         {[0, 1].map((slot) => {
           const participant = participants.find((item) => item.slot === slot);
           return <div key={slot} className="training-player-card">
-            <p className="training-kicker">Place {slot === 0 ? "A" : "B"}{slot === viewerSlot ? " · Toi" : ""}</p>
+            <p className="training-kicker">Joueur {slot + 1}</p>
             <h3>Place {slot === 0 ? "A" : "B"} · {participant?.displayName ?? "En attente d’un joueur"}{slot === viewerSlot ? " · Toi" : ""}</h3>
             {participant ? <div><span className="training-player-badge">{participant.isHost ? "Hôte" : "Joueur"}</span><span className="training-player-badge">{participant.isConnected ? "● En ligne" : "○ Hors ligne"}</span><span className="training-player-badge">{participant.isReady ? "✓ Prêt" : "○ Pas prêt"}</span>
               <p className="mt-1 text-xs text-[var(--text-secondary)]">{participant.isHost ? "Hôte" : "Joueur"} · {participant.isReady ? "Prêt" : "Pas prêt"} · {participant.isConnected ? "En ligne" : "Hors ligne"}</p></div> : null}
