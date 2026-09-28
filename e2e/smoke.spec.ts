@@ -692,6 +692,7 @@ test.describe("@smoke public production readiness", () => {
     const surface = dialog.locator(".coinche-dialog");
     await expect(dialog.locator(".coinche-settings-panel")).toBeVisible();
     await expect(dialog.locator(".coinche-settings-panel")).toHaveCSS("background-color", "rgb(9, 23, 17)");
+    await expect(dialog.getByRole("button", { name: "JEU", exact: true })).toHaveCSS("background-color", "rgba(234, 216, 166, 0.12)");
     await expect(dialog.getByRole("searchbox", { name: "Rechercher un paramètre" })).toHaveCSS("background-color", "rgba(0, 0, 0, 0.2)");
     await expect(dialog.getByText(/Rythme de la table :/).locator("..")).toHaveCSS("background-color", "rgba(255, 255, 255, 0.043)");
     await expect(dialog.getByRole("button", { name: "Réinitialiser mes paramètres" })).toBeVisible();
@@ -740,6 +741,8 @@ test.describe("@smoke public production readiness", () => {
     await expect(dialog.getByRole("button", { name: "Clair", exact: true })).toHaveCount(0);
     await expect(dialog.getByRole("button", { name: "Sombre", exact: true })).toHaveCount(0);
     await expect(dialog.locator(".coinche-settings-panel")).toHaveCSS("background-color", "rgb(238, 234, 222)");
+    await expect(dialog.getByRole("navigation", { name: "Sections des paramètres" })).toHaveCSS("background-color", "rgb(238, 234, 222)");
+    await expect(dialog.getByRole("button", { name: "AFFICHAGE", exact: true })).toHaveCSS("background-color", "rgba(121, 85, 31, 0.1)");
     await dialog.getByRole("button", { name: "Fermer les préférences" }).click();
 
     for (const path of ["/", "/rules", "/solo", "/multiplayer"]) {

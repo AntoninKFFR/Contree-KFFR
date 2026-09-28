@@ -37,10 +37,11 @@ describe("premium settings navigation", () => {
     const styles = readFileSync("app/globals.css", "utf8");
     expect(styles).toContain("--coinche-settings-canvas: #091711");
     expect(styles).toContain("--coinche-settings-sidebar: #0c1c15");
-    expect(styles).toContain("--coinche-settings-light-canvas: #eeeade");
-    expect(styles).toContain("--coinche-settings-light-header: #f6f2e8");
-    expect(styles).toContain("--coinche-settings-light-sidebar: #e5e3d9");
-    expect(styles).toContain("--coinche-settings-light-surface: #fffdf7");
+    expect(styles).toContain("--coinche-settings-light-canvas: var(--app-bg)");
+    expect(styles).toContain("--coinche-settings-light-header: var(--surface)");
+    expect(styles).toContain("--coinche-settings-light-sidebar: var(--app-bg)");
+    expect(styles).toContain("--coinche-settings-light-surface: var(--surface)");
+    expect(styles).toContain('.coinche-settings-panel button[aria-current="page"]');
     expect(styles).toContain(':root[data-theme="light"]');
     expect(styles).toContain("--app-bg: #eeeade");
     expect(styles).toContain("--text-primary: #17201a");
