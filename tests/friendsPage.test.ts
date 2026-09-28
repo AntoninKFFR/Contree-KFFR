@@ -44,6 +44,20 @@ describe("friends page", () => {
     expect(markup).toContain("Rechercher un joueur");
   });
 
+  it("uses the shared error notice for a failed player search", () => {
+    const markup = renderToStaticMarkup(React.createElement(FriendsView, {
+      state: "ready",
+      snapshot: emptySnapshot,
+      query: "Alice",
+      searchResults: [],
+      searchState: "error",
+      searchError: "Recherche indisponible.",
+      onQueryChange: noop,
+    }));
+    expect(markup).toContain('class="coinche-notice mt-3" data-tone="error" role="alert"');
+    expect(markup).toContain("Recherche indisponible.");
+  });
+
   it("shows received and sent actions plus an existing friendship state", () => {
     const snapshot: SocialSnapshot = {
       friends: [{ userId: "alice", username: "Alice", createdAt: "now" }],

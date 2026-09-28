@@ -294,7 +294,7 @@ function SearchResults({
   const normalized = query.trim();
   if (normalized.length < 3) return <p className="mt-3 text-xs font-semibold text-[var(--text-secondary)]">La recherche démarre à partir de 3 caractères.</p>;
   if (searchState === "loading") return <p className="mt-3 text-sm text-[var(--text-secondary)]">Recherche…</p>;
-  if (searchState === "error") return <p className="mt-3 text-sm text-red-200" role="alert">{searchError ?? "Recherche impossible."}</p>;
+  if (searchState === "error") return <p className="coinche-notice mt-3" data-tone="error" role="alert">{searchError ?? "Recherche impossible."}</p>;
   if (searchState === "ready" && results.length === 0) return <p className="mt-3 text-sm text-[var(--text-secondary)]">Aucun joueur trouvé.</p>;
   return (
     <ul className="mt-3 space-y-2">
