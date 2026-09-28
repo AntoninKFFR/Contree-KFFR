@@ -17,7 +17,7 @@ export function BidReadingForm({ assertionChoices, onAnswer, disabled = false }:
   };
   return <form onSubmit={submit}>
     <fieldset>
-      <legend className="text-base font-black">Que peux-tu affirmer sur cette enchère ?</legend>
+      <legend className="text-base font-black">Affirmations garanties</legend>
       <p className="mt-1 text-sm text-[var(--text-secondary)]">Coche uniquement les affirmations garanties par l’annonce publique. Il peut n’y en avoir aucune.</p>
       <div className="mt-3 grid min-w-0 gap-2 sm:grid-cols-2">
         {assertionChoices.map((id) => <label key={id} className="training-bid-option flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm">

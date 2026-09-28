@@ -81,7 +81,7 @@ test("@smoke completes ten level-1 exercises without an account on mobile", asyn
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/training");
-  await expect(page.getByRole("heading", { name: "Entraînement" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Entraînement", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Classement entre amis" })).toBeVisible();
   await expect(page.getByText("Connecte-toi pour comparer tes records avec ceux de tes amis.")).toBeVisible();
   await expect(page.getByRole("list", { name: "Classement entre amis" })).toHaveCount(0);

@@ -19,7 +19,7 @@ const recordLabel = (score: number, completed: number) => completed ? `Record lo
 function AccountRecord({ record }: { record: AccountTrainingRecord | undefined }) {
   if (!record) return null;
   const seconds = record.bestDurationMs === null ? null : new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(record.bestDurationMs / 1000);
-  return <p className="training-card-record">Compte · niveau {record.level} · {record.bestScore} / 10{seconds ? ` · ${seconds} s` : ""}</p>;
+  return <p className="training-card-record">Record compte : {record.bestScore} / 10{seconds ? ` · Meilleur temps : ${seconds} s` : ""}{record.level > 1 ? ` · Niveau ${record.level}` : ""}</p>;
 }
 
 function MemoryCard({ axisId, progress, accountRecords }: { axisId: MemoryAxisId; progress: TrainingProgress | null; accountRecords: AccountTrainingRecord[] }) {
@@ -42,7 +42,7 @@ function PileCountModeCard({ mode, progress }: { mode: PileCountMode; progress: 
     ? saved.manual.bestTimeMs !== null ? `Record : ${formatDuration(saved.manual.bestTimeMs)}` : "Record à établir (10/10)"
     : saved[mode].completedSeries ? `Meilleur score : ${saved[mode].bestScore} / ${PILE_COUNT_SERIES_LENGTH}` : "Record à établir";
   return <TrainingModeCard title={copy.name} description={copy.description} record={unlocked ? status : undefined}
-    href={unlocked ? `/training/puzzle/pile-count?mode=${mode}` : undefined} action="Commencer">
+    href={unlocked ? `/training/puzzle/pile-count?mode=${mode}` : undefined} action="Commencer" actionLabel={`${PILE_COUNT_TITLE} en mode ${copy.name}`}>
     {!unlocked ? <p className="training-lock-note">Réussis {PASSING_SCORE}/{PILE_COUNT_SERIES_LENGTH} en Débutant pour débloquer ce mode.</p> : null}
   </TrainingModeCard>;
 }
@@ -94,18 +94,22 @@ export function TrainingHubClient() {
     </header>
     <section className="training-resume" aria-label="Reprendre l’entraînement"><div><span className="training-kicker">À toi de jouer</span>
       <h2>Reprendre l’entraînement</h2><p>Valeur d’un pli · Niveau {trickLevel} · {trickLevel === 1 ? "Fondamentaux" : "Confirmé"}</p>
-      <p>{recordLabel(trick?.levels[trickLevel as 1 | 2].bestScore ?? 0, trick?.levels[trickLevel as 1 | 2].completedSeries ?? 0)}</p></div>
+      <p>{recordLabel(trick?.levels[trickLevel as 1 | 2].bestScore ?? 0, trick?.levels[trickLevel as 1 | 2].completedSeries ?? 0)}</p>
+      <div className="training-resume-progress"><span>Meilleur score du niveau</span><span>{trick?.levels[trickLevel as 1 | 2].bestScore ?? 0} / 10</span></div>
+      <div className="training-progress-track" role="progressbar" aria-label="Meilleur score du niveau" aria-valuemin={0} aria-valuemax={10} aria-valuenow={trick?.levels[trickLevel as 1 | 2].bestScore ?? 0}>
+        <span style={{ width: `${(trick?.levels[trickLevel as 1 | 2].bestScore ?? 0) * 10}%` }} /></div></div>
       <Link className={`${appPrimaryActionClass} training-card-action`} href={`/training/puzzle/trick-value?level=${trickLevel}`}>Reprendre la série</Link>
     </section>
     <div className="training-catalogue">
       <section aria-labelledby="calculer"><TrainingSectionHeader kicker="01 · Les fondamentaux" title="Calculer" id="calculer" description="Compte les points, puis relève des défis lorsque tes bases sont solides." />
+        <h3 className="mb-3 text-lg font-black">Valeur d’un pli</h3>
         <div className="training-card-grid">
           {[1, 2].map((level) => {
             const unlocked = level <= trickLevel;
             const name = level === 1 ? "Fondamentaux" : "Confirmé";
             const saved = trick?.levels[level as 1 | 2];
             return <TrainingModeCard key={level} title={name} description={level === 1 ? "Apprendre à compter les points des cartes à l’atout et hors atout." : "Compter sans aide et gérer le bonus du dernier pli."}
-              level={level} levelName={name} record={unlocked ? recordLabel(saved?.bestScore ?? 0, saved?.completedSeries ?? 0) : undefined}
+              level={level} levelName={name} record={unlocked ? saved?.completedSeries ? `Meilleur score : ${saved.bestScore} / 10` : "Record local à établir" : undefined}
               href={unlocked ? `/training/puzzle/trick-value?level=${level}` : undefined} action={`Jouer le niveau ${level}`}>
               {!unlocked ? <p className="training-lock-note">Obtiens 8/10 au niveau 1 pour débloquer ce niveau.</p> : null}
               <AccountRecord record={accountRecord("trick-value", level)} />

@@ -32,9 +32,9 @@ export function TrainingLevelTrack({ title, current, total, href, names }: {
   </div>;
 }
 
-export function TrainingModeCard({ title, description, level, levelName, record, accountRecord, href, action = "Jouer", children, featured = false }: {
+export function TrainingModeCard({ title, description, level, levelName, record, accountRecord, href, action = "Jouer", actionLabel, children, featured = false }: {
   title: string; description: string; level?: number; levelName?: string; record?: string; accountRecord?: string;
-  href?: string; action?: string; children?: ReactNode; featured?: boolean;
+  href?: string; action?: string; actionLabel?: string; children?: ReactNode; featured?: boolean;
 }) {
   return <article className={`training-mode-card${featured ? " training-mode-card-featured" : ""}`}>
     <div><h3>{title}</h3><p className="training-card-description">{description}</p></div>
@@ -43,7 +43,7 @@ export function TrainingModeCard({ title, description, level, levelName, record,
     <div className="training-card-bottom">
       {record ? <p className="training-card-record">{record}</p> : null}
       {accountRecord ? <p className="training-card-record">Compte · {accountRecord}</p> : null}
-      {href ? <Link className={`${appPrimaryActionClass} training-card-action`} href={href}>{action}</Link> : null}
+      {href ? <Link aria-label={actionLabel} className={`${appPrimaryActionClass} training-card-action`} href={href}>{action}</Link> : null}
     </div>
   </article>;
 }
