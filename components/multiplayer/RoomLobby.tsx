@@ -94,11 +94,11 @@ export function LobbyHeader({
   status: MultiplayerRoomView["room"]["status"];
   targetScore: number;
 }) {
-  return <section className="coinche-app-surface shrink-0 rounded-2xl border px-3 py-2.5 shadow-xl sm:px-4">
+  return <section className="coinche-app-surface shrink-0 border px-3 py-2.5 sm:px-4">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div>
         <h1 className="font-mono text-2xl font-bold leading-none tracking-wide">{code}</h1>
-        <p className="mt-1 text-xs text-[color:var(--text-secondary)]">{statusLabel(status)} · {scoringModeLabel(scoringMode)} · {targetScore} pts</p>
+        <p className="mt-1 text-sm text-[color:var(--text-secondary)]">{statusLabel(status)} · {scoringModeLabel(scoringMode)} · {targetScore} pts</p>
       </div>
       <div className="coinche-lobby-actions flex flex-wrap gap-1.5">
         <button className={appSecondaryActionClass} onClick={onOpenPreferences} type="button">Préférences</button>
@@ -127,7 +127,7 @@ export function LobbyTable({
   players: RoomPlayerView[];
 }) {
   return (
-    <section className="coinche-app-surface coinche-lobby-table flex min-h-0 flex-1 flex-col rounded-2xl border p-2 shadow-xl sm:p-3">
+    <section className="coinche-app-surface coinche-lobby-table flex min-h-0 flex-1 flex-col border p-2 sm:p-3">
       <h2 className="coinche-ui-kicker mb-1 text-xs font-bold uppercase tracking-[0.16em]">Places</h2>
       <div
         className="coinche-game-table coinche-lobby-felt relative min-h-0 flex-1 overflow-hidden rounded-xl border border-emerald-900/20 bg-cover bg-center shadow-sm"
@@ -174,10 +174,10 @@ export function WaitingArea({
   onLeaveSeat: () => void;
 }) {
   return (
-    <section className="coinche-app-surface shrink-0 rounded-2xl border px-3 py-2 shadow-xl">
+    <section className="coinche-app-surface shrink-0 border px-3 py-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-          <span className="coinche-ui-kicker text-[10px] font-bold uppercase tracking-wide">En attente</span>
+          <span className="coinche-ui-kicker text-xs font-bold uppercase tracking-wide">En attente</span>
           <span className="font-semibold text-[color:var(--text-primary)]">{currentSeat ? `${displayName} (toi)` : "Choisis une place pour rejoindre"}</span>
           {!profileUsername ? <Link className="text-xs font-semibold underline" href="/profile">Choisir un pseudo</Link> : !currentSeat && !hasFreeSeat ? <span className="text-xs text-[color:var(--text-secondary)]">Table pleine</span> : null}
         </div>
@@ -229,9 +229,9 @@ function SeatCard({
   return (
     <button
       className={[
-        "coinche-lobby-seat flex min-h-20 w-36 flex-col items-center justify-center rounded-xl border px-3 py-1 text-center text-sm shadow-lg transition",
+        "coinche-lobby-seat flex min-h-20 w-36 flex-col items-center justify-center rounded-xl border px-3 py-1 text-center text-sm transition",
         player.is_ready
-          ? "border-emerald-300/60 shadow-emerald-950/60 ring-2 ring-emerald-300/30"
+          ? "border-emerald-300/60 ring-2 ring-emerald-300/30"
           : "border-white/15",
         canJoin ? "cursor-pointer hover:border-amber-200/60 hover:bg-[var(--surface-hover)]" : "cursor-default",
       ].join(" ")}
@@ -239,7 +239,7 @@ function SeatCard({
       onClick={onJoin}
       type="button"
     >
-      <span className="coinche-lobby-seat-position text-[10px] font-semibold uppercase tracking-wide text-stone-400">
+      <span className="coinche-lobby-seat-position text-xs font-semibold uppercase tracking-wide text-stone-400">
         Place {positionLabel}
       </span>
       <span className="mt-1 flex items-center justify-center gap-2">
@@ -249,10 +249,10 @@ function SeatCard({
             {isEmpty ? "Place libre" : player.display_name}
             {isCurrentUser ? " (Toi)" : ""}
           </span>
-          {player.kind === "human" ? <span className="block text-[10px] font-semibold text-stone-300">{player.is_ranked ? player.rank : "Placement"}</span> : null}
+          {player.kind === "human" ? <span className="block text-xs font-semibold text-stone-300">{player.is_ranked ? player.rank : "Placement"}</span> : null}
         </span>
       </span>
-      {player.is_host ? <span className="coinche-lobby-seat-host mt-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">Hôte</span> : null}
+      {player.is_host ? <span className="coinche-lobby-seat-host mt-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-900">Hôte</span> : null}
       {!isEmpty ? (
         player.kind === "human" ? (
           <span className="coinche-lobby-seat-presence mt-1 flex items-center gap-1 text-xs font-semibold text-stone-300">

@@ -167,12 +167,20 @@ textarea {
 }
 
 .coinche-page-header { position: relative; min-width: 0; padding-block: .35rem .65rem; }
+.coinche-page-header-main { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 1rem; }
+.coinche-page-header-main > div:first-child { min-width: 0; flex: 1 1 20rem; }
+.coinche-page-header-actions { flex: 0 0 auto; }
 .coinche-page-header h1 { margin-top: .4rem; font-size: clamp(2rem, 3.5vw, 3rem); font-weight: 900; line-height: 1.06; letter-spacing: -.035em; }
 .coinche-page-header-description { max-width: 42rem; margin-top: .65rem; color: var(--text-secondary); font-size: .95rem; line-height: 1.55; }
 .coinche-page-header--hero { overflow: hidden; border: 1px solid var(--border-strong); border-radius: var(--radius-hero); background: var(--surface-raised); padding: clamp(1.4rem, 3vw, 2.4rem); }
 .coinche-page-header--hero > :not(.coinche-suit-backdrop) { position: relative; z-index: 1; }
+.coinche-home-hero { border-color: var(--border); border-radius: var(--radius-hero); background: var(--surface); color: var(--text-primary); }
+@media (max-height: 450px) and (max-width: 900px) { .coinche-home-logo { display: none; } }
+.coinche-solo-intro { border-color: var(--border-strong); border-radius: var(--radius-hero); background: var(--surface); box-shadow: 0 2px 12px color-mix(in srgb, var(--shadow) 22%, transparent); }
 .coinche-suit-backdrop { position: absolute; top: -.45em; right: -.15em; max-width: 55%; overflow: hidden; color: var(--accent); font-size: clamp(5rem, 10vw, 9rem); font-weight: 900; letter-spacing: -.16em; line-height: 1.2; opacity: .12; pointer-events: none; white-space: nowrap; }
 .coinche-app-section { min-width: 0; }
+.coinche-rule-section { border-bottom: 1px solid var(--border); padding: 1.25rem 0 1.6rem; }
+.coinche-rule-section:last-child { border-bottom: 0; }
 .coinche-app-card { min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface-raised); padding: 1.25rem; }
 .coinche-empty-state { display: grid; justify-items: start; gap: .55rem; padding-block: 1.25rem; }
 .coinche-empty-state h2 { font-size: 1.15rem; font-weight: 850; }
@@ -183,6 +191,8 @@ textarea {
 .coinche-segmented-item[aria-pressed="true"], .coinche-segmented-item[aria-selected="true"], .coinche-segmented-item[aria-current] { border-color: var(--accent); background: var(--accent-soft); color: var(--text-primary); }
 .coinche-segmented-item:disabled { cursor: not-allowed; opacity: .5; }
 .coinche-status-badge { border-color: var(--border-strong); border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); line-height: 1.15; }
+.coinche-status-badge[data-tone="success"] { border-color: color-mix(in srgb, var(--success) 30%, var(--border)); background: color-mix(in srgb, var(--success) 10%, var(--surface)); color: var(--success); }
+.coinche-status-badge[data-tone="error"] { border-color: color-mix(in srgb, var(--danger) 30%, var(--border)); background: color-mix(in srgb, var(--danger) 10%, var(--surface)); color: var(--danger); }
 .coinche-notice { border-left: 3px solid var(--border-strong); border-radius: var(--radius-control); background: var(--surface-muted); padding: .7rem .9rem; color: var(--text-secondary); font-size: .875rem; }
 .coinche-notice[data-tone="error"] { border-left-color: var(--danger); color: var(--danger); }
 .coinche-notice[data-tone="success"] { border-left-color: var(--success); color: var(--success); }
@@ -1142,30 +1152,30 @@ summary:focus-visible {
 :root[data-theme="light"] .coinche-game-table [class*="bg-black/"] { background: rgb(0 0 0 / 22%) !important; }
 /* Training: one visual language across the hub, exercises and duo. */
 .training-kicker { color: var(--accent); font-size: .7rem; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
-.training-hero { position: relative; overflow: hidden; border: 1px solid var(--border-strong); border-radius: 1.5rem; background: var(--surface-raised); padding: clamp(1.5rem, 4vw, 3rem); }
-.training-hero::after { content: "♠  ♥  ♦  ♣"; position: absolute; right: -1rem; top: -.6rem; max-width: 50%; color: var(--accent); opacity: .13; font-size: clamp(4rem, 10vw, 9rem); line-height: 1.2; letter-spacing: -.14em; pointer-events: none; }
-.training-hero > * { position: relative; z-index: 1; }
-.training-hero h1 { margin-top: .45rem; font-size: clamp(2rem, 4vw, 3.4rem); font-weight: 900; letter-spacing: -.035em; line-height: 1.05; }
-.training-hero p { margin-top: .8rem; max-width: 38rem; color: var(--text-secondary); }
-.training-resume { display: grid; gap: 1rem; align-items: center; border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--border)); border-radius: 1.5rem; background: var(--accent-soft); padding: clamp(1.25rem, 3vw, 2rem); }
-.training-resume h2 { margin-top: .35rem; font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 900; }
+.training-hero { position: relative; overflow: hidden; border: 1px solid var(--border-strong); border-radius: var(--radius-hero); background: var(--surface-raised); padding: clamp(1.3rem, 3vw, 2.25rem); }
+.training-hero > :not(.coinche-suit-backdrop) { position: relative; z-index: 1; }
+.training-hero h1 { margin-top: .4rem; font-size: clamp(2rem, 3.5vw, 3rem); font-weight: 900; letter-spacing: -.035em; line-height: 1.05; }
+.training-hero p { margin-top: .6rem; max-width: 38rem; color: var(--text-secondary); }
+.training-resume { display: grid; gap: .75rem; align-items: center; border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border)); border-radius: var(--radius-card); background: var(--accent-soft); padding: clamp(1.15rem, 2.5vw, 1.65rem); }
+.training-resume h2 { margin-top: .25rem; font-size: clamp(1.4rem, 2.5vw, 1.8rem); font-weight: 900; }
 .training-resume strong { font-size: 1.15rem; }
 .training-resume-progress { display: flex; max-width: 22rem; justify-content: space-between; gap: 1rem; margin-top: .75rem; font-size: .75rem; font-weight: 800; }
 .training-resume .training-progress-track { max-width: 22rem; margin-top: .35rem; }
 .training-resume .training-card-action { width: 100%; }
-.training-catalogue { display: grid; gap: clamp(2rem, 4vw, 3.5rem); }
+.training-catalogue { display: grid; gap: clamp(2rem, 3vw, 2.75rem); }
+.training-pile-section { border-top: 1px solid var(--border); padding-top: 1.25rem; }
 .training-section-heading { margin-bottom: 1rem; border-top: 1px solid var(--border); padding-top: 1.25rem; scroll-margin-top: 4.5rem; }
 .training-section-heading h2 { margin-top: .15rem; font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 900; letter-spacing: -.025em; }
 .training-section-heading p { max-width: 48rem; margin-top: .25rem; color: var(--text-secondary); font-size: .9rem; }
 .training-card-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
-.training-mode-card { display: flex; min-width: 0; flex-direction: column; gap: .85rem; border: 1px solid var(--border); border-radius: 1.25rem; background: var(--surface-raised); padding: 1.25rem; transition: transform .16s ease, border-color .16s ease, background .16s ease; }
+.training-mode-card { display: flex; min-width: 0; flex-direction: column; gap: .85rem; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface-raised); padding: 1.25rem; transition: transform .16s ease, border-color .16s ease, background .16s ease; }
 .training-mode-card:hover { transform: translateY(-1px); border-color: var(--border-strong); }
 .training-mode-card h3 { font-size: 1.2rem; line-height: 1.2; font-weight: 900; }
 .training-card-description { margin-top: .35rem; color: var(--text-secondary); font-size: .875rem; line-height: 1.5; }
 .training-card-level { font-size: .875rem; font-weight: 800; }
 .training-card-bottom { display: grid; gap: .6rem; margin-top: auto; }
-.training-card-record { color: var(--text-secondary); font-size: .78rem; }
-.training-card-action { width: 100%; }
+.training-card-record { color: var(--text-secondary); font-size: .82rem; }
+.training-card-action { width: fit-content; min-width: 9rem; }
 .training-levels { display: grid; gap: .45rem; }
 .training-level-track { display: flex; flex-wrap: wrap; gap: .5rem; }
 .training-level { display: inline-flex; width: 2.75rem; height: 2.75rem; align-items: center; justify-content: center; border: 1px solid var(--border-strong); border-radius: 50%; font-size: .85rem; font-weight: 900; }
@@ -1173,10 +1183,10 @@ summary:focus-visible {
 .training-level-available[aria-current] { border-color: var(--accent); background: var(--accent); color: var(--accent-foreground); }
 .training-level-available:hover { border-color: var(--accent); background: var(--surface-hover); }
 .training-level-locked { color: var(--text-secondary); opacity: .6; }
-.training-lock-note { color: var(--text-secondary); font-size: .75rem; }
-.training-duo-choice { display: grid; gap: .35rem; border: 1px solid var(--border-strong); border-radius: 1rem; padding: 1rem; background: var(--surface-muted); }
+.training-lock-note { color: var(--text-secondary); font-size: .82rem; }
+.training-duo-choice { display: grid; align-content: start; gap: .35rem; border-top: 1px solid var(--border); padding-top: .9rem; }
 .training-duo-choice h4 { font-size: .72rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
-.training-duo-choice p { color: var(--text-secondary); font-size: .8rem; }
+.training-duo-choice p { color: var(--text-secondary); font-size: .875rem; }
 .training-session-header { display: grid; gap: .65rem; }
 .training-back-link { width: fit-content; font-size: .8rem; font-weight: 800; }
 .training-session-title { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: .5rem; }
@@ -1214,12 +1224,12 @@ summary:focus-visible {
 .training-player-card h3 { overflow-wrap: anywhere; font-size: 1.1rem; font-weight: 900; }
 .training-player-badge { display: inline-block; margin-top: .5rem; margin-right: .35rem; border: 1px solid var(--border); border-radius: 999px; padding: .2rem .55rem; font-size: .72rem; font-weight: 800; }
 .training-start-action { min-width: 10rem; }
-.training-duo-home > .training-hero { margin: -.25rem; }
 .training-wait { border: 1px solid var(--accent); border-radius: 1rem; background: var(--accent-soft); padding: 1.25rem; }
-.training-conventions-nav { display: flex; flex-wrap: wrap; gap: .4rem; position: sticky; top: 4rem; z-index: 10; border: 1px solid var(--border); border-radius: 1rem; background: var(--surface); padding: .5rem; }
-.training-conventions-nav a { border-radius: .65rem; padding: .55rem .7rem; font-size: .75rem; font-weight: 800; }
-.training-conventions-nav a:hover, .training-conventions-nav a:focus-visible { background: var(--accent-soft); }
-.training-convention-section { scroll-margin-top: 9rem; }
+.training-conventions-nav { display: flex; flex-wrap: wrap; gap: .4rem; position: sticky; top: 4rem; z-index: 10; border-bottom: 1px solid var(--border); background: var(--app-bg); padding: .5rem 0; }
+.training-conventions-nav a { border-radius: var(--radius-control); padding: .55rem .8rem; color: var(--text-secondary); font-size: .85rem; font-weight: 750; }
+.training-conventions-nav a:hover, .training-conventions-nav a:focus-visible { background: var(--accent-soft); color: var(--text-primary); }
+.training-convention-section { border-bottom: 1px solid var(--border); padding-block: 1rem 1.5rem; scroll-margin-top: 9rem; }
+.training-convention-section:last-child { border-bottom: 0; }
 .training-convention-section h2[id] { scroll-margin-top: 9rem; }
 .training-convention-section p.rounded-lg { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
 @media (max-width: 639px) { .training-start-action, .training-duo-home form button { width: 100%; } }

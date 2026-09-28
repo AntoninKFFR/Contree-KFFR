@@ -3,7 +3,9 @@ import type { GameInvitationsSnapshot, SocialSearchResult, SocialSnapshot } from
 import {
   AppEyebrow,
   AppPage,
+  AppPageHeader,
   AppSurface,
+  appBadgeClass,
   appDangerActionClass,
   appInputClass,
   appPrimaryActionClass,
@@ -71,14 +73,9 @@ export function FriendsView(props: FriendsViewProps) {
 
   return (
     <AppPage width="wide">
-      <AppSurface className="p-6 sm:p-7">
-        <AppEyebrow>Espace social</AppEyebrow>
-        <h1 className="mt-2 text-3xl font-black tracking-tight text-[var(--text-primary)]">Amis</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--text-secondary)]">
-          Retrouve tes partenaires, réponds à tes demandes et cherche un joueur par son pseudo.
-        </p>
-        {props.actionMessage ? <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2 text-sm text-[var(--text-primary)]" role="status">{props.actionMessage}</p> : null}
-      </AppSurface>
+      <AppPageHeader description="Retrouve tes partenaires, réponds à tes demandes et cherche un joueur par son pseudo." eyebrow="Espace social" title="Amis">
+        {props.actionMessage ? <p className="coinche-notice mt-4" data-tone="success" role="status">{props.actionMessage}</p> : null}
+      </AppPageHeader>
 
       <GameInvitationsSection
         currentUserId={props.currentUserId}
@@ -94,7 +91,7 @@ export function FriendsView(props: FriendsViewProps) {
           {snapshot.friends.length === 0 ? <EmptyText>Tu n&apos;as pas encore d&apos;amis ajoutés.</EmptyText> : (
             <ul className="space-y-2">
               {snapshot.friends.map((friend) => (
-                <li className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3" key={friend.userId}>
+                <li className="coinche-app-card flex flex-wrap items-center justify-between gap-3" key={friend.userId}>
                   <PlayerName username={friend.username} />
                   <button
                     className={appDangerActionClass}
@@ -116,7 +113,7 @@ export function FriendsView(props: FriendsViewProps) {
               {snapshot.received.map((request) => {
                 const pending = props.pendingAction === `request:${request.id}`;
                 return (
-                  <li className="rounded-xl border border-white/10 bg-white/[0.035] p-3" id={`friend-request-${request.id}`} key={request.id} tabIndex={-1}>
+                  <li className="coinche-app-card" id={`friend-request-${request.id}`} key={request.id} tabIndex={-1}>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <PlayerName username={request.username} />
                       <div className="flex flex-wrap gap-2">
@@ -135,7 +132,7 @@ export function FriendsView(props: FriendsViewProps) {
           {snapshot.sent.length === 0 ? <EmptyText>Aucune demande en attente.</EmptyText> : (
             <ul className="space-y-2">
               {snapshot.sent.map((request) => (
-                <li className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3" key={request.id}>
+                <li className="coinche-app-card flex flex-wrap items-center justify-between gap-3" key={request.id}>
                   <PlayerName username={request.username} />
                   <button className={appSecondaryActionClass} disabled={props.pendingAction === `request:${request.id}`} onClick={() => props.onCancel?.(request.id)} type="button">
                     {props.pendingAction === `request:${request.id}` ? "Annulation…" : "Annuler"}
@@ -198,10 +195,10 @@ function GameInvitationsSection({
     (invitation) => invitation.status === "pending" && invitation.inviterId === currentUserId,
   );
   return (
-    <AppSurface>
+    <AppSurface variant="plain">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-lg font-black text-[var(--text-primary)]">Invitations de partie</h2>
-        <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs font-black text-[var(--text-secondary)]">
+        <span className={appBadgeClass}>
           {invitations.counts.receivedPending}
         </span>
       </div>
@@ -211,7 +208,7 @@ function GameInvitationsSection({
           {received.map((invitation) => {
             const pending = pendingAction === `game-invitation:${invitation.id}`;
             return (
-              <li className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3" key={invitation.id}>
+              <li className="coinche-app-card flex flex-wrap items-center justify-between gap-3" key={invitation.id}>
                 <div>
                   <PlayerName username={invitation.otherUsername} />
                   <p className="mt-0.5 text-xs text-[var(--text-secondary)]">Table {invitation.roomCode} · expire {formatInvitationExpiry(invitation.expiresAt)}</p>
@@ -232,7 +229,7 @@ function GameInvitationsSection({
             {sent.map((invitation) => {
               const pending = pendingAction === `game-invitation:${invitation.id}`;
               return (
-                <li className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3" key={invitation.id}>
+                <li className="coinche-app-card flex flex-wrap items-center justify-between gap-3" key={invitation.id}>
                   <div><PlayerName username={invitation.otherUsername} /><p className="mt-0.5 text-xs text-[var(--text-secondary)]">Table {invitation.roomCode}</p></div>
                   <button className={appSecondaryActionClass} disabled={pending} onClick={() => onCancel?.(invitation.id)} type="button">{pending ? "Annulation…" : "Annuler"}</button>
                 </li>
@@ -253,10 +250,10 @@ function formatInvitationExpiry(value: string): string {
 
 function SocialSection({ children, count, title }: { children: React.ReactNode; count?: number; title: string }) {
   return (
-    <AppSurface className="h-full">
+    <AppSurface className="h-full" variant="plain">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-lg font-black text-[var(--text-primary)]">{title}</h2>
-        {count !== undefined ? <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs font-black text-[var(--text-secondary)]">{count}</span> : null}
+        {count !== undefined ? <span className={appBadgeClass}>{count}</span> : null}
       </div>
       {children}
     </AppSurface>
@@ -309,7 +306,7 @@ function SearchResults({
         else if (sentByUser.has(result.userId)) action = <span className="text-xs font-bold text-[var(--text-secondary)]">Demande envoyée</span>;
         else if (received) action = <button className={appSecondaryActionClass} onClick={() => onAnswerRequest?.(received.id)} type="button">Répondre à la demande</button>;
         else action = <button className={appPrimaryActionClass} disabled={pending} onClick={() => onSend?.(result.userId)} type="button">{pending ? "Envoi…" : "Ajouter"}</button>;
-        return <li className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3" key={result.userId}><PlayerName username={result.username} />{action}</li>;
+        return <li className="coinche-app-card flex flex-wrap items-center justify-between gap-3" key={result.userId}><PlayerName username={result.username} />{action}</li>;
       })}
     </ul>
   );

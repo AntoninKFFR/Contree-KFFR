@@ -24,7 +24,7 @@ export function TrainingLevelTrack({ title, current, total, href, names }: {
   title: string; current: number; total: number; href: (level: number) => string; names?: Record<number, string>;
 }) {
   return <div className="training-levels" aria-label={`Niveaux de ${title}`}>
-    <span className="training-kicker">Niveaux</span>
+    <span className="sr-only">Niveaux</span>
     <div className="training-level-track">{Array.from({ length: total }, (_, index) => index + 1).map((level) => level <= current
       ? <Link key={level} href={href(level)} aria-label={`Niveau ${level}${names?.[level] ? ` · ${names[level]}` : ""}`} aria-current={level === current ? "step" : undefined} className="training-level training-level-available">{level}</Link>
       : <span key={level} aria-label={`Niveau ${level} verrouillé`} className="training-level training-level-locked">{level}</span>)}</div>

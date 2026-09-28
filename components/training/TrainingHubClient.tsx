@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AppPage, appPrimaryActionClass } from "@/components/ui/AppShell";
+import { AppPage, KffrSuitBackdrop, appPrimaryActionClass } from "@/components/ui/AppShell";
 import { TrainingLevelTrack, TrainingModeCard, TrainingSectionHeader } from "@/components/training/TrainingUI";
 import { formatDuration, PILE_COUNT_MODE_COPY, PILE_COUNT_TITLE } from "@/components/training/pileCountCopy";
 import { isPileCountModeUnlocked, isTrickValueChallengeUnlocked, PASSING_SCORE, readTrainingProgress, type TrainingProgress } from "@/components/training/progress";
@@ -15,7 +15,7 @@ import { getSupabaseClient } from "@/lib/supabaseClient";
 import { readAccountTrainingRecords, type AccountTrainingRecord } from "@/lib/trainingRecordsClient";
 import { TrainingFriendsLeaderboard } from "@/components/training/TrainingFriendsLeaderboard";
 
-const recordLabel = (score: number, completed: number) => completed ? `Record local · ${score} / 10` : "Record local à établir";
+const recordLabel = (score: number, completed: number) => completed ? `Record local · ${score} / 10` : undefined;
 function AccountRecord({ record }: { record: AccountTrainingRecord | undefined }) {
   if (!record) return null;
   const seconds = record.bestDurationMs === null ? null : new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(record.bestDurationMs / 1000);
@@ -38,9 +38,9 @@ function PileCountModeCard({ mode, progress }: { mode: PileCountMode; progress: 
   const copy = PILE_COUNT_MODE_COPY[mode];
   const unlocked = progress ? isPileCountModeUnlocked(progress, mode) : mode !== "normal";
   const saved = progress?.axes["pile-count"].modes;
-  const status = !saved ? "" : mode === "free" ? "Sans record" : mode === "manual"
-    ? saved.manual.bestTimeMs !== null ? `Record : ${formatDuration(saved.manual.bestTimeMs)}` : "Record à établir (10/10)"
-    : saved[mode].completedSeries ? `Meilleur score : ${saved[mode].bestScore} / ${PILE_COUNT_SERIES_LENGTH}` : "Record à établir";
+  const status = !saved ? "" : mode === "free" ? "" : mode === "manual"
+    ? saved.manual.bestTimeMs !== null ? `Record : ${formatDuration(saved.manual.bestTimeMs)}` : ""
+    : saved[mode].completedSeries ? `Meilleur score : ${saved[mode].bestScore} / ${PILE_COUNT_SERIES_LENGTH}` : "";
   return <TrainingModeCard title={copy.name} description={copy.description} record={unlocked ? status : undefined}
     href={unlocked ? `/training/puzzle/pile-count?mode=${mode}` : undefined} action="Commencer" actionLabel={`${PILE_COUNT_TITLE} en mode ${copy.name}`}>
     {!unlocked ? <p className="training-lock-note">Réussis {PASSING_SCORE}/{PILE_COUNT_SERIES_LENGTH} en Débutant pour débloquer ce mode.</p> : null}
@@ -87,14 +87,13 @@ export function TrainingHubClient() {
   const challengesUnlocked = progress ? isTrickValueChallengeUnlocked(progress) : false;
 
   return <AppPage width="wide" className="training-page">
-    <header className="training-hero"><span className="training-kicker">Club KFFR · S’exercer</span>
+    <header className="training-hero"><KffrSuitBackdrop /><span className="training-kicker">Club KFFR · S’exercer</span>
       <h1>Entraînement</h1><p>Progresse dans tous les aspects de la Contrée. Calcul, mémoire, lecture du jeu et enchères.</p>
-      {account?.signedIn === false ? <p className="text-sm">Connecte-toi pour sauvegarder les records des axes compatibles sur ton compte. Les annonces restent locales.</p> : null}
+      {account?.signedIn === false ? <p className="text-sm">Connecte-toi pour synchroniser tes records. Les annonces restent locales.</p> : null}
       {account?.failed ? <p className="text-sm">Records du compte indisponibles pour le moment.</p> : null}
     </header>
     <section className="training-resume" aria-label="Reprendre l’entraînement"><div><span className="training-kicker">À toi de jouer</span>
       <h2>Reprendre l’entraînement</h2><p>Valeur d’un pli · Niveau {trickLevel} · {trickLevel === 1 ? "Fondamentaux" : "Confirmé"}</p>
-      <p>{recordLabel(trick?.levels[trickLevel as 1 | 2].bestScore ?? 0, trick?.levels[trickLevel as 1 | 2].completedSeries ?? 0)}</p>
       <div className="training-resume-progress"><span>Meilleur score du niveau</span><span>{trick?.levels[trickLevel as 1 | 2].bestScore ?? 0} / 10</span></div>
       <div className="training-progress-track" role="progressbar" aria-label="Meilleur score du niveau" aria-valuemin={0} aria-valuemax={10} aria-valuenow={trick?.levels[trickLevel as 1 | 2].bestScore ?? 0}>
         <span style={{ width: `${(trick?.levels[trickLevel as 1 | 2].bestScore ?? 0) * 10}%` }} /></div></div>
@@ -109,7 +108,7 @@ export function TrainingHubClient() {
             const name = level === 1 ? "Fondamentaux" : "Confirmé";
             const saved = trick?.levels[level as 1 | 2];
             return <TrainingModeCard key={level} title={name} description={level === 1 ? "Apprendre à compter les points des cartes à l’atout et hors atout." : "Compter sans aide et gérer le bonus du dernier pli."}
-              level={level} levelName={name} record={unlocked ? saved?.completedSeries ? `Meilleur score : ${saved.bestScore} / 10` : "Record local à établir" : undefined}
+              level={level} record={unlocked && saved?.completedSeries ? `Meilleur score : ${saved.bestScore} / 10` : undefined}
               href={unlocked ? `/training/puzzle/trick-value?level=${level}` : undefined} action={`Jouer le niveau ${level}`}>
               {!unlocked ? <p className="training-lock-note">Obtiens 8/10 au niveau 1 pour débloquer ce niveau.</p> : null}
               <AccountRecord record={accountRecord("trick-value", level)} />
@@ -117,13 +116,13 @@ export function TrainingHubClient() {
           })}
           {(["survival", "blitz"] as const).map((mode) => <TrainingModeCard key={mode} title={mode === "survival" ? "Survie" : "Blitz"}
             description={mode === "survival" ? "3 vies. Le temps diminue à mesure que tu progresses." : "60 secondes. Les erreurs consécutives peuvent détruire ta run."}
-            record={challengesUnlocked ? trick?.challenges[mode].completedRuns ? `Record : ${trick.challenges[mode].bestScore} ${mode === "survival" ? trick.challenges[mode].bestScore === 1 ? "pli" : "plis" : trick.challenges[mode].bestScore === 1 ? "bonne réponse" : "bonnes réponses"}` : "Record à établir" : undefined}
+            record={challengesUnlocked && trick?.challenges[mode].completedRuns ? `Record : ${trick.challenges[mode].bestScore} ${mode === "survival" ? trick.challenges[mode].bestScore === 1 ? "pli" : "plis" : trick.challenges[mode].bestScore === 1 ? "bonne réponse" : "bonnes réponses"}` : undefined}
             href={challengesUnlocked ? `/training/puzzle/trick-value?mode=${mode}` : undefined} action={`Jouer en ${mode === "survival" ? "Survie" : "Blitz"}`}>
             {!challengesUnlocked ? <p className="training-lock-note">Réussis 8/10 en Confirmé pour débloquer ce mode.</p> : null}
           </TrainingModeCard>)}
         </div>
         <TrainingLevelTrack title="Valeur d’un pli" current={trickLevel} total={2} href={(level) => `/training/puzzle/trick-value?level=${level}`} names={{ 1: "Fondamentaux", 2: "Confirmé" }} />
-        <div className="mt-5 rounded-2xl border border-[var(--border)] p-5"><h3 className="text-xl font-black">{PILE_COUNT_TITLE}</h3>
+        <div className="training-pile-section mt-7"><h3 className="text-xl font-black">{PILE_COUNT_TITLE}</h3>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">Les cartes du tas de ton équipe défilent une à une : compte tes points de fin de donne, 10 de der et belote compris.</p>
           <div className="training-card-grid mt-4">{PILE_COUNT_MODES.map((mode) => <PileCountModeCard key={mode} mode={mode} progress={progress} />)}</div></div>
       </section>

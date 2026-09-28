@@ -32,8 +32,8 @@ export default function AuthCallbackClient() {
   }, [router]);
 
   return <AppPage width="narrow"><AppSurface className="p-6 sm:p-8">
-    <h1 className="text-2xl font-black text-stone-50">Connexion en cours</h1>
-    <p className="mt-3 text-sm text-stone-300" role={error ? "alert" : undefined}>{error ?? "Finalisation de la connexion…"}</p>
+    <h1 className="text-2xl font-black text-[var(--text-primary)]">Connexion en cours</h1>
+    <p className={`${error ? "coinche-notice" : "text-[var(--text-secondary)]"} mt-3 text-sm`} data-tone={error ? "error" : undefined} role={error ? "alert" : "status"}>{error ?? "Finalisation de la connexion…"}</p>
     {error ? <Link className={`${appPrimaryActionClass} mt-5`} href={returnToLogin}>Retour à la connexion</Link> : null}
   </AppSurface></AppPage>;
 }

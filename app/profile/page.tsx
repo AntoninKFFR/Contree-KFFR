@@ -23,10 +23,13 @@ import { getSupabaseClient } from "@/lib/supabaseClient";
 import {
   AppEyebrow,
   AppPage,
+  AppPageHeader,
   AppSurface,
+  appBadgeClass,
   appPrimaryActionClass,
   appSecondaryActionClass,
   appInputClass,
+  appSegmentedItemClass,
 } from "@/components/ui/AppShell";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
@@ -214,15 +217,7 @@ export default function ProfilePage() {
 
   return (
     <ProfileShell>
-      <AppSurface className="p-6 sm:p-7">
-        <AppEyebrow>Profil joueur</AppEyebrow>
-        <h1 className="mt-2 text-3xl font-black tracking-tight text-stone-50">
-          {pageState === "loading" ? "Chargement..." : username ?? "Profil sans pseudo"}
-        </h1>
-        <p className="mt-1 text-sm text-stone-400">
-          {session?.user.email ?? "Session en cours de lecture"}
-        </p>
-      </AppSurface>
+      <AppPageHeader description={session?.user.email ?? "Session en cours de lecture"} eyebrow="Profil joueur" title={pageState === "loading" ? "Chargement..." : username ?? "Profil sans pseudo"} />
 
       {ratingState === "ready" && ratingSummary ? <RatingCard state="ready" summary={ratingSummary} /> : <RatingCard state={ratingState === "error" ? "error" : "loading"} />}
 
@@ -246,8 +241,8 @@ export default function ProfilePage() {
       </div>
 
       <div aria-label="Mode des statistiques" className="flex gap-2" role="tablist">
-        <button aria-controls="player-stats-panel" aria-selected={statsMode === "solo"} className={statsMode === "solo" ? appPrimaryActionClass : appSecondaryActionClass} id="solo-stats-tab" onClick={() => setStatsMode("solo")} role="tab" type="button">Solo</button>
-        <button aria-controls="player-stats-panel" aria-selected={statsMode === "multiplayer"} className={statsMode === "multiplayer" ? appPrimaryActionClass : appSecondaryActionClass} id="multiplayer-stats-tab" onClick={() => setStatsMode("multiplayer")} role="tab" type="button">Multijoueur</button>
+        <button aria-controls="player-stats-panel" aria-selected={statsMode === "solo"} className={appSegmentedItemClass} id="solo-stats-tab" onClick={() => setStatsMode("solo")} role="tab" type="button">Solo</button>
+        <button aria-controls="player-stats-panel" aria-selected={statsMode === "multiplayer"} className={appSegmentedItemClass} id="multiplayer-stats-tab" onClick={() => setStatsMode("multiplayer")} role="tab" type="button">Multijoueur</button>
       </div>
       <div aria-labelledby={statsMode === "solo" ? "solo-stats-tab" : "multiplayer-stats-tab"} id="player-stats-panel" role="tabpanel">
         {pageState === "loading" ? <AppSurface>Chargement des statistiques...</AppSurface>
@@ -255,13 +250,11 @@ export default function ProfilePage() {
             : <DetailedStatsDashboard stats={statsMode === "solo" ? soloStats : multiplayerStats} />}
       </div>
 
-      <AppSurface>
+      <AppSurface variant="plain">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-stone-50">Dernières parties</h2>
-            <p className="text-xs font-semibold text-stone-400">
-              Aperçu des {recentGames.length} plus récentes
-            </p>
+            <p className="text-sm text-[var(--text-secondary)]">Aperçu des {recentGames.length} plus récentes</p>
           </div>
           <Link
             className={appPrimaryActionClass}
@@ -295,42 +288,41 @@ function GameList({
 }) {
   if (errorMessage) {
     return (
-      <p className="rounded-xl border border-red-300/35 bg-red-400/10 px-3 py-2 text-sm text-red-100">
+      <p className="coinche-notice" data-tone="error" role="alert">
         Impossible de charger les parties: {errorMessage}
       </p>
     );
   }
 
   if (isLoading) {
-    return <p className="text-sm text-stone-400">Chargement des parties...</p>;
+    return <p className="text-sm text-[var(--text-secondary)]">Chargement des parties...</p>;
   }
 
   if (games.length === 0) {
-    return <p className="text-sm text-stone-400">{noGamesText}</p>;
+    return <p className="text-sm text-[var(--text-secondary)]">{noGamesText}</p>;
   }
 
   return (
     <ul className="space-y-2">
       {games.map((game) => (
-        <li className="rounded-xl border border-white/10 bg-white/[0.045] p-3 text-sm" key={game.id}>
+        <li className="coinche-app-card text-sm" key={game.id}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-semibold">{formatDate(game.created_at)}</p>
             <span
-              className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                game.won ? "bg-emerald-300/15 text-emerald-100" : "bg-red-300/15 text-red-100"
-              }`}
+              className={appBadgeClass}
+              data-tone={game.won ? "success" : "error"}
             >
               {game.won ? "Gagné" : "Perdu"}
             </span>
           </div>
-          <div className="mt-2 grid gap-1 text-stone-300 sm:grid-cols-2">
+          <div className="mt-2 grid gap-1 text-[var(--text-secondary)] sm:grid-cols-2">
             <p>Mode: {scoringModeLabel(game.scoring_mode)}</p>
             <p>Cible: {game.target_score ?? "-"}</p>
             <p>Joueur: {game.player_score ?? "-"}</p>
             <p>Bots: {game.bot_score ?? "-"}</p>
           </div>
           {game.bot_summary ? (
-            <p className="mt-2 text-xs font-semibold text-stone-400">
+            <p className="mt-2 text-sm text-[var(--text-muted)]">
               Bots affrontés: {game.bot_summary}
             </p>
           ) : null}

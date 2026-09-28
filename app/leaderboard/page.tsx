@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { LeaderboardView } from "@/components/rating/LeaderboardView";
-import { AppEyebrow, AppPage, AppSurface, appPrimaryActionClass } from "@/components/ui/AppShell";
+import { AppEmptyState, AppPage, AppPageHeader, appPrimaryActionClass } from "@/components/ui/AppShell";
 import { getRatingLeaderboard, type LeaderboardEntry } from "@/lib/rating/queries";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
@@ -50,19 +50,14 @@ export default function LeaderboardPage() {
 
   return (
     <AppPage width="wide">
-      <AppSurface className="p-6 sm:p-7">
-        <AppEyebrow>Elo officiel</AppEyebrow>
-        <h1 className="mt-2 text-3xl font-black tracking-tight text-[var(--text-primary)]">Classement</h1>
-        <p className="mt-2 text-sm text-[var(--text-secondary)]">Seules les parties de Contrée classique comptent pour ce classement.</p>
-      </AppSurface>
-      {authState === "checking" ? <AppSurface><p role="status">Chargement du classement…</p></AppSurface>
+      <AppPageHeader description="Seules les parties de Contrée classique comptent pour ce classement." eyebrow="Elo officiel" title="Classement" />
+      {authState === "checking" ? <p role="status">Chargement du classement…</p>
         : authState === "signed-out" ? (
-          <AppSurface className="space-y-4 p-6">
-            <p>Connecte-toi pour consulter le classement.</p>
+          <AppEmptyState title="Le classement t’attend" description="Connecte-toi pour consulter les joueurs classés.">
             <Link className={appPrimaryActionClass} href="/login?next=%2Fleaderboard">Se connecter</Link>
-          </AppSurface>
+          </AppEmptyState>
         ) : authState === "unavailable" ? (
-          <AppSurface><p role="alert">Impossible de charger le classement pour le moment.</p></AppSurface>
+          <p className="coinche-notice" data-tone="warning" role="alert">Impossible de charger le classement pour le moment.</p>
         ) : (
           <LeaderboardView entries={entries} hasNext={hasNext} onNext={() => setPage((value) => value + 1)} onPrevious={() => setPage((value) => Math.max(0, value - 1))} onRetry={() => setRetry((value) => value + 1)} page={page} state={state} />
         )}
