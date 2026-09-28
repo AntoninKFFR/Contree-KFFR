@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 vi.stubGlobal("React", React);
 
 describe("unified application navigation", () => {
-  it("renders direct public navigation without the old drawer", () => {
+  it("renders the training menu button with an initially closed state", () => {
     const markup = renderToStaticMarkup(
       React.createElement(PlayerPreferencesProvider, null,
         React.createElement(MusicProvider, null, React.createElement(AppTopNav))),
@@ -18,7 +18,8 @@ describe("unified application navigation", () => {
     expect(markup).toContain('aria-label="Navigation principale"');
     expect(markup).toContain('href="/"');
     expect(markup).toContain('href="/rules"');
-    expect(markup).toContain('href="/training"');
+    expect(markup).toContain('aria-controls="training-menu"');
+    expect(markup).toMatch(/aria-controls="training-menu"[^>]*aria-expanded="false"[^>]*>Entraînement <span aria-hidden="true">▾<\/span>/);
     expect(markup).toContain('href="/login"');
     expect(markup).toContain("Se connecter");
     expect(markup).toContain("Contrôles audio");
@@ -31,6 +32,9 @@ describe("unified application navigation", () => {
       expect(source).toContain(`\"${href}\"`);
     }
     expect(source).toContain('aria-current={pathname === "/solo" ? "page" : undefined}');
+    for (const href of ["/training#calculer", "/training#memoriser", "/training#deduire", "/training#annoncer"]) {
+      expect(source).toContain(`"${href}"`);
+    }
     expect(source).toContain("PROFILE_CHANGED_EVENT");
     expect(appNavigationLinks(false).map((link) => link.href)).toEqual(["/", "/training", "/rules"]);
     expect(appNavigationLinks(true).map((link) => link.href)).toEqual(["/", "/leaderboard", "/friends", "/history", "/training", "/rules"]);

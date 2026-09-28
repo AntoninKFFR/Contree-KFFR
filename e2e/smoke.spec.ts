@@ -135,6 +135,7 @@ test.describe("@smoke public production readiness", () => {
       await expect(header.getByRole("navigation", { name: "Navigation principale" })).toBeVisible();
       await expect(header.getByRole("link", { name: "Accueil", exact: true })).toBeVisible();
       await expect(header.getByRole("button", { name: /Jouer/ })).toBeVisible();
+      await expect(header.getByRole("button", { name: /Entraînement/ })).toBeVisible();
       await expect(header.getByRole("link", { name: "Règles", exact: true })).toBeVisible();
       await expect(header.getByRole("button", { name: "Contrôles audio" })).toBeVisible();
       await expect(header.getByRole("button", { name: "Ouvrir le menu" })).toBeHidden();
@@ -193,9 +194,78 @@ test.describe("@smoke public production readiness", () => {
     }
   });
 
+  test("@smoke training submenu works on desktop and mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto("/rules");
+    const header = page.locator("header.coinche-global-header");
+    const desktop = header.getByRole("navigation", { name: "Navigation principale" });
+    const training = desktop.getByRole("button", { name: /Entraînement/ });
+    const play = desktop.getByRole("button", { name: /Jouer/ });
+    const items = [
+      ["Vue d’ensemble", "/training"],
+      ["Calculer", "/training#calculer"],
+      ["Mémoriser", "/training#memoriser"],
+      ["Déduire", "/training#deduire"],
+      ["Annoncer", "/training#annoncer"],
+    ] as const;
+
+    await expect(training).toContainText("▾");
+    await expect(training).toHaveAttribute("aria-controls", "training-menu");
+    await expect(training).toHaveAttribute("aria-expanded", "false");
+    await training.hover();
+    await expect(training).toHaveAttribute("aria-expanded", "true");
+    const menu = desktop.locator("#training-menu");
+    for (const [label, href] of items) {
+      await expect(menu.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
+    }
+    await page.mouse.move(0, 200);
+    await expect(training).toHaveAttribute("aria-expanded", "false");
+    await training.hover();
+    await training.click(); // Pin the menu after opening it by hover.
+    await page.mouse.move(0, 200);
+    await expect(menu).toBeVisible();
+    await play.hover();
+    await expect(menu).toHaveCount(0);
+    await expect(play).toHaveAttribute("aria-expanded", "true");
+    await training.hover();
+    await expect(play).toHaveAttribute("aria-expanded", "false");
+    await page.keyboard.press("Escape");
+    await expect(training).toHaveAttribute("aria-expanded", "false");
+    await training.click();
+    await page.locator("main").click({ position: { x: 20, y: 20 } });
+    await expect(menu).toHaveCount(0);
+
+    await training.hover();
+    await menu.getByRole("link", { name: "Calculer" }).click();
+    await expect(page).toHaveURL(/\/training#calculer$/);
+    await expect(page.locator("#calculer")).toBeInViewport();
+    await expect(training).toHaveAttribute("aria-current", "page");
+    await expect(training).toHaveAttribute("aria-expanded", "false");
+    await training.hover();
+    await expect(menu.getByRole("link", { name: "Vue d’ensemble" })).toHaveAttribute("aria-current", "page");
+    await menu.getByRole("link", { name: "Déduire" }).click();
+    await expect(page).toHaveURL(/\/training#deduire$/);
+    await expect(page.locator("#deduire")).toBeInViewport();
+
+    await page.goto("/training/conventions/bidding");
+    await expect(training).toHaveAttribute("aria-current", "page");
+    await training.hover();
+    await expect(menu.getByRole("link", { name: "Vue d’ensemble" })).not.toHaveAttribute("aria-current", "page");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/training");
+    await header.getByRole("button", { name: "Ouvrir le menu" }).click();
+    const mobile = header.getByRole("navigation", { name: "Navigation mobile" });
+    const group = mobile.getByText("Entraînement", { exact: true }).locator("..");
+    for (const [label, href] of items) {
+      await expect(group.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
+    }
+    await expect(group.getByRole("link", { name: "Vue d’ensemble" })).toHaveAttribute("aria-current", "page");
+  });
+
   test("@smoke desktop topbar navigation stays fixed between routes", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    const labels = ["Accueil", "Jouer", "Classement", "Amis", "Historique", "Règles"] as const;
+    const labels = ["Accueil", "Jouer", "Classement", "Amis", "Historique", "Entraînement", "Règles"] as const;
     const routes = ["/", "/leaderboard", "/rules", "/solo"] as const;
     let baselineCenter: number | null = null;
     let baselinePositions: Map<string, number> | null = null;
@@ -229,8 +299,8 @@ test.describe("@smoke public production readiness", () => {
       const center = navigationBox!.x + navigationBox!.width / 2;
       const positions = new Map<string, number>();
       for (const label of labels) {
-        const item = label === "Jouer"
-          ? navigation.getByRole("button", { name: /Jouer/ })
+        const item = label === "Jouer" || label === "Entraînement"
+          ? navigation.getByRole("button", { name: label, exact: false })
           : navigation.getByRole("link", { name: label, exact: true });
         await expect(item).toHaveCount(1);
         const box = await item.boundingBox();
@@ -240,6 +310,7 @@ test.describe("@smoke public production readiness", () => {
 
       expect(positions.has("Accueil")).toBe(true);
       expect(positions.has("Jouer")).toBe(true);
+      expect(positions.has("Entraînement")).toBe(true);
       expect(positions.has("Règles")).toBe(true);
       expect(positions.size).toBe(labels.length);
       if (!baselinePositions) {
