@@ -20,10 +20,12 @@ import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import { formatContractLabel } from "@/engine/contractMode";
 import type { GameState, PlayerId } from "@/engine/types";
 import {
-  AppEyebrow,
   AppPage,
+  AppPageHeader,
   AppSurface,
+  appBadgeClass,
   appPrimaryActionClass,
+  appSegmentedItemClass,
 } from "@/components/ui/AppShell";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
@@ -100,14 +102,12 @@ export default function HistoryPage() {
           <Link className="coinche-ui-link text-sm font-semibold" href="/profile">← Profil</Link>
           <Link className="coinche-ui-link text-sm font-semibold" href="/">Accueil</Link>
         </div>
-        <AppSurface className="p-6 sm:p-7">
-          <AppEyebrow>Historique</AppEyebrow>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-stone-50">Toutes les parties</h1>
-          <p className="mt-1 text-sm text-stone-400">Les plus récentes apparaissent en premier.</p>
-          <div className="mt-4 flex flex-wrap gap-2" aria-label="Filtrer l'historique">
+        <AppPageHeader description="Les plus récentes apparaissent en premier." eyebrow="Historique" title="Toutes les parties">
+          <div className="mt-5 flex flex-wrap gap-2" aria-label="Filtrer l'historique">
             {(["all", "solo", "multiplayer"] as const).map((value) => (
               <button
-                className={`rounded-full border px-3.5 py-2 text-sm font-semibold transition ${filter === value ? "border-amber-200/40 bg-amber-200/15 text-amber-100" : "border-white/10 bg-white/[0.045] text-stone-300 hover:bg-white/[0.08]"}`}
+                aria-pressed={filter === value}
+                className={appSegmentedItemClass}
                 key={value}
                 onClick={() => setFilter(value)}
                 type="button"
@@ -116,14 +116,14 @@ export default function HistoryPage() {
               </button>
             ))}
           </div>
-        </AppSurface>
-        <AppSurface>
+        </AppPageHeader>
+        <AppSurface variant="plain">
           {pageState === "unavailable" ? <StatusMessage>Supabase est indisponible. Vérifie la configuration dans .env.local.</StatusMessage> : null}
           {pageState === "signed-out" ? (
             <StatusMessage>Connecte-toi pour voir ton historique.<Link className={`${appPrimaryActionClass} mt-4`} href="/login">Se connecter</Link></StatusMessage>
           ) : null}
           {pageState === "loading" ? <StatusMessage>Chargement de l&apos;historique...</StatusMessage> : null}
-          {errorMessage ? <p className="rounded-xl border border-red-300/35 bg-red-400/10 px-3 py-2 text-sm text-red-100">Impossible de charger l&apos;historique: {errorMessage}</p> : null}
+          {errorMessage ? <p className="coinche-notice" data-tone="error" role="alert">Impossible de charger l&apos;historique: {errorMessage}</p> : null}
           {pageState === "ready" && !errorMessage && entries.length === 0 ? <StatusMessage>Aucune partie enregistrée pour ce filtre.</StatusMessage> : null}
           {pageState === "ready" && !errorMessage && entries.length > 0 ? (
             <ul className="space-y-2">
@@ -140,9 +140,9 @@ export default function HistoryPage() {
 
 function SoloHistoryItem({ game }: { game: GameRow }) {
   return (
-    <li className="rounded-xl border border-white/10 bg-white/[0.045] p-3 text-sm">
+    <li className="coinche-app-card text-sm">
       <HistoryHeader date={game.created_at} label="Solo" won={Boolean(game.won)} />
-      <div className="mt-2 grid gap-1 text-stone-300 sm:grid-cols-2">
+      <div className="mt-2 grid gap-1 text-[var(--text-secondary)] sm:grid-cols-2">
         <p>Mode: {scoringModeLabel(game.scoring_mode)}</p><p>Score: {game.player_score ?? "-"} – {game.bot_score ?? "-"}</p>
         <p>Cible: {game.target_score ?? "-"}</p><p>Fin: score</p>
       </div>
@@ -155,9 +155,9 @@ function SoloHistoryItem({ game }: { game: GameRow }) {
 function MultiplayerHistoryItem({ game }: { game: MultiplayerHistoryGame }) {
   const won = didViewerWin(game);
   return (
-    <li className="rounded-xl border border-white/10 bg-white/[0.045] p-3 text-sm">
+    <li className="coinche-app-card text-sm">
       <HistoryHeader date={game.finished_at} label="Multijoueur" won={won} />
-      <div className="mt-2 grid gap-1 text-stone-300 sm:grid-cols-2">
+      <div className="mt-2 grid gap-1 text-[var(--text-secondary)] sm:grid-cols-2">
         <p>Score: {viewerTeamScore(game)} – {opposingTeamScore(game)}</p>
         <p>Mode: {scoringModeLabel(game.scoring_mode)}</p>
         <p>Partenaire: {partnerNames(game).join(", ") || "Aucun"}</p>
@@ -174,17 +174,17 @@ function MultiplayerHistoryItem({ game }: { game: MultiplayerHistoryGame }) {
 function GeneraleHistory({ rounds, names }: { rounds?: GameState["roundHistory"]; names?: Partial<Record<PlayerId, string>> }) {
   const generales = (rounds ?? []).filter((round) => round.result.kind === "played" && round.result.contract.kind === "generale");
   if (!generales.length) return null;
-  return <div className="mt-2 rounded-lg border border-purple-300/20 bg-purple-300/10 p-2 text-xs text-purple-100">{generales.map((round) => round.result.kind === "played" ? <p key={round.roundNumber}>{formatContractLabel(round.result.contract)} par {names?.[round.result.contract.playerId] ?? `Joueur ${round.result.contract.playerId + 1}`} · {round.result.contractSucceeded ? "réussie" : "chutée"}</p> : null)}</div>;
+  return <div className="coinche-notice mt-3">{generales.map((round) => round.result.kind === "played" ? <p key={round.roundNumber}>{formatContractLabel(round.result.contract)} par {names?.[round.result.contract.playerId] ?? `Joueur ${round.result.contract.playerId + 1}`} · {round.result.contractSucceeded ? "réussie" : "chutée"}</p> : null)}</div>;
 }
 
 function HistoryRules({ id, snapshot }: { id?: string | null; snapshot?: GameRulesetSnapshot | null }) {
   const label = id === "custom" ? "Variante personnalisée" : "Contrée KFFR";
-  if (!snapshot) return <p className="mt-2 text-xs font-semibold text-stone-400">{label}</p>;
+  if (!snapshot) return <p className="mt-2 text-sm text-[var(--text-muted)]">{label}</p>;
   try {
     const safe = buildCustomRuleset(rulesetToCustomInput(snapshot));
-    return <details className="mt-2"><summary className="coinche-ui-link cursor-pointer text-xs font-semibold">{label} · Voir les règles</summary><div className="mt-2"><RulesetSummary ruleset={safe} compact /></div></details>;
+    return <details className="mt-2"><summary className="coinche-ui-link cursor-pointer text-sm font-semibold">{label} · Voir les règles</summary><div className="mt-2"><RulesetSummary ruleset={safe} compact /></div></details>;
   } catch {
-    return <p className="mt-2 text-xs font-semibold text-stone-400">{label}</p>;
+    return <p className="mt-2 text-sm text-[var(--text-muted)]">{label}</p>;
   }
 }
 
@@ -192,11 +192,11 @@ function HistoryHeader({ date, label, won }: { date: string | null; label: strin
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <p className="font-semibold">{formatDate(date)} · {label}</p>
-      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${won ? "bg-emerald-300/15 text-emerald-100" : "bg-red-300/15 text-red-100"}`}>{won ? "Victoire" : "Défaite"}</span>
+      <span className={appBadgeClass} data-tone={won ? "success" : "error"}>{won ? "Victoire" : "Défaite"}</span>
     </div>
   );
 }
 
 function StatusMessage({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-col text-sm text-stone-300">{children}</div>;
+  return <div className="flex flex-col text-sm text-[var(--text-secondary)]">{children}</div>;
 }

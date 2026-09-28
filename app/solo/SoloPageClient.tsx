@@ -12,7 +12,7 @@ import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary, rulesetDisplayName } from "@/components/rules/RulesetSummary";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
-import { appDangerActionClass, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
+import { KffrSuitBackdrop, appDangerActionClass, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
 import { explainIllegalCard } from "@/engine/illegalCardExplanation";
@@ -254,12 +254,13 @@ export default function SoloPage() {
     return (
       <>
         <GameMenuPopover focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" showFocusMode={false} />
-        <main className="coinche-game-shell flex min-h-[calc(100dvh-56px)] items-center justify-center overflow-x-hidden px-5 py-10 text-center">
-          <section aria-labelledby="solo-start-title" className="flex w-full max-w-xl flex-col items-center">
+        <main className="coinche-game-shell flex min-h-[calc(100dvh-56px)] items-center justify-center overflow-x-hidden px-3 py-6 sm:px-5">
+          <section aria-labelledby="solo-start-title" className="coinche-solo-intro relative flex w-full max-w-3xl flex-col items-start overflow-hidden border px-6 py-8 sm:px-10 sm:py-10">
+            <KffrSuitBackdrop />
             <p className="coinche-ui-kicker text-xs font-black uppercase tracking-[0.24em]">Contrée Solo</p>
-            <h1 className="mt-4 text-3xl font-black tracking-tight text-[var(--text-primary)] sm:text-5xl" id="solo-start-title">Prêt à lancer une partie&nbsp;?</h1>
-            <button className={`${appPrimaryActionClass} mt-8 min-w-56 px-7 py-3 text-base`} disabled={!hasLoadedRules} onClick={() => startSoloGame()} type="button">Commencer la partie</button>
-            <p className="mt-4 text-sm font-semibold text-[var(--text-muted)]">{rulesetDisplayName(buildCustomRuleset(rulesInput))}</p>
+            <h1 className="relative mt-3 max-w-xl text-3xl font-black tracking-tight text-[var(--text-primary)] sm:text-5xl" id="solo-start-title">Prêt à lancer une partie&nbsp;?</h1>
+            <p className="relative mt-4 text-sm font-semibold text-[var(--text-secondary)]">{rulesetDisplayName(buildCustomRuleset(rulesInput))}</p>
+            <button className={`${appPrimaryActionClass} relative mt-7 min-w-56 px-7 py-3 text-base`} disabled={!hasLoadedRules} onClick={() => startSoloGame()} type="button">Commencer la partie</button>
           </section>
         </main>
         {rulesDialog}

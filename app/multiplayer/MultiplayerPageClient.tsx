@@ -13,7 +13,7 @@ import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
 import type { CustomRulesetInput } from "@/engine/rulesets/custom";
-import { AppEyebrow, AppPage, AppSurface, appInputClass, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
+import { AppEyebrow, AppPage, AppPageHeader, AppSurface, appInputClass, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 
 type PageState = "loading" | "ready" | "signed-out" | "unavailable";
 
@@ -201,10 +201,8 @@ export default function MultiplayerPage() {
 
   return (
     <AppPage>
-        <AppSurface className="flex items-start justify-between gap-4">
-          <div><AppEyebrow>Multijoueur</AppEyebrow><h1 className="mt-1 text-3xl font-black tracking-tight text-[#f4ead0]">Une table, quatre places</h1><p className="mt-1 text-sm text-white/50">Crée la partie ou saisis un code.</p></div>
-          <button className={appSecondaryActionClass} type="button" onClick={() => setIsSettingsOpen(true)}>Préférences</button>
-        </AppSurface>
+        <AppPageHeader actions={<button className={appSecondaryActionClass} type="button" onClick={() => setIsSettingsOpen(true)}>Préférences</button>}
+          description="Crée la partie ou saisis un code." eyebrow="Multijoueur" hero suits title="Une table, quatre places" />
 
         {pageState === "unavailable" ? (
           <StatusMessage>Supabase est indisponible. Vérifie .env.local.</StatusMessage>
@@ -227,13 +225,7 @@ export default function MultiplayerPage() {
         {pageState === "ready" && !username ? <StatusMessage>Choisis d’abord ton pseudo dans ton profil.<Link className={`${appPrimaryActionClass} mt-4`} href="/profile">Ouvrir le profil</Link></StatusMessage> : null}
 
         {notice ? (
-          <p
-            className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
-              notice.tone === "error"
-                ? "border-red-300/25 bg-red-950/45 text-red-100"
-                : "border-[color:var(--border-strong)] bg-[color:var(--accent-soft)] text-[color:var(--text-primary)]"
-            }`}
-          >
+          <p className="coinche-notice" data-tone={notice.tone} role="status">
             {notice.text}
           </p>
         ) : null}
@@ -261,7 +253,7 @@ export default function MultiplayerPage() {
               <div><AppEyebrow>Invitation</AppEyebrow><h2 className="mt-1 text-xl font-black text-[#f4ead0]">Rejoindre une table</h2></div>
               <form className="mt-5 flex flex-col gap-3" onSubmit={handleJoinRoom}>
 
-                <label className="coinche-app-field flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wide text-white/55">
+                <label className="coinche-app-field flex flex-col gap-1.5 text-sm font-bold text-[var(--text-secondary)]">
                   Code de table
                   <input
                     className={`${appInputClass} text-center font-mono text-lg uppercase tracking-[0.22em]`}
@@ -304,6 +296,6 @@ export default function MultiplayerPage() {
 
 function StatusMessage({ children }: { children: React.ReactNode }) {
   return (
-    <AppSurface className="text-sm text-white/65">{children}</AppSurface>
+    <p className="coinche-notice" data-tone="info">{children}</p>
   );
 }

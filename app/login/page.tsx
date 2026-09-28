@@ -7,7 +7,7 @@ import type { Session } from "@supabase/supabase-js";
 import { authCallbackUrl, safeNextPath, signInWithGoogle, signupNextStep } from "@/lib/authRedirect";
 import { cleanUsername, ensureProfile, getProfileUsername, isUsernameTaken, profileErrorMessage, validateUsername } from "@/lib/profiles";
 import { getSupabaseClient } from "@/lib/supabaseClient";
-import { AppEyebrow, AppPage, AppSurface, appInputClass, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
+import { AppEyebrow, AppPage, AppSurface, appInputClass, appPrimaryActionClass, appSecondaryActionClass, appSegmentedItemClass } from "@/components/ui/AppShell";
 
 type Mode = "signin" | "signup";
 type Notice = { tone: "error" | "success"; text: string };
@@ -145,11 +145,11 @@ export default function LoginPage() {
       {isReady && !session && !confirmationEmail ? <>
         <h1 className="mt-2 text-3xl font-black tracking-tight text-stone-50">{mode === "signin" ? "Connexion" : "Créer un compte"}</h1>
         <div aria-label="Mode d’authentification" className="mt-5 grid grid-cols-2 gap-2">
-          <button aria-pressed={mode === "signin"} className={mode === "signin" ? appPrimaryActionClass : appSecondaryActionClass} onClick={() => { setMode("signin"); setNotice(null); }} type="button">Se connecter</button>
-          <button aria-pressed={mode === "signup"} className={mode === "signup" ? appPrimaryActionClass : appSecondaryActionClass} onClick={() => { setMode("signup"); setNotice(null); }} type="button">Créer un compte</button>
+          <button aria-pressed={mode === "signin"} className={appSegmentedItemClass} onClick={() => { setMode("signin"); setNotice(null); }} type="button">Se connecter</button>
+          <button aria-pressed={mode === "signup"} className={appSegmentedItemClass} onClick={() => { setMode("signup"); setNotice(null); }} type="button">Créer un compte</button>
         </div>
         <form className="mt-5 flex flex-col gap-3" onSubmit={mode === "signin" ? handleSignIn : handleSignUp}>
-          <button className="inline-flex min-h-11 w-full items-center justify-center gap-3 rounded-xl border border-[color:var(--border-strong)] bg-[color:var(--surface-raised)] px-4 py-2.5 text-sm font-bold text-[color:var(--text-primary)] shadow-sm transition hover:bg-[color:var(--surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-50" disabled={!supabase || isSubmitting} onClick={() => void handleGoogleSignIn()} type="button"><GoogleMark />{isGoogleRedirecting ? "Redirection…" : "Continuer avec Google"}</button>
+          <button className={`${appSecondaryActionClass} w-full gap-3`} disabled={!supabase || isSubmitting} onClick={() => void handleGoogleSignIn()} type="button"><GoogleMark />{isGoogleRedirecting ? "Redirection…" : "Continuer avec Google"}</button>
           <div aria-label="ou" className="flex items-center gap-3 py-1 text-xs font-semibold uppercase tracking-wide text-[color:var(--text-secondary)]" role="separator"><span aria-hidden="true" className="h-px flex-1 bg-[color:var(--border)]" /><span>ou</span><span aria-hidden="true" className="h-px flex-1 bg-[color:var(--border)]" /></div>
           {mode === "signup" ? <label className="flex flex-col gap-1.5 text-sm font-semibold text-stone-200">Pseudo<input className={appInputClass} disabled={!supabase || isSubmitting} maxLength={40} onChange={(event) => setUsername(event.target.value)} required value={username} /></label> : null}
           <label className="flex flex-col gap-1.5 text-sm font-semibold text-stone-200">Email<input className={appInputClass} disabled={!supabase || isSubmitting} onChange={(event) => setEmail(event.target.value)} required type="email" value={email} /></label>
@@ -158,7 +158,7 @@ export default function LoginPage() {
           <button className={appPrimaryActionClass} disabled={!supabase || isSubmitting} type="submit">{isSubmitting ? "En cours…" : mode === "signin" ? "Se connecter" : "Créer mon compte"}</button>
         </form>
       </> : null}
-      {notice ? <p role="alert" className={`mt-4 rounded-xl border px-3 py-2 text-sm ${notice.tone === "error" ? "border-red-300/35 bg-red-400/10 text-red-100" : "border-emerald-300/35 bg-emerald-300/10 text-emerald-100"}`}>{notice.text}</p> : null}
+      {notice ? <p role="alert" className="coinche-notice mt-4" data-tone={notice.tone}>{notice.text}</p> : null}
     </AppSurface>
   </div></AppPage>;
 }

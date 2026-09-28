@@ -507,7 +507,7 @@ export default function MultiplayerRoomPage() {
 
 function StatusMessage({ children }: { children: React.ReactNode }) {
   return (
-    <section className="coinche-app-surface rounded-2xl border border-white/10 bg-[#0b1c15]/90 p-5 text-sm text-stone-300 shadow-xl">
+    <section className="coinche-app-surface border p-5 text-sm text-[var(--text-secondary)]">
       {children}
     </section>
   );

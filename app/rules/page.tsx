@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { AppPage } from "@/components/ui/AppShell";
+import { AppPage, AppPageHeader, appSegmentedItemClass } from "@/components/ui/AppShell";
 import { cardValues, defaultRules, kffrSections, variantSections, type RulesSection } from "@/lib/rules/rulesContent";
 
 export const metadata: Metadata = { title: "Règles" };
 
-const sectionClass = "scroll-mt-36 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 sm:p-7";
+const sectionClass = "coinche-rule-section scroll-mt-36";
 const mutedClass = "text-sm leading-7 text-[color:var(--text-secondary)]";
 
 function CardOrder({ title, cards }: { title: string; cards: readonly (readonly [string, number])[] }) {
@@ -12,7 +12,7 @@ function CardOrder({ title, cards }: { title: string; cards: readonly (readonly 
     <h4 className="text-xs font-black uppercase tracking-[0.15em] text-[color:var(--text-muted)]">{title}</h4>
     <div className="mt-3 flex flex-wrap gap-2" aria-label={`Ordre et points ${title.toLowerCase()}`}>
       {cards.map(([rank, points]) => <span className="min-w-12 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-2 py-1.5 text-center text-sm font-bold text-[color:var(--text-primary)]" key={rank}>
-        <span className="block">{rank}</span><span className="block text-[11px] font-medium text-[color:var(--text-muted)]">{points} pt</span>
+        <span className="block">{rank}</span><span className="block text-xs font-medium text-[color:var(--text-muted)]">{points} pt</span>
       </span>)}
     </div>
   </div>;
@@ -38,14 +38,11 @@ function RuleSection({ section }: { section: RulesSection }) {
 export default function RulesPage() {
   return <AppPage stickyContent width="wide">
     <div className="mx-auto w-full max-w-5xl pb-10">
-      <header className="mb-7 border-b border-[color:var(--border)] pb-6 pt-3 sm:pt-5">
-        <p className="coinche-ui-kicker text-xs font-black uppercase tracking-[0.18em]">Aide de jeu</p>
-        <h1 className="mt-2 text-4xl font-black tracking-tight text-[color:var(--text-primary)] sm:text-5xl">Règles de la Contrée</h1>
-      </header>
+      <AppPageHeader className="border-b border-[var(--border)] pb-6" eyebrow="Aide de jeu" title="Règles de la Contrée" />
 
       <nav aria-label="Navigation des règles" className="sticky top-14 z-20 mb-8 flex gap-2 overflow-x-auto border-b border-[color:var(--border)] bg-[color:var(--app-bg)] py-3">
-        <a className="rounded-full border border-[color:var(--border-strong)] bg-[color:var(--surface)] px-4 py-2 text-sm font-bold text-[color:var(--text-primary)] transition hover:border-[color:var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--focus-ring)]" href="#contree-kffr">Contrée KFFR</a>
-        <a className="rounded-full border border-[color:var(--border-strong)] bg-[color:var(--surface)] px-4 py-2 text-sm font-bold text-[color:var(--text-primary)] transition hover:border-[color:var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--focus-ring)]" href="#variantes-disponibles">Variantes disponibles</a>
+        <a className={`${appSegmentedItemClass} shrink-0`} href="#contree-kffr">Contrée KFFR</a>
+        <a className={`${appSegmentedItemClass} shrink-0`} href="#variantes-disponibles">Variantes disponibles</a>
       </nav>
 
       <div className="space-y-14">

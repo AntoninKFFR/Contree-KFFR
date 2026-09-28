@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { AppEyebrow, AppPage, AppSurface, appInputClass, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
+import { AppEyebrow, AppPage, KffrSuitBackdrop, appInputClass, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { BID_READING_LEVEL_NAMES, type BidReadingLevel } from "@/engine/training/bidReading";
 import { ensureProfile } from "@/lib/profiles";
 import { getSupabaseClient } from "@/lib/supabaseClient";
@@ -52,8 +52,8 @@ export function TrainingDuoHomeClient() {
   };
   return <AppPage width="medium">
     <Link className="coinche-ui-link w-fit text-sm font-bold" href="/training">← Retour à l’entraînement</Link>
-    <AppSurface className="training-duo-home">
-      <header className="training-hero"><AppEyebrow>Entraînement · Duo</AppEyebrow>
+    <div className="training-duo-home">
+      <header className="training-hero"><KffrSuitBackdrop /><AppEyebrow>Entraînement · Duo</AppEyebrow>
         <h1>Lire les enchères à deux</h1>
         <p>2 joueurs · 10 questions · réponses indépendantes</p>
         <p className="text-sm">Le code de session est le seul moyen de rejoindre ton partenaire.</p>
@@ -83,6 +83,6 @@ export function TrainingDuoHomeClient() {
         </form>
       </div> : null}
       {error ? <p role="alert" className="mt-4 text-[var(--danger)]">{error}</p> : null}
-    </AppSurface>
+    </div>
   </AppPage>;
 }

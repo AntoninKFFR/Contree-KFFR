@@ -16,7 +16,7 @@ test("@smoke training hub lists the pile-count modes with normal locked", async 
   await expect(page.getByRole("link", { name: "Compter son tas en mode Débutant" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Compter son tas en mode Libre" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Compter son tas en mode Manuel" })).toBeVisible();
-  await expect(page.getByText("Record à établir (10/10)")).toBeVisible();
+  await expect(page.getByText("Record à établir (10/10)")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Compter son tas en mode Normal" })).toHaveCount(0);
   await expect(page.getByText("Réussis 8/10 en Débutant pour débloquer ce mode.")).toBeVisible();
   // The existing trick-value entry points stay unique.
