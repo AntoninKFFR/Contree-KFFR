@@ -52,7 +52,7 @@ describe("training hub account records", () => {
   it("keeps anonymous puzzles accessible and shows no account record", async () => {
     mocks.readAccount.mockResolvedValue({ signedIn: false, failed: false, records: [] });
     render(createElement(TrainingHubClient));
-    await waitFor(() => expect(screen.getByText(/Connecte-toi pour sauvegarder/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/Connecte-toi pour synchroniser tes records/)).toBeTruthy());
     expect(screen.queryByText(/Record compte :/)).toBeNull();
     expect(screen.getByRole("link", { name: "Jouer le niveau 1" })).toBeTruthy();
   });
@@ -64,13 +64,13 @@ describe("training hub account records", () => {
     expect(mocks.readAccount).toHaveBeenCalledTimes(1);
 
     await act(async () => { authCallback()("SIGNED_OUT", null); });
-    expect(screen.getByText(/Connecte-toi pour sauvegarder/)).toBeTruthy();
+    expect(screen.getByText(/Connecte-toi pour synchroniser tes records/)).toBeTruthy();
 
     await act(async () => { pendingA.resolve({ signedIn: true, failed: false, records: [
       { axisId: "trick-value", level: 1, bestScore: 10, bestDurationMs: 30_000 },
     ] }); });
     expect(screen.queryByText(/Record compte : 10 \/ 10/)).toBeNull();
-    expect(screen.getByText(/Connecte-toi pour sauvegarder/)).toBeTruthy();
+    expect(screen.getByText(/Connecte-toi pour synchroniser tes records/)).toBeTruthy();
   });
 
   it("keeps account B's records when the older account A read finishes last", async () => {

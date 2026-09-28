@@ -505,7 +505,7 @@ test.describe("@smoke public production readiness", () => {
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
         await page.goto("/multiplayer");
         await expect(page.getByRole("heading", { name: "Une table, quatre places" })).toBeVisible();
-        await expect(page.locator(".coinche-app-surface").first()).toHaveCSS("background-color", theme === "dark" ? "rgb(11, 28, 21)" : "rgb(255, 253, 247)");
+        await expect(page.locator(".coinche-page-header--hero")).toHaveCSS("background-color", theme === "dark" ? "rgb(16, 34, 25)" : "rgb(246, 242, 232)");
         await expect(page.locator(".coinche-ui-kicker").first()).toHaveCSS("color", theme === "dark" ? "rgb(203, 185, 137)" : "rgb(115, 83, 38)");
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
         await page.screenshot({ path: `test-results/multiplayer-${theme}-${viewport.width}.png`, fullPage: true });
@@ -575,7 +575,8 @@ test.describe("@smoke public production readiness", () => {
     await page.getByRole("switch", { name: "Activer le thème clair" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await expect(page.locator(".coinche-app-page")).toHaveCSS("background-color", "rgb(238, 234, 222)");
-    await expect(page.locator("#variante-contrats")).toHaveCSS("background-color", "rgb(255, 253, 247)");
+    await expect(page.locator("#variante-contrats")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(page.locator("#variante-contrats")).toHaveCSS("border-bottom-color", "rgba(38, 65, 49, 0.16)");
     monitor.assertClean();
   });
 
@@ -798,7 +799,8 @@ test.describe("@smoke public production readiness", () => {
       await page.setViewportSize(viewport);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
       await expect(compactLogo).toBeVisible();
-      await expect(fullLogo).toBeVisible();
+      if (viewport.height <= 450) await expect(fullLogo).toBeHidden();
+      else await expect(fullLogo).toBeVisible();
     }
 
     await page.setViewportSize({ width: 844, height: 390 });
