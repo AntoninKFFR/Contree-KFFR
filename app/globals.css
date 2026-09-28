@@ -66,6 +66,9 @@
   --coinche-settings-light-sidebar: #e5e3d9;
   --coinche-settings-light-surface: #fffdf7;
   --coinche-settings-light-text: #17201a;
+  --radius-control: .75rem;
+  --radius-card: 1.125rem;
+  --radius-hero: 1.5rem;
 }
 
 :root[data-theme="light"] {
@@ -156,11 +159,35 @@ textarea {
 }
 
 .coinche-app-surface {
-  border-color: var(--border) !important;
-  background: var(--surface) !important;
+  border-color: var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
   color: var(--text-primary);
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--shadow) 55%, transparent);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--shadow) 22%, transparent);
 }
+
+.coinche-page-header { position: relative; min-width: 0; padding-block: .35rem .65rem; }
+.coinche-page-header h1 { margin-top: .4rem; font-size: clamp(2rem, 3.5vw, 3rem); font-weight: 900; line-height: 1.06; letter-spacing: -.035em; }
+.coinche-page-header-description { max-width: 42rem; margin-top: .65rem; color: var(--text-secondary); font-size: .95rem; line-height: 1.55; }
+.coinche-page-header--hero { overflow: hidden; border: 1px solid var(--border-strong); border-radius: var(--radius-hero); background: var(--surface-raised); padding: clamp(1.4rem, 3vw, 2.4rem); }
+.coinche-page-header--hero > :not(.coinche-suit-backdrop) { position: relative; z-index: 1; }
+.coinche-suit-backdrop { position: absolute; top: -.45em; right: -.15em; max-width: 55%; overflow: hidden; color: var(--accent); font-size: clamp(5rem, 10vw, 9rem); font-weight: 900; letter-spacing: -.16em; line-height: 1.2; opacity: .12; pointer-events: none; white-space: nowrap; }
+.coinche-app-section { min-width: 0; }
+.coinche-app-card { min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface-raised); padding: 1.25rem; }
+.coinche-empty-state { display: grid; justify-items: start; gap: .55rem; padding-block: 1.25rem; }
+.coinche-empty-state h2 { font-size: 1.15rem; font-weight: 850; }
+.coinche-empty-state p { max-width: 38rem; color: var(--text-secondary); font-size: .9rem; }
+.coinche-empty-state > :last-child:not(p):not(h2) { margin-top: .5rem; }
+.coinche-segmented-item { border-color: var(--border); border-radius: var(--radius-control); background: var(--surface-muted); color: var(--text-secondary); }
+.coinche-segmented-item:hover { border-color: var(--border-strong); background: var(--surface-hover); color: var(--text-primary); }
+.coinche-segmented-item[aria-pressed="true"], .coinche-segmented-item[aria-selected="true"], .coinche-segmented-item[aria-current] { border-color: var(--accent); background: var(--accent-soft); color: var(--text-primary); }
+.coinche-segmented-item:disabled { cursor: not-allowed; opacity: .5; }
+.coinche-status-badge { border-color: var(--border-strong); border-radius: 999px; background: var(--surface-muted); color: var(--text-secondary); line-height: 1.15; }
+.coinche-notice { border-left: 3px solid var(--border-strong); border-radius: var(--radius-control); background: var(--surface-muted); padding: .7rem .9rem; color: var(--text-secondary); font-size: .875rem; }
+.coinche-notice[data-tone="error"] { border-left-color: var(--danger); color: var(--danger); }
+.coinche-notice[data-tone="success"] { border-left-color: var(--success); color: var(--success); }
+.coinche-notice[data-tone="warning"] { border-left-color: var(--accent); color: var(--text-primary); }
+.coinche-notice[data-tone="info"] { border-left-color: var(--brand); }
 
 .coinche-settings-panel {
   color-scheme: dark;
@@ -572,8 +599,13 @@ summary:focus-visible {
   border-color: color-mix(in srgb, var(--action-primary-bg) 42%, transparent);
   background: var(--action-primary-bg);
   color: var(--action-primary-text);
-  box-shadow: 0 8px 24px var(--shadow);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--shadow) 38%, transparent);
 }
+
+.coinche-action { min-height: 2.75rem; border-radius: var(--radius-control); line-height: 1.25; }
+.coinche-action:focus-visible, .coinche-segmented-item:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.coinche-danger-action { border-color: color-mix(in srgb, var(--danger) 30%, var(--border)); background: color-mix(in srgb, var(--danger) 10%, var(--surface)); color: var(--danger); }
+.coinche-danger-action:hover { background: color-mix(in srgb, var(--danger) 17%, var(--surface)); }
 
 .coinche-primary-action:hover { background: var(--action-primary-hover); }
 
@@ -593,9 +625,11 @@ summary:focus-visible {
 
 .coinche-input {
   border-color: var(--field-border);
+  border-radius: var(--radius-control);
   background: var(--field-bg);
   color: var(--field-text);
 }
+.coinche-input:focus-visible { border-color: var(--focus-ring); outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 
 .coinche-input::placeholder { color: var(--field-placeholder); }
 

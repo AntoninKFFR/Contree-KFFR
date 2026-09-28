@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 
-export const appPrimaryActionClass = "coinche-primary-action inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50";
-export const appSecondaryActionClass = "coinche-secondary-action inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-bold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50";
-export const appDangerActionClass = "inline-flex min-h-11 items-center justify-center rounded-xl border border-red-300/20 bg-red-950/35 px-4 py-2.5 text-sm font-bold text-red-100 transition hover:bg-red-900/45 disabled:cursor-not-allowed disabled:opacity-50";
-export const appInputClass = "coinche-input min-h-11 w-full rounded-xl border px-3 py-2.5 text-sm font-medium shadow-inner outline-none focus:ring-2 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:opacity-50";
+export const appPrimaryActionClass = "coinche-primary-action coinche-action inline-flex items-center justify-center border px-4 py-2.5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-50";
+export const appSecondaryActionClass = "coinche-secondary-action coinche-action inline-flex items-center justify-center border px-4 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50";
+export const appDangerActionClass = "coinche-danger-action coinche-action inline-flex items-center justify-center border px-4 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50";
+export const appInputClass = "coinche-input min-h-11 w-full border px-3 py-2.5 text-sm font-medium outline-none disabled:cursor-not-allowed disabled:opacity-50";
+export const appSegmentedItemClass = "coinche-segmented-item inline-flex min-h-10 items-center justify-center border px-3.5 py-2 text-sm font-bold transition";
+export const appBadgeClass = "coinche-status-badge inline-flex items-center border px-2.5 py-1 text-xs font-bold";
 
 type AppPageProps = {
   children: ReactNode;
@@ -15,16 +17,40 @@ type AppPageProps = {
 export function AppPage({ children, className = "", stickyContent = false, width = "medium" }: AppPageProps) {
   const widthClass = width === "narrow" ? "max-w-xl" : width === "wide" ? "max-w-6xl" : "max-w-4xl";
   return (
-    <main className={`coinche-app-page relative min-h-[calc(100dvh-56px)] ${stickyContent ? "overflow-x-clip" : "overflow-hidden"} px-3 py-5 sm:px-5 sm:py-8`}>
-      <div className={`mx-auto flex w-full ${widthClass} flex-col gap-4 ${className}`}>{children}</div>
+    <main className={`coinche-app-page relative min-h-[calc(100dvh-56px)] ${stickyContent ? "overflow-x-clip" : "overflow-hidden"} px-3 py-5 sm:px-5 sm:py-7`}>
+      <div className={`mx-auto flex w-full ${widthClass} flex-col gap-5 ${className}`}>{children}</div>
     </main>
   );
 }
 
-export function AppSurface({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <section className={`coinche-app-surface rounded-2xl border p-4 sm:p-5 ${className}`}>{children}</section>;
+export function AppSurface({ children, className = "", variant = "panel" }: { children: ReactNode; className?: string; variant?: "panel" | "plain" }) {
+  return <section className={`${variant === "plain" ? "coinche-app-section" : "coinche-app-surface border p-4 sm:p-5"} ${className}`}>{children}</section>;
 }
 
 export function AppEyebrow({ children }: { children: ReactNode }) {
-  return <p className="coinche-ui-kicker text-[10px] font-black uppercase tracking-[0.2em]">{children}</p>;
+  return <p className="coinche-ui-kicker text-xs font-black uppercase tracking-[0.16em]">{children}</p>;
+}
+
+export function KffrSuitBackdrop() {
+  return <span aria-hidden="true" className="coinche-suit-backdrop">♠ ♥ ♦ ♣</span>;
+}
+
+export function AppPageHeader({ eyebrow, title, description, children, className = "", hero = false, suits = false }: {
+  eyebrow?: string; title: string; description?: string; children?: ReactNode; className?: string; hero?: boolean; suits?: boolean;
+}) {
+  return <header className={`coinche-page-header ${hero ? "coinche-page-header--hero" : ""} ${className}`}>
+    {suits ? <KffrSuitBackdrop /> : null}
+    {eyebrow ? <AppEyebrow>{eyebrow}</AppEyebrow> : null}
+    <h1>{title}</h1>
+    {description ? <p className="coinche-page-header-description">{description}</p> : null}
+    {children}
+  </header>;
+}
+
+export function AppEmptyState({ title, description, children }: { title: string; description?: string; children?: ReactNode }) {
+  return <div className="coinche-empty-state">
+    <h2>{title}</h2>
+    {description ? <p>{description}</p> : null}
+    {children}
+  </div>;
 }
