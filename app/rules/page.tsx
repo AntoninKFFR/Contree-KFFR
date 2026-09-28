@@ -12,7 +12,7 @@ function CardOrder({ title, cards }: { title: string; cards: readonly (readonly 
     <h4 className="text-xs font-black uppercase tracking-[0.15em] text-[color:var(--text-muted)]">{title}</h4>
     <div className="mt-3 flex flex-wrap gap-2" aria-label={`Ordre et points ${title.toLowerCase()}`}>
       {cards.map(([rank, points]) => <span className="min-w-12 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-2 py-1.5 text-center text-sm font-bold text-[color:var(--text-primary)]" key={rank}>
-        <span className="block">{rank}</span><span className="block text-[11px] font-medium text-[color:var(--text-muted)]">{points} pt</span>
+        <span className="block">{rank}</span><span className="block text-xs font-medium text-[color:var(--text-muted)]">{points} pt</span>
       </span>)}
     </div>
   </div>;

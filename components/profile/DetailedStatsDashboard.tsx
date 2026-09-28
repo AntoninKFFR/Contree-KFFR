@@ -75,7 +75,7 @@ export function DetailedStatsDashboard({ stats }: { stats: DetailedPlayerStats }
         <span aria-hidden="true" className="absolute inset-y-0 left-1/2 w-px bg-[color:var(--text-primary)] opacity-80" />
         {hasContracts ? <span aria-hidden="true" className="absolute inset-y-0 w-0.5 bg-[color:var(--text-primary)]" style={{ left: `${stats.attackShare}%` }} /> : null}
       </div>
-      <p className="mt-1 text-center text-[11px] text-[color:var(--text-secondary)]">Repère 50 %</p>
+      <p className="mt-1 text-center text-xs text-[color:var(--text-secondary)]">Repère 50 %</p>
       {!hasContracts ? <p className="mt-2 text-center text-sm text-[color:var(--text-secondary)]">Aucune manche avec contrat enregistrée.</p> : null}
     </AppSurface>
 
@@ -114,7 +114,7 @@ export function DetailedStatsDashboard({ stats }: { stats: DetailedPlayerStats }
             <div aria-label={`Contrat ${value} : ${rate(successRate)}, ${successes} réussi${successes > 1 ? "s" : ""} sur ${contracts}`} className="h-3 overflow-hidden rounded-full bg-[color:var(--surface-muted)]" role="img"><div className="h-full rounded-full bg-[color:var(--success)]" style={{ width: `${successRate ?? 0}%` }} /></div>
             <span className="text-right tabular-nums text-[color:var(--text-secondary)]">{rate(successRate)} · {contracts ? `${successes}/${contracts}` : "—"}</span>
           </div>)}
-          <p className="pt-1 text-[11px] text-[color:var(--text-secondary)]">Taux · contrats réussis / contrats joués</p>
+          <p className="pt-1 text-xs text-[color:var(--text-secondary)]">Taux · contrats réussis / contrats joués</p>
         </div>
         <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
           {stats.contractZones.map((zone) => <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-muted)] px-3 py-2" key={zone.label}>
