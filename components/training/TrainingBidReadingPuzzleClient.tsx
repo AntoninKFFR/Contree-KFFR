@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { BidReadingForm } from "@/components/training/BidReadingForm";
+import { TrainingResultSummary, TrainingSessionHeader } from "@/components/training/TrainingUI";
 import { BidReadingDoctrineCorrection, BidReadingPublicAuction } from "@/components/training/BidReadingShared";
 import { TRAINING_BID_ROLES } from "@/components/training/bidRoles";
 import {
@@ -80,35 +81,23 @@ export function TrainingBidReadingPuzzleClient({ level }: { level: BidReadingLev
   </AppSurface></AppPage>;
   if (error) return <AppPage width="narrow"><AppSurface><p role="alert">{error}</p><Link href="/training">Retour à l’entraînement</Link></AppSurface></AppPage>;
   if (!progress || !series || !exercise) return <AppPage width="narrow"><AppSurface><p role="status">Préparation de la série…</p></AppSurface></AppPage>;
-  if (finished) return <AppPage width="medium"><AppSurface className="mx-auto w-full max-w-xl py-8 text-center">
-    <AppEyebrow>Lire les enchères · Niveau {level}</AppEyebrow>
-    <h1 className="mt-3 text-3xl font-black">Résultat</h1>
-    <p className="mt-5 text-5xl font-black text-[var(--accent)]">{score} / {BID_READING_SERIES_LENGTH}</p>
-    <p className="mt-3 text-sm">Meilleur score local : {progress.axes["bid-reading"].levels[level].bestScore} / 10</p>
-    {newlyUnlockedLevel !== null ? <p className="mt-3 font-bold text-[var(--success)]">Niveau {newlyUnlockedLevel} débloqué !</p> : null}
-    <p className="mt-3 text-xs text-[var(--text-secondary)]">Cette progression reste sur cet appareil.</p>
-    <div className="mt-6 flex flex-wrap justify-center gap-2">
+  if (finished) return <AppPage width="medium"><TrainingResultSummary title="Lire les enchères" level={level} levelName={BID_READING_LEVEL_NAMES[level]} score={score} total={BID_READING_SERIES_LENGTH}
+    best={`Meilleur score local : ${progress.axes["bid-reading"].levels[level].bestScore} / 10`} unlocked={newlyUnlockedLevel !== null ? `Niveau ${newlyUnlockedLevel} débloqué !` : undefined}>
       <button className={appPrimaryActionClass} onClick={replay} type="button">Rejouer</button>
       {newlyUnlockedLevel !== null ? <Link className={appSecondaryActionClass} href={`/training/puzzle/bid-reading?level=${newlyUnlockedLevel}`}>Niveau {newlyUnlockedLevel}</Link> : null}
       <Link className={appSecondaryActionClass} href="/training">Retour à l’entraînement</Link>
       <Link className={appSecondaryActionClass} href="/training/conventions/bidding">Voir les conventions</Link>
-    </div>
-  </AppSurface></AppPage>;
+    </TrainingResultSummary></AppPage>;
 
   const targetName = exercise.playerNames[exercise.targetPlayerId];
   return <AppPage width="wide">
-    <Link className="coinche-ui-link w-fit text-sm font-bold" href="/training">← Retour à l’entraînement</Link>
-    <AppSurface className="mx-auto mt-3 w-full min-w-0">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div><AppEyebrow>Annoncer · Niveau {level}</AppEyebrow><h1 className="mt-1 text-2xl font-black">Lire les enchères</h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">{BID_READING_LEVEL_NAMES[level]} · Doctrine KFFR Advanced Rules V4.1</p></div>
-        <span aria-label={`Exercice ${index + 1} sur ${BID_READING_SERIES_LENGTH}`} className="rounded-full border border-[var(--border)] px-3 py-1.5 text-sm font-bold">{index + 1} / {BID_READING_SERIES_LENGTH}</span>
-      </div>
+    <AppSurface className="mx-auto w-full min-w-0">
+      <TrainingSessionHeader title="Lire les enchères" level={level} levelName={BID_READING_LEVEL_NAMES[level]} index={index + 1} total={BID_READING_SERIES_LENGTH} score={score} />
       <div className="mt-4"><BidReadingPublicAuction exercise={exercise} /></div>
       <div className="mt-4 min-w-0">
         <p className="mb-3 font-semibold">Que peux-tu affirmer sur l’enchère de {targetName} ({TRAINING_BID_ROLES[exercise.targetPlayerId]}) ?</p>
         {!grade ? <BidReadingForm key={index} assertionChoices={exercise.assertionChoices} onAnswer={submit} />
-          : <section aria-live="polite" aria-label="Correction de la lecture" className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+          : <section aria-live="polite" aria-label="Correction de la lecture" className="training-feedback rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
             <p className={`font-black ${grade.correct ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{grade.correct ? "Bonne réponse !" : "Mauvaise réponse"}</p>
             <p className="mt-2 text-sm">Ta sélection : {answer?.selectedAssertionIds.length
               ? answer.selectedAssertionIds.map((id) => BID_READING_ASSERTION_LABELS[id]).join(" ; ") : "Aucune affirmation"}</p>

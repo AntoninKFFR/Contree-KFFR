@@ -229,11 +229,8 @@ export function TrainingChallengeClient({ mode }: { mode: TrickValueChallengeMod
   return <AppPage width="wide">
     <Link className="coinche-ui-link w-fit text-sm font-bold" href="/training">← Retour entraînement</Link>
     <AppSurface className="mx-auto w-full">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{label}</h1>
-          <p className="text-sm font-semibold text-[var(--text-secondary)]">Valeur d’un pli</p>
-        </div>
+      <header className="training-session-title">
+        <div><span className="training-kicker">Défi · Valeur d’un pli</span><h1>{label}</h1></div>
         <p className="text-sm font-bold">Pli {run.exerciseIndex + 1}</p>
       </header>
       <div className="mt-4 grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] md:gap-8">

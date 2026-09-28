@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { TrainingSessionHeader } from "@/components/training/TrainingUI";
 import { useEffect, useRef, useState } from "react";
 import { SUIT_LABELS, SUIT_SYMBOLS } from "@/engine/cards";
 import {
@@ -302,7 +303,7 @@ export function PileCountClient({ mode }: { mode: PileCountMode }) {
     const modes = progress.axes["pile-count"].modes;
     const totalTimeMs = pileTimes.reduce((sum, time) => sum + time, 0);
     return <AppPage width="medium">
-      <AppSurface className="mx-auto w-full max-w-xl py-8 text-center sm:py-12">
+      <AppSurface className="training-result mx-auto w-full max-w-xl py-8 text-center sm:py-12">
         <AppEyebrow>Série terminée · {PILE_COUNT_TITLE} · {copy.name}</AppEyebrow>
         <h1 className="mt-3 text-3xl font-black">Résultat</h1>
         <p className="mt-5 text-5xl font-black text-[var(--accent)]">{score} / {PILE_COUNT_SERIES_LENGTH}</p>
@@ -334,17 +335,9 @@ export function PileCountClient({ mode }: { mode: PileCountMode }) {
   </div>;
 
   return <AppPage width="wide">
-    <Link className="coinche-ui-link w-fit text-sm font-bold" href="/training">← Changer d’exercice</Link>
     <AppSurface className="mx-auto w-full">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{PILE_COUNT_TITLE}</h1>
-          <p className="text-sm font-bold text-[var(--accent)]">Mode {copy.name}</p>
-        </div>
-        <span aria-label={`Tas ${index + 1} sur ${PILE_COUNT_SERIES_LENGTH}`} className="rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-sm font-bold">
-          {index + 1} / {PILE_COUNT_SERIES_LENGTH}
-        </span>
-      </div>
+      <TrainingSessionHeader title={PILE_COUNT_TITLE} levelName={`Mode ${copy.name}`} index={index + 1} total={PILE_COUNT_SERIES_LENGTH} score={score} backLabel="Changer d’exercice" />
+      <span aria-label={`Tas ${index + 1} sur ${PILE_COUNT_SERIES_LENGTH}`} className="sr-only">Tas {index + 1} sur {PILE_COUNT_SERIES_LENGTH}</span>
 
       {phase === "briefing" ? <div className="mt-5">
         <p className="text-lg font-black">Voici le tas de plis de ton équipe : {exercise.trickCount} pli{exercise.trickCount > 1 ? "s" : ""}, soit {cardTotal} cartes.</p>
@@ -414,7 +407,7 @@ export function PileCountClient({ mode }: { mode: PileCountMode }) {
         <div className="min-w-0 md:border-l md:border-[var(--border)] md:pl-8">
           {phase === "answer"
             ? <NumberPad label="Ton total en points" onChange={setDraft} onSubmit={submit} value={draft} />
-            : <div aria-live="polite" className="mx-auto max-w-sm rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+            : <div aria-live="polite" className="training-feedback mx-auto max-w-sm rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
               <p className={`font-black ${correct ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{correct ? "Bonne réponse !" : "Mauvaise réponse"}</p>
               <p className="mt-1">Total : <strong>{formatPoints(exercise.answer)}</strong>{correct ? "" : ` (ta réponse : ${draft})`}</p>
               {isManual ? <p className="mt-1 text-sm font-bold tabular-nums">Temps pour ce tas : {formatDuration(elapsed)}</p> : null}

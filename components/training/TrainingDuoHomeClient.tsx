@@ -52,17 +52,20 @@ export function TrainingDuoHomeClient() {
   };
   return <AppPage width="medium">
     <Link className="coinche-ui-link w-fit text-sm font-bold" href="/training">← Retour à l’entraînement</Link>
-    <AppSurface>
-      <AppEyebrow>Entraînement coopératif</AppEyebrow>
-      <h1 className="mt-2 text-3xl font-black">Lire les enchères à deux</h1>
-      <p className="mt-2 text-sm text-[var(--text-secondary)]">Une même série de 10 questions, deux réponses indépendantes. Le code de session est le seul moyen de rejoindre ton partenaire.</p>
+    <AppSurface className="training-duo-home">
+      <header className="training-hero"><AppEyebrow>Entraînement · Duo</AppEyebrow>
+        <h1>Lire les enchères à deux</h1>
+        <p>2 joueurs · 10 questions · réponses indépendantes</p>
+        <p className="text-sm">Le code de session est le seul moyen de rejoindre ton partenaire.</p>
+      </header>
       {state === "loading" ? <p role="status" className="mt-5">Vérification du compte…</p> : null}
       {state === "signed-out" ? <p className="mt-5">Connecte-toi pour jouer à deux. <Link className="coinche-ui-link" href="/login?next=%2Ftraining%2Fduo">Se connecter</Link></p> : null}
       {state === "unavailable" ? <p role="alert" className="mt-5">Le service duo est indisponible pour le moment.</p> : null}
       {state === "profile-missing" ? <p role="alert" className="mt-5">Choisis un pseudo dans ton profil avant de jouer à deux. <Link className="coinche-ui-link" href="/profile">Ouvrir mon profil</Link></p> : null}
       {state === "ready" ? <div className="mt-6 grid min-w-0 gap-4 md:grid-cols-2">
-        <form onSubmit={(event) => void submit(event, "create")} className="min-w-0 rounded-xl border border-[var(--border)] p-4">
-          <h2 className="text-lg font-black">Créer une session</h2>
+        <form onSubmit={(event) => void submit(event, "create")} className="training-mode-card min-w-0">
+          <span className="training-kicker">Ouvrir la table</span><h2 className="text-xl font-black">Créer un duo</h2>
+          <p className="text-sm text-[var(--text-secondary)]">Choisis la difficulté de la série partagée.</p>
           <label htmlFor="duo-level" className="mt-3 block text-sm font-bold">Niveau</label>
           <select id="duo-level" className={`${appInputClass} mt-1`} value={level} onChange={(event) => setLevel(Number(event.target.value) as BidReadingLevel)}>
             {([1, 2, 3, 4] as const).map((value) => <option key={value} value={value}>Niveau {value} · {BID_READING_LEVEL_NAMES[value]}</option>)}
@@ -70,8 +73,9 @@ export function TrainingDuoHomeClient() {
           <p className="mt-2 text-xs text-[var(--text-secondary)]">Tous les niveaux duo sont accessibles, quel que soit ton déblocage solo.</p>
           <button className={`${appPrimaryActionClass} mt-4 w-full`} type="submit" disabled={pending}>Créer le duo</button>
         </form>
-        <form onSubmit={(event) => void submit(event, "join")} className="min-w-0 rounded-xl border border-[var(--border)] p-4">
-          <h2 className="text-lg font-black">Rejoindre une session</h2>
+        <form onSubmit={(event) => void submit(event, "join")} className="training-mode-card min-w-0">
+          <span className="training-kicker">Retrouver un partenaire</span><h2 className="text-xl font-black">Rejoindre</h2>
+          <p className="text-sm text-[var(--text-secondary)]">Entre le code partagé par l’hôte.</p>
           <label htmlFor="duo-code" className="mt-3 block text-sm font-bold">Code de session</label>
           <input id="duo-code" className={`${appInputClass} mt-1 uppercase`} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())}
             maxLength={10} autoComplete="off" required />

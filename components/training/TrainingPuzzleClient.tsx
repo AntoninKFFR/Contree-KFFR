@@ -8,6 +8,7 @@ import { generateTrickValueSeries, TRICK_VALUE_SERIES_LENGTH, type TrickValueExe
 import type { Rank } from "@/engine/types";
 import { AppEyebrow, AppPage, AppSurface, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { NumberPad } from "@/components/training/NumberPad";
+import { TrainingResultSummary, TrainingSessionHeader } from "@/components/training/TrainingUI";
 import { TrickValueBoard } from "@/components/training/TrickValueBoard";
 import { isTrickValueLevelUnlocked, readTrainingProgress, recordTrickValueSeries, saveTrainingProgress, trickValueSeriesSeed, type TrainingProgress } from "@/components/training/progress";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
@@ -156,41 +157,27 @@ export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
   if (finished) {
     const best = progress.axes["trick-value"].levels[level].bestScore;
     return <AppPage width="medium">
-      <AppSurface className="mx-auto w-full max-w-xl py-8 text-center sm:py-12">
-        <AppEyebrow>Série terminée · Niveau {level} · {levelName}</AppEyebrow>
-        <h1 className="mt-3 text-3xl font-black">Résultat</h1>
-        <p className="mt-5 text-5xl font-black text-[var(--accent)]">{score} / {TRICK_VALUE_SERIES_LENGTH}</p>
-        <p className="mt-2 text-lg font-semibold">{score * 10} % de bonnes réponses</p>
-        <p className="mt-4 text-sm text-[var(--text-secondary)]">Meilleur score du niveau {level} : {best} / 10</p>
+      <TrainingResultSummary title="Valeur d’un pli" level={level} levelName={levelName} score={score} total={TRICK_VALUE_SERIES_LENGTH}
+        best={`Meilleur score du niveau ${level} : ${best} / 10`} unlocked={justUnlocked ? "Niveau 2 débloqué !" : undefined}>
         {syncStatus === "saved" ? <p className="mt-2 text-sm" role="status">Record sauvegardé sur ton compte.</p> : null}
         {syncStatus === "failed" ? <p className="mt-2 text-sm" role="status">Record local sauvegardé · synchronisation impossible.</p> : null}
-        {justUnlocked ? <p className="mt-3 font-bold text-[var(--success)]" role="status">Niveau 2 débloqué !</p> : null}
-        <div className="mt-7 flex flex-col justify-center gap-2 sm:flex-row sm:flex-wrap">
-          <button className={appPrimaryActionClass} onClick={() => startSeries(progress)} type="button">Rejouer le niveau {level}</button>
-          {justUnlocked ? <Link className={appSecondaryActionClass} href="/training/puzzle/trick-value?level=2">Passer au niveau 2</Link> : null}
-          <Link className={appSecondaryActionClass} href="/training">Retour aux niveaux</Link>
-        </div>
-      </AppSurface>
+        <button className={appPrimaryActionClass} onClick={() => startSeries(progress)} type="button">Rejouer le niveau {level}</button>
+        {justUnlocked ? <Link className={appSecondaryActionClass} href="/training/puzzle/trick-value?level=2">Passer au niveau 2</Link> : null}
+        <Link className={appSecondaryActionClass} href="/training">Retour aux niveaux</Link>
+      </TrainingResultSummary>
     </AppPage>;
   }
 
   return <AppPage width="wide">
-    <Link className="coinche-ui-link w-fit text-sm font-bold" href="/training">← Changer de niveau</Link>
     <AppSurface className="mx-auto w-full">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h1 className="whitespace-nowrap text-2xl font-black tracking-tight sm:text-3xl">Valeur d’un pli</h1>
-          <p className="text-sm font-bold text-[var(--accent)]">Niveau {level} · {levelName}</p>
-        </div>
-        <span aria-label={`Exercice ${index + 1} sur ${TRICK_VALUE_SERIES_LENGTH}`} className="rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-sm font-bold">{index + 1} / {TRICK_VALUE_SERIES_LENGTH}</span>
-      </div>
+      <TrainingSessionHeader title="Valeur d’un pli" level={level} levelName={levelName} index={index + 1} total={TRICK_VALUE_SERIES_LENGTH} score={score} backLabel="Changer de niveau" />
       <div className="mt-4 grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] md:gap-8">
         <div className="min-w-0">
           <TrickValueBoard exercise={exercise} />
           {level === 1 ? <ValueGuide /> : null}
         </div>
         <div className="min-w-0 md:border-l md:border-[var(--border)] md:pl-8">
-          {level === 1 && feedback !== null ? <div aria-live="polite" className="mx-auto max-w-xs rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-center">
+          {level === 1 && feedback !== null ? <div aria-live="polite" className="training-feedback mx-auto max-w-xs rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 text-center">
           <p className={`font-black ${feedback ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{feedback ? "Bonne réponse !" : "Mauvaise réponse"}</p>
           <p className="mt-1">Ce pli vaut <strong>{exercise.answer} points</strong>.</p>
           <button className={`${appPrimaryActionClass} mt-3 min-h-11 w-full`} onClick={next} type="button">{index === TRICK_VALUE_SERIES_LENGTH - 1 ? "Voir le résultat" : "Exercice suivant"}</button>

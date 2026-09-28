@@ -19,10 +19,11 @@ test("@smoke bid-reading hub, ten questions, local progress and no server record
   await page.goto("/training");
   const card = page.locator("article").filter({ has: page.getByRole("heading", { name: "Lire les enchères" }) });
   await expect(card).toBeVisible();
-  await expect(card.getByText("Niveau débloqué : 1", { exact: false })).toBeVisible();
-  await expect(card.getByRole("link", { name: "Conventions de lecture" })).toBeVisible();
+  await expect(card.getByText("Niveau 1 · Lire une ouverture")).toBeVisible();
+  await expect(card.getByRole("link", { name: "Voir les conventions" })).toBeVisible();
   await expect(card.getByRole("link", { name: "Jouer à deux" })).toHaveAttribute("href", "/training/duo");
-  await card.getByRole("link", { name: "Jouer", exact: true }).click();
+  await expect(card.getByText("Même série, deux réponses indépendantes.")).toBeVisible();
+  await card.getByRole("link", { name: "Jouer en solo" }).click();
   for (let index = 1; index <= 10; index += 1) {
     await expect(page.getByLabel(`Exercice ${index} sur 10`)).toBeVisible();
     const history = page.getByRole("region", { name: "Historique public des enchères" });

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { BidReadingForm } from "@/components/training/BidReadingForm";
+import { TrainingSessionHeader } from "@/components/training/TrainingUI";
 import { BidReadingDoctrineCorrection, BidReadingPublicAuction } from "@/components/training/BidReadingShared";
 import { TRAINING_BID_ROLES } from "@/components/training/bidRoles";
 import { useTrainingDuoSync, duoErrorMessage } from "@/components/training/useTrainingDuoSync";
@@ -26,10 +27,23 @@ export function TrainingDuoSessionView({ view, pending, onAction }: { view: Trai
   const partner = participants.find((participant) => participant.slot !== viewerSlot);
   const questionHeading = useRef<HTMLHeadingElement>(null);
   const previousIndex = useRef(session.currentIndex);
+  const [copyStatus, setCopyStatus] = useState<"copied" | "failed" | null>(null);
+  const copyStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (copyStatusTimer.current !== null) clearTimeout(copyStatusTimer.current); }, []);
   useEffect(() => {
     if (session.status === "active" && session.currentIndex !== previousIndex.current) questionHeading.current?.focus();
     previousIndex.current = session.currentIndex;
   }, [session.currentIndex, session.status]);
+  const copyCode = async () => {
+    if (copyStatusTimer.current !== null) clearTimeout(copyStatusTimer.current);
+    setCopyStatus(null);
+    try {
+      if (!session.code || !navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(session.code);
+      setCopyStatus("copied");
+    } catch { setCopyStatus("failed"); }
+    copyStatusTimer.current = setTimeout(() => { setCopyStatus(null); copyStatusTimer.current = null; }, 2500);
+  };
 
   if (session.status === "cancelled") return <AppSurface><AppEyebrow>Duo terminé</AppEyebrow>
     <h1 className="mt-2 text-3xl font-black">Session interrompue</h1>
@@ -39,11 +53,11 @@ export function TrainingDuoSessionView({ view, pending, onAction }: { view: Trai
     const result = view.result;
     const myScore = viewerSlot === 0 ? result?.scoreA : result?.scoreB;
     const partnerScore = viewerSlot === 0 ? result?.scoreB : result?.scoreA;
-    return <AppSurface><AppEyebrow>Lire les enchères à deux</AppEyebrow><h1 className="mt-2 text-3xl font-black">Résultat</h1>
+    return <AppSurface className="training-result !max-w-3xl"><AppEyebrow>Série terminée · Lire les enchères à deux</AppEyebrow><h1 className="mt-2 text-3xl font-black">Résultat</h1>
       <dl className="mt-5 grid gap-3 sm:grid-cols-3">
-        <div><dt className="text-sm">Ton score</dt><dd className="text-3xl font-black">{myScore} / 10</dd></div>
-        <div><dt className="text-sm">Score de {partner?.displayName ?? "ton partenaire"}</dt><dd className="text-3xl font-black">{partnerScore} / 10</dd></div>
-        <div><dt className="text-sm">Réussites communes</dt><dd className="text-3xl font-black">{result?.commonSuccesses} / 10</dd></div>
+        <div className="training-player-card"><dt className="text-sm">Ton score</dt><dd className="text-3xl font-black">{myScore} / 10</dd></div>
+        <div className="training-player-card"><dt className="text-sm">Score de {partner?.displayName ?? "ton partenaire"}</dt><dd className="text-3xl font-black">{partnerScore} / 10</dd></div>
+        <div className="training-player-card"><dt className="text-sm">Réussites communes</dt><dd className="text-3xl font-black">{result?.commonSuccesses} / 10</dd></div>
       </dl>
       <p className="mt-5 text-sm text-[var(--text-secondary)]">Cette session duo ne modifie pas ta progression ni tes records.</p><DuoLinks />
     </AppSurface>;
@@ -51,59 +65,64 @@ export function TrainingDuoSessionView({ view, pending, onAction }: { view: Trai
 
   if (session.status === "lobby") {
     const canStart = viewer?.isHost && participants.length === 2 && participants.every((participant) => participant.isReady && participant.isConnected);
-    return <AppSurface>
+    const startReason = !partner ? "En attente d’un partenaire." : !partner.isConnected ? "Ton partenaire doit être connecté pour démarrer." : !partner.isReady ? "Ton partenaire doit être prêt." : !viewer?.isReady ? "Tu dois être prêt." : null;
+    return <AppSurface className="training-duo-lobby">
       <AppEyebrow>Lire les enchères à deux</AppEyebrow><h1 className="mt-2 text-3xl font-black">Salon duo</h1>
       <p className="mt-2 text-sm">Niveau {session.level} · {BID_READING_LEVEL_NAMES[session.level]}</p>
-      <div className="mt-5 rounded-xl border border-[var(--border)] p-4"><p className="text-sm font-bold">Code de session</p>
+      <div className="mt-5 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] p-4"><p className="training-kicker">Code de session</p>
         <p className="mt-1 break-all font-mono text-2xl font-black tracking-widest">{session.code}</p>
-        <button className={`${appSecondaryActionClass} mt-3`} type="button" onClick={() => { if (session.code && navigator.clipboard) void navigator.clipboard.writeText(session.code); }}>Copier le code</button>
+        <button className={`${appSecondaryActionClass} mt-3`} type="button" onClick={() => void copyCode()}>Copier le code</button>
+        <p role="status" aria-live="polite" className="mt-2 text-sm">{copyStatus === "copied" ? "Code copié ✓" : copyStatus === "failed" ? "Copie impossible. Sélectionne le code pour le partager." : ""}</p>
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2" aria-label="Participants">
         {[0, 1].map((slot) => {
           const participant = participants.find((item) => item.slot === slot);
-          return <div key={slot} className="min-w-0 rounded-xl border border-[var(--border)] p-4">
-            <p className="font-black">Place {slot === 0 ? "A" : "B"} · {participant?.displayName ?? "En attente d’un joueur"}{slot === viewerSlot ? " · Toi" : ""}</p>
-            {participant ? <p className="mt-2 text-sm">{participant.isHost ? "Hôte · " : ""}{participant.isReady ? "Prêt" : "Pas prêt"} · {participant.isConnected ? "En ligne" : "Hors ligne"}</p> : null}
+          return <div key={slot} className="training-player-card">
+            <p className="training-kicker">Joueur {slot + 1}</p>
+            <h3>Place {slot === 0 ? "A" : "B"} · {participant?.displayName ?? "En attente d’un joueur"}{slot === viewerSlot ? " · Toi" : ""}</h3>
+            {participant ? <div><span className="training-player-badge">{participant.isHost ? "Hôte" : "Joueur"}</span><span className="training-player-badge">{participant.isConnected ? "● En ligne" : "○ Hors ligne"}</span><span className="training-player-badge">{participant.isReady ? "✓ Prêt" : "○ Pas prêt"}</span></div> : null}
           </div>;
         })}
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
         <button className={appPrimaryActionClass} type="button" disabled={pending} onClick={() => onAction({ type: "set-ready", ready: !viewer?.isReady })}>{viewer?.isReady ? "Annuler prêt" : "Je suis prêt"}</button>
-        {viewer?.isHost ? <button className={appPrimaryActionClass} type="button" disabled={pending || !canStart} onClick={() => onAction({ type: "start" })}>Démarrer</button> : null}
+        {viewer?.isHost ? <button className={`${appPrimaryActionClass} training-start-action`} type="button" disabled={pending || !canStart} onClick={() => onAction({ type: "start" })}>Démarrer</button> : null}
         <button className={appDangerActionClass} type="button" disabled={pending} onClick={() => onAction({ type: viewer?.isHost ? "cancel" : "leave" })}>{viewer?.isHost ? "Annuler le duo" : "Quitter"}</button>
       </div>
       {!viewer?.isHost ? <p role="status" className="mt-3 text-sm">En attente du démarrage par l’hôte.</p> : null}
-      {viewer?.isHost && partner && !partner.isConnected ? <p role="status" className="mt-3 text-sm">Ton partenaire doit être connecté pour démarrer.</p> : null}
+      {viewer?.isHost && startReason ? <p role="status" className="mt-3 text-sm">{startReason}</p> : null}
     </AppSurface>;
   }
 
   if (!exercise) return <AppSurface><p role="status">Chargement de la question…</p></AppSurface>;
   const isRevealed = exercise.kind === "revealed" && session.questionPhase === "revealed";
   return <AppSurface className="min-w-0">
-    <div className="flex flex-wrap items-start justify-between gap-2"><div><AppEyebrow>Lire les enchères à deux · Niveau {session.level}</AppEyebrow>
-      <h1 ref={questionHeading} tabIndex={-1} className="mt-1 text-2xl font-black">Exercice {session.currentIndex + 1} / 10</h1>
-      <p className="mt-1 text-sm text-[var(--text-secondary)]">{BID_READING_LEVEL_NAMES[session.level]}</p></div>
-      <span className="rounded-full border border-[var(--border)] px-3 py-1 text-sm font-bold">{session.currentIndex + 1} / 10</span></div>
+    <TrainingSessionHeader title="Lire les enchères à deux" level={session.level} levelName={BID_READING_LEVEL_NAMES[session.level]}
+      index={session.currentIndex + 1} total={10} heading={`Exercice ${session.currentIndex + 1} / 10`} headingRef={questionHeading} backLabel="Retour au duo" backHref={duoPath} />
+    <div className="mt-3 flex flex-wrap gap-2 text-xs" aria-label="Statut des joueurs">
+      <span className="training-player-badge">{viewer?.displayName ?? "Toi"} · Toi{viewer?.hasAnswered ? " · A répondu" : ""}</span>
+      {partner ? <span className="training-player-badge">{partner.displayName} · {partner.isConnected ? "En ligne" : "Hors ligne"}</span> : null}
+    </div>
     <div className="mt-4"><BidReadingPublicAuction exercise={exercise} /></div>
     <p className="mt-4 mb-3 font-semibold">Que peux-tu affirmer sur l’enchère de {exercise.playerNames[exercise.targetPlayerId]} ({TRAINING_BID_ROLES[exercise.targetPlayerId]}) ?</p>
     {!isRevealed && !viewer?.hasAnswered ? <BidReadingForm key={session.currentIndex} assertionChoices={exercise.assertionChoices}
       disabled={pending} onAnswer={(answer: BidReadingAnswer) => onAction({ type: "submit-answer", answer })} /> : null}
-    {!isRevealed && viewer?.hasAnswered ? <div role="status" aria-live="polite" className="rounded-xl border border-[var(--border)] p-4">
-      <p className="font-black">Réponse enregistrée</p><p className="mt-2">En attente de ton partenaire…</p>
+    {!isRevealed && viewer?.hasAnswered ? <div role="status" aria-live="polite" className="training-wait training-feedback">
+      <p className="font-black"><span aria-hidden="true">✓ </span><span>Réponse enregistrée</span></p><p className="mt-2">En attente de ton partenaire…</p>
       {partner && !partner.isConnected ? <p className="mt-2">Ton partenaire est hors ligne. La session reprendra à son retour.</p> : null}
     </div> : null}
-    {isRevealed ? <section aria-label="Correction de la lecture" aria-live="polite" className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+    {isRevealed ? <section aria-label="Correction de la lecture" aria-live="polite" className="training-feedback rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
       <h2 className="text-xl font-black">Correction</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">{exercise.answers.map((answer) => {
         const participant = participants.find((item) => item.slot === answer.slot);
-        return <div key={answer.slot} className="min-w-0 rounded-xl border border-[var(--border)] p-3">
+        return <div key={answer.slot} className="training-player-card">
           <h3 className="font-black">{answer.slot === viewerSlot ? "Toi" : participant?.displayName ?? "Partenaire"}</h3>
           <p className="mt-1 text-sm">{answer.answer.selectedAssertionIds.length ? answer.answer.selectedAssertionIds.map((id) => BID_READING_ASSERTION_LABELS[id]).join(" ; ") : "Aucune affirmation"}</p>
           <p className={`mt-2 font-bold ${answer.correct ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{answer.correct ? "Bonne réponse" : "Mauvaise réponse"} · {answer.score} / 1</p>
         </div>;
       })}</div>
       <BidReadingDoctrineCorrection promise={exercise.promise} illustrationHand={exercise.illustrationHand} />
-      {viewer?.readyForNext ? <p role="status" className="mt-4">Ton partenaire regarde encore la correction.</p>
+      {viewer?.readyForNext ? <div role="status" className="training-wait mt-4"><p className="font-bold">✓ Tu es prêt</p><p>Ton partenaire regarde encore la correction.</p></div>
         : <button className={`${appPrimaryActionClass} mt-4`} type="button" disabled={pending} onClick={() => onAction({ type: "ready-next" })}>
           {session.currentIndex === 9 ? "Prêt pour le résultat" : "Prêt pour la question suivante"}</button>}
     </section> : null}

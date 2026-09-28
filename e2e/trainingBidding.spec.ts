@@ -18,7 +18,7 @@ test("@smoke bidding hub, conventions, complete local series and correction", as
   await page.goto("/training");
   await expect(page.getByText("Annoncer", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Faire son annonce" })).toBeVisible();
-  await page.getByRole("link", { name: "Voir les conventions" }).click();
+  await page.locator("article").filter({ has: page.getByRole("heading", { name: "Faire son annonce" }) }).getByRole("link", { name: "Voir les conventions" }).click();
   await expect(page.getByRole("heading", { name: "Conventions d’annonces" })).toBeVisible();
   await expect(page.getByText("Ces conventions décrivent la doctrine utilisée par KFFR Contrée.", { exact: false })).toBeVisible();
   await expect(page.getByText("4+ atouts sans Valet ni 9 : 80 maximum.")).toBeVisible();

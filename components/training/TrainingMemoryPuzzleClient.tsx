@@ -8,6 +8,7 @@ import { generateMemorySeries, gradeMemoryExercise, MEMORY_LABELS, MEMORY_PLAYER
 import type { PlayerId } from "@/engine/types";
 import { AppEyebrow, AppPage, AppSurface, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { CardSelection, cardAccessibleName } from "@/components/training/CardSelection";
+import { TrainingResultSummary, TrainingSessionHeader } from "@/components/training/TrainingUI";
 import { MemoryStudyPhase } from "@/components/training/MemoryStudyPhase";
 import { isMemoryLevelUnlocked, memorySeriesSeed, readTrainingProgress, recordMemorySeries, saveTrainingProgress, type TrainingProgress } from "@/components/training/progress";
 import { submitCompletedPuzzleSeries } from "@/lib/trainingApi";
@@ -102,28 +103,18 @@ export function TrainingMemoryPuzzleClient({ axisId, level }: { axisId: MemoryAx
   </AppSurface></AppPage>;
   if (error) return <AppPage><AppSurface><p role="alert">{error}</p><Link href="/training">Retour à l’entraînement</Link></AppSurface></AppPage>;
   if (!progress || !series || !exercise) return <AppPage><AppSurface><p role="status">Préparation de la série…</p></AppSurface></AppPage>;
-  if (finished) return <AppPage width="medium"><AppSurface className="mx-auto w-full max-w-xl py-8 text-center">
-    <AppEyebrow>Série terminée · {MEMORY_LABELS[axisId]} · Niveau {level}</AppEyebrow>
-    <h1 className="mt-3 text-3xl font-black">Résultat</h1>
-    <p className="mt-5 text-5xl font-black text-[var(--accent)]">{score} / {MEMORY_SERIES_LENGTH}</p>
-    <p className="mt-3 text-sm">Meilleur score : {progress.axes[axisId].levels[level].bestScore} / 10</p>
+  if (finished) return <AppPage width="medium"><TrainingResultSummary title={MEMORY_LABELS[axisId]} level={level} score={score} total={MEMORY_SERIES_LENGTH}
+    best={`Meilleur score : ${progress.axes[axisId].levels[level].bestScore} / 10`} unlocked={newlyUnlockedLevel !== null ? `Niveau ${newlyUnlockedLevel} débloqué !` : undefined}>
     {syncStatus === "saved" ? <p className="mt-2 text-sm" role="status">Record sauvegardé sur ton compte.</p> : null}
     {syncStatus === "failed" ? <p className="mt-2 text-sm" role="status">Record local sauvegardé · synchronisation impossible.</p> : null}
-    {newlyUnlockedLevel !== null ? <p className="mt-3 font-bold text-[var(--success)]">Niveau {newlyUnlockedLevel} débloqué !</p> : null}
-    <div className="mt-6 flex flex-wrap justify-center gap-2">
       <button className={appPrimaryActionClass} onClick={() => startSeries(progress)} type="button">Rejouer</button>
       {newlyUnlockedLevel !== null ? <Link className={appSecondaryActionClass} href={`/training/puzzle/${axisId}?level=${newlyUnlockedLevel}`}>Niveau {newlyUnlockedLevel}</Link> : null}
       <Link className={appSecondaryActionClass} href="/training">Retour à l’entraînement</Link>
-    </div>
-  </AppSurface></AppPage>;
+  </TrainingResultSummary></AppPage>;
 
   return <AppPage width="wide">
-    <Link className="coinche-ui-link w-fit text-sm font-bold" href="/training">← Retour à l’entraînement</Link>
-    <AppSurface className="mx-auto mt-3 w-full min-w-0">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div><AppEyebrow>Mémoriser · Niveau {level}</AppEyebrow><h1 className="mt-1 text-2xl font-black">{MEMORY_LABELS[axisId]}</h1></div>
-        <span aria-label={`Exercice ${index + 1} sur ${MEMORY_SERIES_LENGTH}`} className="rounded-full border border-[var(--border)] px-3 py-1.5 text-sm font-bold">{index + 1} / {MEMORY_SERIES_LENGTH}</span>
-      </div>
+    <AppSurface className="mx-auto w-full min-w-0">
+      <TrainingSessionHeader title={MEMORY_LABELS[axisId]} level={level} index={index + 1} total={MEMORY_SERIES_LENGTH} score={score} />
       <div className="mt-5 min-w-0">
         {studying ? <MemoryStudyPhase exercise={exercise} onAnswer={() => setStudying(false)} /> : <section aria-label="Question mémoire">
           <h2 className="text-lg font-black">{exercise.question}</h2>
@@ -144,7 +135,7 @@ export function TrainingMemoryPuzzleClient({ axisId, level }: { axisId: MemoryAx
               </fieldset>;
             })}
           </div> : null}
-          {grade ? <div aria-live="polite" className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+          {grade ? <div aria-live="polite" className="training-feedback mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
             <p className={`font-black ${grade.correct ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{grade.correct ? "Bonne réponse !" : "Mauvaise réponse"} · {grade.score} point{grade.score > 1 ? "s" : ""}</p>
             <p className="mt-2 text-sm">Bonnes sélections : {cardNames(exercise, grade.correctIds)}</p>
             <p className="text-sm">Cartes oubliées : {cardNames(exercise, grade.missedIds)}</p>
