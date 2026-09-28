@@ -1176,11 +1176,16 @@ summary:focus-visible {
 .training-player-card { min-width: 0; border: 1px solid var(--border); border-radius: 1rem; background: var(--surface-raised); padding: 1rem; }
 .training-player-card h3 { overflow-wrap: anywhere; font-size: 1.1rem; font-weight: 900; }
 .training-player-badge { display: inline-block; margin-top: .5rem; margin-right: .35rem; border: 1px solid var(--border); border-radius: 999px; padding: .2rem .55rem; font-size: .72rem; font-weight: 800; }
+.training-start-action { min-width: 10rem; }
+.training-duo-home > .training-hero { margin: -.25rem; }
 .training-wait { border: 1px solid var(--accent); border-radius: 1rem; background: var(--accent-soft); padding: 1.25rem; }
 .training-conventions-nav { display: flex; flex-wrap: wrap; gap: .4rem; position: sticky; top: 4rem; z-index: 10; border: 1px solid var(--border); border-radius: 1rem; background: var(--surface); padding: .5rem; }
 .training-conventions-nav a { border-radius: .65rem; padding: .55rem .7rem; font-size: .75rem; font-weight: 800; }
 .training-conventions-nav a:hover, .training-conventions-nav a:focus-visible { background: var(--accent-soft); }
 .training-convention-section { scroll-margin-top: 9rem; }
+.training-convention-section h2[id] { scroll-margin-top: 9rem; }
+.training-convention-section p.rounded-lg { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
+@media (max-width: 639px) { .training-start-action, .training-duo-home form button { width: 100%; } }
 @keyframes training-appear { from { opacity: .5; transform: translateY(3px); } to { opacity: 1; transform: none; } }
 @media (min-width: 640px) { .training-resume { grid-template-columns: 1fr auto; } .training-resume .training-card-action { width: auto; } }
 @media (max-width: 700px) { .training-conventions-nav { position: static; } }

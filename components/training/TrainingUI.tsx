@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import { appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { cardAccessibleName } from "@/components/training/CardSelection";
 import { SUIT_SYMBOLS } from "@/engine/cards";
@@ -48,12 +48,12 @@ export function TrainingModeCard({ title, description, level, levelName, record,
   </article>;
 }
 
-export function TrainingSessionHeader({ title, level, levelName, index, total, score, backLabel = "Retour à l’entraînement", backHref = "/training", heading }: {
-  title: string; level?: number; levelName?: string; index: number; total: number; score?: number; backLabel?: string; backHref?: string; heading?: string;
+export function TrainingSessionHeader({ title, level, levelName, index, total, score, backLabel = "Retour à l’entraînement", backHref = "/training", heading, headingRef }: {
+  title: string; level?: number; levelName?: string; index: number; total: number; score?: number; backLabel?: string; backHref?: string; heading?: string; headingRef?: RefObject<HTMLHeadingElement | null>;
 }) {
   return <header className="training-session-header">
     <Link href={backHref} className="coinche-ui-link training-back-link">← {backLabel}</Link>
-    <div className="training-session-title"><div><span className="training-kicker">Entraînement</span><h1>{heading ?? title}</h1><p>{level ? `Niveau ${level}${levelName ? ` · ${levelName}` : ""}` : levelName}</p></div>
+    <div className="training-session-title"><div><span className="training-kicker">{heading ? title : "Entraînement"}</span><h1 ref={headingRef} tabIndex={headingRef ? -1 : undefined}>{heading ?? title}</h1><p>{level ? `Niveau ${level}${levelName ? ` · ${levelName}` : ""}` : levelName}</p></div>
       {score !== undefined ? <p className="training-score">Score <strong>{score}</strong></p> : null}</div>
     <div className="training-progress-copy"><span aria-label={`Exercice ${index} sur ${total}`}>Exercice {index} / {total}</span><span>{Math.round((index / total) * 100)} %</span></div>
     <div className="training-progress-track" role="progressbar" aria-label="Progression de la série" aria-valuemin={0} aria-valuemax={total} aria-valuenow={index}><span style={{ width: `${index / total * 100}%` }} /></div>
