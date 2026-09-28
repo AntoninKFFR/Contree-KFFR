@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { TrainingResultSummary, TrainingSessionHeader } from "@/components/training/TrainingUI";
 import { useEffect, useRef, useState } from "react";
 import { SUIT_LABELS } from "@/engine/cards";
 import { generatorVersion } from "@/engine/training/generator";
@@ -100,29 +101,19 @@ export function TrainingOpponentVoidsClient({ level }: { level: number }) {
   </AppSurface></AppPage>;
   if (error) return <AppPage><AppSurface><p role="alert">{error}</p><Link href="/training">Retour à l’entraînement</Link></AppSurface></AppPage>;
   if (!progress || !series || !exercise) return <AppPage><AppSurface><p role="status">Préparation de la série…</p></AppSurface></AppPage>;
-  if (finished) return <AppPage width="medium"><AppSurface className="mx-auto w-full max-w-xl py-8 text-center">
-    <AppEyebrow>Série terminée · Jeu des autres · Niveau {level}</AppEyebrow>
-    <h1 className="mt-3 text-3xl font-black">Résultat</h1>
-    <p className="mt-5 text-5xl font-black text-[var(--accent)]">{score} / {OPPONENT_VOIDS_SERIES_LENGTH}</p>
-    <p className="mt-3 text-sm">Meilleur score : {progress.axes["opponent-voids"].levels[level].bestScore} / 10</p>
+  if (finished) return <AppPage width="medium"><TrainingResultSummary title="Jeu des autres" level={level} score={score} total={OPPONENT_VOIDS_SERIES_LENGTH}
+    best={`Meilleur score : ${progress.axes["opponent-voids"].levels[level].bestScore} / 10`} unlocked={newlyUnlockedLevel !== null ? `Niveau ${newlyUnlockedLevel} débloqué !` : undefined}>
     {syncStatus === "saved" ? <p className="mt-2 text-sm" role="status">Record sauvegardé sur ton compte.</p> : null}
     {syncStatus === "failed" ? <p className="mt-2 text-sm" role="status">Record local sauvegardé · synchronisation impossible.</p> : null}
-    {newlyUnlockedLevel !== null ? <p className="mt-3 font-bold text-[var(--success)]">Niveau {newlyUnlockedLevel} débloqué !</p> : null}
-    <div className="mt-6 flex flex-wrap justify-center gap-2">
       <button className={appPrimaryActionClass} onClick={replay} type="button">Rejouer</button>
       {newlyUnlockedLevel !== null ? <Link className={appSecondaryActionClass} href={`/training/puzzle/opponent-voids?level=${newlyUnlockedLevel}`}>Niveau {newlyUnlockedLevel}</Link> : null}
       <Link className={appSecondaryActionClass} href="/training">Retour à l’entraînement</Link>
-    </div>
-  </AppSurface></AppPage>;
+  </TrainingResultSummary></AppPage>;
 
   const players = exercise.players.map((id) => ({ id, name: exercise.playerNames[id] }));
   return <AppPage width="wide">
-    <Link className="coinche-ui-link w-fit text-sm font-bold" href="/training">← Retour à l’entraînement</Link>
-    <AppSurface className="mx-auto mt-3 w-full min-w-0">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div><AppEyebrow>Déduire · Niveau {level}</AppEyebrow><h1 className="mt-1 text-2xl font-black">Jeu des autres</h1></div>
-        <span aria-label={`Exercice ${index + 1} sur ${OPPONENT_VOIDS_SERIES_LENGTH}`} className="rounded-full border border-[var(--border)] px-3 py-1.5 text-sm font-bold">{index + 1} / {OPPONENT_VOIDS_SERIES_LENGTH}</span>
-      </div>
+    <AppSurface className="mx-auto w-full min-w-0">
+      <TrainingSessionHeader title="Jeu des autres" level={level} index={index + 1} total={OPPONENT_VOIDS_SERIES_LENGTH} score={score} />
       <div className="mt-5 min-w-0">
         {studying ? <TrainingStudyPhase observation={exercise.observation} trump={exercise.trump} playerNames={exercise.playerNames}
           instruction="Observe les plis joués : une carte hors de la couleur demandée peut prouver une coupure." onAnswer={() => setStudying(false)} /> :
@@ -139,7 +130,7 @@ export function TrainingOpponentVoidsClient({ level }: { level: number }) {
                 onSubmit={submit} disabled={grade !== null} label="Combien d’atouts restent hors de ta main ?" />
             </div> : null}
             {!grade && level !== 3 ? <button className={`${appPrimaryActionClass} mt-5 min-h-11`} onClick={submit} type="button">Valider la réponse</button> : null}
-            {grade ? <div aria-live="polite" className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+            {grade ? <div aria-live="polite" className="training-feedback mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
               <p className={`font-black ${grade.correct ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{grade.correct ? "Bonne réponse !" : "Mauvaise réponse"} · {grade.score} point</p>
               {exercise.level === 1 && exercise.expectedCells.length === 0 ? <p className="mt-2 text-sm font-bold">Pas prouvé par les plis observés.</p> : null}
               <p className="mt-2 text-sm">Coupures correctement trouvées : {grade.correctCells.map((key) => cellLabel(exercise, key)).join(", ") || "aucune"}</p>

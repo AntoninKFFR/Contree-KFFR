@@ -1166,6 +1166,7 @@ summary:focus-visible {
 .training-auction-bid { position: relative; min-width: 0; border: 1px solid var(--border); border-radius: .85rem; background: var(--surface-raised); padding: .75rem; }
 .training-auction-bid[aria-current] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .training-auction-bid strong { display: block; margin-top: .35rem; font-size: 1.15rem; }
+.training-auction-bid[data-suit="red"] strong { color: var(--danger); }
 .training-auction-bid small { display: block; color: var(--text-secondary); }
 .training-auction-target { margin-top: .35rem; color: var(--accent); font-size: .65rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
 .training-bid-option { transition: border-color .16s ease, background .16s ease; }

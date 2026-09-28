@@ -1,6 +1,16 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
+import { cardAccessibleName } from "@/components/training/CardSelection";
+import { SUIT_SYMBOLS } from "@/engine/cards";
+import type { Card } from "@/engine/types";
+
+export function TrainingCardFace({ card }: { card: Card }) {
+  const red = card.suit === "hearts" || card.suit === "diamonds";
+  return <span aria-label={cardAccessibleName(card)} className={`coinche-card relative flex h-16 w-11 shrink-0 items-center justify-center rounded-lg border bg-[#fffef9] shadow-sm sm:h-20 sm:w-14 ${red ? "border-red-200 text-red-700" : "border-stone-300 text-stone-900"}`}>
+    <span className="absolute left-1 top-1 text-xs font-black">{card.rank}</span><span aria-hidden="true" className="text-2xl">{SUIT_SYMBOLS[card.suit]}</span>
+  </span>;
+}
 
 export function TrainingSectionHeader({ kicker, title, description, id }: { kicker: string; title: string; description: string; id: string }) {
   return <header className="training-section-heading" id={id}>
@@ -60,7 +70,6 @@ export function TrainingResultSummary({ title, level, levelName, score, total, b
     {best ? <p className="training-result-best">{best}</p> : null}
     {unlocked ? <p className="training-unlocked" role="status">✦ {unlocked}</p> : null}
     <div className="training-result-actions">{children}</div>
-    <Link className="coinche-ui-link training-result-back" href="/training">Retour à l’entraînement</Link>
     <span className="sr-only">{title}</span>
   </section>;
 }
