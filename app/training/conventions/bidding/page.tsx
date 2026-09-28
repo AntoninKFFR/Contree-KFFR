@@ -24,12 +24,7 @@ export default function BiddingConventionsPage() {
         <p className="mt-2">Avec le Valet sans le 9, ou le 9 sans le Valet, annoncer 80 peut montrer la couleur et rechercher la carte manquante chez le partenaire. Ce message ne promet pas à lui seul une main autonome.</p>
         <p className="mt-2 rounded-lg border border-[var(--border)] p-3">Exemple : 9♥ A♥ 7♥ et des contrôles limités → 80 ♥ pour chercher le Valet.</p>
       </AppSurface>
-      <AppSurface className="training-convention-section"><h2 id="lecture" className="text-xl font-black">Promesse ≠ main exacte</h2>
-        <p className="mt-2">80 ♥ ne permet pas à lui seul de savoir si le joueur possède le Valet ou le 9. Plusieurs mains différentes peuvent produire le même message.</p>
-        <p className="mt-2">Une enchère décrit ce que la doctrine promet publiquement, pas toutes les cartes de la main. Dans « Lire les enchères », une main révélée après la réponse illustre seulement une possibilité compatible.</p>
-        <Link className="coinche-ui-link mt-3 inline-block font-bold" href="/training/puzzle/bid-reading?level=1">S’entraîner à lire les enchères</Link>
-      </AppSurface>
-      <AppSurface className="training-convention-section"><h2 className="text-xl font-black">Quatre atouts sans Valet ni 9</h2>
+      <AppSurface className="training-convention-section lg:col-span-2"><h2 className="text-xl font-black">Quatre atouts sans Valet ni 9</h2>
         <p className="mt-2 font-bold">4+ atouts sans Valet ni 9 : 80 maximum.</p>
         <p className="mt-2">Cette longueur ne mène pas automatiquement à 80 : il faut aussi des contrôles extérieurs crédibles. Elle ne justifie jamais 90 ou plus, même si le partenaire soutient ensuite la couleur.</p>
         <p className="mt-2 rounded-lg border border-[var(--border)] p-3">Exemple : 7♥ 8♥ Q♥ K♥ avec suffisamment de contrôles extérieurs → au maximum 80 ♥.</p>
@@ -60,6 +55,11 @@ export default function BiddingConventionsPage() {
       </AppSurface>
       <AppSurface className="training-convention-section"><h2 id="surcoinche" className="text-xl font-black">Surcoinche et Capot</h2>
         <p className="mt-2">La Surcoinche demande une marge exceptionnelle, pas simplement une bonne main. Le Capot demande un contrôle presque complet de la donne ; dans certains cas, l’annonce publique du partenaire complète l’information.</p>
+      </AppSurface>
+      <AppSurface className="training-convention-section"><h2 id="lecture" className="text-xl font-black">Promesse ≠ main exacte</h2>
+        <p className="mt-2">80 ♥ ne permet pas à lui seul de savoir si le joueur possède le Valet ou le 9. Plusieurs mains différentes peuvent produire le même message.</p>
+        <p className="mt-2">Une enchère décrit ce que la doctrine promet publiquement, pas toutes les cartes de la main. Dans « Lire les enchères », une main révélée après la réponse illustre seulement une possibilité compatible.</p>
+        <Link className="coinche-ui-link mt-3 inline-block font-bold" href="/training/puzzle/bid-reading?level=1">S’entraîner à lire les enchères</Link>
       </AppSurface>
       <AppSurface className="training-convention-section"><h2 id="reglement" className="text-xl font-black">Règlement utilisé</h2>
         <p className="mt-2">L’axe utilise le règlement contree-kffr version 1 : couleurs ♣ ♦ ♥ ♠, annonces de 80 à 160, Capot, Coinche, Surcoinche et Belote/Rebelote. Il n’interroge ni Sans Atout, ni Tout Atout, ni Générale, ni annonces de tierce ou de carré.</p>

@@ -29,7 +29,15 @@ for (const viewport of viewports) {
     await noHorizontalScroll();
 
     await page.goto("/training/puzzle/bid-reading?level=1");
-    await expect(page.getByRole("region", { name: "Historique public des enchères" }).locator("[aria-current=step]")).toHaveCount(1);
+    const auction = page.getByRole("region", { name: "Historique public des enchères" });
+    const bids = auction.locator("ol > li");
+    await expect(auction.locator("ol.training-auction-list")).toHaveCSS("flex-direction", viewport.width < 640 ? "column" : "row");
+    await expect(auction.locator(".training-auction-connector[aria-hidden=true]")).toHaveCount(await bids.count() - 1);
+    if (viewport.width < 640 && await bids.count() > 1) {
+      expect(await auction.locator(".training-auction-connector").first().evaluate((element) => getComputedStyle(element, "::after").content)).toContain("↓");
+    }
+    await expect(auction.locator("[aria-current=step]")).toHaveCount(1);
+    await expect(auction.locator("[aria-current=step] .training-auction-target")).toHaveText("Annonce à lire");
     await expect(page.getByRole("checkbox").first()).toBeVisible();
     await noHorizontalScroll();
 
@@ -41,6 +49,30 @@ for (const viewport of viewports) {
     const nav = page.getByRole("navigation", { name: "Sections des conventions" });
     await nav.getByRole("link", { name: "Coinche", exact: true }).click();
     await expect(page.locator("#coinche")).toBeVisible();
+    const sectionOrder = await page.locator(".training-convention-section h2").evaluateAll((headings) => headings.map((heading) => heading.id));
+    expect(sectionOrder.indexOf("lecture")).toBeGreaterThan(sectionOrder.indexOf("surcoinche"));
+    expect(sectionOrder.indexOf("lecture")).toBeLessThan(sectionOrder.indexOf("reglement"));
     await noHorizontalScroll();
   });
 }
+
+test("@smoke a longer auction stays sequential on desktop and vertical on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/training");
+  await page.evaluate(() => localStorage.setItem("coinche:training-progress:v1", JSON.stringify({ version: 1, axes: {
+    "bid-reading": { axisVersion: 1, unlockedLevel: 4, levels: {
+      1: { bestScore: 8, completedSeries: 1 }, 2: { bestScore: 8, completedSeries: 1 },
+      3: { bestScore: 8, completedSeries: 1 }, 4: { bestScore: 0, completedSeries: 0 },
+    } },
+  } })));
+  await page.goto("/training/puzzle/bid-reading?level=4");
+  const auction = page.getByRole("region", { name: "Historique public des enchères" });
+  await expect(auction.locator("ol > li")).toHaveCount(5);
+  await expect(auction.locator(".training-auction-connector[aria-hidden=true]")).toHaveCount(4);
+  await expect(auction.locator("[aria-current=step] .training-auction-target")).toHaveText("Annonce à lire");
+  await expect(auction.locator("ol")).toHaveCSS("flex-direction", "row");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(auction.locator("ol")).toHaveCSS("flex-direction", "column");
+  expect(await auction.locator(".training-auction-connector").first().evaluate((element) => getComputedStyle(element, "::after").content)).toContain("↓");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});

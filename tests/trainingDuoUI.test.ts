@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { TrainingDuoSessionView } from "@/components/training/TrainingDuoSessionClient";
 import { duoFixture, revealedFixture } from "@/tests/trainingDuoClientFixtures";
 import type { TrainingDuoView, TrainingDuoIntent } from "@/lib/trainingDuoTypes";
@@ -14,7 +14,11 @@ it("shows both seats, distinguishes host and viewer, and enforces ready plus onl
   const action = vi.fn(); const view = duoFixture();
   const { rerender } = render(element(view, action));
   expect(screen.getByText(/Alice · Toi/)).toBeTruthy();
-  expect(screen.getByText(/Hôte · Pas prêt · En ligne/)).toBeTruthy();
+  const hostCard = screen.getByText(/Place A · Alice · Toi/).closest(".training-player-card")!;
+  expect(within(hostCard as HTMLElement).getByText("Hôte")).toBeTruthy();
+  expect(within(hostCard as HTMLElement).getByText("○ Pas prêt")).toBeTruthy();
+  expect(within(hostCard as HTMLElement).getByText("● En ligne")).toBeTruthy();
+  expect(screen.queryByText(/Hôte · Pas prêt · En ligne/)).toBeNull();
   expect(screen.getByRole("button", { name: "Démarrer" }).hasAttribute("disabled")).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Je suis prêt" }));
   expect(action).toHaveBeenCalledWith({ type: "set-ready", ready: true });
@@ -29,6 +33,34 @@ it("shows both seats, distinguishes host and viewer, and enforces ready plus onl
   fireEvent.click(screen.getByRole("button", { name: "Annuler le duo" }));
   expect(action).toHaveBeenCalledWith({ type: "start" });
   expect(action).toHaveBeenCalledWith({ type: "cancel" });
+});
+it("confirms a copied code only after the clipboard succeeds", async () => {
+  const original = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+  const view = duoFixture();
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+  try {
+    render(element(view, vi.fn()));
+    fireEvent.click(screen.getByRole("button", { name: "Copier le code" }));
+    await waitFor(() => expect(screen.getByText("Code copié ✓")).toBeTruthy());
+    expect(writeText).toHaveBeenCalledWith(view.session.code);
+  } finally {
+    if (original) Object.defineProperty(navigator, "clipboard", original);
+    else Reflect.deleteProperty(navigator, "clipboard");
+  }
+});
+it("does not claim success when copying fails", async () => {
+  const original = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn().mockRejectedValue(new Error("denied")) } });
+  try {
+    render(element(duoFixture(), vi.fn()));
+    fireEvent.click(screen.getByRole("button", { name: "Copier le code" }));
+    await waitFor(() => expect(screen.getByText(/Copie impossible/)).toBeTruthy());
+    expect(screen.queryByText("Code copié ✓")).toBeNull();
+  } finally {
+    if (original) Object.defineProperty(navigator, "clipboard", original);
+    else Reflect.deleteProperty(navigator, "clipboard");
+  }
 });
 it("offers guest leave, but no host controls", () => {
   const action = vi.fn(); render(element(duoFixture("lobby", 1), action));

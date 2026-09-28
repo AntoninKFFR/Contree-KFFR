@@ -16,7 +16,8 @@ export function BidReadingPublicAuction({ exercise }: { exercise: PublicAuctionD
         <small>{index + 1} · {TRAINING_BID_ROLES[bid.playerId]}</small>
         <span className="block text-xs">{exercise.playerNames[bid.playerId]}</span>
         <strong>{formatPublicBidLabel(bid)}</strong>
-        {index === exercise.targetBidIndex ? <span className="training-auction-target">↑ Annonce à lire</span> : null}
+        {index === exercise.targetBidIndex ? <span className="training-auction-target">Annonce à lire</span> : null}
+        {index < exercise.publicBids.length - 1 ? <span className="training-auction-connector" aria-hidden="true">→</span> : null}
       </li>)}
     </ol>
   </section>;

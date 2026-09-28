@@ -16,6 +16,7 @@ const viewports = [
   { width: 390, height: 844 }, { width: 667, height: 375 },
   { width: 844, height: 390 }, { width: 1366, height: 768 },
 ];
+const lobbyPlayer = (page: Page, slot: 0 | 1) => page.locator('[aria-label="Participants"] .training-player-card').nth(slot);
 
 async function twoBrowsers(browser: Browser, baseURL: string | undefined) {
   const contexts: BrowserContext[] = [];
@@ -80,7 +81,8 @@ async function readyBoth(pageA: Page, pageB: Page, sessionId: string) {
   await pageA.getByRole("button", { name: "Je suis prêt" }).click();
   await expect.poll(async () => (await duoView(pageA, sessionId)).participants
     .find((participant) => participant.slot === 0)?.isReady).toBe(true);
-  await expect(pageB.getByText("Hôte · Prêt · En ligne")).toBeVisible({ timeout: 30_000 });
+  await expect(lobbyPlayer(pageB, 0).getByText("✓ Prêt")).toBeVisible({ timeout: 30_000 });
+  await expect(lobbyPlayer(pageB, 0).getByText("● En ligne")).toBeVisible();
   await pageB.getByRole("button", { name: "Je suis prêt" }).click();
   await expect.poll(async () => (await duoView(pageA, sessionId)).participants
     .every((participant) => participant.isReady && participant.isConnected), { timeout: 30_000 }).toBe(true);
@@ -115,8 +117,11 @@ test.describe("@training-duo two authenticated browser contexts", () => {
       expect(guest.participants.map((participant) => participant.displayName)).toEqual((await duoView(pageA, sessionId)).participants.map((participant) => participant.displayName));
       await expect(pageA.getByText(/Place A · .* · Toi/)).toBeVisible();
       await expect(pageB.getByText(/Place B · .* · Toi/)).toBeVisible();
-      await expect(pageA.getByText(/Hôte · Pas prêt · En ligne/)).toBeVisible();
-      await expect(pageB.getByText(/Pas prêt · En ligne/).last()).toBeVisible();
+      await expect(lobbyPlayer(pageA, 0).getByText("Hôte", { exact: true })).toBeVisible();
+      await expect(lobbyPlayer(pageA, 0).getByText("○ Pas prêt")).toBeVisible();
+      await expect(lobbyPlayer(pageA, 0).getByText("● En ligne")).toBeVisible();
+      await expect(lobbyPlayer(pageB, 1).getByText("○ Pas prêt")).toBeVisible();
+      await expect(lobbyPlayer(pageB, 1).getByText("● En ligne")).toBeVisible();
       await expect(pageA.getByRole("button", { name: "Démarrer" })).toBeDisabled({ timeout: 30_000 });
       await expect(pageB.getByRole("button", { name: "Démarrer" })).toHaveCount(0);
       await expectResponsive(pageA, "lobby");

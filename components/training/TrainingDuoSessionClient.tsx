@@ -27,10 +27,23 @@ export function TrainingDuoSessionView({ view, pending, onAction }: { view: Trai
   const partner = participants.find((participant) => participant.slot !== viewerSlot);
   const questionHeading = useRef<HTMLHeadingElement>(null);
   const previousIndex = useRef(session.currentIndex);
+  const [copyStatus, setCopyStatus] = useState<"copied" | "failed" | null>(null);
+  const copyStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (copyStatusTimer.current !== null) clearTimeout(copyStatusTimer.current); }, []);
   useEffect(() => {
     if (session.status === "active" && session.currentIndex !== previousIndex.current) questionHeading.current?.focus();
     previousIndex.current = session.currentIndex;
   }, [session.currentIndex, session.status]);
+  const copyCode = async () => {
+    if (copyStatusTimer.current !== null) clearTimeout(copyStatusTimer.current);
+    setCopyStatus(null);
+    try {
+      if (!session.code || !navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(session.code);
+      setCopyStatus("copied");
+    } catch { setCopyStatus("failed"); }
+    copyStatusTimer.current = setTimeout(() => { setCopyStatus(null); copyStatusTimer.current = null; }, 2500);
+  };
 
   if (session.status === "cancelled") return <AppSurface><AppEyebrow>Duo terminé</AppEyebrow>
     <h1 className="mt-2 text-3xl font-black">Session interrompue</h1>
@@ -58,7 +71,8 @@ export function TrainingDuoSessionView({ view, pending, onAction }: { view: Trai
       <p className="mt-2 text-sm">Niveau {session.level} · {BID_READING_LEVEL_NAMES[session.level]}</p>
       <div className="mt-5 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] p-4"><p className="training-kicker">Code de session</p>
         <p className="mt-1 break-all font-mono text-2xl font-black tracking-widest">{session.code}</p>
-        <button className={`${appSecondaryActionClass} mt-3`} type="button" onClick={() => { if (session.code && navigator.clipboard) void navigator.clipboard.writeText(session.code); }}>Copier le code</button>
+        <button className={`${appSecondaryActionClass} mt-3`} type="button" onClick={() => void copyCode()}>Copier le code</button>
+        <p role="status" aria-live="polite" className="mt-2 text-sm">{copyStatus === "copied" ? "Code copié ✓" : copyStatus === "failed" ? "Copie impossible. Sélectionne le code pour le partager." : ""}</p>
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2" aria-label="Participants">
         {[0, 1].map((slot) => {
@@ -66,8 +80,7 @@ export function TrainingDuoSessionView({ view, pending, onAction }: { view: Trai
           return <div key={slot} className="training-player-card">
             <p className="training-kicker">Joueur {slot + 1}</p>
             <h3>Place {slot === 0 ? "A" : "B"} · {participant?.displayName ?? "En attente d’un joueur"}{slot === viewerSlot ? " · Toi" : ""}</h3>
-            {participant ? <div><span className="training-player-badge">{participant.isHost ? "Hôte" : "Joueur"}</span><span className="training-player-badge">{participant.isConnected ? "● En ligne" : "○ Hors ligne"}</span><span className="training-player-badge">{participant.isReady ? "✓ Prêt" : "○ Pas prêt"}</span>
-              <p className="mt-1 text-xs text-[var(--text-secondary)]">{participant.isHost ? "Hôte" : "Joueur"} · {participant.isReady ? "Prêt" : "Pas prêt"} · {participant.isConnected ? "En ligne" : "Hors ligne"}</p></div> : null}
+            {participant ? <div><span className="training-player-badge">{participant.isHost ? "Hôte" : "Joueur"}</span><span className="training-player-badge">{participant.isConnected ? "● En ligne" : "○ Hors ligne"}</span><span className="training-player-badge">{participant.isReady ? "✓ Prêt" : "○ Pas prêt"}</span></div> : null}
           </div>;
         })}
       </div>
