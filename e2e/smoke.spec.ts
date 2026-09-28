@@ -201,6 +201,15 @@ test.describe("@smoke public production readiness", () => {
     const desktop = header.getByRole("navigation", { name: "Navigation principale" });
     const training = desktop.getByRole("button", { name: /Entraînement/ });
     const play = desktop.getByRole("button", { name: /Jouer/ });
+    const expectAnchorBelowHeader = async (id: string) => {
+      const target = page.locator(`#${id}`);
+      await expect(target).toBeInViewport();
+      await expect.poll(async () => {
+        const [headerBox, targetBox] = await Promise.all([header.boundingBox(), target.boundingBox()]);
+        if (!headerBox || !targetBox) return Number.NEGATIVE_INFINITY;
+        return targetBox.y - (headerBox.y + headerBox.height);
+      }).toBeGreaterThanOrEqual(-1);
+    };
     const items = [
       ["Vue d’ensemble", "/training"],
       ["Calculer", "/training#calculer"],
@@ -238,14 +247,17 @@ test.describe("@smoke public production readiness", () => {
     await training.hover();
     await menu.getByRole("link", { name: "Calculer" }).click();
     await expect(page).toHaveURL(/\/training#calculer$/);
-    await expect(page.locator("#calculer")).toBeInViewport();
+    await expectAnchorBelowHeader("calculer");
     await expect(training).toHaveAttribute("aria-current", "page");
     await expect(training).toHaveAttribute("aria-expanded", "false");
     await training.hover();
     await expect(menu.getByRole("link", { name: "Vue d’ensemble" })).toHaveAttribute("aria-current", "page");
-    await menu.getByRole("link", { name: "Déduire" }).click();
-    await expect(page).toHaveURL(/\/training#deduire$/);
-    await expect(page.locator("#deduire")).toBeInViewport();
+    for (const [label, id] of [["Mémoriser", "memoriser"], ["Déduire", "deduire"], ["Annoncer", "annoncer"]] as const) {
+      await menu.getByRole("link", { name: label }).click();
+      await expect(page).toHaveURL(new RegExp(`/training#${id}$`));
+      await expectAnchorBelowHeader(id);
+      await training.hover();
+    }
 
     await page.goto("/training/conventions/bidding");
     await expect(training).toHaveAttribute("aria-current", "page");
@@ -261,6 +273,9 @@ test.describe("@smoke public production readiness", () => {
       await expect(group.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
     }
     await expect(group.getByRole("link", { name: "Vue d’ensemble" })).toHaveAttribute("aria-current", "page");
+    await group.getByRole("link", { name: "Mémoriser" }).click();
+    await expect(page).toHaveURL(/\/training#memoriser$/);
+    await expectAnchorBelowHeader("memoriser");
   });
 
   test("@smoke desktop topbar navigation stays fixed between routes", async ({ page }) => {
