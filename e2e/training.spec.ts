@@ -40,8 +40,9 @@ test("@smoke public training hub shows level 1 and locks level 2", async ({ page
   const browserErrors = monitorBrowserErrors(page);
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/");
-  await expect(page.getByRole("navigation", { name: "Navigation principale" }).getByRole("link", { name: "Entraînement" })).toBeVisible();
-  await page.getByRole("navigation", { name: "Navigation principale" }).getByRole("link", { name: "Entraînement" }).click();
+  const trainingNav = page.getByRole("navigation", { name: "Navigation principale" });
+  await trainingNav.getByRole("button", { name: /Entraînement/ }).click();
+  await trainingNav.getByRole("link", { name: "Vue d’ensemble" }).click();
   await expect(page).toHaveURL(/\/training$/);
   await expect(page.getByRole("heading", { name: "Fondamentaux" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Confirmé" })).toBeVisible();
@@ -86,7 +87,7 @@ test("@smoke completes ten level-1 exercises without an account on mobile", asyn
   await expect(page.getByText("Connecte-toi pour comparer tes records avec ceux de tes amis.")).toBeVisible();
   await expect(page.getByRole("list", { name: "Classement entre amis" })).toHaveCount(0);
   await page.getByRole("button", { name: "Ouvrir le menu" }).click();
-  await expect(page.getByRole("navigation", { name: "Navigation mobile" }).getByRole("link", { name: "Entraînement" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Navigation mobile" }).getByText("Entraînement", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Ouvrir le menu" }).click();
   await page.getByRole("link", { name: "Jouer le niveau 1" }).click();
   for (let exercise = 1; exercise <= 10; exercise += 1) {
