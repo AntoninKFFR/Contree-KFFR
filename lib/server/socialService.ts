@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import {
   parseGameInvitationMutationResult,
+  parseFriendPresence,
   parseGameInvitationResolution,
   parseGameInvitationsSnapshot,
   parseInvitableFriends,
@@ -156,6 +157,17 @@ async function callRpc<T>(
 
 export function getSocialSnapshot(request: Request): Promise<SocialSnapshot> {
   return callRpc(request, "get_my_social_snapshot", undefined, parseSocialSnapshot);
+}
+
+export function getFriendPresence(request: Request): Promise<string[]> {
+  return callRpc(request, "get_my_friend_presence", undefined, (value) => [...parseFriendPresence(value)]);
+}
+
+export function touchFriendPresence(request: Request): Promise<boolean> {
+  return callRpc(request, "touch_social_presence", undefined, (value) => {
+    if (value !== true) throw new Error("Invalid heartbeat response");
+    return true;
+  });
 }
 
 export function searchPlayers(request: Request, prefix: string): Promise<SocialSearchResult[]> {

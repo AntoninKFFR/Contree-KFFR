@@ -269,6 +269,25 @@ export function fetchSocialSnapshot(token: AccessTokenSource) {
   return request("/api/social", token, parseSocialSnapshot);
 }
 
+export function parseFriendPresence(value: unknown): Set<string> {
+  if (!Array.isArray(value) || value.some((item) => !isRecord(item) || typeof item.user_id !== "string"
+    || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.user_id))) {
+    throw new Error("Invalid friend presence");
+  }
+  return new Set(value.map((item) => (item as { user_id: string }).user_id));
+}
+
+export function fetchFriendPresence(token: AccessTokenSource): Promise<Set<string>> {
+  return request("/api/social/presence", token, parseFriendPresence);
+}
+
+export function touchSocialPresence(token: AccessTokenSource): Promise<boolean> {
+  return request("/api/social/presence", token, (value) => {
+    if (value !== true) throw new Error("Invalid heartbeat response");
+    return true;
+  }, { method: "POST" });
+}
+
 export function searchSocialPlayers(query: string, token: AccessTokenSource) {
   return request(`/api/social/search?q=${encodeURIComponent(query)}`, token, parseSocialSearchResults);
 }
