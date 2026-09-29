@@ -4,6 +4,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppTopNav } from "@/components/AppTopNav";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
 import { MusicProvider } from "@/components/settings/MusicProvider";
+import { SocialNotificationsProvider } from "@/components/social/SocialNotifications";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,10 +29,12 @@ export default function RootLayout({
       <body>
         <PlayerPreferencesProvider>
           <MusicProvider>
-            <div className="min-h-dvh">
-              <AppTopNav />
-              {children}
-            </div>
+            <SocialNotificationsProvider>
+              <div className="min-h-dvh">
+                <AppTopNav />
+                {children}
+              </div>
+            </SocialNotificationsProvider>
           </MusicProvider>
         </PlayerPreferencesProvider>
         {isVercelDeployment ? <SpeedInsights /> : null}

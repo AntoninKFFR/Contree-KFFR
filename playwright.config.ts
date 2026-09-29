@@ -43,5 +43,11 @@ export default defineConfig({
       // Auth actions contain passwords; never record them in a Playwright trace.
       use: { ...devices["Desktop Chrome"], trace: "off" },
     },
+    {
+      name: "social",
+      grep: /@social/,
+      // Authenticated actions must never be recorded in a trace.
+      use: { ...devices["Desktop Chrome"], trace: "off" },
+    },
   ],
 });
