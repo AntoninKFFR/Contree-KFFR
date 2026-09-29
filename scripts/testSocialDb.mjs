@@ -95,11 +95,12 @@ async function waitForEvent(receiver, eventType, id) {
   throw new Error(`Missing Realtime ${eventType} for ${id}`);
 }
 
-async function primeSocialRealtime(table, values, receiver, watchers) {
+async function primeSocialRealtime(table, values, receiver, watchers, viewer) {
   // SUBSCRIBED confirms the socket join, not that the local replication worker is ready.
   const probe = checked(await admin.from(table).insert(values).select("id").single(), `${table} Realtime probe`);
   try {
-    for (let attempt = 0; attempt < 20 && !receiver.events.some((entry) => entry.new?.id === probe.id); attempt += 1) {
+    assert.equal(checked(await viewer.client.from(table).select("id").eq("id", probe.id), `${table} participant SELECT`).length, 1);
+    for (let attempt = 0; attempt < 60 && !receiver.events.some((entry) => entry.new?.id === probe.id); attempt += 1) {
       checked(await admin.from(table).update({ created_at: new Date(Date.now() - (attempt + 1) * 1000).toISOString() }).eq("id", probe.id), `${table} Realtime prime`);
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
@@ -111,8 +112,17 @@ async function primeSocialRealtime(table, values, receiver, watchers) {
   }
 }
 
-function assertSafeRealtimePayload(payload, columns) {
-  assert.deepEqual(Object.keys(payload.new).sort(), [...columns].sort());
+function assertSafeRealtimePayload(payload, columns, derivedColumns = []) {
+  const actual = Object.keys(payload.new);
+  for (const column of columns) assert.ok(actual.includes(column), `Realtime omitted ${column}`);
+  for (const column of actual) assert.ok([...columns, ...derivedColumns].includes(column), `Realtime exposed unexpected ${column}`);
+  if (derivedColumns.length) {
+    // The local Realtime service can hydrate generated pair keys from the row
+    // even though the publication lists only the six invalidation columns.
+    const pair = [payload.new.requester_id, payload.new.recipient_id].sort();
+    if ("user_low" in payload.new) assert.equal(payload.new.user_low, pair[0]);
+    if ("user_high" in payload.new) assert.equal(payload.new.user_high, pair[1]);
+  }
   const raw = JSON.stringify(payload).toLowerCase();
   for (const forbidden of ["email", "access_token", "refresh_token", "gamestate", "hands", "cards", "username"]) {
     assert.equal(raw.includes(`\"${forbidden}\"`), false, `Realtime leaked ${forbidden}`);
@@ -128,32 +138,27 @@ async function testSocialRealtime() {
     realtimeReceiver(sender, "friend_requests", `recipient_id=eq.${sender.id}`),
     realtimeReceiver(third, "friend_requests", `recipient_id=eq.${receiver.id}`),
   ]);
-  try {
-    await primeSocialRealtime("friend_requests", { requester_id: sender.id, recipient_id: receiver.id }, requests[0], requests);
-    const request = await rpc(sender, "send_friend_request", { p_recipient_id: receiver.id });
-    const inserted = await waitForEvent(requests[0], "INSERT", request.id);
-    assertSafeRealtimePayload(inserted, ["id", "requester_id", "recipient_id", "status", "created_at", "resolved_at"]);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    assert.equal(requests[1].events.length, 0, "sender received an event outside its own recipient filter");
-    assert.equal(requests[2].events.length, 0, "third party received request");
-    await rpc(receiver, "accept_friend_request", { p_request_id: request.id });
-    await waitForEvent(requests[0], "UPDATE", request.id);
-    assert.equal(JSON.stringify(await rpc(receiver, "get_my_social_snapshot")).includes(request.id), false);
-  } finally {
-    await Promise.all(requests.map((item) => item.close()));
-  }
-
   const invitations = await Promise.all([
     realtimeReceiver(receiver, "game_invitations", `invitee_id=eq.${receiver.id}`),
     realtimeReceiver(sender, "game_invitations", `invitee_id=eq.${sender.id}`),
     realtimeReceiver(third, "game_invitations", `invitee_id=eq.${receiver.id}`),
   ]);
   try {
+    await primeSocialRealtime("friend_requests", { requester_id: sender.id, recipient_id: receiver.id }, requests[0], requests, receiver);
+    const request = await rpc(sender, "send_friend_request", { p_recipient_id: receiver.id });
+    const inserted = await waitForEvent(requests[0], "INSERT", request.id);
+    assertSafeRealtimePayload(inserted, ["id", "requester_id", "recipient_id", "status", "created_at", "resolved_at"], ["user_low", "user_high"]);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    assert.equal(requests[1].events.length, 0, "sender received an event outside its own recipient filter");
+    assert.equal(requests[2].events.length, 0, "third party received request");
+    await rpc(receiver, "accept_friend_request", { p_request_id: request.id });
+    await waitForEvent(requests[0], "UPDATE", request.id);
+    assert.equal(JSON.stringify(await rpc(receiver, "get_my_social_snapshot")).includes(request.id), false);
     const roomId = await createRoom(sender);
-    await primeSocialRealtime("game_invitations", { room_id: roomId, inviter_id: sender.id, invitee_id: receiver.id }, invitations[0], invitations);
+    await primeSocialRealtime("game_invitations", { room_id: roomId, inviter_id: sender.id, invitee_id: receiver.id }, invitations[0], invitations, receiver);
     const invitation = await rpc(sender, "send_game_invitation", { p_room_id: roomId, p_invitee_id: receiver.id });
-    const inserted = await waitForEvent(invitations[0], "INSERT", invitation.id);
-    assertSafeRealtimePayload(inserted, ["id", "room_id", "inviter_id", "invitee_id", "status", "created_at", "expires_at", "resolved_at"]);
+    const insertedInvitation = await waitForEvent(invitations[0], "INSERT", invitation.id);
+    assertSafeRealtimePayload(insertedInvitation, ["id", "room_id", "inviter_id", "invitee_id", "status", "created_at", "expires_at", "resolved_at"]);
     await new Promise((resolve) => setTimeout(resolve, 500));
     assert.equal(invitations[1].events.length, 0, "sender received an event outside its own invitee filter");
     assert.equal(invitations[2].events.length, 0, "third party received invitation");
@@ -162,7 +167,7 @@ async function testSocialRealtime() {
     const snapshot = await rpc(receiver, "get_my_game_invitations");
     assert.equal(snapshot.invitations.some((entry) => entry.id === invitation.id && entry.status === "pending"), false);
   } finally {
-    await Promise.all(invitations.map((item) => item.close()));
+    await Promise.all([...requests, ...invitations].map((item) => item.close()));
   }
 }
 

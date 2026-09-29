@@ -77,7 +77,7 @@ jobs:
             | grep '^SOCIAL_TEST_')
           set +a
           node scripts/provisionSocialE2e.mjs
-          printf 'NEXT_PUBLIC_SUPABASE_URL=%s\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%s\n' "$SOCIAL_TEST_SUPABASE_URL" "$SOCIAL_TEST_SUPABASE_ANON_KEY" >> "$GITHUB_ENV"
+          printf 'NEXT_PUBLIC_SUPABASE_URL=%s\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%s\nSUPABASE_SECRET_KEY=%s\n' "$SOCIAL_TEST_SUPABASE_URL" "$SOCIAL_TEST_SUPABASE_ANON_KEY" "$SOCIAL_TEST_SUPABASE_SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
       - run: npx playwright install --with-deps chromium
       - name: Test global social notifications with two browsers
         run: npx playwright test --project=social

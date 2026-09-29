@@ -11,11 +11,13 @@ if (!url || !key || !output || !["localhost", "127.0.0.1", "::1"].includes(new U
 }
 
 const admin = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+process.stdout.write(`::add-mask::${key}\n`);
 const suffix = randomUUID().slice(0, 8);
 for (let player = 1; player <= 2; player += 1) {
   const email = `social-e2e-${player}-${suffix}@example.test`;
   const password = `Local-${randomUUID()}-test`;
   const username = `SocialE2E${player}${suffix}`;
+  process.stdout.write(`::add-mask::${email}\n::add-mask::${password}\n`);
   const { error } = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { username } });
   if (error) throw error;
   appendFileSync(output, `E2E_USER_${player}_EMAIL=${email}\nE2E_USER_${player}_PASSWORD=${password}\n`, { mode: 0o600 });
