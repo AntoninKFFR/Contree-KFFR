@@ -16,7 +16,10 @@ on:
       - "app/layout.tsx"
       - "app/globals.css"
       - "app/friends/FriendsPageClient.tsx"
+      - "app/api/social/presence/**"
       - "lib/social*.ts"
+      - "lib/server/socialService.ts"
+      - "lib/friendPresence.ts"
       - ".github/workflows/social-db.yml"
       - "package.json"
   push:
@@ -35,7 +38,10 @@ on:
       - "app/layout.tsx"
       - "app/globals.css"
       - "app/friends/FriendsPageClient.tsx"
+      - "app/api/social/presence/**"
       - "lib/social*.ts"
+      - "lib/server/socialService.ts"
+      - "lib/friendPresence.ts"
       - ".github/workflows/social-db.yml"
       - "package.json"
 
