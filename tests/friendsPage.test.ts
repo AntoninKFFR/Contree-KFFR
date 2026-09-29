@@ -35,13 +35,15 @@ describe("friends page", () => {
     expect(markup).toContain('href="/profile"');
   });
 
-  it("renders empty friends, received requests and sent requests sections", () => {
+  it("keeps empty social sections compact in a centered column", () => {
     const markup = render("ready", emptySnapshot);
+    expect(markup).toContain("max-w-4xl");
     expect(markup).toContain("Mes amis");
     expect(markup).toContain("Tu n&#x27;as pas encore d&#x27;amis ajoutés.");
-    expect(markup).toContain("Demandes reçues");
-    expect(markup).toContain("Demandes envoyées");
-    expect(markup).toContain("Rechercher un joueur");
+    expect(markup).toContain("Demandes · aucune en attente");
+    expect(markup).toContain("Ajouter un ami");
+    expect(markup).not.toContain("Aucune invitation de partie en attente.");
+    expect(markup).not.toContain("coinche-app-card");
   });
 
   it("uses the shared error notice for a failed player search", () => {
@@ -86,6 +88,8 @@ describe("friends page", () => {
     expect(markup).toContain("Répondre à la demande");
     expect(markup).toContain("Demande envoyée");
     expect(markup).toContain("Ajouter");
+    expect(markup).toContain("coinche-social-row");
+    expect(markup).not.toContain("coinche-app-card");
   });
 
   it("debounces searches, refetches conflicts and confirms friend deletion", () => {

@@ -337,10 +337,7 @@ function ProfileShell({ children }: { children: React.ReactNode }) {
 }
 
 function StatusCard({ children, title }: { children: React.ReactNode; title: string }) {
-  return (
-    <AppSurface className="p-6 text-sm">
-      <h1 className="text-2xl font-bold text-stone-50">{title}</h1>
-      <div className="mt-2 text-stone-300">{children}</div>
-    </AppSurface>
-  );
+  return <AppPageHeader eyebrow="Profil joueur" title={title}>
+    <div className="text-sm text-[var(--text-secondary)]">{children}</div>
+  </AppPageHeader>;
 }

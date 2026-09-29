@@ -102,8 +102,8 @@ export default function HistoryPage() {
           <Link className="coinche-ui-link text-sm font-semibold" href="/profile">← Profil</Link>
           <Link className="coinche-ui-link text-sm font-semibold" href="/">Accueil</Link>
         </div>
-        <AppPageHeader description="Les plus récentes apparaissent en premier." eyebrow="Historique" title="Toutes les parties">
-          <div className="mt-5 flex flex-wrap gap-2" aria-label="Filtrer l'historique">
+        <AppPageHeader description="Les plus récentes apparaissent en premier." eyebrow="Historique" title="Toutes les parties" />
+          <div className="flex flex-wrap gap-2" aria-label="Filtrer l'historique">
             {(["all", "solo", "multiplayer"] as const).map((value) => (
               <button
                 aria-pressed={filter === value}
@@ -116,7 +116,6 @@ export default function HistoryPage() {
               </button>
             ))}
           </div>
-        </AppPageHeader>
         <AppSurface variant="plain">
           {pageState === "unavailable" ? <StatusMessage>Supabase est indisponible. Vérifie la configuration dans .env.local.</StatusMessage> : null}
           {pageState === "signed-out" ? (

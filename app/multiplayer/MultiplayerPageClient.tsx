@@ -232,15 +232,15 @@ export default function MultiplayerPage() {
 
         {pageState === "ready" ? (
           <div className="grid gap-4 lg:grid-cols-2">
-            <AppSurface className="h-full lg:p-6">
-              <div className="flex items-center justify-between gap-3"><div><AppEyebrow>Nouvelle partie</AppEyebrow><h2 className="mt-1 text-2xl font-black text-[#f4ead0]">Créer une table</h2></div><span aria-hidden="true" className="coinche-ui-kicker text-3xl opacity-60">♣</span></div>
-              <form className="mt-5 flex flex-col gap-3" onSubmit={handleCreateRoom}>
+            <AppSurface className="flex h-full flex-col lg:p-6">
+              <div><AppEyebrow>Nouvelle partie</AppEyebrow><h2 className="mt-1 text-xl font-black text-[#f4ead0]">Créer une table</h2></div>
+              <form className="mt-5 flex flex-1 flex-col gap-3" onSubmit={handleCreateRoom}>
                 <p className="text-sm text-stone-300">Tu joues en tant que <strong>{username}</strong>.</p>
 
                 <button className={appSecondaryActionClass} disabled={!canSubmit} type="button" onClick={() => setIsRulesOpen(true)}>Modifier les règles</button>
 
                 <button
-                  className={appPrimaryActionClass}
+                  className={`${appPrimaryActionClass} mt-auto`}
                   disabled={!canSubmit}
                   type="submit"
                 >
@@ -249,9 +249,9 @@ export default function MultiplayerPage() {
               </form>
             </AppSurface>
 
-            <AppSurface className="h-full lg:p-6">
+            <AppSurface className="flex h-full flex-col lg:p-6">
               <div><AppEyebrow>Invitation</AppEyebrow><h2 className="mt-1 text-xl font-black text-[#f4ead0]">Rejoindre une table</h2></div>
-              <form className="mt-5 flex flex-col gap-3" onSubmit={handleJoinRoom}>
+              <form className="mt-5 flex flex-1 flex-col gap-3" onSubmit={handleJoinRoom}>
 
                 <label className="coinche-app-field flex flex-col gap-1.5 text-sm font-bold text-[var(--text-secondary)]">
                   Code de table
@@ -266,7 +266,7 @@ export default function MultiplayerPage() {
                 </label>
 
                 <button
-                  className={appSecondaryActionClass}
+                  className={`${appPrimaryActionClass} mt-auto`}
                   disabled={!canSubmit}
                   type="submit"
                 >

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React, { createElement } from "react";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ readAccount: vi.fn(), onAuth: vi.fn(), client: vi.fn() }));
@@ -44,9 +44,10 @@ describe("training hub account records", () => {
     ] });
     render(createElement(TrainingHubClient));
     await waitFor(() => expect(screen.getByText(/Record compte : 10 \/ 10/)).toBeTruthy());
-    expect(screen.getByText("Meilleur score : 8 / 10")).toBeTruthy();
+    const trickCard = screen.getByRole("heading", { name: "Valeur d’un pli" }).closest("article")!;
+    expect(within(trickCard).getByText("Record local · 8 / 10")).toBeTruthy();
     expect(screen.getByText(/Meilleur temps : 42,3 s/)).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Jouer le niveau 1" })).toBeTruthy();
+    expect(within(trickCard).getByRole("link", { name: "Jouer" })).toBeTruthy();
   });
 
   it("keeps anonymous puzzles accessible and shows no account record", async () => {
@@ -54,7 +55,8 @@ describe("training hub account records", () => {
     render(createElement(TrainingHubClient));
     await waitFor(() => expect(screen.getByText(/Connecte-toi pour synchroniser tes records/)).toBeTruthy());
     expect(screen.queryByText(/Record compte :/)).toBeNull();
-    expect(screen.getByRole("link", { name: "Jouer le niveau 1" })).toBeTruthy();
+    const trickCard = screen.getByRole("heading", { name: "Valeur d’un pli" }).closest("article")!;
+    expect(within(trickCard).getByRole("link", { name: "Jouer" })).toBeTruthy();
   });
 
   it("discards a pending account A read after sign-out", async () => {

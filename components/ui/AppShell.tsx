@@ -35,17 +35,16 @@ export function KffrSuitBackdrop() {
   return <span aria-hidden="true" className="coinche-suit-backdrop">♠ ♥ ♦ ♣</span>;
 }
 
-export function AppPageHeader({ eyebrow, title, description, actions, children, className = "", hero = false, suits = false }: {
+export function AppPageHeader({ eyebrow, title, description, actions, children, className = "", hero = true, suits = true }: {
   eyebrow?: string; title: string; description?: string; actions?: ReactNode; children?: ReactNode; className?: string; hero?: boolean; suits?: boolean;
 }) {
   return <header className={`coinche-page-header ${hero ? "coinche-page-header--hero" : ""} ${className}`}>
     {suits ? <KffrSuitBackdrop /> : null}
-    <div className="coinche-page-header-main"><div>
+    <div className="coinche-page-header-main"><div className="coinche-page-header-copy">
       {eyebrow ? <AppEyebrow>{eyebrow}</AppEyebrow> : null}
       <h1>{title}</h1>
       {description ? <p className="coinche-page-header-description">{description}</p> : null}
-    </div>{actions ? <div className="coinche-page-header-actions">{actions}</div> : null}</div>
-    {children}
+    </div>{actions ? <div className="coinche-page-header-actions">{actions}</div> : null}{children}</div>
   </header>;
 }
 

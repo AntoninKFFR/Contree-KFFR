@@ -354,7 +354,8 @@ test.describe("@smoke public production readiness", () => {
       await page.goto("/solo");
       await expect(header).toBeVisible();
       await expect(header.getByRole("navigation", { name: "Navigation principale" })).toBeVisible();
-      await expect(page.locator("header")).toHaveCount(1);
+      await expect(header).toHaveCount(1);
+      await expect(page.locator(".coinche-page-header--hero")).toHaveCount(1);
 
       const table = page.locator(".coinche-game-table");
       await expect(page.getByRole("heading", { name: "Prêt à lancer une partie ?" })).toBeVisible();
