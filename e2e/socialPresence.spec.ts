@@ -1,10 +1,10 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { loginAs, twoPlayerCredentials } from "./helpers/auth";
+import { randomUUID } from "node:crypto";
+import { loginAs } from "./helpers/auth";
 import { createRoomThroughUi } from "./helpers/multiplayerUi";
 import { bestEffortFinishRoom } from "./helpers/room";
 
-const auth = twoPlayerCredentials();
 type FriendData = { friends: Array<{ userId: string }> };
 
 async function socialApi<T>(page: Page, path: string, method = "GET", body?: unknown): Promise<T> {
@@ -34,20 +34,33 @@ function assertInsideViewport(box: { x: number; y: number; width: number; height
 }
 
 test.describe("@social private friend presence", () => {
-  test.skip(auth.missing.length > 0, `Missing authenticated E2E variables: ${auth.missing.join(", ")}`);
   test("online friend leads both lists, offline friend remains invitable, mobile and themes fit", async ({ browser, baseURL }) => {
     test.setTimeout(240_000);
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const secret = process.env.SUPABASE_SECRET_KEY;
+    if (!url || !secret || !["localhost", "127.0.0.1", "::1"].includes(new URL(url).hostname)) throw new Error("Presence E2E requires disposable local Supabase");
+    const admin = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
+    const credentials: Array<{ email: string; password: string }> = [];
+    const createdIds: string[] = [];
     const contexts: BrowserContext[] = [];
     const rooms: string[] = [];
     let a: Page | null = null;
     let b: Page | null = null;
     let bId: string | null = null;
     try {
-      for (const credentials of auth.credentials) {
+      for (let index = 0; index < 2; index += 1) {
+        const suffix = randomUUID().slice(0, 8);
+        const identity = { email: `social-presence-${suffix}@example.test`, password: `Local-${randomUUID()}-test`, username: `Presence${index}${suffix}` };
+        const created = await admin.auth.admin.createUser({ email: identity.email, password: identity.password, email_confirm: true, user_metadata: { username: identity.username } });
+        if (created.error) throw created.error;
+        createdIds.push(created.data.user.id);
+        credentials.push(identity);
+      }
+      for (const credential of credentials) {
         const context = await browser.newContext({ baseURL, viewport: { width: 1280, height: 720 } });
         contexts.push(context);
         const page = await context.newPage();
-        await loginAs(page, credentials);
+        await loginAs(page, credential);
         if (!a) a = page; else b = page;
       }
       if (!a || !b) throw new Error("Two authenticated pages required");
@@ -110,10 +123,6 @@ test.describe("@social private friend presence", () => {
 
       await b.close();
       b = null;
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const secret = process.env.SUPABASE_SECRET_KEY;
-      if (!url || !secret || !["localhost", "127.0.0.1", "::1"].includes(new URL(url).hostname)) throw new Error("Offline fixture requires local Supabase service key");
-      const admin = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
       const aged = await admin.from("social_presence").update({ last_seen_at: new Date(Date.now() - 120_000).toISOString() }).eq("user_id", bId);
       if (aged.error) throw aged.error;
       await a.goto("/friends");
@@ -165,7 +174,8 @@ test.describe("@social private friend presence", () => {
       expect(aId).not.toBe(bId);
     } finally {
       if (a) for (const roomId of rooms) await bestEffortFinishRoom([a], roomId);
-      await Promise.all(contexts.map(async (context) => { if (context.browser()?.isConnected()) await context.close(); }));
+      await Promise.allSettled(contexts.map(async (context) => { if (context.browser()?.isConnected()) await context.close(); }));
+      for (const id of createdIds) await admin.auth.admin.deleteUser(id);
     }
   });
 });
