@@ -25,7 +25,8 @@ it("keeps social content on the wide canvas in one column of simple rows with wo
   const view = render(React.createElement(FriendsView, { state: "ready", snapshot, query: "Dave", searchResults: [{ userId: "dave", username: "Dave" }],
     searchState: "ready", onRemove, onAccept, onDecline, onCancel, onSend, onQueryChange }));
   expect(view.container.querySelector(".max-w-6xl")).not.toBeNull();
-  expect(view.container.querySelectorAll(".coinche-social-row")).toHaveLength(4);
+  expect(view.container.querySelectorAll(".coinche-social-row")).toHaveLength(3);
+  expect(view.container.querySelectorAll(".friend-presence-row")).toHaveLength(1);
   expect(view.container.querySelector(".coinche-app-card")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Supprimer" }));
   fireEvent.click(screen.getByRole("button", { name: "Accepter" }));

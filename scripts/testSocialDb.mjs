@@ -171,7 +171,47 @@ async function testSocialRealtime() {
   }
 }
 
+async function testSocialPresence() {
+  const [a, b, c] = await Promise.all([createIdentity("PresenceA"), createIdentity("PresenceB"), createIdentity("PresenceC")]);
+  await rejected(anonymous.rpc("touch_social_presence"), /permission|denied|function/i);
+  await rejected(anonymous.rpc("get_my_friend_presence"), /permission|denied|function/i);
+  await rejected(a.client.from("social_presence").select("user_id"), /permission|denied/i);
+  await rejected(a.client.from("social_presence").insert({ user_id: b.id, last_seen_at: new Date().toISOString() }), /permission|denied/i);
+  await rejected(a.client.from("social_presence").upsert({ user_id: b.id, last_seen_at: new Date().toISOString() }), /permission|denied/i);
+
+  // A pending request does not grant C access to B's activity.
+  const pending = await rpc(c, "send_friend_request", { p_recipient_id: b.id });
+  assert.equal(await rpc(b, "touch_social_presence"), true);
+  const first = checked(await admin.from("social_presence").select("last_seen_at").eq("user_id", b.id).single(), "first heartbeat").last_seen_at;
+  assert.deepEqual(await rpc(c, "get_my_friend_presence"), []);
+  assert.deepEqual(await rpc(a, "get_my_friend_presence"), []);
+  await rpc(c, "cancel_friend_request", { p_request_id: pending.id });
+  await befriend(a, b);
+  assert.deepEqual(await rpc(a, "get_my_friend_presence"), [{ user_id: b.id }]);
+  assert.deepEqual(await rpc(b, "get_my_friend_presence"), []);
+  assert.deepEqual(await rpc(c, "get_my_friend_presence"), []);
+  assert.equal(JSON.stringify(await rpc(a, "get_my_friend_presence")).includes("last_seen_at"), false);
+
+  // The DB ignores a rapid repeat, then refreshes the caller's own row.
+  assert.equal(await rpc(b, "touch_social_presence"), true);
+  assert.equal(checked(await admin.from("social_presence").select("last_seen_at").eq("user_id", b.id).single(), "throttled heartbeat").last_seen_at, first);
+  const old = new Date(Date.now() - 120_000).toISOString();
+  checked(await admin.from("social_presence").update({ last_seen_at: old }).eq("user_id", b.id), "age heartbeat");
+  assert.deepEqual(await rpc(a, "get_my_friend_presence"), []);
+  assert.equal(await rpc(b, "touch_social_presence"), true);
+  const fresh = checked(await admin.from("social_presence").select("user_id,last_seen_at").eq("user_id", b.id).single(), "refreshed heartbeat");
+  assert.equal(fresh.user_id, b.id);
+  assert.ok(Date.parse(fresh.last_seen_at) > Date.parse(old));
+  assert.deepEqual(await rpc(a, "get_my_friend_presence"), [{ user_id: b.id }]);
+  assert.equal(checked(await admin.from("social_presence").select("user_id").eq("user_id", a.id), "no impersonated row").length, 0);
+
+  checked(await admin.auth.admin.deleteUser(b.id), "delete presence account");
+  assert.equal(checked(await admin.from("social_presence").select("user_id").eq("user_id", b.id), "presence cascade").length, 0);
+  identities.delete("PresenceB");
+}
+
 async function run() {
+  await testSocialPresence();
   const people = [];
   for (const label of ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"]) {
     people.push(await createIdentity(label));
