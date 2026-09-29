@@ -36,6 +36,7 @@ type FriendsViewProps = {
   onJoinGameInvitation?: (invitationId: string) => void;
   onCancel?: (requestId: string) => void;
   onRemove?: (userId: string, username: string) => void;
+  onPlayWithFriend?: (userId: string, username: string) => void;
   onAnswerRequest?: (requestId: string) => void;
 };
 
@@ -86,14 +87,24 @@ export function FriendsView(props: FriendsViewProps) {
         <SocialSection count={snapshot.counts.friends} title="Mes amis">
           {snapshot.friends.length === 0 ? <EmptyText>Tu n&apos;as pas encore d&apos;amis ajoutés.</EmptyText> : (
             <div className="friend-presence-scroll" data-testid="friends-presence-scroll">
-              <FriendPresenceList friends={snapshot.friends} onlineIds={props.onlineIds ?? new Set()} action={(friend) => <button
-                className={`${appDangerActionClass} friend-presence-button`}
-                disabled={props.pendingAction === `friend:${friend.userId}`}
-                onClick={() => props.onRemove?.(friend.userId, friend.username)}
-                type="button"
-              >
-                {props.pendingAction === `friend:${friend.userId}` ? "Suppression…" : "Supprimer"}
-              </button>} />
+              <FriendPresenceList friends={snapshot.friends} onlineIds={props.onlineIds ?? new Set()} action={(friend) => <div className="friend-play-actions flex flex-wrap justify-end gap-2">
+                <button
+                  className={`${appPrimaryActionClass} friend-presence-button`}
+                  disabled={Boolean(props.pendingAction)}
+                  onClick={() => props.onPlayWithFriend?.(friend.userId, friend.username)}
+                  type="button"
+                >
+                  {props.pendingAction === `play:${friend.userId}` ? "Création…" : "Jouer"}
+                </button>
+                <button
+                  className={`${appDangerActionClass} friend-presence-button`}
+                  disabled={props.pendingAction === `friend:${friend.userId}` || props.pendingAction?.startsWith("play:")}
+                  onClick={() => props.onRemove?.(friend.userId, friend.username)}
+                  type="button"
+                >
+                  {props.pendingAction === `friend:${friend.userId}` ? "Suppression…" : "Supprimer"}
+                </button>
+              </div>} />
             </div>
           )}
         </SocialSection>
@@ -101,7 +112,7 @@ export function FriendsView(props: FriendsViewProps) {
         {snapshot.received.length || snapshot.sent.length ? <SocialSection count={snapshot.counts.received + snapshot.counts.sent} title="Demandes">
           {snapshot.received.length > 0 ? <ul className="coinche-social-list">
               {snapshot.received.map((request) => {
-                const pending = props.pendingAction === `request:${request.id}`;
+                const pending = props.pendingAction === `request:${request.id}` || props.pendingAction?.startsWith("play:");
                 return (
                   <li className="coinche-social-row" id={`friend-request-${request.id}`} key={request.id} tabIndex={-1}>
                     <div className="flex flex-wrap items-center justify-between gap-3 w-full">
@@ -119,7 +130,7 @@ export function FriendsView(props: FriendsViewProps) {
               {snapshot.sent.map((request) => (
                 <li className="coinche-social-row" key={request.id}>
                   <PlayerName username={request.username} />
-                  <button className={appSecondaryActionClass} disabled={props.pendingAction === `request:${request.id}`} onClick={() => props.onCancel?.(request.id)} type="button">
+                  <button className={appSecondaryActionClass} disabled={props.pendingAction === `request:${request.id}` || props.pendingAction?.startsWith("play:")} onClick={() => props.onCancel?.(request.id)} type="button">
                     {props.pendingAction === `request:${request.id}` ? "Annulation…" : "Annuler"}
                   </button>
                 </li>
@@ -185,7 +196,7 @@ function GameInvitationsSection({
       {received.length > 0 ? (
         <ul className="coinche-social-list">
           {received.map((invitation) => {
-            const pending = pendingAction === `game-invitation:${invitation.id}`;
+            const pending = pendingAction === `game-invitation:${invitation.id}` || pendingAction?.startsWith("play:");
             return (
               <li className="coinche-social-row" key={invitation.id}>
                 <div>
@@ -206,7 +217,7 @@ function GameInvitationsSection({
           <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-[var(--text-secondary)]">Envoyées</p>
           <ul className="coinche-social-list">
             {sent.map((invitation) => {
-              const pending = pendingAction === `game-invitation:${invitation.id}`;
+              const pending = pendingAction === `game-invitation:${invitation.id}` || pendingAction?.startsWith("play:");
               return (
                 <li className="coinche-social-row" key={invitation.id}>
                   <div><PlayerName username={invitation.otherUsername} /><p className="mt-0.5 text-xs text-[var(--text-secondary)]">Table {invitation.roomCode}</p></div>
@@ -276,7 +287,7 @@ function SearchResults({
     <ul className="coinche-social-list mt-3">
       {results.map((result) => {
         const received = receivedByUser.get(result.userId);
-        const pending = pendingAction === `search:${result.userId}`;
+        const pending = pendingAction === `search:${result.userId}` || pendingAction?.startsWith("play:");
         let action: React.ReactNode;
         if (friendIds.has(result.userId)) action = <span className="text-xs font-bold text-emerald-200">Déjà ami</span>;
         else if (sentByUser.has(result.userId)) action = <span className="text-xs font-bold text-[var(--text-secondary)]">Demande envoyée</span>;

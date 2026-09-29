@@ -199,6 +199,8 @@ textarea {
 .friend-presence-status--online { color: var(--success); }
 .friend-presence-action { flex: none; }
 .friend-presence-button { min-height: 2.75rem; padding: .45rem .75rem; }
+.friend-presence-row:has(.friend-play-actions) { flex-wrap: wrap; }
+.friend-presence-row:has(.friend-play-actions) .friend-presence-action { margin-left: auto; }
 @media (max-height: 430px) { .friend-presence-scroll--dialog { max-height: 30dvh; } }
 .coinche-empty-state { display: grid; justify-items: start; gap: .55rem; padding-block: 1.25rem; }
 .coinche-empty-state h2 { font-size: 1.15rem; font-weight: 850; }
