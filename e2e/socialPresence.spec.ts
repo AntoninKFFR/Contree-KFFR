@@ -112,12 +112,12 @@ test.describe("@social private friend presence", () => {
       await expect(dialog.getByText("Aucun ami correspondant.")).toBeVisible();
       await dialog.getByRole("textbox", { name: "Rechercher un ami" }).fill(usernameB.toUpperCase());
       await expect(dialog.locator(".friend-presence-row")).toHaveCount(1);
-      await dialog.getByRole("button", { name: "Inviter" }).click();
+      await dialog.getByRole("button", { name: "Inviter", exact: true }).click();
       await expect(dialog.getByText("Invitation envoyée")).toBeVisible();
       await dialog.getByRole("button", { name: "Fermer", exact: true }).click();
       await a.getByRole("button", { name: "Inviter des amis" }).click();
       dialog = a.getByRole("dialog", { name: "Inviter des amis" });
-      await dialog.getByRole("button", { name: "Inviter" }).click();
+      await dialog.getByRole("button", { name: "Inviter", exact: true }).click();
       await expect(dialog.getByText("Déjà invité")).toBeVisible();
       await dialog.getByRole("button", { name: "Fermer", exact: true }).click();
 
@@ -142,18 +142,18 @@ test.describe("@social private friend presence", () => {
       await a.getByRole("button", { name: "Inviter des amis" }).click();
       dialog = a.getByRole("dialog", { name: "Inviter des amis" });
       await expect(dialog.locator(".friend-presence-row").filter({ hasText: usernameB })).toContainText("Hors ligne");
-      await expect(dialog.getByRole("button", { name: "Inviter" })).toBeEnabled();
+      await expect(dialog.getByRole("button", { name: "Inviter", exact: true })).toBeEnabled();
       for (const [width, height] of [[390, 844], [667, 375], [844, 390]]) {
         await a.setViewportSize({ width, height });
         assertInsideViewport(await dialog.boundingBox(), width, height);
         assertInsideViewport(await dialog.getByRole("textbox", { name: "Rechercher un ami" }).boundingBox(), width, height);
-        const button = await dialog.getByRole("button", { name: "Inviter" }).boundingBox();
+        const button = await dialog.getByRole("button", { name: "Inviter", exact: true }).boundingBox();
         assertInsideViewport(button, width, height);
         expect(button!.height).toBeGreaterThanOrEqual(44);
         expect(await a.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
       }
       await a.setViewportSize({ width: 1280, height: 720 });
-      await dialog.getByRole("button", { name: "Inviter" }).click();
+      await dialog.getByRole("button", { name: "Inviter", exact: true }).click();
       await expect(dialog.getByText("Invitation envoyée")).toBeVisible();
       await dialog.getByRole("button", { name: "Fermer", exact: true }).click();
 
