@@ -101,6 +101,31 @@ test.describe("@social private friend presence", () => {
       expect(await searchRow.locator(".friend-presence-dot").count()).toBe(0);
       expect(await searchRow.getByText("En ligne").count()).toBe(0);
 
+      // A UI-only long-list fixture proves the list actually scrolls without
+      // creating a hundred database accounts or changing invitation rights.
+      const longList = [{ userId: bId, username: usernameB, createdAt: "now" }, ...Array.from({ length: 99 }, (_, index) => ({
+        userId: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+        username: `Fixture${String(index).padStart(3, "0")}`,
+        createdAt: "now",
+      }))];
+      await a.route("**/api/social", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: {
+        friends: longList, received: [], sent: [], counts: { friends: 100, received: 0, sent: 0 },
+      } }) }));
+      await a.reload();
+      await expect(a.locator(".friend-presence-row")).toHaveCount(100);
+      for (const [width, height] of [[1280, 720], [390, 844], [667, 375], [844, 390]]) {
+        await a.setViewportSize({ width, height });
+        const dimensions = await a.locator("[data-testid=friends-presence-scroll]").evaluate((node) => ({
+          scrollHeight: node.scrollHeight, clientHeight: node.clientHeight, scrollWidth: node.scrollWidth, clientWidth: node.clientWidth,
+        }));
+        expect(dimensions.scrollHeight).toBeGreaterThan(dimensions.clientHeight);
+        expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+      }
+      await a.unroute("**/api/social");
+      await a.setViewportSize({ width: 1280, height: 720 });
+      await a.reload();
+      await expect(a.locator(".friend-presence-row")).toHaveCount(1);
+
       const room = await createRoomThroughUi(a);
       rooms.push(room.roomId);
       await a.getByRole("button", { name: "Inviter des amis" }).click();
