@@ -95,11 +95,11 @@ describe("play with a friend", () => {
     expect((await friendRow("Alice")).getByRole("button", { name: "Jouer" })).toHaveProperty("disabled", false);
   });
 
-  it("navigates to the created lobby even when the invitation fails", async () => {
+  it("navigates to the same lobby with the invitation retry flag when the invitation fails", async () => {
     invite.mockRejectedValue(new Error("Invitation failed"));
     render(React.createElement(FriendsPageClient));
     fireEvent.click((await friendRow("Alice")).getByRole("button", { name: "Jouer" }));
-    await waitFor(() => expect(push).toHaveBeenCalledExactlyOnceWith("/multiplayer/new-room"));
+    await waitFor(() => expect(push).toHaveBeenCalledExactlyOnceWith("/multiplayer/new-room?inviteFriends=1"));
     fireEvent.click((await friendRow("Bob")).getByRole("button", { name: "Jouer" }));
     expect(createRoom).toHaveBeenCalledTimes(1);
     expect(invite).toHaveBeenCalledTimes(1);

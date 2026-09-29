@@ -208,12 +208,13 @@ export function FriendsPageClient() {
     let navigating = false;
     try {
       const result = await createMultiplayerRoom({ rules: { presetId: "contree-kffr" } }, session);
+      let roomPath = `/multiplayer/${result.room.id}`;
       try {
         await sendGameInvitation(result.room.id, userId, session);
       } catch {
-        // The host can retry from the existing lobby's friend invitation action.
+        roomPath += "?inviteFriends=1";
       }
-      router.push(`/multiplayer/${result.room.id}`);
+      router.push(roomPath);
       navigating = true;
     } catch (error) {
       setActionMessage(error instanceof MultiplayerApiError ? error.message : socialErrorMessage(error));

@@ -17,10 +17,12 @@ import {
 type InvitationUiStatus = "sending" | "sent" | "already-invited";
 
 export function GameInvitationDialog({
+  notice,
   onClose,
   roomId,
   session,
 }: {
+  notice?: string;
   onClose: () => void;
   roomId: string;
   session: Session;
@@ -82,6 +84,7 @@ export function GameInvitationDialog({
       width="medium"
     >
       <div className="flex min-h-0 flex-col p-4 sm:p-6">
+        {notice ? <p className="coinche-notice mb-3 shrink-0" data-tone="warning" role="alert">{notice}</p> : null}
         {state === "loading" ? <p className="text-sm text-[var(--text-secondary)]">Chargement des amis…</p> : null}
         {state === "error" ? <p className="text-sm text-red-200" role="alert">{error}</p> : null}
         {state === "ready" && friends.length === 0 ? (

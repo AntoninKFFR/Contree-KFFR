@@ -53,6 +53,7 @@ export default function MultiplayerRoomPage() {
   const searchParams = useSearchParams();
   const roomId = roomIdFromParams(params.roomId);
   const invitationId = searchParams.get("invitation");
+  const inviteFriendsRequested = searchParams.get("inviteFriends") === "1";
   const {
     accessToken,
     error,
@@ -69,7 +70,7 @@ export default function MultiplayerRoomPage() {
   } = useMultiplayerRoomSync(roomId);
   const [isForfeitConfirmationOpen, setIsForfeitConfirmationOpen] = useState(false);
   const [isHostTransferOpen, setIsHostTransferOpen] = useState(false);
-  const [isInviteFriendsOpen, setIsInviteFriendsOpen] = useState(false);
+  const [isInviteFriendsOpen, setIsInviteFriendsOpen] = useState(inviteFriendsRequested);
   const [hostTransferSeat, setHostTransferSeat] = useState<RoomPlayerRow["seat_index"] | null>(null);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
@@ -423,7 +424,19 @@ export default function MultiplayerRoomPage() {
               </>
             ) : null}
             {isRulesOpen && displayedRoomStatus === "lobby" ? <LobbyRulesDialog isHost={isHost} isUpdatingRules={isUpdatingRules} onClose={() => setIsRulesOpen(false)} onSave={() => void handleUpdateRules()} onRulesDraftChange={setRulesDraft} rulesDraft={rulesDraft} ruleset={lobbyRules} /> : null}
-            {isInviteFriendsOpen && canInviteFriends && session && roomId ? <GameInvitationDialog onClose={() => setIsInviteFriendsOpen(false)} roomId={roomId} session={session} /> : null}
+            {isInviteFriendsOpen && canInviteFriends && session && roomId ? <GameInvitationDialog
+              notice={inviteFriendsRequested ? "La table a été créée, mais l’invitation n’a pas pu être envoyée. Réessaie depuis le lobby." : undefined}
+              onClose={() => {
+                setIsInviteFriendsOpen(false);
+                if (inviteFriendsRequested) {
+                  const nextParams = new URLSearchParams(searchParams.toString());
+                  nextParams.delete("inviteFriends");
+                  router.replace(`/multiplayer/${roomId}${nextParams.size ? `?${nextParams}` : ""}`, { scroll: false });
+                }
+              }}
+              roomId={roomId}
+              session={session}
+            /> : null}
             {isHostTransferOpen && isHost ? <AccessibleDialog description="Choisis un joueur connecté. Le transfert est immédiat." footer={<button className={`${appPrimaryActionClass} w-full sm:w-auto`} disabled={!selectedHostTransferPlayer || isTransferringHost} type="button" onClick={() => void handleTransferHost()}>{isTransferringHost ? "Transfert…" : selectedHostTransferPlayer ? `Confirmer pour ${selectedHostTransferPlayer.display_name}` : "Choisir un joueur"}</button>} onClose={() => { if (!isTransferringHost) setIsHostTransferOpen(false); }} title="Transférer l'hôte" width="medium"><div className="grid gap-2 overflow-y-auto p-4 sm:p-6">{hostTransferCandidates.map((player) => <button aria-pressed={hostTransferSeat === player.seat_index} className={`rounded-xl border px-4 py-3 text-left font-semibold transition ${hostTransferSeat === player.seat_index ? "border-amber-300/50 bg-amber-200/15 text-amber-950" : "border-stone-300 bg-white/70 text-stone-800 hover:bg-white"}`} key={player.seat_index} onClick={() => setHostTransferSeat(player.seat_index)} type="button">{player.display_name}</button>)}</div></AccessibleDialog> : null}
 
             {displayedRoomStatus === "playing" && playerView ? (

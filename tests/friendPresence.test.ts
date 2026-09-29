@@ -90,3 +90,17 @@ it("keeps the already-invited row state when another seated friend invited first
   expect(await screen.findByText("Déjà invité")).toBeTruthy();
   expect(screen.queryByRole("button", { name: /^Inviter$/ })).toBeNull();
 });
+
+it("shows the creation warning in the invitation dialog and lets the host retry in the same room", async () => {
+  mocks.list.mockResolvedValue([friends[0]]);
+  mocks.invite.mockResolvedValue({ status: "pending" });
+  const session = { access_token: "test" } as Parameters<typeof GameInvitationDialog>[0]["session"];
+  const notice = "La table a été créée, mais l’invitation n’a pas pu être envoyée. Réessaie depuis le lobby.";
+  render(React.createElement(GameInvitationDialog, { notice, onClose: () => {}, roomId: "created-room", session }));
+  expect(screen.getByRole("alert").textContent).toBe(notice);
+  const retry = await screen.findByRole("button", { name: /^Inviter$/ });
+  expect(mocks.invite).not.toHaveBeenCalled();
+  fireEvent.click(retry);
+  await waitFor(() => expect(mocks.invite).toHaveBeenCalledExactlyOnceWith("created-room", "alice", session));
+  expect(await screen.findByText("Invitation envoyée")).toBeTruthy();
+});
