@@ -5,6 +5,11 @@ import type { Session } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { FriendsView, type FriendsPageState } from "@/components/friends/FriendsView";
 import { useFriendPresence } from "@/components/social/useFriendPresence";
+import { TrainWithFriendDialog } from "@/components/friends/TrainWithFriendDialog";
+import type { BidReadingLevel } from "@/engine/training/bidReading";
+import { createTrainingDuoSession } from "@/lib/trainingDuoApi";
+import { sendTrainingDuoInvitation } from "@/lib/trainingDuoInvitationsApi";
+import { duoErrorMessage } from "@/components/training/useTrainingDuoSync";
 import { createMultiplayerRoom, MultiplayerApiError } from "@/lib/multiplayerApi";
 import {
   acceptFriendRequest,
@@ -46,6 +51,7 @@ export function FriendsPageClient() {
   const snapshotSequence = useRef(0);
   const searchSequence = useRef(0);
   const pendingActionRef = useRef<string | null>(null);
+  const [trainingFriend, setTrainingFriend] = useState<{ userId: string; username: string } | null>(null);
 
   const refreshSnapshot = useCallback(async (activeSession: Session | null) => {
     if (!activeSession) return;
@@ -88,6 +94,7 @@ export function FriendsPageClient() {
       setSnapshot(null);
       setGameInvitations(null);
       setActionMessage(null);
+      setTrainingFriend(null);
       if (!nextSession) {
         setPageState("signed-out");
         return;
@@ -227,6 +234,28 @@ export function FriendsPageClient() {
     }
   }
 
+  async function handleTrainWithFriend(level: BidReadingLevel) {
+    if (!session || !trainingFriend || pendingActionRef.current) return;
+    const key = `train:${trainingFriend.userId}`;
+    pendingActionRef.current = key;
+    setPendingAction(key);
+    setActionMessage(null);
+    let navigating = false;
+    try {
+      const result = await createTrainingDuoSession(level, session);
+      let path = `/training/duo/${result.session.id}`;
+      try { await sendTrainingDuoInvitation(result.session.id, trainingFriend.userId, session); }
+      catch { path += "?inviteFriends=1"; }
+      router.push(path);
+      navigating = true;
+    } catch (cause) {
+      setTrainingFriend(null);
+      setActionMessage(duoErrorMessage(cause));
+    } finally {
+      if (!navigating) { pendingActionRef.current = null; setPendingAction(null); }
+    }
+  }
+
   function handleRemove(userId: string, username: string) {
     if (pendingActionRef.current) return;
     if (!window.confirm(`Supprimer ${username} de tes amis ?`)) return;
@@ -240,7 +269,7 @@ export function FriendsPageClient() {
   }
 
   return (
-    <FriendsView
+    <><FriendsView
       actionMessage={actionMessage}
       currentUserId={session?.user.id}
       gameInvitations={gameInvitations}
@@ -255,6 +284,9 @@ export function FriendsPageClient() {
       onlineIds={onlineIds}
       onRemove={handleRemove}
       onPlayWithFriend={(userId) => void handlePlayWithFriend(userId)}
+      onTrainWithFriend={(userId, username) => {
+        if (!pendingActionRef.current) setTrainingFriend({ userId, username });
+      }}
       onRetry={() => {
         setPageState("loading");
         void refreshSnapshot(session);
@@ -277,5 +309,8 @@ export function FriendsPageClient() {
       snapshot={snapshot}
       state={pageState}
     />
+      {trainingFriend ? <TrainWithFriendDialog username={trainingFriend.username} pending={Boolean(pendingAction)}
+        onCreate={(level) => void handleTrainWithFriend(level)} onClose={() => setTrainingFriend(null)} /> : null}
+    </>
   );
 }

@@ -54,7 +54,7 @@ export function TrainingDuoHomeClient() {
     <Link className="coinche-ui-link w-fit text-sm font-bold" href="/training">← Retour à l’entraînement</Link>
     <div className="training-duo-home">
       <AppPageHeader eyebrow="Entraînement · Duo" title="Lire les enchères à deux" description="2 joueurs · 10 questions · réponses indépendantes">
-        <p className="text-sm text-[var(--text-secondary)]">Le code de session est le seul moyen de rejoindre ton partenaire.</p>
+        <p className="text-sm text-[var(--text-secondary)]">Rejoins ton partenaire avec une invitation ami ou un code de session.</p>
       </AppPageHeader>
       {state === "loading" ? <p role="status" className="mt-5">Vérification du compte…</p> : null}
       {state === "signed-out" ? <p className="mt-5">Connecte-toi pour jouer à deux. <Link className="coinche-ui-link" href="/login?next=%2Ftraining%2Fduo">Se connecter</Link></p> : null}

@@ -386,12 +386,70 @@ async function checkDeletion(label, terminalStatus) {
   sessions.delete(id);
 }
 
+
+async function checkFriendInvitations(a, b, c) {
+  const pair = (x, y) => ({ user_low: [x.id,y.id].sort()[0], user_high: [x.id,y.id].sort()[1] });
+  checked(await admin.from('friendships').insert(pair(a,b)), 'friends A B');
+  const send = (id, target) => admin.rpc('training_duo_send_invitation', { p_actor:a.id,p_session_id:id,p_invitee:target.id });
+  const resolve = (invitation, actor, decision='join') => admin.rpc('training_duo_resolve_invitation', {
+    p_actor:actor.id,p_invitation_id:invitation.id,p_decision:decision,p_display_name:actor.name });
+  const id = await create(a);
+  assert.ok((await send(id,c)).error, 'non-friend denied');
+  const invitation = checked(await send(id,b), 'invite B');
+  assert.equal(checked(await send(id,b), 'duplicate invitation').status, 'already_invited');
+  const list = await rpc('training_duo_list_invitations',{p_actor:b.id});
+  assert.equal(list[0].id, invitation.id);
+  assert.deepEqual(Object.keys(list[0]).sort(), ['createdAt','expiresAt','id','level','status','username'].sort());
+  assert.equal((await rpc('training_duo_list_invitations',{p_actor:c.id})).length,0);
+  const columns='id,inviter_id,invitee_id,status,created_at,expires_at,resolved_at';
+  assert.equal(checked(await c.client.from('training_duo_invitations').select(columns).eq('id',invitation.id),'C RLS').length,0);
+  assert.equal(checked(await b.client.from('training_duo_invitations').select(columns).eq('id',invitation.id),'B RLS').length,1);
+  assert.ok((await anonymous.from('training_duo_invitations').select(columns)).error,'anon denied');
+  assert.ok((await b.client.from('training_duo_invitations').select('session_id')).error,'session id excluded from signal read');
+  assert.ok((await b.client.from('training_duo_invitations').insert({session_id:id,inviter_id:a.id,invitee_id:c.id})).error,'direct insert denied');
+  assert.ok((await b.client.from('training_duo_invitations').update({status:'accepted'}).eq('id',invitation.id)).error,'direct update denied');
+  assert.ok((await b.client.from('training_duo_invitations').delete().eq('id',invitation.id)).error,'direct delete denied');
+  assert.ok((await b.client.rpc('training_duo_resolve_invitation',{p_actor:b.id,p_invitation_id:invitation.id,p_decision:'join',p_display_name:b.name})).error,'browser RPC denied');
+  assert.ok((await resolve(invitation,c)).error,'third party join denied');
+  assert.ok((await resolve(invitation,c,'decline')).error,'third party decline denied');
+  assert.ok((await resolve(invitation,a)).error,'inviter cannot join own invitation');
+  assert.equal(checked(await resolve(invitation,b,'decline'),'decline').status,'declined');
+  assert.equal((await rpc('training_duo_list_invitations',{p_actor:b.id})).length,0);
+  const next=checked(await send(id,b),'invite after decline');
+  assert.equal(checked(await resolve(next,b),'invitation join').sessionId,id);
+  const members=checked(await admin.from('training_duo_participants').select('user_id,slot,is_ready').eq('session_id',id),'members');
+  assert.equal(members.find(p=>p.user_id===b.id).slot,1);
+  assert.equal(members.find(p=>p.user_id===b.id).is_ready,false);
+  assert.equal((await rpc('training_duo_list_invitations',{p_actor:b.id})).length,0);
+
+  const expiredId=await create(a), expired=checked(await send(expiredId,b),'expiry invite');
+  checked(await admin.from('training_duo_invitations').update({created_at:new Date(Date.now()-120_000).toISOString(),expires_at:new Date(Date.now()-60_000).toISOString()}).eq('id',expired.id),'expire fixture');
+  assert.equal(checked(await resolve(expired,b),'expired join').status,'unavailable');
+  assert.equal(checked(await admin.from('training_duo_participants').select('id').eq('session_id',expiredId).eq('slot',1),'expired membership').length,0);
+  const staleId=await create(a), stale=checked(await send(staleId,b),'stale session invite');
+  checked(await admin.from('training_duo_sessions').update({updated_at:new Date(Date.now()-31*60_000).toISOString()}).eq('id',staleId),'stale fixture');
+  assert.equal(checked(await resolve(stale,b),'stale session join').status,'unavailable');
+  const codeId=await create(a), codeInvitation=checked(await send(codeId,b),'code invite');
+  await join(codeId,b);
+  assert.equal(checked(await resolve(codeInvitation,b),'code invalidates invitation').status,'unavailable');
+  const removedId=await create(a), removed=checked(await send(removedId,b),'removed friend invite');
+  checked(await admin.from('friendships').delete().match(pair(a,b)),'remove friendship');
+  assert.equal(checked(await resolve(removed,b),'removed friend join').status,'unavailable');
+  checked(await admin.from('friendships').insert([pair(a,b),pair(a,c)]),'friends for race');
+  const raceId=await create(a), ib=checked(await send(raceId,b),'race B'), ic=checked(await send(raceId,c),'race C');
+  const race=await Promise.all([resolve(ib,b),resolve(ic,c)]);
+  assert.equal(race.filter(r=>!r.error && r.data.sessionId===raceId).length,1,'one invitation wins');
+  assert.equal(checked(await admin.from('training_duo_participants').select('id').eq('session_id',raceId).eq('slot',1).is('left_at',null),'one partner').length,1);
+  console.log('Duo invitations: friendship, JWT/RLS, expiry, code fallback and atomic join passed.');
+}
+
 async function run() {
   try {
     const [a, b, c] = await Promise.all([identity("A"), identity("B"), identity("C")]);
     const unrelatedBefore = await unrelatedCounts();
     await checkSecurity(a, b, c);
     await checkRateLimit(a, b);
+    await checkFriendInvitations(a, b, c);
     await checkConcurrency(a, b, c);
     await checkLeaveAndExpiry(a, b);
     await checkFormerGuestDeletion(a);

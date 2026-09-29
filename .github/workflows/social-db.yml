@@ -4,6 +4,12 @@ on:
   pull_request:
     paths:
       - "supabase/migrations/**"
+      - "app/api/training/duo/**"
+      - "components/training/*Duo*"
+      - "lib/trainingDuo*"
+      - "lib/server/trainingDuo*"
+      - "tests/*DuoInvitation*"
+      - "tests/socialDuoNotifications.test.ts"
       - "scripts/testSocialDb.mjs"
       - "scripts/provisionSocialE2e.mjs"
       - "scripts/testSocialPublication.sql"
@@ -26,6 +32,12 @@ on:
     branches: [main]
     paths:
       - "supabase/migrations/**"
+      - "app/api/training/duo/**"
+      - "components/training/*Duo*"
+      - "lib/trainingDuo*"
+      - "lib/server/trainingDuo*"
+      - "tests/*DuoInvitation*"
+      - "tests/socialDuoNotifications.test.ts"
       - "scripts/testSocialDb.mjs"
       - "scripts/provisionSocialE2e.mjs"
       - "scripts/testSocialPublication.sql"

@@ -18,7 +18,7 @@ const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const MAX_SEED = Number.MAX_SAFE_INTEGER - (BID_READING_SERIES_LENGTH - 1) * 1_000;
 const SESSION_COLUMNS = "id,code,host_user_id,status,question_phase,level,axis_id,axis_version,doctrine_id,doctrine_revision,generator_version,ruleset_id,ruleset_version,series_length,current_index,state_version,created_at,updated_at,started_at,finished_at,cancel_reason";
 
-async function displayName(userId: string, slot: 0 | 1): Promise<string> {
+export async function duoDisplayName(userId: string, slot: 0 | 1): Promise<string> {
   const { data, error } = await getSupabaseAdmin().from("profiles").select("username").eq("id", userId).maybeSingle();
   if (error) throw error;
   const username = typeof data?.username === "string" ? data.username : "";
@@ -90,7 +90,7 @@ export async function trainingDuoView(sessionId: string, userId: string): Promis
 }
 
 export async function createTrainingDuo(level: BidReadingLevel, userId: string): Promise<TrainingDuoView> {
-  const name = await displayName(userId, 0);
+  const name = await duoDisplayName(userId, 0);
   const db = getSupabaseAdmin();
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const { data, error } = await db.rpc("training_duo_create", {
@@ -106,7 +106,7 @@ export async function createTrainingDuo(level: BidReadingLevel, userId: string):
 }
 
 export async function joinTrainingDuo(code: string, userId: string): Promise<TrainingDuoView> {
-  const name = await displayName(userId, 1);
+  const name = await duoDisplayName(userId, 1);
   const { data, error } = await getSupabaseAdmin().rpc("training_duo_join", {
     p_actor: userId, p_display_name: name, p_code: code,
   });

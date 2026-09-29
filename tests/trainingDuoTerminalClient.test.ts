@@ -11,7 +11,7 @@ const { state, refresh, send } = vi.hoisted(() => ({
   state: { pageState: "ready", view: null as ReturnType<typeof duoFixture> | null },
   refresh: vi.fn(), send: vi.fn(),
 }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(), useRouter: () => ({ replace: vi.fn() }) }));
 vi.mock("@/components/training/useTrainingDuoSync", () => ({
   duoErrorMessage: (error: unknown) => String(error),
   useTrainingDuoSync: () => ({ pageState: state.pageState, session: { access_token: "token" }, view: state.view,

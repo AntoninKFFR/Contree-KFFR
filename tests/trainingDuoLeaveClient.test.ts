@@ -7,7 +7,7 @@ import { duoFixture } from "@/tests/trainingDuoClientFixtures";
 
 vi.stubGlobal("React", React);
 const replace = vi.fn(); const send = vi.fn(); const refresh = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
+vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(), useRouter: () => ({ replace }) }));
 vi.mock("@/components/training/useTrainingDuoSync", () => ({
   duoErrorMessage: (error: unknown) => String(error),
   useTrainingDuoSync: () => ({ pageState: "ready", session: { access_token: "token" }, view: duoFixture("lobby", 1),
