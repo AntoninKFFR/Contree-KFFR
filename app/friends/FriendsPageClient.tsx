@@ -24,6 +24,7 @@ import {
   type SocialSnapshot,
 } from "@/lib/socialApi";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { notifySocialChanged, SOCIAL_CHANGED_EVENT } from "@/lib/socialEvents";
 
 export function FriendsPageClient() {
   const router = useRouter();
@@ -110,11 +111,13 @@ export function FriendsPageClient() {
     window.addEventListener("focus", refreshWhenVisible);
     window.addEventListener("online", refreshWhenVisible);
     document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener(SOCIAL_CHANGED_EVENT, refreshWhenVisible);
     return () => {
       window.clearInterval(interval);
       window.removeEventListener("focus", refreshWhenVisible);
       window.removeEventListener("online", refreshWhenVisible);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener(SOCIAL_CHANGED_EVENT, refreshWhenVisible);
     };
   }, [pageState, refreshSnapshot, session]);
 
@@ -155,6 +158,7 @@ export function FriendsPageClient() {
     setActionMessage(null);
     try {
       const result = await operation(session);
+      notifySocialChanged();
       await refreshSnapshot(session);
       setActionMessage(typeof successMessage === "function" ? successMessage(result) : successMessage);
     } catch (error) {

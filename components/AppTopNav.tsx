@@ -9,6 +9,7 @@ import { getSupabaseClient } from "@/lib/supabaseClient";
 import { AudioPopover } from "@/components/ui/AudioPopover";
 import { KffrLogo } from "@/components/ui/KffrLogo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { SocialNotificationTrigger } from "@/components/social/SocialNotifications";
 
 const PUBLIC_LINKS = [{ href: "/", label: "Accueil" }, { href: "/training", label: "Entraînement" }, { href: "/rules", label: "Règles" }] as const;
 const PRIVATE_LINKS = [{ href: "/leaderboard", label: "Classement" }, { href: "/friends", label: "Amis" }, { href: "/history", label: "Historique" }] as const;
@@ -137,6 +138,7 @@ export function AppTopNav() {
       </nav>
       <div className="col-start-3 flex shrink-0 items-center gap-1.5 justify-self-end">
         <div id="app-topnav-game-actions" />
+        <SocialNotificationTrigger />
         <AudioPopover />
         <ThemeToggle />
         <div className="hidden min-[480px]:block">
