@@ -2,6 +2,7 @@ import { expect, test, type BrowserContext, type Page, type Response } from "@pl
 import { loginAs, twoPlayerCredentials } from "./helpers/auth";
 import { createRoomThroughUi } from "./helpers/multiplayerUi";
 import { bestEffortFinishRoom } from "./helpers/room";
+import { createClient } from "@supabase/supabase-js";
 
 const auth = twoPlayerCredentials();
 
@@ -206,10 +207,15 @@ test.describe("@social global notifications with two accounts", () => {
 
 test('@social Duo friend invitation joins the shared lobby without a code', async ({ browser, baseURL }) => {
   test.skip(auth.missing.length > 0, 'Two authenticated accounts required');
+  const localUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SECRET_KEY;
+  test.skip(!localUrl || !serviceKey || !["localhost", "127.0.0.1", "::1"].includes(new URL(localUrl).hostname), "Disposable local Supabase required");
+  const admin = createClient(localUrl!, serviceKey!, { auth: { persistSession: false, autoRefreshToken: false } });
   test.setTimeout(180_000);
   const contexts: BrowserContext[] = [];
   let host: Page | null = null;
   let sessionId: string | null = null;
+  let fixturePair: { user_low: string; user_high: string } | null = null;
   try {
     const pages: Page[] = [];
     for (const credentials of auth.credentials) {
@@ -227,17 +233,13 @@ test('@social Duo friend invitation joins the shared lobby without a code', asyn
     const [aId,bId] = await Promise.all([identity(a),identity(b)]);
     const snapshot = await socialApi<SocialData>(a,'/api/social');
     if (!snapshot.friends.some(friend => friend.userId === bId)) {
-      const bSnapshot = await socialApi<SocialData>(b,'/api/social');
-      const fromB = snapshot.received.find(request => request.userId === bId);
-      if (fromB) await socialApi(a,'/api/social/friend-requests/'+fromB.id+'/accept','POST');
-      else {
-        if (!bSnapshot.received.some(request => request.userId === aId)) await socialApi(a,'/api/social/friend-requests','POST',{recipientId:bId});
-        const incoming = (await socialApi<SocialData>(b,'/api/social')).received.find(request => request.userId === aId)!;
-        await socialApi(b,'/api/social/friend-requests/'+incoming.id+'/accept','POST');
-      }
+      fixturePair = { user_low: [aId,bId].sort()[0], user_high: [aId,bId].sort()[1] };
+      const { error } = await admin.from("friendships").insert(fixturePair);
+      if (error) throw error;
     }
     await b.goto('/training');
     await a.goto('/friends');
+    for (const page of [a,b]) await expect.poll(async () => (await page.locator('a[href="/profile"]').first().innerText()).trim()).not.toBe("Profil");
     const usernameA = (await a.locator('a[href="/profile"]').first().innerText()).trim();
     const usernameB = (await b.locator('a[href="/profile"]').first().innerText()).trim();
     await a.locator('.friend-presence-row').filter({hasText:usernameB}).getByRole('button',{name:'S’entraîner'}).click();
@@ -265,6 +267,7 @@ test('@social Duo friend invitation joins the shared lobby without a code', asyn
         await socialApi(host,'/api/training/duo/sessions/'+sessionId,'POST',{expectedVersion:view.session.stateVersion,intent:{type:'cancel'}});
       } catch { /* Disposable local accounts and sessions are cleared with the test database. */ }
     }
+    if (fixturePair) await admin.from("friendships").delete().match(fixturePair);
     for (const context of contexts) await context.close();
   }
 });
