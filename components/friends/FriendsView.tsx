@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { GameInvitationsSnapshot, SocialSearchResult, SocialSnapshot } from "@/lib/socialApi";
+import { FriendPresenceList } from "@/components/social/FriendPresenceList";
 import {
   AppPage,
   AppPageHeader,
@@ -24,6 +25,7 @@ type FriendsViewProps = {
   searchState: "idle" | "loading" | "ready" | "error";
   searchError?: string | null;
   pendingAction?: string | null;
+  onlineIds?: ReadonlySet<string>;
   onRetry?: () => void;
   onQueryChange?: (value: string) => void;
   onSend?: (userId: string) => void;
@@ -83,21 +85,16 @@ export function FriendsView(props: FriendsViewProps) {
       <div className="grid gap-8">
         <SocialSection count={snapshot.counts.friends} title="Mes amis">
           {snapshot.friends.length === 0 ? <EmptyText>Tu n&apos;as pas encore d&apos;amis ajoutés.</EmptyText> : (
-            <ul className="coinche-social-list">
-              {snapshot.friends.map((friend) => (
-                <li className="coinche-social-row" key={friend.userId}>
-                  <PlayerName username={friend.username} />
-                  <button
-                    className={appDangerActionClass}
-                    disabled={props.pendingAction === `friend:${friend.userId}`}
-                    onClick={() => props.onRemove?.(friend.userId, friend.username)}
-                    type="button"
-                  >
-                    {props.pendingAction === `friend:${friend.userId}` ? "Suppression…" : "Supprimer"}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div className="friend-presence-scroll" data-testid="friends-presence-scroll">
+              <FriendPresenceList friends={snapshot.friends} onlineIds={props.onlineIds ?? new Set()} action={(friend) => <button
+                className={`${appDangerActionClass} friend-presence-button`}
+                disabled={props.pendingAction === `friend:${friend.userId}`}
+                onClick={() => props.onRemove?.(friend.userId, friend.username)}
+                type="button"
+              >
+                {props.pendingAction === `friend:${friend.userId}` ? "Suppression…" : "Supprimer"}
+              </button>} />
+            </div>
           )}
         </SocialSection>
 

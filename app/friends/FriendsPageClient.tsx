@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { FriendsView, type FriendsPageState } from "@/components/friends/FriendsView";
+import { useFriendPresence } from "@/components/social/useFriendPresence";
 import {
   acceptFriendRequest,
   cancelGameInvitation,
@@ -30,6 +31,7 @@ export function FriendsPageClient() {
   const router = useRouter();
   const [pageState, setPageState] = useState<FriendsPageState>("loading");
   const [session, setSession] = useState<Session | null>(null);
+  const onlineIds = useFriendPresence(session);
   const [snapshot, setSnapshot] = useState<SocialSnapshot | null>(null);
   const [gameInvitations, setGameInvitations] = useState<GameInvitationsSnapshot | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -219,6 +221,7 @@ export function FriendsPageClient() {
       onDeclineGameInvitation={(id) => void runMutation(`game-invitation:${id}`, (token) => declineGameInvitation(id, token), "Invitation refusée.")}
       onJoinGameInvitation={(id) => void handleJoinGameInvitation(id)}
       onQueryChange={setQuery}
+      onlineIds={onlineIds}
       onRemove={handleRemove}
       onRetry={() => {
         setPageState("loading");

@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
+import { FriendPresenceList } from "@/components/social/FriendPresenceList";
+import { useFriendPresence } from "@/components/social/useFriendPresence";
+import { filterFriendsBySearch } from "@/lib/friendPresence";
 import {
   listInvitableFriends,
   sendGameInvitation,
@@ -23,6 +26,9 @@ export function GameInvitationDialog({
   session: Session;
 }) {
   const [friends, setFriends] = useState<InvitableFriend[]>([]);
+  const [query, setQuery] = useState("");
+  const onlineIds = useFriendPresence(session);
+  const visibleFriends = filterFriendsBySearch(friends, query);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [statuses, setStatuses] = useState<Record<string, InvitationUiStatus>>({});
@@ -75,7 +81,7 @@ export function GameInvitationDialog({
       title="Inviter des amis"
       width="medium"
     >
-      <div className="min-h-48 overflow-y-auto p-4 sm:p-6">
+      <div className="flex min-h-0 flex-col p-4 sm:p-6">
         {state === "loading" ? <p className="text-sm text-[var(--text-secondary)]">Chargement des amis…</p> : null}
         {state === "error" ? <p className="text-sm text-red-200" role="alert">{error}</p> : null}
         {state === "ready" && friends.length === 0 ? (
@@ -83,17 +89,18 @@ export function GameInvitationDialog({
         ) : null}
         {error && state === "ready" ? <p className="mb-3 text-sm text-red-200" role="alert">{error}</p> : null}
         {state === "ready" && friends.length > 0 ? (
-          <ul className="space-y-2">
-            {friends.map((friend) => {
+          <>
+            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]" htmlFor="invite-friend-search">Rechercher un ami</label>
+            <input autoComplete="off" className="coinche-input mb-3 min-h-11 w-full border px-3 text-sm" id="invite-friend-search" onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un ami" value={query} />
+            {visibleFriends.length === 0 ? <p className="text-sm text-[var(--text-secondary)]">Aucun ami correspondant.</p> : <div className="friend-presence-scroll friend-presence-scroll--dialog" data-testid="invite-presence-scroll">
+              <FriendPresenceList friends={visibleFriends} onlineIds={onlineIds} action={(friend) => {
               const status = statuses[friend.userId];
-              return (
-                <li className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3" key={friend.userId}>
-                  <span className="min-w-0 truncate font-bold text-[var(--text-primary)]">{friend.username}</span>
-                  {status === "sent" ? <span className="text-sm font-bold text-emerald-200">Invitation envoyée</span> : null}
-                  {status === "already-invited" ? <span className="text-sm font-bold text-[var(--text-secondary)]">Déjà invité</span> : null}
+              return <>
+                  {status === "sent" ? <span className="text-xs font-bold text-[var(--success)]">Invitation envoyée</span> : null}
+                  {status === "already-invited" ? <span className="text-xs font-bold text-[var(--text-secondary)]">Déjà invité</span> : null}
                   {!status || status === "sending" ? (
                     <button
-                      className={appPrimaryActionClass}
+                      className={`${appPrimaryActionClass} friend-presence-button`}
                       disabled={status === "sending"}
                       onClick={() => void invite(friend)}
                       type="button"
@@ -101,10 +108,10 @@ export function GameInvitationDialog({
                       {status === "sending" ? "Envoi…" : "Inviter"}
                     </button>
                   ) : null}
-                </li>
-              );
-            })}
-          </ul>
+                </>;
+              }} />
+            </div>}
+          </>
         ) : null}
       </div>
     </AccessibleDialog>

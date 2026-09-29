@@ -183,6 +183,23 @@ textarea {
 .coinche-social-row { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; border-bottom: 1px solid var(--border); padding: .9rem .35rem; }
 .coinche-social-row:hover { background: var(--surface-hover); }
 .coinche-social-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.friend-presence-scroll { max-height: min(30rem, 55dvh); overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+.friend-presence-scroll--dialog { max-height: min(30rem, 46dvh); min-height: 0; }
+.friend-presence-group + .friend-presence-group { margin-top: .65rem; }
+.friend-presence-heading { position: sticky; top: 0; z-index: 1; padding: .4rem .35rem; background: var(--surface); color: var(--text-secondary); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.friend-presence-rows { border-top: 1px solid var(--border); }
+.friend-presence-row { display: flex; min-width: 0; min-height: 3.25rem; align-items: center; gap: .65rem; border-bottom: 1px solid var(--border); padding: .3rem .35rem; }
+.friend-presence-row:hover { background: var(--surface-hover); }
+.friend-presence-dot { width: .58rem; height: .58rem; flex: none; border-radius: 50%; background: var(--text-muted); }
+.friend-presence-dot--online { background: var(--success); box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 18%, transparent); }
+.friend-presence-identity { display: flex; min-width: 0; flex: 1; flex-wrap: wrap; align-items: baseline; gap: 0 .45rem; }
+.friend-presence-name { min-width: 0; overflow: hidden; color: var(--text-primary); font-size: .875rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.friend-presence-status { color: var(--text-muted); font-size: .7rem; white-space: nowrap; }
+.friend-presence-status--online { color: var(--success); }
+.friend-presence-action { flex: none; }
+.friend-presence-button { min-height: 2.75rem; padding: .45rem .75rem; }
+@media (max-height: 430px) { .friend-presence-scroll--dialog { max-height: 30dvh; } }
 .coinche-empty-state { display: grid; justify-items: start; gap: .55rem; padding-block: 1.25rem; }
 .coinche-empty-state h2 { font-size: 1.15rem; font-weight: 850; }
 .coinche-empty-state p { max-width: 38rem; color: var(--text-secondary); font-size: .9rem; }
