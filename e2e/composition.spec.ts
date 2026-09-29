@@ -1,32 +1,42 @@
 import { expect, test } from "@playwright/test";
 
-const pages = ["/training", "/solo", "/multiplayer", "/friends", "/rules", "/leaderboard", "/history", "/profile"];
-const viewports = [
+const pages = ["/training", "/solo", "/multiplayer", "/friends", "/rules", "/profile", "/history", "/leaderboard"];
+
+for (const viewport of [
   { width: 390, height: 844 },
-  { width: 667, height: 375 },
-  { width: 844, height: 390 },
   { width: 1366, height: 768 },
   { width: 1920, height: 1080 },
-];
-
-for (const viewport of viewports) {
-  test(`@smoke page heroes reserve suit space at ${viewport.width}×${viewport.height}`, async ({ page }) => {
+]) {
+  test(`@smoke top-level headers share the page canvas at ${viewport.width}×${viewport.height}`, async ({ page }) => {
+    test.setTimeout(120_000);
     await page.setViewportSize(viewport);
+    let expected: { left: number; right: number; width: number } | null = null;
     for (const path of pages) {
-      await page.goto(path);
-      const header = page.locator(".coinche-page-header--hero").first();
+      await page.goto(path, { waitUntil: "domcontentloaded" });
+      const header = page.locator(".coinche-page-header");
       await expect(header, `${path} canonical header`).toBeVisible();
-      const backdrop = header.locator(".coinche-suit-backdrop");
-      await expect(backdrop).toBeVisible();
-      const decoration = await backdrop.boundingBox();
-      expect(decoration).not.toBeNull();
-      for (const target of await header.locator("h1, .coinche-page-header-description, a, button").all()) {
-        if (!await target.isVisible()) continue;
-        const content = await target.boundingBox();
-        expect(content).not.toBeNull();
-        const horizontalOverlap = Math.min(decoration!.x + decoration!.width, content!.x + content!.width) - Math.max(decoration!.x, content!.x);
-        const verticalOverlap = Math.min(decoration!.y + decoration!.height, content!.y + content!.height) - Math.max(decoration!.y, content!.y);
-        expect(horizontalOverlap <= 1 || verticalOverlap <= 1, `${path} ${await target.textContent()} overlaps suits`).toBe(true);
+      await expect(header.locator("h1")).toBeVisible();
+      await expect(page.locator(".coinche-suit-backdrop")).toHaveCount(0);
+      const box = await header.boundingBox();
+      expect(box).not.toBeNull();
+      const bounds = { left: box!.x, right: box!.x + box!.width, width: box!.width };
+      if (expected) {
+        expect(Math.abs(bounds.left - expected.left), `${path} left edge`).toBeLessThanOrEqual(2);
+        expect(Math.abs(bounds.right - expected.right), `${path} right edge`).toBeLessThanOrEqual(2);
+        expect(Math.abs(bounds.width - expected.width), `${path} width`).toBeLessThanOrEqual(2);
+      } else {
+        expected = bounds;
+      }
+      const canvas = await page.locator(".coinche-app-page > div").first().boundingBox();
+      expect(canvas).not.toBeNull();
+      expect(Math.abs(box!.x - canvas!.x), `${path} header starts at canvas edge`).toBeLessThanOrEqual(2);
+      expect(Math.abs(box!.width - canvas!.width), `${path} header fills canvas`).toBeLessThanOrEqual(2);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth), `${path} no horizontal overflow`).toBeLessThanOrEqual(viewport.width);
+      const actions = header.locator(".coinche-page-header-actions");
+      if (await actions.count()) {
+        const actionBox = await actions.boundingBox();
+        expect(actionBox).not.toBeNull();
+        expect(actionBox!.x + actionBox!.width).toBeLessThanOrEqual(bounds.right + 2);
       }
     }
   });

@@ -5,7 +5,7 @@ import { cardValues, defaultRules, kffrSections, variantSections, type RulesSect
 export const metadata: Metadata = { title: "Règles" };
 
 const sectionClass = "coinche-rule-section scroll-mt-36";
-const mutedClass = "text-sm leading-7 text-[color:var(--text-secondary)]";
+const mutedClass = "max-w-3xl text-sm leading-7 text-[color:var(--text-secondary)]";
 
 function CardOrder({ title, cards }: { title: string; cards: readonly (readonly [string, number])[] }) {
   return <div className="min-w-0 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-raised)] p-4">

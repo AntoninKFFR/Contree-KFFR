@@ -50,7 +50,7 @@ export function FriendsView(props: FriendsViewProps) {
             ? { title: "Service indisponible", body: "Vérifie la configuration Supabase puis recharge la page." }
             : { title: "Impossible de charger tes amis", body: props.pageError ?? "Réessaie dans un instant." };
     return (
-      <AppPage width="medium">
+      <AppPage width="wide">
         <AppPageHeader eyebrow="Espace social" title={content.title} description={content.body}>
           {state === "signed-out" ? <Link className={`${appPrimaryActionClass} mt-5`} href="/login?next=%2Ffriends">Se connecter</Link> : null}
           {state === "username-required" ? <Link className={`${appPrimaryActionClass} mt-5`} href="/profile">Choisir mon pseudo</Link> : null}
@@ -67,7 +67,7 @@ export function FriendsView(props: FriendsViewProps) {
   const receivedByUser = new Map(snapshot.received.map((request) => [request.userId, request]));
 
   return (
-    <AppPage width="medium">
+    <AppPage width="wide">
       <AppPageHeader description="Retrouve tes partenaires, réponds à tes demandes et cherche un joueur par son pseudo." eyebrow="Espace social" title="Amis" />
       {props.actionMessage ? <p className="coinche-notice" data-tone="success" role="status">{props.actionMessage}</p> : null}
 
@@ -134,7 +134,7 @@ export function FriendsView(props: FriendsViewProps) {
           <label className="block text-sm font-bold text-[var(--text-primary)]" htmlFor="friend-search">Pseudo</label>
           <input
             autoComplete="off"
-            className={`${appInputClass} mt-2`}
+            className={`${appInputClass} mt-2 max-w-xl`}
             id="friend-search"
             maxLength={40}
             onChange={(event) => props.onQueryChange?.(event.target.value)}

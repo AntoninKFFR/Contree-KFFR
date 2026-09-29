@@ -96,7 +96,7 @@ export default function HistoryPage() {
   }, [filter, games, multiplayerGames]);
 
   return (
-    <AppPage>
+    <AppPage width="wide">
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <Link className="coinche-ui-link text-sm font-semibold" href="/profile">← Profil</Link>

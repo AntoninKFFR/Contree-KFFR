@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { AppEyebrow, AppPage, KffrSuitBackdrop, appInputClass, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
+import { AppPage, AppPageHeader, appInputClass, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { BID_READING_LEVEL_NAMES, type BidReadingLevel } from "@/engine/training/bidReading";
 import { ensureProfile } from "@/lib/profiles";
 import { getSupabaseClient } from "@/lib/supabaseClient";
@@ -53,11 +53,9 @@ export function TrainingDuoHomeClient() {
   return <AppPage width="medium">
     <Link className="coinche-ui-link w-fit text-sm font-bold" href="/training">← Retour à l’entraînement</Link>
     <div className="training-duo-home">
-      <header className="training-hero"><KffrSuitBackdrop /><AppEyebrow>Entraînement · Duo</AppEyebrow>
-        <h1>Lire les enchères à deux</h1>
-        <p>2 joueurs · 10 questions · réponses indépendantes</p>
-        <p className="text-sm">Le code de session est le seul moyen de rejoindre ton partenaire.</p>
-      </header>
+      <AppPageHeader eyebrow="Entraînement · Duo" title="Lire les enchères à deux" description="2 joueurs · 10 questions · réponses indépendantes">
+        <p className="text-sm text-[var(--text-secondary)]">Le code de session est le seul moyen de rejoindre ton partenaire.</p>
+      </AppPageHeader>
       {state === "loading" ? <p role="status" className="mt-5">Vérification du compte…</p> : null}
       {state === "signed-out" ? <p className="mt-5">Connecte-toi pour jouer à deux. <Link className="coinche-ui-link" href="/login?next=%2Ftraining%2Fduo">Se connecter</Link></p> : null}
       {state === "unavailable" ? <p role="alert" className="mt-5">Le service duo est indisponible pour le moment.</p> : null}

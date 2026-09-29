@@ -200,9 +200,9 @@ export default function MultiplayerPage() {
   const canSubmit = pageState === "ready" && Boolean(username) && !isSubmitting;
 
   return (
-    <AppPage>
+    <AppPage width="wide">
         <AppPageHeader actions={<button className={appSecondaryActionClass} type="button" onClick={() => setIsSettingsOpen(true)}>Préférences</button>}
-          description="Crée la partie ou saisis un code." eyebrow="Multijoueur" hero suits title="Une table, quatre places" />
+          description="Crée la partie ou saisis un code." eyebrow="Multijoueur" title="Une table, quatre places" />
 
         {pageState === "unavailable" ? (
           <StatusMessage>Supabase est indisponible. Vérifie .env.local.</StatusMessage>

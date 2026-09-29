@@ -87,12 +87,12 @@ export function TrainingHubClient() {
   const challengesUnlocked = progress ? isTrickValueChallengeUnlocked(progress) : false;
 
   return <AppPage width="wide" className="training-page">
-    <AppPageHeader eyebrow="Club KFFR · S’exercer" title="Entraînement" description="Progresse dans tous les aspects de la Contrée. Calcul, mémoire, lecture du jeu et enchères." />
+    <AppPageHeader eyebrow="Entraînement" title="Entraînement" description="Progresse dans tous les aspects de la Contrée. Calcul, mémoire, lecture du jeu et enchères." />
     {account?.signedIn === false ? <p className="text-sm text-[var(--text-secondary)]">Connecte-toi pour synchroniser tes records. Les annonces restent locales.</p> : null}
     {account?.failed ? <p className="text-sm text-[var(--text-secondary)]">Records du compte indisponibles pour le moment.</p> : null}
     <div className="training-catalogue">
       <section aria-labelledby="calculer"><TrainingSectionHeader kicker="01 · Les fondamentaux" title="Calculer" id="calculer" description="Compte les points, puis relève des défis lorsque tes bases sont solides." />
-        <div className="training-card-grid">
+        <div className="training-card-grid max-w-xl">
           <TrainingModeCard title="Valeur d’un pli" description="Compte les points des cartes à l’atout et hors atout, puis le bonus du dernier pli."
             level={trickLevel} levelName={trickLevel === 1 ? "Fondamentaux" : "Confirmé"}
             record={recordLabel(trick?.levels[trickLevel as 1 | 2].bestScore ?? 0, trick?.levels[trickLevel as 1 | 2].completedSeries ?? 0)}

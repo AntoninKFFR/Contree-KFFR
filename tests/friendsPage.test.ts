@@ -35,9 +35,9 @@ describe("friends page", () => {
     expect(markup).toContain('href="/profile"');
   });
 
-  it("keeps empty social sections compact in a centered column", () => {
+  it("keeps empty social sections compact on the wide canvas", () => {
     const markup = render("ready", emptySnapshot);
-    expect(markup).toContain("max-w-4xl");
+    expect(markup).toContain("max-w-6xl");
     expect(markup).toContain("Mes amis");
     expect(markup).toContain("Tu n&#x27;as pas encore d&#x27;amis ajoutés.");
     expect(markup).toContain("Demandes · aucune en attente");

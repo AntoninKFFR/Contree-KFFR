@@ -166,19 +166,15 @@ textarea {
   box-shadow: 0 2px 12px color-mix(in srgb, var(--shadow) 22%, transparent);
 }
 
-.coinche-page-header { position: relative; min-width: 0; padding-block: .35rem .65rem; }
+.coinche-page-header { min-width: 0; }
 .coinche-page-header-main { display: grid; justify-items: start; gap: 1.25rem; }
 .coinche-page-header-copy { min-width: 0; }
 .coinche-page-header-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
 .coinche-page-header h1 { margin-top: .4rem; font-size: clamp(2rem, 3.5vw, 3rem); font-weight: 900; line-height: 1.06; letter-spacing: -.035em; }
 .coinche-page-header-description { max-width: 42rem; margin-top: .65rem; color: var(--text-secondary); font-size: .95rem; line-height: 1.55; }
-.coinche-page-header--hero { min-height: 12rem; overflow: hidden; border: 1px solid var(--border-strong); border-radius: var(--radius-hero); background: var(--surface-raised); padding: clamp(1.4rem, 3vw, 2.4rem); }
-.coinche-page-header--hero .coinche-page-header-main { max-width: 68%; }
-.coinche-page-header--hero > :not(.coinche-suit-backdrop) { position: relative; z-index: 1; }
+.coinche-page-header--hero { border: 1px solid var(--border-strong); border-radius: var(--radius-hero); background: var(--surface-raised); padding: clamp(1.4rem, 3vw, 2.4rem); }
 .coinche-home-hero { border-color: var(--border); border-radius: var(--radius-hero); background: var(--surface); color: var(--text-primary); }
 @media (max-height: 450px) and (max-width: 900px) { .coinche-home-logo { display: none; } }
-.coinche-suit-backdrop { position: absolute; top: 1rem; right: 1.25rem; display: flex; width: 26%; height: calc(100% - 2rem); align-items: center; justify-content: center; overflow: hidden; color: var(--accent); font-size: clamp(3.5rem, 7vw, 7rem); font-weight: 900; letter-spacing: -.16em; line-height: 1.2; opacity: .12; pointer-events: none; white-space: nowrap; }
-@media (max-width: 639px) { .coinche-page-header--hero { min-height: 0; padding-bottom: 4.5rem; } .coinche-page-header--hero .coinche-page-header-main { max-width: none; } .coinche-suit-backdrop { top: auto; right: 1.25rem; bottom: .1rem; width: 8rem; height: 3.5rem; font-size: 3.2rem; opacity: .08; } }
 .coinche-app-section { min-width: 0; }
 .coinche-rule-section { border-bottom: 1px solid var(--border); padding: 1.25rem 0 1.6rem; }
 .coinche-rule-section:last-child { border-bottom: 0; }
@@ -1159,10 +1155,6 @@ summary:focus-visible {
 :root[data-theme="light"] .coinche-game-table [class*="bg-black/"] { background: rgb(0 0 0 / 22%) !important; }
 /* Training: one visual language across the hub, exercises and duo. */
 .training-kicker { color: var(--accent); font-size: .7rem; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
-.training-hero { position: relative; overflow: hidden; border: 1px solid var(--border-strong); border-radius: var(--radius-hero); background: var(--surface-raised); padding: clamp(1.3rem, 3vw, 2.25rem); }
-.training-hero > :not(.coinche-suit-backdrop) { position: relative; z-index: 1; }
-.training-hero h1 { margin-top: .4rem; font-size: clamp(2rem, 3.5vw, 3rem); font-weight: 900; letter-spacing: -.035em; line-height: 1.05; }
-.training-hero p { margin-top: .6rem; max-width: 38rem; color: var(--text-secondary); }
 .training-catalogue { display: grid; gap: clamp(2rem, 3vw, 2.75rem); }
 .training-pile-section { border-top: 1px solid var(--border); padding-top: 1.25rem; }
 .training-section-heading { margin-bottom: 1rem; border-top: 1px solid var(--border); padding-top: 1.25rem; scroll-margin-top: 4.5rem; }
@@ -1244,5 +1236,5 @@ summary:focus-visible {
   .training-auction-connector::before { content: ""; display: block; width: 1px; height: .4rem; margin: 0 auto; background: var(--border-strong); }
   .training-auction-connector::after { content: "↓"; display: block; font-size: 1rem; }
 }
-@media (max-height: 410px) and (orientation: landscape) { .training-hero { padding: 1rem; } .training-hero h1 { font-size: 1.75rem; } .training-section-heading { padding-top: .75rem; } .training-result { padding: 1rem; } .training-result-score { margin-top: .3rem; font-size: 3rem; } }
+@media (max-height: 410px) and (orientation: landscape) { .training-section-heading { padding-top: .75rem; } .training-result { padding: 1rem; } .training-result-score { margin-top: .3rem; font-size: 3rem; } }
 @media (prefers-reduced-motion: reduce) { .training-mode-card, .training-progress-track span, .training-bid-option { transition: none; } .training-feedback { animation: none; } }

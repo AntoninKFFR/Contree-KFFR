@@ -25,13 +25,13 @@ describe("shared visual system", () => {
     expect(panel).toContain("coinche-app-surface border");
   });
 
-  it("uses the canonical decorated header for top-level pages", () => {
+  it("uses the canonical header without decorative suits for top-level pages", () => {
     const markup = renderToStaticMarkup(createElement(AppPageHeader, { eyebrow: "Historique", title: "Toutes les parties", description: "Les plus récentes d’abord." }));
     expect(markup).toContain("coinche-page-header-main");
     expect(markup).toContain("coinche-page-header--hero");
     expect(markup).toContain("<h1>Toutes les parties</h1>");
-    expect(markup).toContain('aria-hidden="true"');
-    expect(markup).toContain("♠ ♥ ♦ ♣");
+    expect(markup).not.toContain("coinche-suit-backdrop");
+    expect(markup).not.toContain("♠ ♥ ♦ ♣");
     expect(markup).not.toContain("coinche-app-surface");
   });
 
