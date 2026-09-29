@@ -5,6 +5,15 @@ on:
     paths:
       - "supabase/migrations/**"
       - "scripts/testSocialDb.mjs"
+      - "scripts/provisionSocialE2e.mjs"
+      - "scripts/testSocialPublication.sql"
+      - "e2e/socialNotifications.spec.ts"
+      - "components/social/**"
+      - "components/AppTopNav.tsx"
+      - "app/layout.tsx"
+      - "app/globals.css"
+      - "app/friends/FriendsPageClient.tsx"
+      - "lib/social*.ts"
       - ".github/workflows/social-db.yml"
       - "package.json"
   push:
@@ -12,6 +21,15 @@ on:
     paths:
       - "supabase/migrations/**"
       - "scripts/testSocialDb.mjs"
+      - "scripts/provisionSocialE2e.mjs"
+      - "scripts/testSocialPublication.sql"
+      - "e2e/socialNotifications.spec.ts"
+      - "components/social/**"
+      - "components/AppTopNav.tsx"
+      - "app/layout.tsx"
+      - "app/globals.css"
+      - "app/friends/FriendsPageClient.tsx"
+      - "lib/social*.ts"
       - ".github/workflows/social-db.yml"
       - "package.json"
 
@@ -35,6 +53,8 @@ jobs:
         run: supabase db lint --local --level warning --fail-on error
       - name: Run local Supabase advisors
         run: supabase db advisors --local --type all --level warn --fail-on error
+      - name: Verify narrow social Realtime publication
+        run: supabase db query --local --file scripts/testSocialPublication.sql
       - name: Test social RLS with local Auth JWTs
         shell: bash
         run: |
@@ -46,3 +66,18 @@ jobs:
             | grep '^SOCIAL_TEST_')
           set +a
           npm run test:db:social
+      - name: Provision disposable local browser accounts
+        shell: bash
+        run: |
+          set -a
+          source <(supabase status -o env \
+            --override-name api.url=SOCIAL_TEST_SUPABASE_URL \
+            --override-name auth.anon_key=SOCIAL_TEST_SUPABASE_ANON_KEY \
+            --override-name auth.service_role_key=SOCIAL_TEST_SUPABASE_SERVICE_ROLE_KEY \
+            | grep '^SOCIAL_TEST_')
+          set +a
+          node scripts/provisionSocialE2e.mjs
+          printf 'NEXT_PUBLIC_SUPABASE_URL=%s\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%s\n' "$SOCIAL_TEST_SUPABASE_URL" "$SOCIAL_TEST_SUPABASE_ANON_KEY" >> "$GITHUB_ENV"
+      - run: npx playwright install --with-deps chromium
+      - name: Test global social notifications with two browsers
+        run: npx playwright test --project=social

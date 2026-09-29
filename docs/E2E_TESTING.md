@@ -59,6 +59,8 @@ E2E_USER_4_PASSWORD
 
 Ne jamais mettre leurs valeurs dans Git, une commande copiée dans un ticket, une capture ou un log. Aucun utilisateur n'est créé automatiquement et aucune service key n'est utilisée. Quand une variable manque, Playwright affiche uniquement son nom et skip le scénario authentifié.
 
+Exception pour la suite `@social` en CI : le workflow `social-db.yml` démarre une base Supabase **locale et jetable**, crée deux comptes éphémères avec la clé service locale, transmet les identifiants au processus Playwright sans les afficher, puis exécute le scénario notifications. Aucun compte n'est créé par Playwright ni sur un projet distant. En local, `npx playwright test --project=social` utilise les deux variables `E2E_USER_1_*` et `E2E_USER_2_*` si elles sont fournies ; sinon il est skipped.
+
 `loginAs(page, credentials)` ouvre `/login`, remplit les champs accessibles, attend la confirmation de connexion et vérifie la présence de la session locale. Le projet `multiplayer` désactive volontairement les traces : une trace d'action d'authentification pourrait conserver les arguments de saisie. Les tests ne logguent ni requêtes d'auth, ni tokens, ni bodies sensibles.
 
 ## Tests Elo authentifiés
