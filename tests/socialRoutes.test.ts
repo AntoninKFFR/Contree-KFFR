@@ -18,6 +18,7 @@ import { GET as getSnapshot } from "@/app/api/social/route";
 import { GET as searchPlayers } from "@/app/api/social/search/route";
 import { POST as sendRequest } from "@/app/api/social/friend-requests/route";
 import { GET as getInvitations } from "@/app/api/social/invitations/route";
+import { GET as getPresence, POST as touchPresence } from "@/app/api/social/presence/route";
 import { POST as acceptInvitation } from "@/app/api/social/invitations/[id]/accept/route";
 import { POST as cancelInvitation } from "@/app/api/social/invitations/[id]/cancel/route";
 import { POST as declineInvitation } from "@/app/api/social/invitations/[id]/decline/route";
@@ -44,6 +45,29 @@ beforeEach(() => {
 });
 
 describe("social API routes", () => {
+  it("returns only authorized online friend IDs with no-store and no timestamps", async () => {
+    mocks.rpc.mockResolvedValue({ data: [{ user_id: recipientId }], error: null });
+    const response = await getPresence(authRequest("http://localhost/api/social/presence"));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    await expect(response.json()).resolves.toEqual({ data: [{ user_id: recipientId }] });
+    expect(mocks.rpc).toHaveBeenCalledWith("get_my_friend_presence", undefined);
+    mocks.rpc.mockResolvedValue({ data: [{ user_id: recipientId, last_seen_at: "private" }], error: null });
+    const withExtra = await getPresence(authRequest("http://localhost/api/social/presence"));
+    await expect(withExtra.json()).resolves.toEqual({ data: [{ user_id: recipientId }] });
+  });
+
+  it("touches the caller only and rejects missing authentication", async () => {
+    mocks.rpc.mockResolvedValue({ data: true, error: null });
+    const response = await touchPresence(authRequest("http://localhost/api/social/presence", { method: "POST" }));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(mocks.rpc).toHaveBeenCalledWith("touch_social_presence", undefined);
+    mocks.auth.mockRejectedValue(new Error("Authentication required."));
+    const unauthorized = await touchPresence(new Request("http://localhost/api/social/presence", { method: "POST" }));
+    expect(unauthorized.status).toBe(401);
+  });
+
   it("returns 401 when the Bearer session is missing", async () => {
     mocks.auth.mockRejectedValue(new Error("Authentication required."));
     const response = await getSnapshot(new Request("http://localhost/api/social"));

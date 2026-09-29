@@ -8,12 +8,18 @@ on:
       - "scripts/provisionSocialE2e.mjs"
       - "scripts/testSocialPublication.sql"
       - "e2e/socialNotifications.spec.ts"
+      - "e2e/socialPresence.spec.ts"
       - "components/social/**"
+      - "components/friends/FriendsView.tsx"
+      - "components/multiplayer/GameInvitationDialog.tsx"
       - "components/AppTopNav.tsx"
       - "app/layout.tsx"
       - "app/globals.css"
       - "app/friends/FriendsPageClient.tsx"
+      - "app/api/social/presence/**"
       - "lib/social*.ts"
+      - "lib/server/socialService.ts"
+      - "lib/friendPresence.ts"
       - ".github/workflows/social-db.yml"
       - "package.json"
   push:
@@ -24,12 +30,18 @@ on:
       - "scripts/provisionSocialE2e.mjs"
       - "scripts/testSocialPublication.sql"
       - "e2e/socialNotifications.spec.ts"
+      - "e2e/socialPresence.spec.ts"
       - "components/social/**"
+      - "components/friends/FriendsView.tsx"
+      - "components/multiplayer/GameInvitationDialog.tsx"
       - "components/AppTopNav.tsx"
       - "app/layout.tsx"
       - "app/globals.css"
       - "app/friends/FriendsPageClient.tsx"
+      - "app/api/social/presence/**"
       - "lib/social*.ts"
+      - "lib/server/socialService.ts"
+      - "lib/friendPresence.ts"
       - ".github/workflows/social-db.yml"
       - "package.json"
 
@@ -81,3 +93,11 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Test global social notifications with two browsers
         run: npx playwright test --project=social
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: social-playwright-failures
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 3

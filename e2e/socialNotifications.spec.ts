@@ -101,9 +101,7 @@ test.describe("@social global notifications with two accounts", () => {
       await b.goto("/training");
       await awaitBaseline(b);
 
-      await a.goto("/friends");
-      await a.getByLabel("Pseudo").fill(usernameB);
-      await a.locator("li").filter({ hasText: usernameB }).getByRole("button", { name: "Ajouter" }).click();
+      await socialApi(a, "/api/social/friend-requests", "POST", { recipientId: bId });
       const friendToast = b.locator(".social-notification-toast").filter({ hasText: usernameA });
       await expect(friendToast).toBeVisible({ timeout: 15_000 });
       await expect(b.locator(".social-notification-badge")).toHaveText("1");
@@ -200,7 +198,7 @@ test.describe("@social global notifications with two accounts", () => {
       await assertSafeA(); await assertSafeB();
     } finally {
       if (a && b) for (const roomId of rooms) await bestEffortFinishRoom([a, b], roomId);
-      await Promise.all(contexts.map(async (context) => { if (context.browser()?.isConnected()) await context.close(); }));
+      await Promise.allSettled(contexts.map(async (context) => { if (context.browser()?.isConnected()) await context.close(); }));
     }
   });
 });

@@ -5,6 +5,7 @@ import { AppTopNav } from "@/components/AppTopNav";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
 import { MusicProvider } from "@/components/settings/MusicProvider";
 import { SocialNotificationsProvider } from "@/components/social/SocialNotifications";
+import { SocialPresenceHeartbeat } from "@/components/social/SocialPresenceHeartbeat";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default function RootLayout({
         <PlayerPreferencesProvider>
           <MusicProvider>
             <SocialNotificationsProvider>
+              <SocialPresenceHeartbeat />
               <div className="min-h-dvh">
                 <AppTopNav />
                 {children}

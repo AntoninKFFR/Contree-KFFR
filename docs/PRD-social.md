@@ -27,7 +27,9 @@ Les règles de contribution de [CONTRIBUTING.md](../CONTRIBUTING.md) s'appliquen
 
 ### Hors MVP
 
-Chat privé, groupes, clans, présence globale ou indicateur « en ligne », blocage avancé, notifications push ou email, matchmaking, classement, ELO et spectateurs. Classement et ELO relèvent d'un module ultérieur. Le MVP n'introduit ni feed de notifications général ni nouvelle autorité de présence.
+Chat privé, groupes, clans, présence publique ou statuts personnalisés, blocage avancé, notifications push ou email, matchmaking, classement, ELO et spectateurs. Classement et ELO relèvent d'un module ultérieur.
+
+**Présence des amis (issue #89) :** un heartbeat du compte authentifié est envoyé environ toutes les 30 s lorsque l'onglet est visible et connecté, ainsi qu'au chargement de session, au focus et au retour en ligne. Un ami est « En ligne » si son dernier heartbeat date de moins de 90 s ; sinon il est « Hors ligne ». Seuls les amis peuvent consulter cet indicateur via une RPC qui renvoie uniquement les identifiants en ligne. Ni la recherche publique ni les demandes en attente ne révèlent la présence. L'interface ne montre aucune heure de dernière activité et ne propose aucun statut personnalisé. La présence sociale est indépendante des rooms.
 
 ## 3. Modèle de données recommandé
 
