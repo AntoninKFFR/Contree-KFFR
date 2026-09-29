@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AppPage, KffrSuitBackdrop, appPrimaryActionClass } from "@/components/ui/AppShell";
+import { AppPage, AppPageHeader } from "@/components/ui/AppShell";
 import { TrainingLevelTrack, TrainingModeCard, TrainingSectionHeader } from "@/components/training/TrainingUI";
 import { formatDuration, PILE_COUNT_MODE_COPY, PILE_COUNT_TITLE } from "@/components/training/pileCountCopy";
 import { isPileCountModeUnlocked, isTrickValueChallengeUnlocked, PASSING_SCORE, readTrainingProgress, type TrainingProgress } from "@/components/training/progress";
@@ -87,33 +87,24 @@ export function TrainingHubClient() {
   const challengesUnlocked = progress ? isTrickValueChallengeUnlocked(progress) : false;
 
   return <AppPage width="wide" className="training-page">
-    <header className="training-hero"><KffrSuitBackdrop /><span className="training-kicker">Club KFFR · S’exercer</span>
-      <h1>Entraînement</h1><p>Progresse dans tous les aspects de la Contrée. Calcul, mémoire, lecture du jeu et enchères.</p>
-      {account?.signedIn === false ? <p className="text-sm">Connecte-toi pour synchroniser tes records. Les annonces restent locales.</p> : null}
-      {account?.failed ? <p className="text-sm">Records du compte indisponibles pour le moment.</p> : null}
-    </header>
-    <section className="training-resume" aria-label="Reprendre l’entraînement"><div><span className="training-kicker">À toi de jouer</span>
-      <h2>Reprendre l’entraînement</h2><p>Valeur d’un pli · Niveau {trickLevel} · {trickLevel === 1 ? "Fondamentaux" : "Confirmé"}</p>
-      <div className="training-resume-progress"><span>Meilleur score du niveau</span><span>{trick?.levels[trickLevel as 1 | 2].bestScore ?? 0} / 10</span></div>
-      <div className="training-progress-track" role="progressbar" aria-label="Meilleur score du niveau" aria-valuemin={0} aria-valuemax={10} aria-valuenow={trick?.levels[trickLevel as 1 | 2].bestScore ?? 0}>
-        <span style={{ width: `${(trick?.levels[trickLevel as 1 | 2].bestScore ?? 0) * 10}%` }} /></div></div>
-      <Link className={`${appPrimaryActionClass} training-card-action`} href={`/training/puzzle/trick-value?level=${trickLevel}`}>Reprendre la série</Link>
-    </section>
+    <AppPageHeader eyebrow="Entraînement" title="Entraînement" description="Progresse dans tous les aspects de la Contrée. Calcul, mémoire, lecture du jeu et enchères." />
+    {account?.signedIn === false ? <p className="text-sm text-[var(--text-secondary)]">Connecte-toi pour synchroniser tes records. Les annonces restent locales.</p> : null}
+    {account?.failed ? <p className="text-sm text-[var(--text-secondary)]">Records du compte indisponibles pour le moment.</p> : null}
     <div className="training-catalogue">
       <section aria-labelledby="calculer"><TrainingSectionHeader kicker="01 · Les fondamentaux" title="Calculer" id="calculer" description="Compte les points, puis relève des défis lorsque tes bases sont solides." />
-        <h3 className="mb-3 text-lg font-black">Valeur d’un pli</h3>
+        <div className="training-card-grid max-w-xl">
+          <TrainingModeCard title="Valeur d’un pli" description="Compte les points des cartes à l’atout et hors atout, puis le bonus du dernier pli."
+            level={trickLevel} levelName={trickLevel === 1 ? "Fondamentaux" : "Confirmé"}
+            record={recordLabel(trick?.levels[trickLevel as 1 | 2].bestScore ?? 0, trick?.levels[trickLevel as 1 | 2].completedSeries ?? 0)}
+            href={`/training/puzzle/trick-value?level=${trickLevel}`}>
+            <TrainingLevelTrack title="Valeur d’un pli" current={trickLevel} total={2} href={(level) => `/training/puzzle/trick-value?level=${level}`} names={{ 1: "Fondamentaux", 2: "Confirmé" }} />
+            {([1, 2] as const).filter((level) => level !== trickLevel && trick?.levels[level].completedSeries).map((level) =>
+              <p className="training-card-record" key={`local-${level}`}>Niveau {level} · Record local : {trick?.levels[level].bestScore} / 10</p>)}
+            {[1, 2].map((level) => <AccountRecord key={level} record={accountRecord("trick-value", level)} />)}
+          </TrainingModeCard>
+        </div>
+        <h3 className="mb-3 mt-7 text-lg font-black">Défis</h3>
         <div className="training-card-grid">
-          {[1, 2].map((level) => {
-            const unlocked = level <= trickLevel;
-            const name = level === 1 ? "Fondamentaux" : "Confirmé";
-            const saved = trick?.levels[level as 1 | 2];
-            return <TrainingModeCard key={level} title={name} description={level === 1 ? "Apprendre à compter les points des cartes à l’atout et hors atout." : "Compter sans aide et gérer le bonus du dernier pli."}
-              level={level} record={unlocked && saved?.completedSeries ? `Meilleur score : ${saved.bestScore} / 10` : undefined}
-              href={unlocked ? `/training/puzzle/trick-value?level=${level}` : undefined} action={`Jouer le niveau ${level}`}>
-              {!unlocked ? <p className="training-lock-note">Obtiens 8/10 au niveau 1 pour débloquer ce niveau.</p> : null}
-              <AccountRecord record={accountRecord("trick-value", level)} />
-            </TrainingModeCard>;
-          })}
           {(["survival", "blitz"] as const).map((mode) => <TrainingModeCard key={mode} title={mode === "survival" ? "Survie" : "Blitz"}
             description={mode === "survival" ? "3 vies. Le temps diminue à mesure que tu progresses." : "60 secondes. Les erreurs consécutives peuvent détruire ta run."}
             record={challengesUnlocked && trick?.challenges[mode].completedRuns ? `Record : ${trick.challenges[mode].bestScore} ${mode === "survival" ? trick.challenges[mode].bestScore === 1 ? "pli" : "plis" : trick.challenges[mode].bestScore === 1 ? "bonne réponse" : "bonnes réponses"}` : undefined}
@@ -121,7 +112,6 @@ export function TrainingHubClient() {
             {!challengesUnlocked ? <p className="training-lock-note">Réussis 8/10 en Confirmé pour débloquer ce mode.</p> : null}
           </TrainingModeCard>)}
         </div>
-        <TrainingLevelTrack title="Valeur d’un pli" current={trickLevel} total={2} href={(level) => `/training/puzzle/trick-value?level=${level}`} names={{ 1: "Fondamentaux", 2: "Confirmé" }} />
         <div className="training-pile-section mt-7"><h3 className="text-xl font-black">{PILE_COUNT_TITLE}</h3>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">Les cartes du tas de ton équipe défilent une à une : compte tes points de fin de donne, 10 de der et belote compris.</p>
           <div className="training-card-grid mt-4">{PILE_COUNT_MODES.map((mode) => <PileCountModeCard key={mode} mode={mode} progress={progress} />)}</div></div>
@@ -149,10 +139,11 @@ export function TrainingHubClient() {
           </TrainingModeCard>
           <TrainingModeCard title="Lire les enchères" description="Apprends ce qu’une annonce permet d’affirmer sur la main du partenaire ou d’un adversaire."
             level={bidReadingLevel} levelName={BID_READING_LEVEL_NAMES[bidReadingLevel as BidReadingLevel]}
-            record={recordLabel(bidReading?.levels[bidReadingLevel as BidReadingLevel].bestScore ?? 0, bidReading?.levels[bidReadingLevel as BidReadingLevel].completedSeries ?? 0)} featured>
+            record={recordLabel(bidReading?.levels[bidReadingLevel as BidReadingLevel].bestScore ?? 0, bidReading?.levels[bidReadingLevel as BidReadingLevel].completedSeries ?? 0)}
+            href={`/training/puzzle/bid-reading?level=${bidReadingLevel}`} action="Jouer en solo" featured>
             <TrainingLevelTrack title="Lire les enchères" current={bidReadingLevel} total={BID_READING_LEVELS} href={(level) => `/training/puzzle/bid-reading?level=${level}`} names={BID_READING_LEVEL_NAMES} />
-            <div className="grid gap-2 sm:grid-cols-2"><div className="training-duo-choice"><h4>Solo</h4><p>Une série personnelle à ton rythme.</p><Link className={appPrimaryActionClass} href={`/training/puzzle/bid-reading?level=${bidReadingLevel}`}>Jouer en solo</Link></div>
-              <div className="training-duo-choice"><h4>Duo</h4><p>Même série, deux réponses indépendantes.</p><Link className={appPrimaryActionClass} href="/training/duo">Jouer à deux</Link></div></div>
+            <p className="text-sm text-[var(--text-secondary)]">Même série, deux réponses indépendantes.</p>
+            <Link className="coinche-ui-link text-sm font-bold" href="/training/duo">Jouer à deux</Link>
             <Link className="coinche-ui-link text-sm font-bold" href="/training/conventions/bidding">Voir les conventions</Link>
           </TrainingModeCard>
         </div>

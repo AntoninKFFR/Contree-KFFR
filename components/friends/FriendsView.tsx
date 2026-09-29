@@ -1,11 +1,9 @@
 import Link from "next/link";
 import type { GameInvitationsSnapshot, SocialSearchResult, SocialSnapshot } from "@/lib/socialApi";
 import {
-  AppEyebrow,
   AppPage,
   AppPageHeader,
   AppSurface,
-  appBadgeClass,
   appDangerActionClass,
   appInputClass,
   appPrimaryActionClass,
@@ -52,15 +50,12 @@ export function FriendsView(props: FriendsViewProps) {
             ? { title: "Service indisponible", body: "Vérifie la configuration Supabase puis recharge la page." }
             : { title: "Impossible de charger tes amis", body: props.pageError ?? "Réessaie dans un instant." };
     return (
-      <AppPage width="narrow">
-        <AppSurface className="p-6 sm:p-7">
-          <AppEyebrow>Espace social</AppEyebrow>
-          <h1 className="mt-2 text-2xl font-black text-[var(--text-primary)]">{content.title}</h1>
-          <p className="mt-2 text-sm text-[var(--text-secondary)]">{content.body}</p>
+      <AppPage width="wide">
+        <AppPageHeader eyebrow="Espace social" title={content.title} description={content.body}>
           {state === "signed-out" ? <Link className={`${appPrimaryActionClass} mt-5`} href="/login?next=%2Ffriends">Se connecter</Link> : null}
           {state === "username-required" ? <Link className={`${appPrimaryActionClass} mt-5`} href="/profile">Choisir mon pseudo</Link> : null}
           {state === "error" && props.onRetry ? <button className={`${appPrimaryActionClass} mt-5`} onClick={props.onRetry} type="button">Réessayer</button> : null}
-        </AppSurface>
+        </AppPageHeader>
       </AppPage>
     );
   }
@@ -73,9 +68,8 @@ export function FriendsView(props: FriendsViewProps) {
 
   return (
     <AppPage width="wide">
-      <AppPageHeader description="Retrouve tes partenaires, réponds à tes demandes et cherche un joueur par son pseudo." eyebrow="Espace social" title="Amis">
-        {props.actionMessage ? <p className="coinche-notice mt-4" data-tone="success" role="status">{props.actionMessage}</p> : null}
-      </AppPageHeader>
+      <AppPageHeader description="Retrouve tes partenaires, réponds à tes demandes et cherche un joueur par son pseudo." eyebrow="Espace social" title="Amis" />
+      {props.actionMessage ? <p className="coinche-notice" data-tone="success" role="status">{props.actionMessage}</p> : null}
 
       <GameInvitationsSection
         currentUserId={props.currentUserId}
@@ -86,12 +80,12 @@ export function FriendsView(props: FriendsViewProps) {
         pendingAction={props.pendingAction}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-8">
         <SocialSection count={snapshot.counts.friends} title="Mes amis">
           {snapshot.friends.length === 0 ? <EmptyText>Tu n&apos;as pas encore d&apos;amis ajoutés.</EmptyText> : (
-            <ul className="space-y-2">
+            <ul className="coinche-social-list">
               {snapshot.friends.map((friend) => (
-                <li className="coinche-app-card flex flex-wrap items-center justify-between gap-3" key={friend.userId}>
+                <li className="coinche-social-row" key={friend.userId}>
                   <PlayerName username={friend.username} />
                   <button
                     className={appDangerActionClass}
@@ -107,14 +101,13 @@ export function FriendsView(props: FriendsViewProps) {
           )}
         </SocialSection>
 
-        <SocialSection count={snapshot.counts.received} title="Demandes reçues">
-          {snapshot.received.length === 0 ? <EmptyText>Aucune demande reçue.</EmptyText> : (
-            <ul className="space-y-2">
+        {snapshot.received.length || snapshot.sent.length ? <SocialSection count={snapshot.counts.received + snapshot.counts.sent} title="Demandes">
+          {snapshot.received.length > 0 ? <ul className="coinche-social-list">
               {snapshot.received.map((request) => {
                 const pending = props.pendingAction === `request:${request.id}`;
                 return (
-                  <li className="coinche-app-card" id={`friend-request-${request.id}`} key={request.id} tabIndex={-1}>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                  <li className="coinche-social-row" id={`friend-request-${request.id}`} key={request.id} tabIndex={-1}>
+                    <div className="flex flex-wrap items-center justify-between gap-3 w-full">
                       <PlayerName username={request.username} />
                       <div className="flex flex-wrap gap-2">
                         <button className={appPrimaryActionClass} disabled={pending} onClick={() => props.onAccept?.(request.id)} type="button">{pending ? "En cours…" : "Accepter"}</button>
@@ -124,30 +117,24 @@ export function FriendsView(props: FriendsViewProps) {
                   </li>
                 );
               })}
-            </ul>
-          )}
-        </SocialSection>
-
-        <SocialSection count={snapshot.counts.sent} title="Demandes envoyées">
-          {snapshot.sent.length === 0 ? <EmptyText>Aucune demande en attente.</EmptyText> : (
-            <ul className="space-y-2">
+            </ul> : null}
+          {snapshot.sent.length > 0 ? <ul className="coinche-social-list">
               {snapshot.sent.map((request) => (
-                <li className="coinche-app-card flex flex-wrap items-center justify-between gap-3" key={request.id}>
+                <li className="coinche-social-row" key={request.id}>
                   <PlayerName username={request.username} />
                   <button className={appSecondaryActionClass} disabled={props.pendingAction === `request:${request.id}`} onClick={() => props.onCancel?.(request.id)} type="button">
                     {props.pendingAction === `request:${request.id}` ? "Annulation…" : "Annuler"}
                   </button>
                 </li>
               ))}
-            </ul>
-          )}
-        </SocialSection>
+            </ul> : null}
+        </SocialSection> : <p className="text-sm text-[var(--text-secondary)]">Demandes · aucune en attente</p>}
 
-        <SocialSection title="Rechercher un joueur">
+        <SocialSection title="Ajouter un ami">
           <label className="block text-sm font-bold text-[var(--text-primary)]" htmlFor="friend-search">Pseudo</label>
           <input
             autoComplete="off"
-            className={`${appInputClass} mt-2`}
+            className={`${appInputClass} mt-2 max-w-xl`}
             id="friend-search"
             maxLength={40}
             onChange={(event) => props.onQueryChange?.(event.target.value)}
@@ -194,21 +181,16 @@ function GameInvitationsSection({
   const sent = invitations.invitations.filter(
     (invitation) => invitation.status === "pending" && invitation.inviterId === currentUserId,
   );
+  if (received.length === 0 && sent.length === 0) return null;
   return (
     <AppSurface variant="plain">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-black text-[var(--text-primary)]">Invitations de partie</h2>
-        <span className={appBadgeClass}>
-          {invitations.counts.receivedPending}
-        </span>
-      </div>
-      {received.length === 0 && sent.length === 0 ? <EmptyText>Aucune invitation de partie en attente.</EmptyText> : null}
+      <h2 className="mb-3 text-lg font-black text-[var(--text-primary)]">Invitations de partie · {received.length + sent.length}</h2>
       {received.length > 0 ? (
-        <ul className="space-y-2">
+        <ul className="coinche-social-list">
           {received.map((invitation) => {
             const pending = pendingAction === `game-invitation:${invitation.id}`;
             return (
-              <li className="coinche-app-card flex flex-wrap items-center justify-between gap-3" key={invitation.id}>
+              <li className="coinche-social-row" key={invitation.id}>
                 <div>
                   <PlayerName username={invitation.otherUsername} />
                   <p className="mt-0.5 text-xs text-[var(--text-secondary)]">Table {invitation.roomCode} · expire {formatInvitationExpiry(invitation.expiresAt)}</p>
@@ -223,13 +205,13 @@ function GameInvitationsSection({
         </ul>
       ) : null}
       {sent.length > 0 ? (
-        <div className={received.length > 0 ? "mt-4 border-t border-white/10 pt-4" : ""}>
+        <div className={received.length > 0 ? "mt-4" : ""}>
           <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-[var(--text-secondary)]">Envoyées</p>
-          <ul className="space-y-2">
+          <ul className="coinche-social-list">
             {sent.map((invitation) => {
               const pending = pendingAction === `game-invitation:${invitation.id}`;
               return (
-                <li className="coinche-app-card flex flex-wrap items-center justify-between gap-3" key={invitation.id}>
+                <li className="coinche-social-row" key={invitation.id}>
                   <div><PlayerName username={invitation.otherUsername} /><p className="mt-0.5 text-xs text-[var(--text-secondary)]">Table {invitation.roomCode}</p></div>
                   <button className={appSecondaryActionClass} disabled={pending} onClick={() => onCancel?.(invitation.id)} type="button">{pending ? "Annulation…" : "Annuler"}</button>
                 </li>
@@ -250,11 +232,8 @@ function formatInvitationExpiry(value: string): string {
 
 function SocialSection({ children, count, title }: { children: React.ReactNode; count?: number; title: string }) {
   return (
-    <AppSurface className="h-full" variant="plain">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-black text-[var(--text-primary)]">{title}</h2>
-        {count !== undefined ? <span className={appBadgeClass}>{count}</span> : null}
-      </div>
+    <AppSurface variant="plain">
+      <h2 className="mb-3 text-lg font-black text-[var(--text-primary)]">{title}{count !== undefined ? ` · ${count}` : ""}</h2>
       {children}
     </AppSurface>
   );
@@ -297,7 +276,7 @@ function SearchResults({
   if (searchState === "error") return <p className="coinche-notice mt-3" data-tone="error" role="alert">{searchError ?? "Recherche impossible."}</p>;
   if (searchState === "ready" && results.length === 0) return <p className="mt-3 text-sm text-[var(--text-secondary)]">Aucun joueur trouvé.</p>;
   return (
-    <ul className="mt-3 space-y-2">
+    <ul className="coinche-social-list mt-3">
       {results.map((result) => {
         const received = receivedByUser.get(result.userId);
         const pending = pendingAction === `search:${result.userId}`;
@@ -306,7 +285,7 @@ function SearchResults({
         else if (sentByUser.has(result.userId)) action = <span className="text-xs font-bold text-[var(--text-secondary)]">Demande envoyée</span>;
         else if (received) action = <button className={appSecondaryActionClass} onClick={() => onAnswerRequest?.(received.id)} type="button">Répondre à la demande</button>;
         else action = <button className={appPrimaryActionClass} disabled={pending} onClick={() => onSend?.(result.userId)} type="button">{pending ? "Envoi…" : "Ajouter"}</button>;
-        return <li className="coinche-app-card flex flex-wrap items-center justify-between gap-3" key={result.userId}><PlayerName username={result.username} />{action}</li>;
+        return <li className="coinche-social-row" key={result.userId}><PlayerName username={result.username} />{action}</li>;
       })}
     </ul>
   );

@@ -19,8 +19,10 @@ test("@smoke training hub lists the pile-count modes with normal locked", async 
   await expect(page.getByText("Record à établir (10/10)")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Compter son tas en mode Normal" })).toHaveCount(0);
   await expect(page.getByText("Réussis 8/10 en Débutant pour débloquer ce mode.")).toBeVisible();
-  // The existing trick-value entry points stay unique.
-  await expect(page.getByRole("link", { name: "Jouer le niveau 1" })).toHaveCount(1);
+  // Trick value has one exercise card with the current level as its CTA.
+  const trickCard = page.locator("article.training-mode-card").filter({ has: page.getByRole("heading", { name: "Valeur d’un pli" }) });
+  await expect(trickCard).toHaveCount(1);
+  await expect(trickCard.getByRole("link", { name: "Jouer", exact: true })).toHaveAttribute("href", "/training/puzzle/trick-value?level=1");
   browserErrors.assertClean();
 });
 

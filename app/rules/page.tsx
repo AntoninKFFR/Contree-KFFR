@@ -5,7 +5,7 @@ import { cardValues, defaultRules, kffrSections, variantSections, type RulesSect
 export const metadata: Metadata = { title: "Règles" };
 
 const sectionClass = "coinche-rule-section scroll-mt-36";
-const mutedClass = "text-sm leading-7 text-[color:var(--text-secondary)]";
+const mutedClass = "max-w-3xl text-sm leading-7 text-[color:var(--text-secondary)]";
 
 function CardOrder({ title, cards }: { title: string; cards: readonly (readonly [string, number])[] }) {
   return <div className="min-w-0 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-raised)] p-4">
@@ -37,8 +37,8 @@ function RuleSection({ section }: { section: RulesSection }) {
 
 export default function RulesPage() {
   return <AppPage stickyContent width="wide">
-    <div className="mx-auto w-full max-w-5xl pb-10">
-      <AppPageHeader className="border-b border-[var(--border)] pb-6" eyebrow="Aide de jeu" title="Règles de la Contrée" />
+    <div className="w-full pb-10">
+      <AppPageHeader eyebrow="Aide de jeu" title="Règles de la Contrée" />
 
       <nav aria-label="Navigation des règles" className="sticky top-14 z-20 mb-8 flex gap-2 overflow-x-auto border-b border-[color:var(--border)] bg-[color:var(--app-bg)] py-3">
         <a className={`${appSegmentedItemClass} shrink-0`} href="#contree-kffr">Contrée KFFR</a>

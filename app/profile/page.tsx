@@ -225,7 +225,7 @@ export default function ProfilePage() {
         <AppSurface className="p-6 sm:p-7">
         <AppEyebrow>Compte / Identité</AppEyebrow>
         <h2 className="mt-2 text-lg font-bold text-stone-50">Pseudo</h2>
-        {isEditingUsername || !username ? <div className="mt-3 flex flex-wrap items-end gap-2">
+        {isEditingUsername || !username ? <div className="mt-3 flex max-w-2xl flex-wrap items-end gap-2">
           <label className="min-w-48 flex-1 text-sm font-semibold text-stone-200">Ton pseudo
             <input aria-label="Pseudo" className={`${appInputClass} mt-1 w-full`} disabled={isSavingUsername} maxLength={40} onChange={(event) => setUsernameDraft(event.target.value)} value={usernameDraft} />
           </label>
@@ -333,14 +333,11 @@ function GameList({
 }
 
 function ProfileShell({ children }: { children: React.ReactNode }) {
-  return <AppPage>{children}</AppPage>;
+  return <AppPage width="wide">{children}</AppPage>;
 }
 
 function StatusCard({ children, title }: { children: React.ReactNode; title: string }) {
-  return (
-    <AppSurface className="p-6 text-sm">
-      <h1 className="text-2xl font-bold text-stone-50">{title}</h1>
-      <div className="mt-2 text-stone-300">{children}</div>
-    </AppSurface>
-  );
+  return <AppPageHeader eyebrow="Profil joueur" title={title}>
+    <div className="text-sm text-[var(--text-secondary)]">{children}</div>
+  </AppPageHeader>;
 }

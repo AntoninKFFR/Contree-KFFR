@@ -25,15 +25,14 @@ describe("shared visual system", () => {
     expect(panel).toContain("coinche-app-surface border");
   });
 
-  it("uses the same page header structure with optional decoration", () => {
-    const plain = renderToStaticMarkup(createElement(AppPageHeader, { eyebrow: "Historique", title: "Toutes les parties", description: "Les plus récentes d’abord." }));
-    const hero = renderToStaticMarkup(createElement(AppPageHeader, { eyebrow: "Club KFFR", title: "Entraînement", hero: true, suits: true }));
-    expect(plain).toContain("coinche-page-header-main");
-    expect(plain).toContain("<h1>Toutes les parties</h1>");
-    expect(plain).not.toContain("coinche-app-surface");
-    expect(hero).toContain("coinche-page-header--hero");
-    expect(hero).toContain('aria-hidden="true"');
-    expect(hero).toContain("♠ ♥ ♦ ♣");
+  it("uses the canonical header without decorative suits for top-level pages", () => {
+    const markup = renderToStaticMarkup(createElement(AppPageHeader, { eyebrow: "Historique", title: "Toutes les parties", description: "Les plus récentes d’abord." }));
+    expect(markup).toContain("coinche-page-header-main");
+    expect(markup).toContain("coinche-page-header--hero");
+    expect(markup).toContain("<h1>Toutes les parties</h1>");
+    expect(markup).not.toContain("coinche-suit-backdrop");
+    expect(markup).not.toContain("♠ ♥ ♦ ♣");
+    expect(markup).not.toContain("coinche-app-surface");
   });
 
   it("shares control classes and keeps empty states concise", () => {
@@ -47,11 +46,12 @@ describe("shared visual system", () => {
     expect(empty).toContain("<h2>Aucune partie</h2>");
   });
 
-  it("keeps training records and levels from repeating empty labels", () => {
+  it("keeps the trick-value levels in one card without a repeated resume panel", () => {
     const hub = readFileSync("components/training/TrainingHubClient.tsx", "utf8");
     const ui = readFileSync("components/training/TrainingUI.tsx", "utf8");
     expect(hub).toContain("recordLabel");
-    expect(hub.match(/Record local/g)).toHaveLength(1);
+    expect(hub).not.toContain('className="training-resume"');
+    expect(hub.match(/<TrainingLevelTrack title="Valeur d’un pli"/g)).toHaveLength(1);
     expect(ui).toContain('className="sr-only"');
   });
 });

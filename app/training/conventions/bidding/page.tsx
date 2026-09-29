@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AppEyebrow, AppPage, AppSurface, KffrSuitBackdrop, appPrimaryActionClass, appSegmentedItemClass } from "@/components/ui/AppShell";
+import { AppPage, AppPageHeader, AppSurface, appPrimaryActionClass, appSegmentedItemClass } from "@/components/ui/AppShell";
 
 export const metadata: Metadata = { title: "Conventions d’annonces | Entraînement" };
 
 export default function BiddingConventionsPage() {
   return <AppPage width="wide">
     <Link className="coinche-ui-link w-fit text-sm font-bold" href="/training">← Retour à l’entraînement</Link>
-    <header className="training-hero"><KffrSuitBackdrop />
-      <AppEyebrow>Doctrine KFFR</AppEyebrow>
-      <h1 className="mt-2 text-3xl font-black">Conventions d’annonces</h1>
-      <p className="mt-3 text-[var(--text-secondary)]">Ces conventions décrivent la doctrine utilisée par KFFR Contrée. Elles ne constituent pas une vérité universelle sur la Contrée.</p>
+    <AppPageHeader eyebrow="Doctrine KFFR" title="Conventions d’annonces" description="Ces conventions décrivent la doctrine utilisée par KFFR Contrée. Elles ne constituent pas une vérité universelle sur la Contrée.">
       <p className="training-version-note">Advanced Rules V4.1 · Axe annonces version 1</p>
-    </header>
+    </AppPageHeader>
     <nav aria-label="Sections des conventions" className="training-conventions-nav">
       <a className={appSegmentedItemClass} href="#ouverture">Ouverture</a><a className={appSegmentedItemClass} href="#reponse">Réponse au partenaire</a><a className={appSegmentedItemClass} href="#competitif">Compétitif</a>
       <a className={appSegmentedItemClass} href="#coinche">Coinche</a><a className={appSegmentedItemClass} href="#surcoinche">Surcoinche / Capot</a><a className={appSegmentedItemClass} href="#lecture">Lire les enchères</a><a className={appSegmentedItemClass} href="#reglement">Règlement</a>
