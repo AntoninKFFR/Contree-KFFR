@@ -12,24 +12,37 @@ export function useFriendPresence(session: Session | null): ReadonlySet<string> 
   useEffect(() => {
     let active = true;
     let sequence = 0;
+    let pendingTimer: number | null = null;
     pendingRef.current = null;
     setOnlineIds(new Set());
     if (!session) return () => { active = false; };
-    const apply = (next: ReadonlySet<string>) => {
-      // Moving a row between groups unmounts its button. Keep focus while an
-      // action is being used, then apply the latest presence on focusout.
-      if (document.activeElement?.closest(".friend-presence-row")) pendingRef.current = next;
-      else setOnlineIds(next);
-    };
-    const applyPending = () => {
-      if (!pendingRef.current) return;
+    const flushPending = () => {
+      pendingTimer = null;
+      if (!active || !pendingRef.current) return;
+      if (document.activeElement?.closest(".friend-presence-row")) {
+        pendingTimer = window.setTimeout(flushPending, 100);
+        return;
+      }
       const next = pendingRef.current;
       pendingRef.current = null;
-      window.setTimeout(() => {
-        if (!active) return;
-        if (document.activeElement?.closest(".friend-presence-row")) pendingRef.current = next;
-        else setOnlineIds(next);
-      }, 0);
+      setOnlineIds(next);
+    };
+    const apply = (next: ReadonlySet<string>) => {
+      // Moving a row between groups unmounts its button. Keep focus while an
+      // action is used; the timer also catches removal of a focused row.
+      if (document.activeElement?.closest(".friend-presence-row")) {
+        pendingRef.current = next;
+        if (pendingTimer === null) pendingTimer = window.setTimeout(flushPending, 100);
+      } else {
+        pendingRef.current = null;
+        if (pendingTimer !== null) window.clearTimeout(pendingTimer);
+        pendingTimer = null;
+        setOnlineIds(next);
+      }
+    };
+    const applyPending = () => {
+      if (pendingTimer !== null) window.clearTimeout(pendingTimer);
+      pendingTimer = window.setTimeout(flushPending, 0);
     };
     const refresh = () => {
       if (document.visibilityState !== "visible" || !navigator.onLine) return;
@@ -47,6 +60,8 @@ export function useFriendPresence(session: Session | null): ReadonlySet<string> 
     document.addEventListener("focusout", applyPending);
     return () => {
       active = false;
+      if (pendingTimer !== null) window.clearTimeout(pendingTimer);
+      pendingRef.current = null;
       window.clearInterval(interval);
       window.removeEventListener("focus", refresh);
       window.removeEventListener("online", refresh);

@@ -115,11 +115,9 @@ test.describe("@social private friend presence", () => {
       await expect(a.locator(".friend-presence-row")).toHaveCount(100);
       for (const [width, height] of [[1280, 720], [390, 844], [667, 375], [844, 390]]) {
         await a.setViewportSize({ width, height });
-        const dimensions = await a.locator("[data-testid=friends-presence-scroll]").evaluate((node) => ({
-          scrollHeight: node.scrollHeight, clientHeight: node.clientHeight, scrollWidth: node.scrollWidth, clientWidth: node.clientWidth,
-        }));
-        expect(dimensions.scrollHeight).toBeGreaterThan(dimensions.clientHeight);
-        expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+        await expect(a.locator("[data-testid=friends-presence-scroll]")).toBeVisible();
+        await expect.poll(async () => a!.locator("[data-testid=friends-presence-scroll]").evaluate((node) =>
+          node.scrollHeight > node.clientHeight && node.scrollWidth <= node.clientWidth)).toBe(true);
       }
       await a.unroute("**/api/social");
       await a.setViewportSize({ width: 1280, height: 720 });
