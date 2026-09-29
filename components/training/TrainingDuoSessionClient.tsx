@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { BidReadingForm } from "@/components/training/BidReadingForm";
 import { TrainingSessionHeader } from "@/components/training/TrainingUI";
@@ -12,6 +12,7 @@ import { AppEyebrow, AppPage, AppSurface, appDangerActionClass, appPrimaryAction
 import { BID_READING_ASSERTION_LABELS, BID_READING_LEVEL_NAMES, type BidReadingAnswer } from "@/engine/training/bidReading";
 import { sendTrainingDuoIntentWithRetry } from "@/lib/trainingDuoApi";
 import type { TrainingDuoIntent, TrainingDuoView } from "@/lib/trainingDuoTypes";
+import { TrainingDuoInvitationDialog } from "@/components/training/TrainingDuoInvitationDialog";
 
 type Action = (intent: TrainingDuoIntent) => void;
 const duoPath = "/training/duo";
@@ -21,7 +22,7 @@ function DuoLinks() { return <div className="mt-6 flex flex-wrap gap-2">
   <Link className={appSecondaryActionClass} href="/training/conventions/bidding">Voir les conventions</Link>
 </div>; }
 
-export function TrainingDuoSessionView({ view, pending, onAction }: { view: TrainingDuoView; pending: boolean; onAction: Action }) {
+export function TrainingDuoSessionView({ view, pending, onAction, onInviteFriend }: { view: TrainingDuoView; pending: boolean; onAction: Action; onInviteFriend?: () => void }) {
   const { session, participants, viewerSlot, exercise } = view;
   const viewer = participants.find((participant) => participant.slot === viewerSlot);
   const partner = participants.find((participant) => participant.slot !== viewerSlot);
@@ -85,6 +86,7 @@ export function TrainingDuoSessionView({ view, pending, onAction }: { view: Trai
         })}
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
+        {viewer?.isHost && !partner && onInviteFriend ? <button className={appPrimaryActionClass} type="button" disabled={pending} onClick={onInviteFriend}>Inviter un ami</button> : null}
         <button className={appPrimaryActionClass} type="button" disabled={pending} onClick={() => onAction({ type: "set-ready", ready: !viewer?.isReady })}>{viewer?.isReady ? "Annuler prêt" : "Je suis prêt"}</button>
         {viewer?.isHost ? <button className={`${appPrimaryActionClass} training-start-action`} type="button" disabled={pending || !canStart} onClick={() => onAction({ type: "start" })}>Démarrer</button> : null}
         <button className={appDangerActionClass} type="button" disabled={pending} onClick={() => onAction({ type: viewer?.isHost ? "cancel" : "leave" })}>{viewer?.isHost ? "Annuler le duo" : "Quitter"}</button>
@@ -134,9 +136,26 @@ export function TrainingDuoSessionView({ view, pending, onAction }: { view: Trai
 
 export function TrainingDuoSessionClient({ sessionId }: { sessionId: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteFriendsRequested = searchParams.get("inviteFriends") === "1";
+  const [isInviteFriendsOpen, setIsInviteFriendsOpen] = useState(inviteFriendsRequested);
   const { pageState, session, view, error, setError, acceptView, refresh, markTerminalError } = useTrainingDuoSync(sessionId);
   const [pending, setPending] = useState(false);
   const pendingRef = useRef(false);
+  const canInviteFriends = pageState === "ready" && view?.session.status === "lobby" && view.viewerSlot === 0
+    && view.participants.some((participant) => participant.slot === 0 && participant.isHost)
+    && !view.participants.some((participant) => participant.slot === 1);
+  useEffect(() => {
+    if (pageState === "ready" && !canInviteFriends) setIsInviteFriendsOpen(false);
+  }, [pageState, canInviteFriends]);
+  function closeInvitations() {
+    setIsInviteFriendsOpen(false);
+    if (inviteFriendsRequested) {
+      const next = new URLSearchParams(searchParams.toString());
+      next.delete("inviteFriends");
+      router.replace(`/training/duo/${sessionId}${next.size ? `?${next}` : ""}`, { scroll: false });
+    }
+  }
   const action = async (intent: TrainingDuoIntent) => {
     if (!session || !view || pendingRef.current || pageState !== "ready") return;
     pendingRef.current = true; setPending(true); setError(null);
@@ -163,6 +182,8 @@ export function TrainingDuoSessionClient({ sessionId }: { sessionId: string }) {
       {session ? <button className={`${appSecondaryActionClass} mt-4`} type="button" onClick={() => void refresh()}>Actualiser</button> : null}<DuoLinks /></AppSurface> : null}
     {error && pageState === "ready" ? <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--danger)] p-3 text-sm">
       <span>{error}</span><button className={appSecondaryActionClass} type="button" onClick={() => void refresh()}>Actualiser</button></div> : null}
-    {pageState === "ready" && view ? <TrainingDuoSessionView view={view} pending={pending} onAction={(intent) => void action(intent)} /> : null}
+    {pageState === "ready" && view ? <TrainingDuoSessionView view={view} pending={pending} onAction={(intent) => void action(intent)} onInviteFriend={() => setIsInviteFriendsOpen(true)} /> : null}
+    {canInviteFriends && isInviteFriendsOpen && session ? <TrainingDuoInvitationDialog session={session} sessionId={sessionId} onClose={closeInvitations}
+      notice={inviteFriendsRequested ? "Le duo a été créé, mais l’invitation n’a pas pu être envoyée. Réessaie depuis le lobby." : undefined} /> : null}
   </AppPage>;
 }

@@ -6,9 +6,12 @@ export type TrainingDuoErrorCode =
   | "duo_not_member" | "duo_host_required" | "duo_wrong_status"
   | "duo_version_conflict" | "duo_already_answered" | "duo_waiting_for_partner"
   | "duo_already_ready" | "duo_partner_offline" | "duo_invalid_answer"
-  | "duo_version_unsupported" | "duo_invalid_request" | "duo_rate_limited";
+  | "duo_version_unsupported" | "duo_invalid_request" | "duo_rate_limited"
+  | "duo_not_friends" | "duo_invitation_unavailable";
 
 const ERROR_DETAILS: Record<TrainingDuoErrorCode, { status: number; message: string }> = {
+  duo_not_friends: { status: 403, message: "Tu peux inviter uniquement tes amis." },
+  duo_invitation_unavailable: { status: 404, message: "Cette invitation n’est plus disponible." },
   duo_session_not_found: { status: 404, message: "Session introuvable ou inaccessible." },
   duo_session_full: { status: 409, message: "La session est complète." },
   duo_session_expired: { status: 410, message: "Cette session a expiré." },

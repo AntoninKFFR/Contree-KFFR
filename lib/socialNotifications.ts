@@ -1,15 +1,19 @@
 import type { GameInvitation, GameInvitationsSnapshot, SocialFriendRequest, SocialSnapshot } from "@/lib/socialApi";
+import type { TrainingDuoInvitation } from "@/lib/trainingDuoInvitationsApi";
 
 export type PendingNotification =
   | { kind: "friend"; id: string; request: SocialFriendRequest }
-  | { kind: "game"; id: string; invitation: GameInvitation };
+  | { kind: "game"; id: string; invitation: GameInvitation }
+  | { kind: "duo"; id: string; invitation: TrainingDuoInvitation };
 
-export function pendingNotifications(social: SocialSnapshot, games: GameInvitationsSnapshot, userId: string): PendingNotification[] {
+export function pendingNotifications(social: SocialSnapshot, games: GameInvitationsSnapshot, userId: string, duos: TrainingDuoInvitation[] = []): PendingNotification[] {
   const friends: PendingNotification[] = social.received.map((request) => ({ kind: "friend", id: request.id, request }));
   const invitations: PendingNotification[] = games.invitations
     .filter((invitation) => invitation.inviteeId === userId && invitation.status === "pending" && Date.parse(invitation.expiresAt) > Date.now())
     .map((invitation) => ({ kind: "game", id: invitation.id, invitation }));
-  return [...friends, ...invitations];
+  const duoInvitations: PendingNotification[] = duos.filter((invitation) => invitation.status === "pending" && Date.parse(invitation.expiresAt) > Date.now())
+    .map((invitation) => ({ kind: "duo", id: invitation.id, invitation }));
+  return [...friends, ...invitations, ...duoInvitations];
 }
 
 export function notificationKey(item: PendingNotification): string {

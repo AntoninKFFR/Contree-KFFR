@@ -2,6 +2,7 @@ import { expect, test, type BrowserContext, type Page, type Response } from "@pl
 import { loginAs, twoPlayerCredentials } from "./helpers/auth";
 import { createRoomThroughUi } from "./helpers/multiplayerUi";
 import { bestEffortFinishRoom } from "./helpers/room";
+import { createClient } from "@supabase/supabase-js";
 
 const auth = twoPlayerCredentials();
 
@@ -201,4 +202,72 @@ test.describe("@social global notifications with two accounts", () => {
       await Promise.allSettled(contexts.map(async (context) => { if (context.browser()?.isConnected()) await context.close(); }));
     }
   });
+});
+
+
+test('@social Duo friend invitation joins the shared lobby without a code', async ({ browser, baseURL }) => {
+  test.skip(auth.missing.length > 0, 'Two authenticated accounts required');
+  const localUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SECRET_KEY;
+  test.skip(!localUrl || !serviceKey || !["localhost", "127.0.0.1", "::1"].includes(new URL(localUrl).hostname), "Disposable local Supabase required");
+  const admin = createClient(localUrl!, serviceKey!, { auth: { persistSession: false, autoRefreshToken: false } });
+  test.setTimeout(180_000);
+  const contexts: BrowserContext[] = [];
+  let host: Page | null = null;
+  let sessionId: string | null = null;
+  let fixturePair: { user_low: string; user_high: string } | null = null;
+  try {
+    const pages: Page[] = [];
+    for (const credentials of auth.credentials) {
+      const context = await browser.newContext({ baseURL });
+      contexts.push(context);
+      const page = await context.newPage();
+      await loginAs(page, credentials);
+      pages.push(page);
+    }
+    const [a,b] = pages; host = a;
+    const identity = (page: Page) => page.evaluate(() => {
+      const key = Object.keys(localStorage).find(key => key.startsWith('sb-') && key.endsWith('-auth-token'))!;
+      return (JSON.parse(localStorage.getItem(key)!) as { user: { id: string } }).user.id;
+    });
+    const [aId,bId] = await Promise.all([identity(a),identity(b)]);
+    const snapshot = await socialApi<SocialData>(a,'/api/social');
+    if (!snapshot.friends.some(friend => friend.userId === bId)) {
+      fixturePair = { user_low: [aId,bId].sort()[0], user_high: [aId,bId].sort()[1] };
+      const { error } = await admin.from("friendships").insert(fixturePair);
+      if (error) throw error;
+    }
+    await b.goto('/training');
+    await a.goto('/friends');
+    for (const page of [a,b]) await expect.poll(async () => (await page.locator('a[href="/profile"]').first().innerText()).trim()).not.toBe("Profil");
+    const usernameA = (await a.locator('a[href="/profile"]').first().innerText()).trim();
+    const usernameB = (await b.locator('a[href="/profile"]').first().innerText()).trim();
+    await a.locator('.friend-presence-row').filter({hasText:usernameB}).getByRole('button',{name:'S’entraîner'}).click();
+    const dialog = a.getByRole('dialog',{name:'S’entraîner avec '+usernameB});
+    await dialog.getByRole('combobox',{name:'Niveau'}).selectOption('2');
+    const createdResponse = a.waitForResponse(response => new URL(response.url()).pathname === '/api/training/duo/sessions' && response.request().method() === 'POST' && response.status() === 201);
+    await dialog.getByRole('button',{name:'Créer le duo'}).click();
+    sessionId = ((await (await createdResponse).json()) as {data:{session:{id:string}}}).data.session.id;
+    await expect(a).toHaveURL(new RegExp('/training/duo/'+sessionId+'$'));
+    await b.getByRole('button',{name:'Notifications',exact:true}).click();
+    const center = b.locator('#social-notification-center');
+    await expect(center).toContainText(usernameA+' t’invite à s’entraîner');
+    await expect(center).toContainText('Lire les enchères · Niveau 2');
+    await center.getByRole('button',{name:'Rejoindre le duo de '+usernameA}).click();
+    await expect(b).toHaveURL(new RegExp('/training/duo/'+sessionId+'$'));
+    for (const page of [a,b]) {
+      await expect(page.getByRole('heading',{name:'Salon duo'})).toBeVisible();
+      await expect(page.getByLabel('Participants')).toContainText(usernameA);
+      await expect(page.getByLabel('Participants')).toContainText(usernameB);
+    }
+  } finally {
+    if (host && sessionId) {
+      try {
+        const view = await socialApi<{session:{stateVersion:number}}>(host,'/api/training/duo/sessions/'+sessionId);
+        await socialApi(host,'/api/training/duo/sessions/'+sessionId,'POST',{expectedVersion:view.session.stateVersion,intent:{type:'cancel'}});
+      } catch { /* Disposable local accounts and sessions are cleared with the test database. */ }
+    }
+    if (fixturePair) await admin.from("friendships").delete().match(fixturePair);
+    for (const context of contexts) await context.close();
+  }
 });

@@ -11,13 +11,28 @@
 
 ## Contrat produit et frontière d'autorité
 
-Deux **comptes Supabase authentifiés**, deux humains, une session synchrone. Le créateur (slot 0, hôte) choisit le niveau `bid-reading` 1 à 4 ; le rejoignant (slot 1) entre un code. Le niveau 4 est permis même si le solo ne l'a pas débloqué : la progression `localStorage` n'est pas une autorisation réseau. Une seule place par utilisateur, deux places maximum, aucun bot.
+Deux **comptes Supabase authentifiés**, deux humains, une session synchrone. Le créateur (slot 0, hôte) choisit le niveau `bid-reading` 1 à 4 ; le rejoignant (slot 1) accepte une invitation ami ou entre un code. Le niveau 4 est permis même si le solo ne l'a pas débloqué : la progression `localStorage` n'est pas une autorisation réseau. Une seule place par utilisateur, deux places maximum, aucun bot.
 
 Les deux voient la **même** série publique de dix questions, dans le même ordre, et répondent indépendamment. Après le premier envoi, seul l'état « Réponse enregistrée — en attente de ton partenaire » apparaît : aucune note ni correction, y compris au répondant. La seconde réponse déclenche une transition atomique vers la correction ; les deux clients peuvent alors obtenir leur réponse, celle du partenaire, le statut correct/incorrect de chacun, `guaranteed`, `possibleMeanings`, `explanation` et la main compatible d'illustration. « Simultanément » signifie que le commit rend la vue révélée éligible **aux deux** ; la latence réseau peut différer l'affichage. Chacun confirme « Question suivante » ; les deux confirmations sont requises. Après la dixième correction et les deux confirmations, récapitulatif uniquement.
 
 Le duo ne modifie ni progression locale, ni `training_series`, ni `training_records`, ni classement, ni Elo, ni historique de partie. Il ne crée pas de `multiplayer_game` et ne déclenche ni forfait ni abandon d'une partie. Une future évolution devra décider séparément si ces sessions comptent pour la progression.
 
 Le navigateur envoie des **intentions**, jamais un acteur revendiqué, une note ou une réponse attendue. La route authentifiée tire `userId` du JWT Supabase, valide strictement l'intention, puis un service serveur effectue lecture, contrôle et mutation atomique. La base est canonique ; `toTrainingDuoView(canonicalSession, viewerUserId)` est l'unique frontière de sortie, analogue à `toPlayerGameView` mais propre au duo. Une clé service reste strictement côté serveur.
+
+## Invitations ami — évolution #91
+
+Depuis /friends, « S’entraîner » ouvre le choix des quatre niveaux puis crée le Duo et invite l’ami. Le lobby de l’hôte seul propose « Inviter un ami » ; présence et recherche reprennent les composants sociaux existants. Les amis hors ligne restent invitables. Le code manuel et « Copier le code » restent disponibles.
+
+La table dédiée training_duo_invitations référence la session et les deux comptes ; statuts pending/accepted/declined/expired/cancelled, unicité pending session/invité, durée maximale 30 minutes. Aucune donnée d’exercice ni code n’y figure. Les RPC sont service-role uniquement ; JWT authentifié côté route, RLS et grants limités aux participants pour les signaux, aucune écriture navigateur ou accès anon.
+
+- GET /api/training/duo/invitations : pending reçues, uniquement id, pseudo, niveau, statut et dates.
+- POST /api/training/duo/sessions/[sessionId]/invitations : {inviteeId}, hôte d’un lobby sans partenaire, ami actif uniquement.
+- POST /api/training/duo/invitations/[invitationId]/join : {}, vérifie destinataire, amitié, expiration et disponibilité ; réserve atomiquement le slot 1 par la même logique que le code, accepte l’invitation, retourne seulement {sessionId}.
+- POST /api/training/duo/invitations/[invitationId]/decline : {}, destinataire uniquement.
+
+Un join par code annule les invitations pending ; fetch/résolution régularisent aussi les invitations expirées, les sessions indisponibles et les amitiés retirées. Realtime ne publie que id, inviter_id, invitee_id, status, created_at, expires_at, resolved_at ; INSERT/UPDATE filtrés par invitee_id invalident le centre global, qui refetch l’API. Ni session_id ni secrets dans le signal. Pas de toast initial ; les nouvelles invitations suivent la limite existante de deux toasts et le nettoyage au logout/changement de compte.
+
+Si la création échoue, aucune invitation et erreur sur /friends. Si seul l’envoi échoue, conserver le Duo créé et naviguer avec ?inviteFriends=1 : dialogue de retry ouvert et message « Le duo a été créé, mais l’invitation n’a pas pu être envoyée. Réessaie depuis le lobby. ». Pas de seconde session. La migration est appliquée en production uniquement après merge.
 
 ## Versions, génération et compatibilité
 
@@ -97,13 +112,13 @@ Toutes les routes exigent un JWT Supabase valide ; chaque réponse porte `Cache-
 | `POST /api/training/duo/sessions/[sessionId]` | `{expectedVersion: number, intent: TrainingDuoIntent}` | `200 {data: TrainingDuoView}` après commit |
 | `POST /api/training/duo/sessions/[sessionId]/presence` | aucun | heartbeat authentifié, réponse minimale ou vue ; **pas** une intention de jeu |
 
-Le code V1 est tiré par CSPRNG : par exemple dix caractères majuscules dans un alphabet de 32 signes non ambigus (environ 50 bits), unicité en base et nouveau tirage en cas de collision. Normaliser uniquement casse/espaces prévus, jamais accepter un code partiel. Création, tentative de code et mutations sont limitées par compte et IP, avec réponse de préjoin générique : aucun nom d'hôte, niveau, état ou liste de participants avant adhésion autorisée. Un code inconnu, complet, annulé, expiré ou non joignable produit **le même code et le même message publics** ; les raisons internes peuvent être journalisées sans code de partage. `game_invitations` reste lié à `room_id` ; invitation d'ami hors V1, future table `training_duo_invitations` ou refonte explicite distincte.
+Le code V1 est tiré par CSPRNG : par exemple dix caractères majuscules dans un alphabet de 32 signes non ambigus (environ 50 bits), unicité en base et nouveau tirage en cas de collision. Normaliser uniquement casse/espaces prévus, jamais accepter un code partiel. Création, tentative de code et mutations sont limitées par compte et IP, avec réponse de préjoin générique : aucun nom d'hôte, niveau, état ou liste de participants avant adhésion autorisée. Un code inconnu, complet, annulé, expiré ou non joignable produit **le même code et le même message publics** ; les raisons internes peuvent être journalisées sans code de partage. `game_invitations` reste lié à `room_id`. L’évolution #91 utilise exclusivement `training_duo_invitations`, sans fausse room ni code dans les notifications.
 
 Format erreur stable : `{code, error}` où `error` est français et sans données secrètes. `401` sans jeton ; `duo_session_not_found`/`duo_not_member` (`404` public indiscernable), `duo_session_full` (code interne ou affichable uniquement à un membre déjà autorisé, jamais au préjoin), `duo_session_expired` (`410` pour membre), `duo_host_required` (`403`), `duo_wrong_status`, `duo_version_conflict`, `duo_already_answered`, `duo_waiting_for_partner`, `duo_already_ready` (`409`), `duo_partner_offline` (`409` au `start`), `duo_invalid_answer` (`400`), `duo_version_unsupported` (`409`), `duo_rate_limited` (`429`, `Retry-After` en secondes). Exemples de messages : « Session introuvable ou inaccessible. », « La session vient de changer. », « Réponse déjà enregistrée. », « Ton partenaire doit être connecté pour démarrer. », « Cette version de la série n'est plus prise en charge. » Avant dépassement du quota, toute tentative de join non réussie retourne publiquement `duo_session_not_found` et le même message générique, quelle que soit la raison interne ; le `429` dépend seulement de la rafale compte/IP, jamais du code tenté.
 
 ## Données proposées et contrôle d'accès
 
-**Aucune migration dans cette PR.** Une future migration dédiée crée :
+Le schéma V1 livré comprend les tables suivantes ; l’évolution #91 ajoute uniquement la table d’invitations décrite ci-dessus :
 
 | Table | Colonnes et contraintes principales |
 | --- | --- |
@@ -189,8 +204,8 @@ Les 16 décisions produit V1 ci-dessous ont été validées humainement le 27 se
 - [x] Question suivante seulement après les deux confirmations.
 - [x] Niveau choisi par l'hôte, sans contrainte de déblocage solo.
 - [x] Aucun record, progression ou Elo en duo V1.
-- [x] Adhésion par code uniquement en V1.
-- [x] Aucune invitation ami en V1.
+- [x] Adhésion par code maintenue ; adhésion par invitation ami ajoutée dans #91.
+- [x] Invitations ami dans un domaine dédié, sans modification du gameplay V1.
 - [x] Aucun bot ni takeover.
 - [x] Hors ligne après 60 s ne vaut pas abandon.
 - [x] Départ explicite en session active annule la session.

@@ -11,6 +11,9 @@ import {
 import { SOCIAL_CHANGED_EVENT, notifySocialChanged } from "@/lib/socialEvents";
 import { newNotificationKeys, notificationBadge, notificationKey, pendingNotifications, type PendingNotification } from "@/lib/socialNotifications";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { fetchTrainingDuoInvitations, joinTrainingDuoInvitation, declineTrainingDuoInvitation } from "@/lib/trainingDuoInvitationsApi";
+import { TrainingDuoApiError } from "@/lib/trainingDuoApi";
+import { BID_READING_LEVEL_NAMES } from "@/engine/training/bidReading";
 
 type NotificationsContextValue = {
   userId: string | null;
@@ -66,9 +69,9 @@ export function SocialNotificationsProvider({ children }: { children: ReactNode 
     inFlightRef.current = true;
     const epoch = epochRef.current;
     try {
-      const [social, games] = await Promise.all([fetchSocialSnapshot(session), fetchGameInvitations(session)]);
+      const [social, games, duos] = await Promise.all([fetchSocialSnapshot(session), fetchGameInvitations(session), fetchTrainingDuoInvitations(session)]);
       if (epoch !== epochRef.current) return;
-      const pending = pendingNotifications(social, games, session.user.id);
+      const pending = pendingNotifications(social, games, session.user.id, duos);
       const newKeys = newNotificationKeys(keysRef.current, pending);
       keysRef.current = new Set(pending.map(notificationKey));
       for (const key of [...hiddenRef.current]) {
@@ -122,6 +125,8 @@ export function SocialNotificationsProvider({ children }: { children: ReactNode 
         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "friend_requests", filter: `recipient_id=eq.${filterId}` }, scheduleRefresh)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "game_invitations", filter: `invitee_id=eq.${filterId}` }, scheduleRefresh)
         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "game_invitations", filter: `invitee_id=eq.${filterId}` }, scheduleRefresh)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "training_duo_invitations", filter: `invitee_id=eq.${filterId}` }, scheduleRefresh)
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "training_duo_invitations", filter: `invitee_id=eq.${filterId}` }, scheduleRefresh)
         .subscribe();
       void refresh();
     };
@@ -182,6 +187,19 @@ export function SocialNotificationsProvider({ children }: { children: ReactNode 
         if (item.kind === "friend") {
           if (action === "accept") await acceptFriendRequest(item.id, session);
           else await declineFriendRequest(item.id, session);
+        } else if (item.kind === "duo") {
+          if (action === "join") {
+            const result = await joinTrainingDuoInvitation(item.id, session);
+            if (epoch !== epochRef.current) return;
+            hiddenRef.current.add(key);
+            setItems((current) => current.filter((entry) => notificationKey(entry) !== key));
+            dismissToast(key);
+            setOpen(false);
+            notifySocialChanged();
+            router.push(`/training/duo/${result.sessionId}`);
+            return;
+          }
+          await declineTrainingDuoInvitation(item.id, session);
         } else if (action === "join") {
           const resolution = await resolveGameInvitation(item.id, session);
           if (epoch !== epochRef.current) return;
@@ -207,13 +225,13 @@ export function SocialNotificationsProvider({ children }: { children: ReactNode 
         await refresh();
       } catch (error) {
         if (epoch !== epochRef.current) return;
-        if (error instanceof SocialApiError && [404, 409].includes(error.status)) {
+        if ((error instanceof SocialApiError || error instanceof TrainingDuoApiError) && [404, 409, 410].includes(error.status)) {
           hiddenRef.current.add(key);
           setItems((current) => current.filter((entry) => notificationKey(entry) !== key));
           dismissToast(key);
-          setMessage(item.kind === "game" ? "Cette invitation n’est plus disponible." : "Cette demande n’est plus disponible.");
+          setMessage(item.kind !== "friend" ? "Cette invitation n’est plus disponible." : "Cette demande n’est plus disponible.");
           await refresh();
-        } else setMessage(socialErrorMessage(error));
+        } else setMessage(error instanceof TrainingDuoApiError ? error.message : socialErrorMessage(error));
       } finally {
         if (epoch === epochRef.current) { busyRef.current = null; setBusy(null); }
       }
@@ -242,13 +260,15 @@ export function SocialNotificationTrigger() {
 function NotificationCard({ item, busy, act }: { item: PendingNotification; busy: string | null; act: NotificationsContextValue["act"] }) {
   const key = notificationKey(item);
   const working = busy === key;
+  const username = item.kind === "friend" ? item.request.username : item.kind === "duo" ? item.invitation.username : item.invitation.otherUsername;
   return <div className="social-notification-card">
-    <p className="social-notification-title">{item.kind === "friend" ? "Nouvelle demande" : "Invitation de partie"}</p>
-    <p>{item.kind === "friend" ? `${item.request.username} veut t’ajouter` : `${item.invitation.otherUsername} t’invite à jouer`}</p>
+    <p className="social-notification-title">{item.kind === "friend" ? "Nouvelle demande" : item.kind === "duo" ? "Invitation d’entraînement" : "Invitation de partie"}</p>
+    <p>{item.kind === "friend" ? `${username} veut t’ajouter` : item.kind === "duo" ? `${username} t’invite à s’entraîner` : `${username} t’invite à jouer`}</p>
     {item.kind === "game" ? <p className="social-notification-detail">Table {item.invitation.roomCode}</p> : null}
+    {item.kind === "duo" ? <p className="social-notification-detail">Lire les enchères · Niveau {item.invitation.level} · {BID_READING_LEVEL_NAMES[item.invitation.level]}</p> : null}
     <div className="social-notification-actions">
-      <button aria-label={item.kind === "friend" ? `Accepter la demande de ${item.request.username}` : `Rejoindre la partie de ${item.invitation.otherUsername}`} disabled={Boolean(busy)} onClick={() => act(item, item.kind === "friend" ? "accept" : "join")} type="button">{working ? "Patiente…" : item.kind === "friend" ? "Accepter" : "Rejoindre"}</button>
-      <button aria-label={item.kind === "friend" ? `Refuser la demande de ${item.request.username}` : `Refuser l’invitation de ${item.invitation.otherUsername}`} disabled={Boolean(busy)} onClick={() => act(item, "decline")} type="button">Refuser</button>
+      <button aria-label={item.kind === "friend" ? `Accepter la demande de ${username}` : item.kind === "duo" ? `Rejoindre le duo de ${username}` : `Rejoindre la partie de ${username}`} disabled={Boolean(busy)} onClick={() => act(item, item.kind === "friend" ? "accept" : "join")} type="button">{working ? "Patiente…" : item.kind === "friend" ? "Accepter" : "Rejoindre"}</button>
+      <button aria-label={item.kind === "friend" ? `Refuser la demande de ${username}` : `Refuser l’invitation de ${username}`} disabled={Boolean(busy)} onClick={() => act(item, "decline")} type="button">Refuser</button>
     </div>
   </div>;
 }

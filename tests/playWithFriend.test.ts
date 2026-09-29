@@ -9,8 +9,15 @@ vi.stubGlobal("React", React);
 const push = vi.fn();
 const createRoom = vi.fn();
 const invite = vi.fn();
+const createDuo = vi.fn();
+const inviteDuo = vi.fn();
 const session = { access_token: "token", user: { id: "host" } };
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+vi.mock("@/lib/trainingDuoApi", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/trainingDuoApi")>()),
+  createTrainingDuoSession: (...args: unknown[]) => createDuo(...args),
+}));
+vi.mock("@/lib/trainingDuoInvitationsApi", () => ({ sendTrainingDuoInvitation: (...args: unknown[]) => inviteDuo(...args) }));
 vi.mock("@/components/social/useFriendPresence", () => ({ useFriendPresence: () => new Set(["alice"]) }));
 vi.mock("@/lib/supabaseClient", () => ({ getSupabaseClient: () => ({ auth: {
   getSession: async () => ({ data: { session } }),
@@ -38,6 +45,57 @@ beforeEach(() => {
   vi.clearAllMocks();
   createRoom.mockResolvedValue({ room: { id: "new-room" } });
   invite.mockResolvedValue({});
+  createDuo.mockResolvedValue({ session: { id: "created-duo" } });
+  inviteDuo.mockResolvedValue({ status: "pending" });
+});
+
+describe("train with a friend", () => {
+  async function open(username = "Alice") {
+    render(React.createElement(FriendsPageClient));
+    const button = (await friendRow(username)).getByRole("button", { name: "S’entraîner" });
+    expect(button).toHaveProperty("disabled", false);
+    fireEvent.click(button);
+    return screen.getByRole("dialog", { name: `S’entraîner avec ${username}` });
+  }
+  it("creates the selected level and invites an offline friend before navigating", async () => {
+    const dialog = await open("Bob");
+    expect(within(dialog).getByRole("combobox", { name: "Niveau" }).querySelectorAll("option")).toHaveLength(4);
+    fireEvent.change(within(dialog).getByRole("combobox", { name: "Niveau" }), { target: { value: "2" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Créer le duo" }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/training/duo/created-duo"));
+    expect(createDuo).toHaveBeenCalledExactlyOnceWith(2, session);
+    expect(inviteDuo).toHaveBeenCalledExactlyOnceWith("created-duo", "bob", session);
+    expect(createRoom).not.toHaveBeenCalled();
+  });
+  it("blocks double clicks and concurrent social actions until navigation", async () => {
+    let resolve!: (value: { session: { id: string } }) => void;
+    createDuo.mockImplementation(() => new Promise((done) => { resolve = done; }));
+    const dialog = await open();
+    const button = within(dialog).getByRole("button", { name: "Créer le duo" });
+    fireEvent.click(button); fireEvent.click(button);
+    expect(createDuo).toHaveBeenCalledTimes(1);
+    expect(button).toHaveProperty("textContent", "Création…");
+    expect((await friendRow("Bob")).getByRole("button", { name: "Jouer" })).toHaveProperty("disabled", true);
+    resolve({ session: { id: "created-duo" } });
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/training/duo/created-duo"));
+    fireEvent.click(button); expect(createDuo).toHaveBeenCalledTimes(1);
+  });
+  it("stays on friends with an error and no invitation when creation fails", async () => {
+    createDuo.mockRejectedValue(new Error("Duo indisponible."));
+    const dialog = await open();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Créer le duo" }));
+    expect(await screen.findByRole("status")).toHaveProperty("textContent", "Duo indisponible.");
+    expect(push).not.toHaveBeenCalled(); expect(inviteDuo).not.toHaveBeenCalled();
+    expect((await friendRow("Alice")).getByRole("button", { name: "S’entraîner" })).toHaveProperty("disabled", false);
+  });
+  it("keeps the created duo and requests the retry dialog when invitation fails", async () => {
+    inviteDuo.mockRejectedValue(new Error("Invitation failed"));
+    const dialog = await open();
+    const button = within(dialog).getByRole("button", { name: "Créer le duo" });
+    fireEvent.click(button);
+    await waitFor(() => expect(push).toHaveBeenCalledExactlyOnceWith("/training/duo/created-duo?inviteFriends=1"));
+    fireEvent.click(button); expect(createDuo).toHaveBeenCalledTimes(1); expect(inviteDuo).toHaveBeenCalledTimes(1);
+  });
 });
 
 async function friendRow(username: string) {

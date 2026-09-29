@@ -299,6 +299,8 @@ Chaque point porte une décision par défaut, appliquée tant que l'équipe ne l
 7. **Mode in-game.** Le planificateur respecte le budget ; aucune question ne révèle une carte cachée ; aucune partie d'entraînement n'apparaît dans l'historique.
 8. **E2E smoke.** `/training` charge ; une série `trick-value` se joue jusqu'à l'écran de fin, sans compte.
 
+Le Duo permet aussi les invitations ami (#91) : « S’entraîner » depuis /friends avec choix du niveau, invitation depuis le lobby hôte, notification globale Rejoindre/Refuser. L’adhésion par invitation est autorisée côté serveur sans exposer le code ; le code manuel reste disponible. Ce parcours utilise training_duo_invitations, séparé de game_invitations, sans changer gameplay, progression ni records.
+
 ## 12. Découpage des futures PR
 
 | PR | Livrable reviewable | Garde de validation |
