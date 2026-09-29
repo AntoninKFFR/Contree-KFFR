@@ -82,17 +82,18 @@ test.describe("@social private friend presence", () => {
       await expect(a.getByRole("heading", { name: "En ligne · 1" })).toBeVisible();
       expect(await friendRow.locator(".friend-presence-dot--online").count()).toBe(1);
       for (const theme of ["dark", "light"]) {
-        const colors = await a.evaluate((value) => {
-          document.documentElement.dataset.theme = value;
-          const dot = document.querySelector(".friend-presence-dot--online")!;
+        await a.evaluate((value) => { document.documentElement.dataset.theme = value; }, theme);
+        const dot = friendRow.locator(".friend-presence-dot--online");
+        await expect(dot).toBeVisible();
+        const colors = await dot.evaluate((element) => {
           const reference = document.createElement("span");
           reference.style.backgroundColor = "var(--success)";
           document.body.append(reference);
-          const actual = getComputedStyle(dot).backgroundColor;
+          const actual = getComputedStyle(element).backgroundColor;
           const expected = getComputedStyle(reference).backgroundColor;
           reference.remove();
           return { actual, expected };
-        }, theme);
+        });
         expect(colors.actual).toBe(colors.expected);
       }
       await a.getByLabel("Pseudo").fill(usernameB);
@@ -137,11 +138,6 @@ test.describe("@social private friend presence", () => {
       await expect(dialog.locator(".friend-presence-row")).toHaveCount(1);
       await dialog.getByRole("button", { name: "Inviter", exact: true }).click();
       await expect(dialog.getByText("Invitation envoyée")).toBeVisible();
-      await dialog.getByRole("button", { name: "Fermer", exact: true }).click();
-      await a.getByRole("button", { name: "Inviter des amis" }).click();
-      dialog = a.getByRole("dialog", { name: "Inviter des amis" });
-      await dialog.getByRole("button", { name: "Inviter", exact: true }).click();
-      await expect(dialog.getByText("Déjà invité")).toBeVisible();
       await dialog.getByRole("button", { name: "Fermer", exact: true }).click();
 
       await b.close();

@@ -80,3 +80,13 @@ it("filters invitable friends locally and allows online and offline invitations"
   expect(screen.getByText("Aucun ami correspondant.")).toBeTruthy();
   expect(mocks.list).toHaveBeenCalledWith("room", session);
 });
+
+it("keeps the already-invited row state when another seated friend invited first", async () => {
+  mocks.list.mockResolvedValue([friends[0]]);
+  mocks.invite.mockResolvedValue({ status: "already_invited" });
+  const session = { access_token: "test" } as Parameters<typeof GameInvitationDialog>[0]["session"];
+  render(React.createElement(GameInvitationDialog, { onClose: () => {}, roomId: "room", session }));
+  fireEvent.click(await screen.findByRole("button", { name: /^Inviter$/ }));
+  expect(await screen.findByText("Déjà invité")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /^Inviter$/ })).toBeNull();
+});
