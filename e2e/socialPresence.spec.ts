@@ -177,12 +177,16 @@ test.describe("@social private friend presence", () => {
       await dialog.getByRole("button", { name: "Fermer", exact: true }).click();
 
       await a.goto("/friends");
+      const offlineRow = a.locator(".friend-presence-row").filter({ hasText: usernameB });
+      await expect(offlineRow).toContainText("Hors ligne");
       for (const theme of ["dark", "light"]) {
-        const colors = await a.evaluate((value) => {
-          document.documentElement.dataset.theme = value;
-          const dot = document.querySelector(".friend-presence-dot")!;
-          return { dot: getComputedStyle(dot).backgroundColor, muted: getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() };
-        }, theme);
+        await a.evaluate((value) => { document.documentElement.dataset.theme = value; }, theme);
+        const dot = offlineRow.locator(".friend-presence-dot");
+        await expect(dot).toBeVisible();
+        const colors = await dot.evaluate((element) => ({
+          dot: getComputedStyle(element).backgroundColor,
+          muted: getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim(),
+        }));
         expect(colors.dot).not.toBe("rgba(0, 0, 0, 0)");
         expect(colors.muted).not.toBe("");
       }
