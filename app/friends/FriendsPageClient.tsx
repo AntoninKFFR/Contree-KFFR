@@ -5,6 +5,7 @@ import type { Session } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { FriendsView, type FriendsPageState } from "@/components/friends/FriendsView";
 import { useFriendPresence } from "@/components/social/useFriendPresence";
+import { createMultiplayerRoom, MultiplayerApiError } from "@/lib/multiplayerApi";
 import {
   acceptFriendRequest,
   cancelGameInvitation,
@@ -18,6 +19,7 @@ import {
   resolveGameInvitation,
   searchSocialPlayers,
   sendFriendRequest,
+  sendGameInvitation,
   socialErrorMessage,
   SocialApiError,
   type GameInvitationsSnapshot,
@@ -197,7 +199,36 @@ export function FriendsPageClient() {
     }
   }
 
+  async function handlePlayWithFriend(userId: string) {
+    if (!session || pendingActionRef.current) return;
+    const key = `play:${userId}`;
+    pendingActionRef.current = key;
+    setPendingAction(key);
+    setActionMessage(null);
+    let navigating = false;
+    try {
+      const result = await createMultiplayerRoom({ rules: { presetId: "contree-kffr" } }, session);
+      let roomPath = `/multiplayer/${result.room.id}`;
+      try {
+        await sendGameInvitation(result.room.id, userId, session);
+      } catch {
+        roomPath += "?inviteFriends=1";
+      }
+      router.push(roomPath);
+      navigating = true;
+    } catch (error) {
+      setActionMessage(error instanceof MultiplayerApiError ? error.message : socialErrorMessage(error));
+    } finally {
+      // Keep the lock until navigation unmounts the page, so another click cannot create a room.
+      if (!navigating) {
+        pendingActionRef.current = null;
+        setPendingAction(null);
+      }
+    }
+  }
+
   function handleRemove(userId: string, username: string) {
+    if (pendingActionRef.current) return;
     if (!window.confirm(`Supprimer ${username} de tes amis ?`)) return;
     void runMutation(`friend:${userId}`, (token) => removeFriend(userId, token), `${username} a été retiré de tes amis.`);
   }
@@ -223,6 +254,7 @@ export function FriendsPageClient() {
       onQueryChange={setQuery}
       onlineIds={onlineIds}
       onRemove={handleRemove}
+      onPlayWithFriend={(userId) => void handlePlayWithFriend(userId)}
       onRetry={() => {
         setPageState("loading");
         void refreshSnapshot(session);

@@ -152,7 +152,9 @@ test.describe("@social private friend presence", () => {
         await a.setViewportSize({ width, height });
         await a.locator("[data-testid=friends-presence-scroll]").scrollIntoViewIfNeeded();
         assertInsideViewport(await a.locator("[data-testid=friends-presence-scroll]").boundingBox(), width, height);
-        assertInsideViewport(await a.locator(".friend-presence-row button").boundingBox(), width, height);
+        for (const button of await a.locator(".friend-presence-row button").all()) {
+          assertInsideViewport(await button.boundingBox(), width, height);
+        }
         expect(await a.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
       }
       await a.setViewportSize({ width: 1280, height: 720 });
