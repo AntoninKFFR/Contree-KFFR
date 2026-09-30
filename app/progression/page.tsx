@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PermanentMissionsCard } from "@/components/progression/PermanentMissionsCard";
 import { useProgression } from "@/components/progression/ProgressionProvider";
 import { ProgressionStatusCard, ProgressionSummaryCard } from "@/components/progression/ProgressionCard";
 import { AppPage, AppPageHeader, AppSurface, appPrimaryActionClass } from "@/components/ui/AppShell";
@@ -13,7 +14,7 @@ export default function ProgressionPage() {
   return <AppPage><AppPageHeader eyebrow="Progression" title={status === "ready" && summary ? `Niveau ${summary.level}` : "Ta progression"}
     description="Ton niveau KFFR progresse au fil des parties et reste permanent." />
     {status === "ready" && summary ? <ProgressionSummaryCard summary={summary} link={false} /> : <ProgressionStatusCard />}
-    <div className="grid gap-5 sm:grid-cols-2"><AppSurface><h2 className="font-black text-[var(--text-primary)]">Missions</h2><p className="mt-2 text-sm text-[var(--text-secondary)]">Bientôt, des missions t’aideront à faire progresser ton niveau.</p></AppSurface>
+    <div className="grid gap-5"><PermanentMissionsCard />
       <AppSurface><h2 className="font-black text-[var(--text-primary)]">Récompenses</h2><p className="mt-2 text-sm text-[var(--text-secondary)]">Les récompenses cosmétiques arriveront dans une prochaine étape.</p></AppSurface></div>
     {status === "ready" ? <AppSurface><h2 className="font-black text-[var(--text-primary)]">XP récents</h2>
       {recentError ? <p className="mt-3 text-sm text-[var(--text-secondary)]">Les gains récents sont momentanément indisponibles.</p>

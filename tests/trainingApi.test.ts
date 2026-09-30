@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ client: vi.fn(), getSession: vi.fn(), from: vi.fn(), select: vi.fn() }));
+const mocks = vi.hoisted(() => ({ client: vi.fn(), getSession: vi.fn(), from: vi.fn(), select: vi.fn(), notify: vi.fn() }));
 vi.mock("@/lib/supabaseClient", () => ({ getSupabaseClient: mocks.client }));
+vi.mock("@/lib/progression/events", () => ({ notifyProgressionChanged: mocks.notify }));
 import { submitCompletedPuzzleSeries } from "@/lib/trainingApi";
 import { readAccountTrainingRecords } from "@/lib/trainingRecordsClient";
 
@@ -20,7 +21,7 @@ describe("training account client", () => {
     vi.stubGlobal("fetch", fetcher);
     mocks.getSession.mockResolvedValue({ data: { session: null } });
     expect(await submitCompletedPuzzleSeries(completed)).toBe("signed-out");
-    expect(fetcher).not.toHaveBeenCalled();
+    expect(fetcher).not.toHaveBeenCalled(); expect(mocks.notify).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
 
@@ -29,6 +30,7 @@ describe("training account client", () => {
     const fetcher = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetcher);
     expect(await submitCompletedPuzzleSeries(completed)).toBe("saved");
+    expect(mocks.notify).toHaveBeenCalledTimes(1); expect(mocks.from).not.toHaveBeenCalled();
     const [url, init] = fetcher.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/training/series");
     expect(init.headers).toMatchObject({ Authorization: "Bearer test-jwt" });
@@ -49,4 +51,11 @@ describe("training account client", () => {
     expect(mocks.from).toHaveBeenCalledWith("training_records");
     expect(mocks.select).toHaveBeenCalledWith("axis_id,level,best_score,best_duration_ms");
   });
+});
+
+it.each([false,"network"])("failed submission %s emits no progression event", async (failure) => {
+  mocks.getSession.mockResolvedValue({data:{session:{access_token:"jwt"}}});
+  vi.stubGlobal("fetch",failure === "network" ? vi.fn().mockRejectedValue(new Error("offline")) : vi.fn().mockResolvedValue({ok:false}));
+  expect(await submitCompletedPuzzleSeries(completed)).toBe("failed"); expect(mocks.notify).not.toHaveBeenCalled();
+  vi.unstubAllGlobals();
 });

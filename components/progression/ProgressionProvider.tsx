@@ -4,9 +4,11 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { usePathname } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabaseClient";
-import { getMyProgression, getMyRecentXpEvents, type RecentXpEvent } from "@/lib/progression/queries";
+import { getMyProgression, getMyRecentXpEvents, getMyPermanentMissions, type RecentXpEvent } from "@/lib/progression/queries";
 import type { ProgressionSummary } from "@/lib/progression/formulaV1";
 import { PROGRESSION_CHANGED_EVENT } from "@/lib/progression/events";
+
+import type { PermanentMission } from "@/lib/progression/permanentMissions";
 
 type Snapshot = {
   status: "loading" | "signed-out" | "ready" | "error";
@@ -15,8 +17,10 @@ type Snapshot = {
   error: string | null;
   recentEvents: RecentXpEvent[];
   recentError: boolean;
+  permanentMissions: PermanentMission[];
+  missionsError: boolean;
 };
-const initial: Snapshot = {status:"loading",userId:null,summary:null,error:null,recentEvents:[],recentError:false};
+const initial: Snapshot = {status:"loading",userId:null,summary:null,error:null,recentEvents:[],recentError:false,permanentMissions:[],missionsError:false};
 type ProgressionContextValue = Snapshot & { loading: boolean; signedOut: boolean; refresh: () => void };
 const Context = createContext<ProgressionContextValue | null>(null);
 
@@ -44,11 +48,12 @@ export function ProgressionProvider({ children }: { children: ReactNode }) {
     inFlightRef.current = true;
     const epoch = epochRef.current;
     try {
-      const [progression, recent] = await Promise.allSettled([getMyProgression(client), getMyRecentXpEvents(client)]);
+      const [progression, recent, missions] = await Promise.allSettled([getMyProgression(client), getMyRecentXpEvents(client), getMyPermanentMissions(client)]);
       if (epoch !== epochRef.current) return;
       if (progression.status === "rejected") throw progression.reason;
       setSnapshot({status:"ready",userId,summary:progression.value,error:null,
-        recentEvents:recent.status === "fulfilled" ? recent.value : [],recentError:recent.status === "rejected"});
+        recentEvents:recent.status === "fulfilled" ? recent.value : [],recentError:recent.status === "rejected",
+        permanentMissions:missions.status === "fulfilled" ? missions.value : [],missionsError:missions.status === "rejected"});
     } catch {
       if (epoch === epochRef.current) setSnapshot({...initial,status:"error",userId,error:"Impossible de charger ta progression. Réessaie."});
     } finally {

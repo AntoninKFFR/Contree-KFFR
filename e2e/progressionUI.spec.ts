@@ -5,6 +5,8 @@ const userId = "11111111-1111-4111-8111-111111111111";
 const username = "UnPseudoTrèsLongPourTesterLaNavigation";
 async function fixture(page: Page, theme: "dark" | "light", signedIn = true) {
   let xp = 150;
+  let completed = 0;
+  let missionsFailure = false;
   const user = {id:userId,aud:"authenticated",role:"authenticated",email:"ui@example.test",created_at:"2026-09-30T00:00:00Z",app_metadata:{},user_metadata:{username}};
   const encoded = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
   const token = `${encoded({alg:"HS256",typ:"JWT"})}.${encoded({sub:userId,exp:Math.floor(Date.now()/1000)+3600,role:"authenticated"})}.fixture`;
@@ -17,6 +19,10 @@ async function fixture(page: Page, theme: "dark" | "light", signedIn = true) {
     let data: unknown = [];
     if (path.endsWith("/auth/v1/user")) data = user;
     else if (path.endsWith("/get_my_progression")) data = {total_xp:xp};
+    else if (path.endsWith("/get_my_permanent_missions")) {
+      if (missionsFailure) {await route.fulfill({status:500,body:"mission read failed"});return;}
+      data = ["first_game","first_win","first_solo","first_multiplayer","first_training"].map((key,index) => ({key,rewardXp:[100,150,100,150,100][index],completed:index<completed,completedAt:index<completed ? "2026-10-01T00:00:00Z":null}));
+    }
     else if (path.endsWith("/profiles")) data = [{id:userId,username}];
     else if (path.endsWith("/progression_xp_events")) data = [{amount:30,source_type:"solo_game",created_at:"2026-09-30T12:00:00Z"}];
     else if (path.endsWith("/get_my_rating_summary")) data = {rating:1000,rated_games:0,wins:0,losses:0,forfeits:0,peak_rating:1000,rank:null,position:null,placement_games:0,is_ranked:false,pending_matches:0};
@@ -24,7 +30,7 @@ async function fixture(page: Page, theme: "dark" | "light", signedIn = true) {
   });
   await page.route("**/api/social**", async (route) => route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({data:{friends:[],received:[],sent:[],invitations:[],counts:{friends:0,received:0,sent:0,receivedPending:0,sentPending:0}}})}));
   await page.route("**/api/training/duo/invitations", async (route) => route.fulfill({status:200,contentType:"application/json",body:'{"data":[]}'}));
-  return {setXp:(value: number) => {xp = value;}};
+  return {setXp:(value: number) => {xp = value;},setCompleted:(value: number) => {completed = value;},failMissions:() => {missionsFailure = true;}};
 }
 async function noOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -95,4 +101,23 @@ test("@progression-ui signed-out Home stays unchanged and progression invites lo
   await page.goto("/progression");
   await expect(page.getByRole("heading",{level:1})).toHaveText("Connecte-toi pour suivre ta progression");
   await expect(page.locator('main a[href="/login?next=%2Fprogression"]')).toBeVisible();
+});
+
+test("@progression-ui missions update together and a mission error keeps XP visible", async ({page}) => {
+  const data = await fixture(page,"light"); await page.goto("/progression");
+  const missions = page.getByRole("list",{name:"Missions de départ"});
+  await expect(missions.getByText("0 / 1",{exact:true})).toHaveCount(5);
+  await expect(missions.getByText("+100 XP",{exact:true})).toHaveCount(3);
+  await expect(missions.getByText("+150 XP",{exact:true})).toHaveCount(2);
+  data.setCompleted(2);data.setXp(220);
+  await page.evaluate(() => window.dispatchEvent(new Event("kffr:progression-changed")));
+  await expect(missions.getByText(/Terminé/)).toHaveCount(2);
+  data.setCompleted(5);
+  await page.evaluate(() => window.dispatchEvent(new Event("kffr:progression-changed")));
+  await expect(missions.getByText(/Terminé/)).toHaveCount(5);
+  data.failMissions();
+  await page.evaluate(() => window.dispatchEvent(new Event("kffr:progression-changed")));
+  await expect(page.getByText("Les missions sont momentanément indisponibles.")).toBeVisible();
+  await expect(page.locator(".progression-card").getByRole("progressbar")).toBeVisible();
+  await noOverflow(page);
 });
