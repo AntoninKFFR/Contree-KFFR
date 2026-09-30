@@ -31,7 +31,7 @@ it.each([null,{...fixture,missions:[]},{...fixture,catalogVersion:0},{...fixture
 it("renders the three quests, targets, rewards, completion and accessible bars",()=>{
  render(<WeeklyMissionsCard/>);const list=screen.getByRole("list",{name:"Missions hebdomadaires"});expect(within(list).getAllByRole("listitem")).toHaveLength(3);
  expect(screen.getByText("En forme")).toBeTruthy();expect(screen.getByText("0 / 3")).toBeTruthy();expect(screen.getByText("2 / 3")).toBeTruthy();
- expect(screen.getByText("✓ Terminé")).toBeTruthy();expect(screen.getByText("+300 XP")).toBeTruthy();expect(screen.getAllByText("+200 XP")).toHaveLength(2);
+ expect(screen.getByText("✓ Terminé")).toBeTruthy();expect(screen.getByText("3 / 3")).toBeTruthy();expect(screen.getByText("+300 XP")).toBeTruthy();expect(screen.getAllByText("+200 XP")).toHaveLength(2);
  expect(screen.getByText(/Réinitialisation/)).toBeTruthy();const bars=screen.getAllByRole("progressbar");
  expect(bars.map(b=>[b.getAttribute("aria-valuemin"),b.getAttribute("aria-valuemax"),b.getAttribute("aria-valuenow")])).toEqual([["0","3","0"],["0","3","2"],["0","3","3"]]);
  expect(screen.queryByRole("button",{name:/réclamer/i})).toBeNull();

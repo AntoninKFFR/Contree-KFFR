@@ -23,7 +23,7 @@ rétroactivement un ancien catalogue. Le serveur est la source des versions.
 | training_series | training | completed_training | 3 | 200 |
 
 Le sélecteur classe chaque candidat par `md5('v'||version||'|'||YYYY-MM-DD||'|'||key)`,
-puis clé comme tie-break. Il retient le premier de chaque famille, puis les trois
+puis clé comme tie-break, avec collation C explicite indépendante du serveur. Il retient le premier de chaque famille, puis les trois
 premiers du classement global. Moins de trois familles est une erreur de catalogue.
 Pour 2026-09-28 : wins, training_series, solo_games (ordre du ranking).
 L’affichage utilise `sort_order` : wins, solo_games, training_series.

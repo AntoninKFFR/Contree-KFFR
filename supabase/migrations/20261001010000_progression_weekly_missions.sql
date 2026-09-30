@@ -75,11 +75,11 @@ begin
   if not found then return; end if; -- No weekly catalog existed before launch.
   return query
     select m.* from public.progression_weekly_missions m join (
-      select key,rank_hash,row_number() over (partition by family order by rank_hash,key) as family_rank
-      from (select key,family,md5('v'||v_version::text||'|'||to_char(p_week_start,'YYYY-MM-DD')||'|'||key) as rank_hash
+      select key,rank_hash,row_number() over (partition by family order by rank_hash,key collate "C") as family_rank
+      from (select key,family,md5('v'||v_version::text||'|'||to_char(p_week_start,'YYYY-MM-DD')||'|'||key) collate "C" as rank_hash
         from public.progression_weekly_missions where catalog_version = v_version) hashes
     ) ranked on ranked.key = m.key
-    where m.catalog_version = v_version and ranked.family_rank = 1 order by ranked.rank_hash,m.key limit 3;
+    where m.catalog_version = v_version and ranked.family_rank = 1 order by ranked.rank_hash,m.key collate "C" limit 3;
   get diagnostics v_count = row_count;
   if v_count <> 3 then raise exception 'weekly_catalog_requires_three_families' using errcode = '23514'; end if;
 end;
