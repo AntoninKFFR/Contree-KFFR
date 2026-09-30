@@ -181,6 +181,41 @@ textarea {
   --stats-fall-medium: #b76b5e;
 }
 
+.history-view {
+  --history-accent: var(--accent);
+  --history-danger: #b96860;
+}
+
+:root[data-theme="light"] .history-view {
+  --history-danger: #873f3c;
+}
+
+.history-entry {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  padding: .875rem 1rem;
+}
+
+.history-result {
+  --history-result-color: var(--history-accent);
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--history-result-color) 35%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--history-result-color) 10%, var(--surface));
+  padding: .2rem .6rem;
+  color: var(--history-result-color);
+  font-size: .75rem;
+  font-weight: 800;
+}
+
+.history-result[data-result="loss"] { --history-result-color: var(--history-danger); }
+.history-details > summary { width: fit-content; color: var(--ui-link); cursor: pointer; font-size: .8rem; font-weight: 600; }
+.history-details > summary:hover { color: var(--history-accent); }
+.history-details > summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; border-radius: .2rem; }
+.history-details[open] { margin-top: .75rem; border-top: 1px solid var(--border); padding-top: .75rem; }
+
 .coinche-page-header { min-width: 0; }
 .coinche-page-header-main { display: grid; justify-items: start; gap: 1.25rem; }
 .coinche-page-header-copy { min-width: 0; }
