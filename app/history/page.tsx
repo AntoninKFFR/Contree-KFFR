@@ -164,7 +164,7 @@ function SoloHistoryItem({ game }: { game: GameRow }) {
     <li className="history-entry text-sm">
       <HistoryHeader date={game.created_at} label="Solo" won={won} />
       <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className="text-2xl font-black tabular-nums"><span className="sr-only">Score joueur — bots : </span><span className={won ? "text-[var(--history-accent)]" : "text-[var(--history-danger)]"}>{game.player_score ?? "—"}</span> <span className="text-[var(--text-muted)]">—</span> <span className="text-[var(--text-secondary)]">{game.bot_score ?? "—"}</span></p>
+        <p className={`text-2xl font-black tabular-nums ${won ? "text-[var(--history-accent)]" : "text-[var(--history-danger)]"}`}><span className="sr-only">Score joueur — bots : </span>{game.player_score ?? "—"} — {game.bot_score ?? "—"}</p>
         <p className="text-[var(--text-secondary)]">{scoringModeLabel(game.scoring_mode)}</p>
       </div>
       <details className="history-details mt-2">
@@ -187,7 +187,7 @@ function MultiplayerHistoryItem({ game }: { game: MultiplayerHistoryGame }) {
     <li className="history-entry text-sm">
       <HistoryHeader date={game.finished_at} label="Multijoueur" won={won} />
       <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className="text-2xl font-black tabular-nums"><span className="sr-only">Score équipe — adversaires : </span><span className={won ? "text-[var(--history-accent)]" : "text-[var(--history-danger)]"}>{viewerTeamScore(game)}</span> <span className="text-[var(--text-muted)]">—</span> <span className="text-[var(--text-secondary)]">{opposingTeamScore(game)}</span></p>
+        <p className={`text-2xl font-black tabular-nums ${won ? "text-[var(--history-accent)]" : "text-[var(--history-danger)]"}`}><span className="sr-only">Score équipe — adversaires : </span>{viewerTeamScore(game)} — {opposingTeamScore(game)}</p>
         <p className="text-[var(--text-secondary)]">{scoringModeLabel(game.scoring_mode)}</p>
       </div>
       <div className="mt-2 grid gap-x-4 gap-y-1 break-words text-[var(--text-secondary)] sm:grid-cols-2">
