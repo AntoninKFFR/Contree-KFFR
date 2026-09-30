@@ -57,11 +57,13 @@ try {
   const [a,b] = await Promise.all([0,1,2,3].map(who));
   // The running Next server proves auth + authority, not just SQL fixtures.
   assert.equal((await api("","",{ rules,startKey:randomUUID() })).status,401);
+  assert.equal((await api("","invalid-jwt",{ rules,startKey:randomUUID() })).status,401);
   const startKey = randomUUID();
   let session = await payload(await api("",a.token,{ rules,startKey }));
   assert.notEqual(session.id,startKey);
   assert.deepEqual(await payload(await api("",a.token,{ rules,startKey })),session);
   assert.equal((await api(`/${session.id}`,b.token)).status,404);
+  assert.equal((await api(`/${session.id}`,b.token,{expectedVersion:0,intent:{type:"advance-bot"}})).status,404);
   assert.equal((await api(`/${randomUUID()}`,a.token,{ expectedVersion:0,intent:{type:"advance-bot"} })).status,404);
   for (const key of ["won","player_score","amount","user_id","seed","rules","state"]) {
     assert.equal((await api(`/${session.id}`,a.token,{ expectedVersion:session.version,
@@ -182,6 +184,7 @@ try {
   for (const user of [a,b]) {
     await denied(user.client.from("games").insert({user_id:user.id,won:true,scoring_mode:"announced-points",player_score:9999,bot_score:0,target_score:1000}));
     await denied(user.client.from("solo_game_sessions").select("*"));
+    await denied(user.client.from("solo_game_sessions").insert({user_id:user.id,start_key:randomUUID(),state:session.state}));
     await denied(user.client.from("progression_multiplayer_jobs").select("*"));
   }
   for (const client of [anonymous,a.client]) {
@@ -194,6 +197,7 @@ try {
     await denied(admin.from(table).update({created_at:new Date().toISOString()}));
     await denied(admin.from(table).delete());
   }
+  await denied(admin.from("solo_game_sessions").insert({user_id:a.id,start_key:randomUUID(),state:session.state}));
   console.log("Game XP: real JWT Solo win/loss, forged results, concurrent transitions, one archive/event, reload, browser/guest compatibility and Multi matrix passed.");
 } finally {
   for (const id of gameIds) checked(await admin.from("multiplayer_games").delete().eq("id",id),"remove archive");

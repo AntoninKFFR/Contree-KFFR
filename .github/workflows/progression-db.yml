@@ -53,7 +53,8 @@ jobs:
       - run: supabase start
       - run: supabase db reset --local
       - run: supabase db query --local --file scripts/testProgressionSchema.sql
-      - run: supabase db query --local --file scripts/testProgressionGameSchema.sql
+      - name: Test game rewards, privileges and transactional recovery
+        run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionGameSchema.sql
       - run: supabase db lint --local --level warning --fail-on error
       - run: supabase db advisors --local --type all --level warn --fail-on error
       - name: Test XP foundations with local Auth JWTs
