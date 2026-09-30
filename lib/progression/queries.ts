@@ -1,3 +1,4 @@
+import { permanentMissionKeys, type PermanentMission } from "@/lib/progression/permanentMissions";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getProgression, type ProgressionSummary } from "@/lib/progression/formulaV1";
 
@@ -27,5 +28,19 @@ export async function getMyRecentXpEvents(supabase: SupabaseClient): Promise<Rec
       throw new Error("Invalid progression event");
     }
     return { amount: row.amount, sourceType: row.source_type, createdAt: row.created_at };
+  });
+}
+
+/** No account parameter: the RPC derives ownership from the current JWT. */
+export async function getMyPermanentMissions(supabase: SupabaseClient): Promise<PermanentMission[]> {
+  const { data, error } = await supabase.rpc("get_my_permanent_missions");
+  if (error) throw error;
+  if (!Array.isArray(data) || data.length !== permanentMissionKeys.length) throw new Error("Invalid permanent missions");
+  return data.map((row, index) => {
+    if (!row || row.key !== permanentMissionKeys[index] || !Number.isSafeInteger(row.rewardXp) || row.rewardXp <= 0
+      || typeof row.completed !== "boolean" || (row.completed
+        ? typeof row.completedAt !== "string" || !Number.isFinite(Date.parse(row.completedAt))
+        : row.completedAt !== null)) throw new Error("Invalid permanent mission");
+    return { key: row.key, rewardXp: row.rewardXp, completed: row.completed, completedAt: row.completedAt };
   });
 }

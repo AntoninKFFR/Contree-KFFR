@@ -53,10 +53,17 @@ jobs:
         with:
           version: latest
       - run: supabase start
-      - run: supabase db reset --local
+      - run: supabase db reset --local --version 20260930200000
+      - name: Seed pre-missions history and a pending Game XP job
+        run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionMissionsBefore.sql
+      - run: supabase migration up --local
+      - name: Verify real migration has no retroactive mission rewards
+        run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionMissionsAfter.sql
       - run: supabase db query --local --file scripts/testProgressionSchema.sql
       - name: Test game rewards, privileges and transactional recovery
         run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionGameSchema.sql
+      - name: Test permanent missions and transactional rollback
+        run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionMissionsSchema.sql
       - run: supabase db lint --local --level warning --fail-on error
       - run: supabase db advisors --local --type all --level warn --fail-on error
       - name: Test XP foundations with local Auth JWTs
@@ -93,3 +100,4 @@ jobs:
             sleep 1
           done
           npm run test:db:progression-games
+          npx vite-node --config vitest.config.ts scripts/testProgressionMissionsDb.ts

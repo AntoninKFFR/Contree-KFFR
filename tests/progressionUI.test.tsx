@@ -39,7 +39,7 @@ describe("progression presentation", () => {
     expect(screen.getByRole("heading",{level:1}).textContent).toBe(`Niveau ${summary.level}`);
     expect(screen.getByText(`${summary.xpIntoLevel} / ${summary.xpForNextLevel} XP`)).toBeTruthy();
     expect(screen.getByText(`${summary.xpRemaining} XP avant le niveau ${summary.level+1}`)).toBeTruthy();
-    expect(screen.getByText("Missions")).toBeTruthy(); expect(screen.getByText("Récompenses")).toBeTruthy();
+    expect(screen.getByText("Missions de départ")).toBeTruthy(); expect(screen.getByText("Récompenses")).toBeTruthy();
     expect(screen.queryByText("Gagner 3 parties")).toBeNull();
   });
   it("provides signed-out login with a return path", () => {
@@ -56,4 +56,29 @@ describe("progression presentation", () => {
     expect(screen.getByText("+30 XP · Partie Solo")).toBeTruthy(); expect(screen.getByText("+50 XP · Multijoueur")).toBeTruthy();
     expect(container.textContent).not.toContain("source_id");
   });
+});
+
+const missionFixtures = ["first_game","first_win","first_solo","first_multiplayer","first_training"].map((key,index) =>
+  ({key,rewardXp:[100,150,100,150,100][index],completed:false,completedAt:null}));
+it.each([0,2,5])("shows five starter missions with %i completed", (count) => {
+  hook.mockReturnValue({status:"ready",summary:getProgression(0),recentEvents:[],
+    permanentMissions:missionFixtures.map((m,index) => ({...m,completed:index<count}))});
+  render(<ProgressionPage />);
+  expect(screen.queryAllByText("0 / 1")).toHaveLength(5-count);
+  expect(screen.queryAllByText(/Terminé/)).toHaveLength(count);
+  expect(screen.getAllByText("+100 XP")).toHaveLength(3);
+  expect(screen.getAllByText("+150 XP")).toHaveLength(2);
+  expect(screen.getByText("S'entraîner")).toBeTruthy();
+  expect(screen.queryByRole("button",{name:/réclamer/i})).toBeNull();
+});
+
+it("mission error preserves summary and bar", () => {
+  hook.mockReturnValue({status:"ready",summary:getProgression(220),recentEvents:[],permanentMissions:[],missionsError:true});
+  render(<ProgressionPage />); expect(screen.getByRole("progressbar")).toBeTruthy();
+  expect(screen.getByText("Les missions sont momentanément indisponibles.")).toBeTruthy();
+});
+it("permanent mission recent gains display no technical key", () => {
+  hook.mockReturnValue({status:"ready",summary:getProgression(100),recentEvents:[{amount:100,sourceType:"permanent_mission",createdAt:"2026-10-01T00:00:00Z"}]});
+  const {container} = render(<ProgressionPage />); expect(screen.getByText("+100 XP · Mission")).toBeTruthy();
+  expect(container.textContent).not.toContain("first_training");
 });

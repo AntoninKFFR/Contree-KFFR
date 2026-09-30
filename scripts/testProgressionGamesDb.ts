@@ -88,6 +88,13 @@ try {
   assert.deepEqual(checked(await admin.from("games").select("id").eq("id",session.id),"not finished"),[]);
   const outcomes = new Set<number>();
   let expectedSolo = 0;
+  const completedByUser = new Map(users.map(user => [user.id,new Set<string>()]));
+  const rewards: Record<string,number> = Object.fromEntries(checked(await a.client.rpc("get_my_permanent_missions"),"mission catalog").map((m: {key:string;rewardXp:number}) => [m.key,m.rewardXp]));
+  function missionBonus(userId: string,keys: string[]) {
+    const completed = completedByUser.get(userId)!; let bonus = 0;
+    for (const key of keys) if (!completed.has(key)) {completed.add(key);bonus += rewards[key];}
+    return bonus;
+  }
   for (let game = 0; game < 12 && outcomes.size < 2; game += 1) {
     if (game) session = await payload(await api("",a.token,{rules,startKey:randomUUID()}));
     let lastBody: unknown;
@@ -111,7 +118,7 @@ try {
     assert.equal(session.state.phase,"game-over");
     const amount = session.state.winnerTeam === 0 ? 30 : 20;
     outcomes.add(session.state.winnerTeam!);
-    expectedSolo += amount;
+    expectedSolo += amount + missionBonus(a.id,["first_game","first_solo",...(amount === 30 ? ["first_win"]:[])]);
     assert.equal(await total(a),expectedSolo);
     const history = checked(await admin.from("games").select("*").eq("id",session.id),"verified history");
     assert.equal(history.length,1);
@@ -203,7 +210,7 @@ try {
       const human = (humanSeats as readonly number[]).includes(seat);
       const won = seat%2 === winner;
       const amount = !human || (endReason === "forfeit" && !won) ? 0:won ? 50:30;
-      totals.set(users[seat].id,totals.get(users[seat].id)!+amount);
+      totals.set(users[seat].id,totals.get(users[seat].id)!+amount+(amount ? missionBonus(users[seat].id,["first_game","first_multiplayer",...(won ? ["first_win"]:[])]) : 0));
       assert.equal(await total(users[seat]),totals.get(users[seat].id));
       const events = checked(await admin.from("progression_xp_events").select("amount,source_type")
         .eq("user_id",users[seat].id).eq("source_id",gameId),"Multi ledger");

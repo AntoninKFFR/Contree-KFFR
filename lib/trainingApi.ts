@@ -1,5 +1,6 @@
 import { PERSISTABLE_PUZZLE_AXES, type PersistablePuzzleAxisId, type SubmittedTrainingAnswer,
   type TrainingSeriesSubmission } from "@/engine/training/seriesContract";
+import { notifyProgressionChanged } from "@/lib/progression/events";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
 export async function submitCompletedPuzzleSeries(input: {
@@ -25,6 +26,8 @@ export async function submitCompletedPuzzleSeries(input: {
     const response = await fetch("/api/training/series", { method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body), cache: "no-store" });
-    return response.ok ? "saved" : "failed";
+    if (!response.ok) return "failed";
+    notifyProgressionChanged();
+    return "saved";
   } catch { return "failed"; }
 }

@@ -18,7 +18,8 @@ let codeIndex = 0;
 const SESSION_COLUMNS = ["id", "status", "question_phase", "current_index", "state_version", "updated_at"];
 const PARTICIPANT_COLUMNS = ["id", "session_id", "slot", "is_ready", "ready_for_next", "last_seen_at"];
 const UNRELATED_TABLES = ["rooms", "room_players", "room_game_states", "multiplayer_games",
-  "training_series", "training_records", "player_ratings", "game_invitations"];
+  "training_series", "training_records", "player_ratings", "game_invitations",
+  "progression_permanent_mission_completions", "progression_xp_events"];
 
 function checked(result, label) {
   if (result.error) throw new Error(`${label}: ${result.error.message}`);
