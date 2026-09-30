@@ -10,9 +10,7 @@ import {
   type MultiplayerHistoryGame,
 } from "@/lib/multiplayerHistory";
 import {
-  formatDate,
   getUserGames,
-  scoringModeLabel,
   type GameRow,
 } from "@/lib/stats";
 import { calculateDetailedPlayerStats, multiplayerGamesForDetailedStats, soloGamesForDetailedStats } from "@/lib/detailedPlayerStats";
@@ -25,7 +23,6 @@ import {
   AppPage,
   AppPageHeader,
   AppSurface,
-  appBadgeClass,
   appPrimaryActionClass,
   appSecondaryActionClass,
   appInputClass,
@@ -163,7 +160,6 @@ export default function ProfilePage() {
 
   const soloStats = useMemo(() => calculateDetailedPlayerStats(soloGamesForDetailedStats(games)), [games]);
   const multiplayerStats = useMemo(() => calculateDetailedPlayerStats(multiplayerGamesForDetailedStats(multiplayerGames)), [multiplayerGames]);
-  const recentGames = useMemo(() => games.slice(0, 5), [games]);
 
   async function handleSaveUsername() {
     const client = getSupabaseClient();
@@ -217,26 +213,27 @@ export default function ProfilePage() {
 
   return (
     <ProfileShell>
-      <AppPageHeader description={session?.user.email ?? "Session en cours de lecture"} eyebrow="Profil joueur" title={pageState === "loading" ? "Chargement..." : username ?? "Profil sans pseudo"} />
-
-      {ratingState === "ready" && ratingSummary ? <RatingCard state="ready" summary={ratingSummary} /> : <RatingCard state={ratingState === "error" ? "error" : "loading"} />}
-
       <div id="profile-username">
-        <AppSurface className="p-6 sm:p-7">
-        <AppEyebrow>Compte / Identité</AppEyebrow>
-        <h2 className="mt-2 text-lg font-bold text-stone-50">Pseudo</h2>
-        {isEditingUsername || !username ? <div className="mt-3 flex max-w-2xl flex-wrap items-end gap-2">
-          <label className="min-w-48 flex-1 text-sm font-semibold text-stone-200">Ton pseudo
-            <input aria-label="Pseudo" className={`${appInputClass} mt-1 w-full`} disabled={isSavingUsername} maxLength={40} onChange={(event) => setUsernameDraft(event.target.value)} value={usernameDraft} />
-          </label>
-          <button className={appPrimaryActionClass} disabled={isSavingUsername} onClick={handleSaveUsername} type="button">{isSavingUsername ? "Enregistrement…" : "Enregistrer"}</button>
-          {username ? <button className={appSecondaryActionClass} disabled={isSavingUsername} onClick={() => { setUsernameDraft(username); setIsEditingUsername(false); setIdentityMessage(null); }} type="button">Annuler</button> : null}
-        </div> : <div className="mt-3 flex items-center gap-3"><span className="font-bold text-stone-100">{username}</span><button className={appSecondaryActionClass} onClick={() => { setIsEditingUsername(true); setIdentityMessage(null); }} type="button">Modifier</button></div>}
-        {identityMessage ? <p className="mt-3 text-sm text-stone-300" role="status">{identityMessage}</p> : null}
-        {!username ? <p className="mt-3 text-sm text-stone-300">Choisis un pseudo pour jouer en multijoueur.</p> : null}
-        <div className="mt-6 border-t border-white/10 pt-4">
-          <button className={appSecondaryActionClass} onClick={() => void handleSignOut()} type="button">Se déconnecter</button>
-        </div>
+        <AppSurface className="!p-4">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+            <div className="min-w-0 basis-64 flex-1">
+              <AppEyebrow>Compte / Identité</AppEyebrow>
+              <p className="mt-2 text-xs font-semibold text-[var(--text-secondary)]">Pseudo</p>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
+                <h1 className="min-w-0 break-words text-2xl font-black tracking-tight text-[var(--text-primary)]">{pageState === "loading" ? "Chargement…" : username ?? "Profil sans pseudo"}</h1>
+                {username && !isEditingUsername ? <button className={`${appSecondaryActionClass} !px-3 !py-1.5`} onClick={() => { setIsEditingUsername(true); setIdentityMessage(null); }} type="button">Modifier</button> : null}
+              </div>
+            </div>
+            <button className={`${appSecondaryActionClass} !px-3 !py-1.5 text-[var(--text-secondary)]`} onClick={() => void handleSignOut()} type="button">Se déconnecter</button>
+          </div>
+          {pageState === "ready" && (isEditingUsername || !username) ? <div className="mt-3 flex max-w-2xl flex-wrap items-end gap-2">
+            <label className="min-w-0 basis-48 flex-1 text-sm font-semibold text-[var(--text-secondary)]">Ton pseudo
+              <input aria-label="Pseudo" className={`${appInputClass} mt-1 w-full`} disabled={isSavingUsername} maxLength={40} onChange={(event) => setUsernameDraft(event.target.value)} value={usernameDraft} />
+            </label>
+            <button className={appPrimaryActionClass} disabled={isSavingUsername} onClick={handleSaveUsername} type="button">{isSavingUsername ? "Enregistrement…" : "Enregistrer"}</button>
+            {username ? <button className={appSecondaryActionClass} disabled={isSavingUsername} onClick={() => { setUsernameDraft(username); setIsEditingUsername(false); setIdentityMessage(null); }} type="button">Annuler</button> : null}
+          </div> : null}
+          {identityMessage ? <p className="mt-2 text-sm text-[var(--text-secondary)]" role="status">{identityMessage}</p> : null}
         </AppSurface>
       </div>
 
@@ -250,85 +247,14 @@ export default function ProfilePage() {
             : <DetailedStatsDashboard stats={statsMode === "solo" ? soloStats : multiplayerStats} />}
       </div>
 
-      <AppSurface variant="plain">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold text-stone-50">Dernières parties</h2>
-            <p className="text-sm text-[var(--text-secondary)]">Aperçu des {recentGames.length} plus récentes</p>
-          </div>
-          <Link
-            className={appPrimaryActionClass}
-            href="/history"
-          >
-            Voir tout l&apos;historique
-          </Link>
-        </div>
+      {statsMode === "multiplayer" ? (
+        ratingState === "ready" && ratingSummary ? <RatingCard state="ready" summary={ratingSummary} /> : <RatingCard state={ratingState === "error" ? "error" : "loading"} />
+      ) : null}
 
-        <GameList
-          errorMessage={errorMessage}
-          games={recentGames}
-          isLoading={pageState === "loading"}
-          noGamesText="Aucune partie enregistrée pour le moment."
-        />
-      </AppSurface>
+      <div>
+        <Link className={appSecondaryActionClass} href="/history">Voir mon historique <span aria-hidden="true" className="ml-2">→</span></Link>
+      </div>
     </ProfileShell>
-  );
-}
-
-function GameList({
-  errorMessage,
-  games,
-  isLoading,
-  noGamesText,
-}: {
-  errorMessage: string | null;
-  games: GameRow[];
-  isLoading: boolean;
-  noGamesText: string;
-}) {
-  if (errorMessage) {
-    return (
-      <p className="coinche-notice" data-tone="error" role="alert">
-        Impossible de charger les parties: {errorMessage}
-      </p>
-    );
-  }
-
-  if (isLoading) {
-    return <p className="text-sm text-[var(--text-secondary)]">Chargement des parties...</p>;
-  }
-
-  if (games.length === 0) {
-    return <p className="text-sm text-[var(--text-secondary)]">{noGamesText}</p>;
-  }
-
-  return (
-    <ul className="space-y-2">
-      {games.map((game) => (
-        <li className="coinche-app-card text-sm" key={game.id}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-semibold">{formatDate(game.created_at)}</p>
-            <span
-              className={appBadgeClass}
-              data-tone={game.won ? "success" : "error"}
-            >
-              {game.won ? "Gagné" : "Perdu"}
-            </span>
-          </div>
-          <div className="mt-2 grid gap-1 text-[var(--text-secondary)] sm:grid-cols-2">
-            <p>Mode: {scoringModeLabel(game.scoring_mode)}</p>
-            <p>Cible: {game.target_score ?? "-"}</p>
-            <p>Joueur: {game.player_score ?? "-"}</p>
-            <p>Bots: {game.bot_score ?? "-"}</p>
-          </div>
-          {game.bot_summary ? (
-            <p className="mt-2 text-sm text-[var(--text-muted)]">
-              Bots affrontés: {game.bot_summary}
-            </p>
-          ) : null}
-        </li>
-      ))}
-    </ul>
   );
 }
 
