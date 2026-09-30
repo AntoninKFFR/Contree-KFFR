@@ -166,6 +166,21 @@ textarea {
   box-shadow: 0 2px 12px color-mix(in srgb, var(--shadow) 22%, transparent);
 }
 
+/* Profile statistics keep their own palette without changing app-wide status colors. */
+.profile-stats {
+  --stats-accent: var(--accent);
+  --stats-danger: #b96860;
+  --stats-fall-tight: #b59a64;
+  --stats-fall-medium: #ce8a78;
+  min-width: 0;
+}
+
+:root[data-theme="light"] .profile-stats {
+  --stats-danger: #873f3c;
+  --stats-fall-tight: #a0834d;
+  --stats-fall-medium: #b76b5e;
+}
+
 .coinche-page-header { min-width: 0; }
 .coinche-page-header-main { display: grid; justify-items: start; gap: 1.25rem; }
 .coinche-page-header-copy { min-width: 0; }

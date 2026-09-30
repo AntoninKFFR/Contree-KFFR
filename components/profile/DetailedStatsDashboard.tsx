@@ -20,8 +20,8 @@ function Line({ label, value }: { label: string; value: string | number }) {
   </div>;
 }
 
-function ProgressBar({ label, value, tone = "success" }: { label: string; value: number | null; tone?: "success" | "danger" | "accent" }) {
-  const color = tone === "success" ? "var(--success)" : tone === "danger" ? "var(--danger)" : "var(--accent)";
+function ProgressBar({ label, value, tone = "accent" }: { label: string; value: number | null; tone?: "danger" | "accent" }) {
+  const color = tone === "danger" ? "var(--stats-danger)" : "var(--stats-accent)";
   return <div className="min-w-0">
     <div className="mb-1 flex items-baseline justify-between gap-2 text-sm">
       <span className="min-w-0 text-[color:var(--text-secondary)]">{label}</span>
@@ -35,7 +35,7 @@ function ProgressBar({ label, value, tone = "success" }: { label: string; value:
 
 export function DetailedStatsDashboard({ stats }: { stats: DetailedPlayerStats }) {
   const hasContracts = stats.attackShare !== null;
-  return <div className="space-y-4">
+  return <div className="profile-stats space-y-4">
     <AppSurface>
       <AppEyebrow>Vue d&apos;ensemble</AppEyebrow>
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -58,20 +58,20 @@ export function DetailedStatsDashboard({ stats }: { stats: DetailedPlayerStats }
         <Metric label="Attaque récente" value={rate(stats.recentForm.attackSuccessRate)} />
         <Metric label="Défense récente" value={rate(stats.recentForm.defenseSuccessRate)} />
       </div>
-      {stats.recentForm.results.length ? <div aria-label={`Résultats des ${stats.recentForm.sampleSize} dernières parties, de la plus ancienne à la plus récente : ${stats.recentForm.results.map((won) => won ? "victoire" : "défaite").join(", ")}`} className="mt-3 flex gap-1" role="img">
-        {stats.recentForm.results.map((won, index) => <span aria-hidden="true" className={`h-3 min-w-0 flex-1 rounded-sm ${won ? "bg-[color:var(--success)]" : "bg-[color:var(--danger)]"}`} key={index} />)}
+      {stats.recentForm.results.length ? <div aria-label={`Résultats des ${stats.recentForm.sampleSize} dernières parties, de la plus ancienne à la plus récente : ${stats.recentForm.results.map((won) => won ? "victoire" : "défaite").join(", ")}`} className="mt-3 flex flex-wrap gap-1" role="img">
+        {stats.recentForm.results.map((won, index) => <span aria-hidden="true" className={`h-2 w-5 rounded-sm ${won ? "bg-[color:var(--stats-accent)]" : "bg-[color:var(--stats-danger)]"}`} key={index} />)}
       </div> : <p className="mt-3 text-sm text-[color:var(--text-secondary)]">Aucune partie enregistrée.</p>}
-      <p className="mt-1 text-xs text-[color:var(--text-secondary)]"><span className="text-[color:var(--success)]">■</span> Victoire · <span className="text-[color:var(--danger)]">■</span> Défaite · de gauche à droite, de l&apos;ancienne à la récente</p>
+      <p className="mt-1 text-xs text-[color:var(--text-secondary)]"><span className="text-[color:var(--stats-accent)]">■</span> Victoire · <span className="text-[color:var(--stats-danger)]">■</span> Défaite · de gauche à droite, de l&apos;ancienne à la récente</p>
     </AppSurface>
 
     <AppSurface>
       <AppEyebrow>Répartition des manches avec contrat</AppEyebrow>
-      <div className="mt-3 flex items-center justify-between gap-3 text-sm font-black">
-        <span className="text-[color:var(--success)]">⚔ Attaque · {rate(stats.attackShare)}</span>
-        <span className="text-[color:var(--danger)]">{rate(stats.defenseShare)} · Défense 🛡</span>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm font-black">
+        <span className="text-[color:var(--stats-accent)]">⚔ Attaque · {rate(stats.attackShare)}</span>
+        <span className="text-[color:var(--stats-danger)]">{rate(stats.defenseShare)} · Défense 🛡</span>
       </div>
       <div aria-label={hasContracts ? `${stats.attackShare} % attaque, ${stats.defenseShare} % défense` : "Aucune manche avec contrat"} className="relative mt-3 flex h-4 overflow-hidden rounded-full bg-[color:var(--surface-muted)]" role="img">
-        {hasContracts ? <><div className="h-full bg-[color:var(--success)]" style={{ width: `${stats.attackShare}%` }} /><div className="h-full flex-1 bg-[color:var(--danger)]" /></> : null}
+        {hasContracts ? <><div className="h-full bg-[color:var(--stats-accent)]" style={{ width: `${stats.attackShare}%` }} /><div className="h-full flex-1 bg-[color:var(--stats-danger)]" /></> : null}
         <span aria-hidden="true" className="absolute inset-y-0 left-1/2 w-px bg-[color:var(--text-primary)] opacity-80" />
         {hasContracts ? <span aria-hidden="true" className="absolute inset-y-0 w-0.5 bg-[color:var(--text-primary)]" style={{ left: `${stats.attackShare}%` }} /> : null}
       </div>
@@ -79,24 +79,24 @@ export function DetailedStatsDashboard({ stats }: { stats: DetailedPlayerStats }
       {!hasContracts ? <p className="mt-2 text-center text-sm text-[color:var(--text-secondary)]">Aucune manche avec contrat enregistrée.</p> : null}
     </AppSurface>
 
-    <AppSurface className="border-l-4 !border-l-[color:var(--success)]">
-      <h2 className="text-lg font-black text-[color:var(--success)]">⚔ Analyse attaque</h2>
+    <AppSurface className="border-l-4 !border-l-[color:var(--stats-accent)]">
+      <h2 className="text-lg font-black text-[color:var(--stats-accent)]">⚔ Analyse attaque</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-3">
           <p className="text-xs font-black uppercase tracking-wide text-[color:var(--text-secondary)]">Mes contrats · {number(stats.personalContracts)}</p>
-          <p className="mt-1 text-2xl font-black text-[color:var(--success)]">{rate(stats.personalSuccessRate)} <span className="text-sm font-semibold text-[color:var(--text-secondary)]">réussis</span></p>
+          <p className="mt-1 text-2xl font-black text-[color:var(--stats-accent)]">{rate(stats.personalSuccessRate)} <span className="text-sm font-semibold text-[color:var(--text-secondary)]">réussis</span></p>
           <ProgressBar label="Réussite personnelle" value={stats.personalSuccessRate} />
-          <div className="mt-2"><Line label="Contrat moyen 80–160" value={number(stats.personalAverageBid)} /><Line label="Points faits" value={number(stats.personalAverageTakerPoints)} /><Line label="Différentiel" value={signed(stats.personalAverageBidDifference)} /></div>
+          <div className="mt-2"><Line label="Contrat moyen" value={number(stats.personalAverageBid)} /><Line label="Points faits" value={number(stats.personalAverageTakerPoints)} /><Line label="Différentiel" value={signed(stats.personalAverageBidDifference)} /></div>
         </div>
         <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-3">
           <p className="text-xs font-black uppercase tracking-wide text-[color:var(--text-secondary)]">Contrats du partenaire · {number(stats.partnerContracts)}</p>
-          <p className="mt-1 text-2xl font-black text-[color:var(--success)]">{rate(stats.partnerSuccessRate)} <span className="text-sm font-semibold text-[color:var(--text-secondary)]">réussis</span></p>
+          <p className="mt-1 text-2xl font-black text-[color:var(--stats-accent)]">{rate(stats.partnerSuccessRate)} <span className="text-sm font-semibold text-[color:var(--text-secondary)]">réussis</span></p>
           <ProgressBar label="Réussite du partenaire" value={stats.partnerSuccessRate} />
           <div className="mt-2"><Line label="Réussite de l'équipe en attaque" value={rate(stats.attackSuccessRate)} /><Line label="Contrats pris personnellement" value={rate(stats.personalContractShare)} /></div>
         </div>
       </div>
       <div className="mt-3 grid gap-x-6 sm:grid-cols-2">
-        <Line label="Contrat moyen de l'équipe (80–160)" value={number(stats.averageBid)} />
+        <Line label="Contrat moyen de l'équipe" value={number(stats.averageBid)} />
         <Line label="Points réellement faits" value={number(stats.averageTakerPoints)} />
         <Line label="Différentiel moyen" value={signed(stats.averageBidDifference)} />
         <Line label="Marge sur contrats réussis" value={signed(stats.averageSuccessfulMargin)} />
@@ -106,12 +106,12 @@ export function DetailedStatsDashboard({ stats }: { stats: DetailedPlayerStats }
     </AppSurface>
 
     <AppSurface>
-      <AppEyebrow>Zone de confort · contrats 80–160</AppEyebrow>
+      <AppEyebrow>Zone de confort</AppEyebrow>
       <div className="mt-3 grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
         <div className="space-y-1">
           {stats.bidValues.map(({ value, contracts, successes, successRate }) => <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_7.5rem] items-center gap-2 text-xs sm:grid-cols-[3rem_minmax(0,1fr)_9rem]" key={value}>
             <strong className="tabular-nums">{value}</strong>
-            <div aria-label={`Contrat ${value} : ${rate(successRate)}, ${successes} réussi${successes > 1 ? "s" : ""} sur ${contracts}`} className="h-3 overflow-hidden rounded-full bg-[color:var(--surface-muted)]" role="img"><div className="h-full rounded-full bg-[color:var(--success)]" style={{ width: `${successRate ?? 0}%` }} /></div>
+            <div aria-label={`Contrat ${value} : ${rate(successRate)}, ${successes} réussi${successes > 1 ? "s" : ""} sur ${contracts}`} className="h-3 overflow-hidden rounded-full bg-[color:var(--surface-muted)]" role="img"><div className="h-full rounded-full bg-[color:var(--stats-accent)]" style={{ width: `${successRate ?? 0}%` }} /></div>
             <span className="text-right tabular-nums text-[color:var(--text-secondary)]">{rate(successRate)} · {contracts ? `${successes}/${contracts}` : "—"}</span>
           </div>)}
           <p className="pt-1 text-xs text-[color:var(--text-secondary)]">Taux · contrats réussis / contrats joués</p>
@@ -133,14 +133,14 @@ export function DetailedStatsDashboard({ stats }: { stats: DetailedPlayerStats }
     </AppSurface>
 
     <div className="grid gap-4 lg:grid-cols-2">
-      <AppSurface className="border-l-4 !border-l-[color:var(--danger)]">
-        <h2 className="text-lg font-black text-[color:var(--danger)]">🛡 Analyse défense</h2>
+      <AppSurface className="border-l-4 !border-l-[color:var(--stats-danger)]">
+        <h2 className="text-lg font-black text-[color:var(--stats-danger)]">🛡 Analyse défense</h2>
         <div className="mt-2"><Line label="Contrats adverses mis en échec" value={rate(stats.defenseSuccessRate)} /><Line label="Points moyens en défense" value={number(stats.averageDefensePoints)} /><Line label="Écart des contrats adverses chutés (80–160)" value={signed(stats.averageDefeatedContractGap)} /><Line label="10 de der volé en défense" value={rate(stats.defenseTenDeDerRate)} /></div>
       </AppSurface>
-      <AppSurface>
-        <AppEyebrow>Qualité des chutes · contrats 80–160</AppEyebrow>
+      <AppSurface className="border-l-4 !border-l-[color:var(--stats-danger)]">
+        <h2 className="text-lg font-black text-[color:var(--stats-danger)]">Qualité des chutes</h2>
         <div aria-label={stats.fallTotal ? stats.fallBands.map((band) => `${band.label} ${rate(band.share)}`).join(", ") : "Aucune chute sous l'annonce"} className="mt-3 flex h-4 overflow-hidden rounded-full bg-[color:var(--surface-muted)]" role="img">
-          {stats.fallBands.map((band, index) => band.contracts ? <span aria-hidden="true" className={index === 0 ? "bg-[color:var(--success)]" : index === 1 ? "bg-[color:var(--accent)]" : "bg-[color:var(--danger)]"} key={band.label} style={{ flexGrow: band.contracts }} /> : null)}
+          {stats.fallBands.map((band, index) => band.contracts ? <span aria-hidden="true" className={index === 0 ? "bg-[color:var(--stats-fall-tight)]" : index === 1 ? "bg-[color:var(--stats-fall-medium)]" : "bg-[color:var(--stats-danger)]"} key={band.label} style={{ flexGrow: band.contracts }} /> : null)}
         </div>
         <div className="mt-2">{stats.fallBands.map((band) => <Line key={band.label} label={`${band.label} · ${band.label === "Serrées" ? "1–9" : band.label === "Moyennes" ? "10–19" : "≥20"} pts sous annonce`} value={`${rate(band.share)} · ${stats.rounds === null ? "—" : band.contracts}`} />)}</div>
         <p className="mt-2 text-xs text-[color:var(--text-secondary)]">Répartition des contrats classiques chutés avec un déficit réel sous l&apos;annonce.</p>
@@ -162,8 +162,8 @@ export function DetailedStatsDashboard({ stats }: { stats: DetailedPlayerStats }
       <AppEyebrow>Couleurs et modes</AppEyebrow>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         {stats.suits.map(({ suit, contracts, share, successRate, averageBid }) => <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-3" key={suit}>
-          <div className="flex items-baseline justify-between gap-2"><strong>{({ hearts: "♥ Cœur", spades: "♠ Pique", diamonds: "♦ Carreau", clubs: "♣ Trèfle" })[suit]}</strong><span className="text-xs text-[color:var(--text-secondary)]">{stats.rounds === null ? "—" : contracts} contrats · {rate(share)} des couleurs</span></div>
-          <div className="mt-2"><ProgressBar label="Réussite" value={successRate} /><Line label="Contrat moyen 80–160" value={number(averageBid)} /></div>
+          <div className="flex flex-wrap items-baseline justify-between gap-2"><strong>{({ hearts: "♥ Cœur", spades: "♠ Pique", diamonds: "♦ Carreau", clubs: "♣ Trèfle" })[suit]}</strong><span className="text-xs text-[color:var(--text-secondary)]">{stats.rounds === null ? "—" : contracts} contrats · {rate(share)} des couleurs</span></div>
+          <div className="mt-2"><ProgressBar label="Réussite" value={successRate} /><Line label="Contrat moyen" value={number(averageBid)} /></div>
         </div>)}
       </div>
       {stats.specialModes.length ? <div className="mt-3 grid gap-2 sm:grid-cols-2">{stats.specialModes.map((mode) => <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-3" key={mode.mode}><strong>{mode.mode === "no-trump" ? "Sans Atout" : "Tout Atout"}</strong><p className="mt-1 text-sm text-[color:var(--text-secondary)]">{mode.contracts} contrats · {rate(mode.successRate)} réussite · moyenne {number(mode.averageBid)}</p></div>)}</div> : null}
@@ -172,8 +172,8 @@ export function DetailedStatsDashboard({ stats }: { stats: DetailedPlayerStats }
     {stats.progression ? <AppSurface>
       <AppEyebrow>Progression · manches avec contrat</AppEyebrow>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-3"><strong>Premières {stats.progression.first.rounds} manches</strong><div className="mt-2"><ProgressBar label="Réussite attaque" value={stats.progression.first.attackSuccessRate} /><Line label="Contrat moyen 80–160" value={number(stats.progression.first.averageBid)} /></div></div>
-        <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-3"><strong>Dernières {stats.progression.recent.rounds} manches</strong><div className="mt-2"><ProgressBar label="Réussite attaque" value={stats.progression.recent.attackSuccessRate} /><Line label="Contrat moyen 80–160" value={number(stats.progression.recent.averageBid)} /></div></div>
+        <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-3"><strong>Premières {stats.progression.first.rounds} manches</strong><div className="mt-2"><ProgressBar label="Réussite attaque" value={stats.progression.first.attackSuccessRate} /><Line label="Contrat moyen" value={number(stats.progression.first.averageBid)} /></div></div>
+        <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-3"><strong>Dernières {stats.progression.recent.rounds} manches</strong><div className="mt-2"><ProgressBar label="Réussite attaque" value={stats.progression.recent.attackSuccessRate} /><Line label="Contrat moyen" value={number(stats.progression.recent.averageBid)} /></div></div>
       </div>
     </AppSurface> : null}
   </div>;
