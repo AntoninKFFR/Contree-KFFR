@@ -1,0 +1,54 @@
+name: Progression foundations
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "lib/progression/**"
+      - "tests/progression*"
+      - "scripts/testProgression*"
+      - ".github/workflows/progression-db.yml"
+      - "package.json"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "lib/progression/**"
+      - "tests/progression*"
+      - "scripts/testProgression*"
+      - ".github/workflows/progression-db.yml"
+      - "package.json"
+
+jobs:
+  local-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test -- tests/progressionFormulaV1.test.ts tests/progressionQueries.test.ts
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+      - run: supabase start
+      - run: supabase db reset --local
+      - run: supabase db query --local --file scripts/testProgressionSchema.sql
+      - run: supabase db lint --local --level warning --fail-on error
+      - run: supabase db advisors --local --type all --level warn --fail-on error
+      - name: Test XP foundations with local Auth JWTs
+        shell: bash
+        run: |
+          set -a
+          source <(supabase status -o env \
+            --override-name api.url=PROGRESSION_TEST_SUPABASE_URL \
+            --override-name auth.anon_key=PROGRESSION_TEST_SUPABASE_ANON_KEY \
+            --override-name auth.service_role_key=PROGRESSION_TEST_SUPABASE_SERVICE_ROLE_KEY \
+            | grep '^PROGRESSION_TEST_')
+          set +a
+          npm run test:db:progression

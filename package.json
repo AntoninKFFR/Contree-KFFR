@@ -41,7 +41,8 @@
     "test:e2e:multiplayer": "playwright test --project=multiplayer --grep-invert @rating",
     "test:e2e:rating": "playwright test --project=multiplayer --grep @rating",
     "test:e2e:smoke": "playwright test --project=smoke",
-    "test:e2e:training-duo": "playwright test --project=training-duo"
+    "test:e2e:training-duo": "playwright test --project=training-duo",
+    "test:db:progression": "node scripts/testProgressionDb.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.3",
