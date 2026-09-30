@@ -5,6 +5,13 @@ on:
     paths:
       - "supabase/migrations/**"
       - "lib/progression/**"
+      - "lib/solo/**"
+      - "lib/server/solo*"
+      - "lib/server/progressionService.ts"
+      - "lib/server/multiplayerService.ts"
+      - "app/api/solo/**"
+      - "app/solo/**"
+      - "tests/solo*"
       - "tests/progression*"
       - "scripts/testProgression*"
       - ".github/workflows/progression-db.yml"
@@ -14,6 +21,13 @@ on:
     paths:
       - "supabase/migrations/**"
       - "lib/progression/**"
+      - "lib/solo/**"
+      - "lib/server/solo*"
+      - "lib/server/progressionService.ts"
+      - "lib/server/multiplayerService.ts"
+      - "app/api/solo/**"
+      - "app/solo/**"
+      - "tests/solo*"
       - "tests/progression*"
       - "scripts/testProgression*"
       - ".github/workflows/progression-db.yml"
@@ -32,13 +46,14 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm test -- tests/progressionFormulaV1.test.ts tests/progressionQueries.test.ts
+      - run: npm test -- tests/progressionFormulaV1.test.ts tests/progressionQueries.test.ts tests/progressionFinish.test.ts tests/soloAuthority.test.ts tests/soloRoutes.test.ts tests/soloSessionLoop.test.ts
       - uses: supabase/setup-cli@v3
         with:
           version: latest
       - run: supabase start
       - run: supabase db reset --local
       - run: supabase db query --local --file scripts/testProgressionSchema.sql
+      - run: supabase db query --local --file scripts/testProgressionGameSchema.sql
       - run: supabase db lint --local --level warning --fail-on error
       - run: supabase db advisors --local --type all --level warn --fail-on error
       - name: Test XP foundations with local Auth JWTs
@@ -52,3 +67,26 @@ jobs:
             | grep '^PROGRESSION_TEST_')
           set +a
           npm run test:db:progression
+      - name: Test actual game XP through local Next and Supabase
+        shell: bash
+        run: |
+          set -a
+          source <(supabase status -o env \
+            --override-name api.url=PROGRESSION_TEST_SUPABASE_URL \
+            --override-name auth.anon_key=PROGRESSION_TEST_SUPABASE_ANON_KEY \
+            --override-name auth.service_role_key=PROGRESSION_TEST_SUPABASE_SERVICE_ROLE_KEY \
+            | grep '^PROGRESSION_TEST_')
+          export NEXT_PUBLIC_SUPABASE_URL="$PROGRESSION_TEST_SUPABASE_URL"
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$PROGRESSION_TEST_SUPABASE_ANON_KEY"
+          export SUPABASE_SERVICE_ROLE_KEY="$PROGRESSION_TEST_SUPABASE_SERVICE_ROLE_KEY"
+          set +a
+          npx playwright install --with-deps chromium
+          npm run build
+          npm run start -- --hostname 127.0.0.1 > /tmp/progression-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:3000/solo > /dev/null; then break; fi
+            sleep 1
+          done
+          npm run test:db:progression-games

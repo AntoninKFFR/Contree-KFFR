@@ -1,5 +1,9 @@
 # Progression V1 foundations (#101)
 
+Game attribution is now implemented in [Game XP V1](progression-game-xp.md).
+The audit below describes the original #101 boundary; #102 replaces the unsafe
+Solo writer with authoritative sessions and adds recoverable multiplayer jobs.
+
 ## Repository audit and choices
 
 - Multiplayer mutations use `lib/server/supabaseAdmin.ts` (`server-only`, bearer token verified by `auth.getUser`) and service-role-only SQL RPCs such as `commit_room_state` / `persist_multiplayer_archive`. Browsers cannot write authoritative room/game state.

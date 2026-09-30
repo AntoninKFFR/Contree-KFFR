@@ -42,7 +42,9 @@
     "test:e2e:rating": "playwright test --project=multiplayer --grep @rating",
     "test:e2e:smoke": "playwright test --project=smoke",
     "test:e2e:training-duo": "playwright test --project=training-duo",
-    "test:db:progression": "node scripts/testProgressionDb.mjs"
+    "test:db:progression": "node scripts/testProgressionDb.mjs",
+    "test:db:progression-games": "vite-node --config vitest.config.ts scripts/testProgressionGamesDb.ts",
+    "progression:retry": "node scripts/retryPendingProgression.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.3",

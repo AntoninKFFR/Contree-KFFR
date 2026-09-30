@@ -30,6 +30,7 @@ import { getSupabaseAdmin } from "./supabaseAdmin";
 import { DEFAULT_MULTIPLAYER_TABLE_PREFERENCES, normalizeMultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 import { cleanUsername, validateUsername } from "@/lib/profiles";
 import { resolveBotRating } from "./botRatings";
+import { applyProgressionAfterFinish } from "./progressionService";
 
 const ROOM_COLUMNS = "id,code,status,host_user_id,active_game_id,scoring_mode,target_score,ruleset_id,ruleset_version,ruleset_snapshot,presentation_settings,game_phase,state_version,turn_deadline_at,created_at,updated_at,started_at,finished_at";
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -45,6 +46,7 @@ async function applyRatingAfterFinish(gameId: string): Promise<void> {
   } catch (error) {
     console.error("rating apply failed", { source_game_id: gameId, error });
   }
+  await applyProgressionAfterFinish(gameId);
 }
 
 function ratingBotSeats(players: RoomPlayerRow[]) {
@@ -152,6 +154,9 @@ export async function roomView(
   const seat = seatIndex === null ? undefined : result.players.find((player) => player.seat_index === seatIndex);
   if (result.room.status !== "lobby" && seatIndex === null) {
     throw new MultiplayerError("Tu ne fais pas partie de cette table.", 403, "not_a_member");
+  }
+  if (result.room.status === "finished" && result.room.active_game_id) {
+    await applyProgressionAfterFinish(result.room.active_game_id);
   }
   const [game, ratingsByUserId] = await Promise.all([
     seat && (result.room.status === "playing" || result.room.status === "finished")

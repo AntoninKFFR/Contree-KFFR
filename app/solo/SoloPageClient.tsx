@@ -22,8 +22,7 @@ import {
 } from "@/engine/seats";
 import type { BidValue, Card, ContractMode } from "@/engine/types";
 import { buildCustomRuleset, rulesetToCustomInput, type CustomRulesetInput } from "@/engine/rulesets/custom";
-import { saveCompletedGame } from "@/lib/games";
-import { getSupabaseClient } from "@/lib/supabaseClient";
+import { soloSessionTransport } from "@/lib/solo/sessionApi";
 import {
   BOT_REVIEW_MODE_ENABLED,
   appendBotReviewHistory,
@@ -51,7 +50,6 @@ export default function SoloPage() {
   const { preferences, effectiveReducedMotion } = usePlayerPreferences();
   const gameIdRef = useRef<string | null>(null);
   const hasLoadedRulesRef = useRef(false);
-  const savedGameIdsRef = useRef(new Set<string>());
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
@@ -71,8 +69,9 @@ export default function SoloPage() {
   const {
     gameState, humanCanPlay, humanCanBid, currentContract, gameRules, currentMode,
     humanCanCoinche, humanCanSurcoinche, legalHumanCards, dispatchGameAction,
-    startGame, startNextRound, onAutoCollectComplete,
+    startGame, startNextRound, onAutoCollectComplete, sessionId, isBusy, connectionError, retrySynchronization,
   } = useSoloGameLoop({
+    transport: soloSessionTransport,
     preferences,
     effectiveReducedMotion,
     tableVisible: !isMobilePortrait,
@@ -137,42 +136,6 @@ export default function SoloPage() {
     };
   }, []);
 
-  useEffect(() => {
-    const gameId = gameIdRef.current;
-    if (!gameState || !gameId || gameState.phase !== "game-over" || savedGameIdsRef.current.has(gameId)) {
-      return;
-    }
-
-    const supabase = getSupabaseClient();
-
-    if (!supabase) {
-      return;
-    }
-
-    let isCancelled = false;
-
-    supabase.auth.getSession().then(async ({ data }) => {
-      const userId = data.session?.user.id;
-
-      if (!userId || isCancelled || savedGameIdsRef.current.has(gameId)) {
-        return;
-      }
-
-      savedGameIdsRef.current.add(gameId);
-
-      const { error } = await saveCompletedGame(supabase, gameState, userId);
-
-      if (error) {
-        savedGameIdsRef.current.delete(gameId);
-        console.error("Impossible d'enregistrer la partie terminee.", error);
-      }
-    });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [gameState]);
-
   function handlePlayCard(card: Card) {
     dispatchGameAction({ type: "play-card", playerId: localHumanPlayerId, card });
   }
@@ -219,6 +182,7 @@ export default function SoloPage() {
   }
 
   function activeGameId(): string {
+    if (sessionId) return sessionId;
     if (!gameIdRef.current) throw new Error("Partie Solo sans identifiant actif.");
     return gameIdRef.current;
   }
@@ -250,13 +214,15 @@ export default function SoloPage() {
     ...(gameState ? [{ label: "Abandonner et redistribuer", tone: "danger" as const, onSelect: () => setIsNewGameConfirmationOpen(true) }] : []),
   ];
 
+  const synchronizationNotice = connectionError ? <div role="alert" className="p-3 text-sm">{connectionError} <button type="button" disabled={isBusy} onClick={retrySynchronization}>Réessayer</button></div> : null;
+
   if (!gameState) {
     return (
       <>
         <GameMenuPopover focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" showFocusMode={false} />
-        <AppPage className="min-h-[calc(100dvh-112px)] justify-center" width="wide">
+        {synchronizationNotice}<AppPage className="min-h-[calc(100dvh-112px)] justify-center" width="wide">
           <AppPageHeader eyebrow="Contrée Solo" title="Prêt à lancer une partie ?" description={rulesetDisplayName(buildCustomRuleset(rulesInput))}
-            actions={<button className={`${appPrimaryActionClass} min-w-56`} disabled={!hasLoadedRules} onClick={() => startSoloGame()} type="button">Commencer la partie</button>} />
+            actions={<button className={`${appPrimaryActionClass} min-w-56`} disabled={!hasLoadedRules || isBusy} onClick={() => startSoloGame()} type="button">Commencer la partie</button>} />
         </AppPage>
         {rulesDialog}
         {isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}
@@ -273,7 +239,7 @@ export default function SoloPage() {
       aria-label={`Partie Solo, objectif ${gameState.settings.targetScore} points`}
       className={soloMainClassName(analysisDesktop, isMobileLandscape)}
     >
-      <div className={soloContentClassName(analysisDesktop)}>
+      {synchronizationNotice}<div className={soloContentClassName(analysisDesktop)}>
         <div
           className={soloGridClassName(analysisDesktop, isMobileLandscape)}
         >
