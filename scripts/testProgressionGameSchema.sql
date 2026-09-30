@@ -81,6 +81,9 @@ declare
   v_final jsonb;
   v_first jsonb;
   v_retry jsonb;
+  v_status text;
+  v_repeat text;
+  v_total bigint;
 begin
   insert into auth.users(id) values (v_user);
   v_session := (public.create_solo_game_session(v_user,gen_random_uuid(),v_initial)->>'id')::uuid;
@@ -123,10 +126,13 @@ begin
     raise exception 'Multi archive or retry job corrupted';
   end if;
   perform set_config('test.fail_xp','off',true);
-  if public.apply_progression_multiplayer_game(v_game) <> 'applied'
-    or public.apply_progression_multiplayer_game(v_game) <> 'already_applied'
-    or (select total_xp from public.player_progression where user_id = v_user) <> 80 then
-    raise exception 'Multi retry failed';
+  -- Keep mutating calls separate from subquery assertions: an SQL InitPlan may
+  -- read the balance before volatile function calls in one boolean expression.
+  v_status := public.apply_progression_multiplayer_game(v_game);
+  v_repeat := public.apply_progression_multiplayer_game(v_game);
+  select total_xp into v_total from public.player_progression where user_id = v_user;
+  if v_status <> 'applied' or v_repeat <> 'already_applied' or v_total <> 80 then
+    raise exception 'Multi retry failed: %, %, %',v_status,v_repeat,v_total;
   end if;
 end $$;
 rollback;
