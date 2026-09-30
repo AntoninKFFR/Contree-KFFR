@@ -1,3 +1,4 @@
+import { weeklyMissionCopy, type WeeklySnapshot } from "@/lib/progression/weeklyMissions";
 import { permanentMissionKeys, type PermanentMission } from "@/lib/progression/permanentMissions";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getProgression, type ProgressionSummary } from "@/lib/progression/formulaV1";
@@ -43,4 +44,24 @@ export async function getMyPermanentMissions(supabase: SupabaseClient): Promise<
         : row.completedAt !== null)) throw new Error("Invalid permanent mission");
     return { key: row.key, rewardXp: row.rewardXp, completed: row.completed, completedAt: row.completedAt };
   });
+}
+
+/** The server owns version, selection, week and reset; this read writes nothing. */
+export async function getMyWeeklyMissions(supabase: SupabaseClient): Promise<WeeklySnapshot> {
+  const { data, error } = await supabase.rpc("get_my_weekly_missions");
+  if (error) throw error;
+  if (!data || !Number.isSafeInteger(data.catalogVersion) || data.catalogVersion < 1
+    || typeof data.weekStart !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(data.weekStart)
+    || !Number.isFinite(Date.parse(data.weekStart)) || typeof data.nextResetAt !== "string"
+    || !Number.isFinite(Date.parse(data.nextResetAt)) || !Array.isArray(data.missions) || data.missions.length !== 3
+    || new Set(data.missions.map((m: {key:unknown}) => m?.key)).size !== 3) throw new Error("Invalid weekly snapshot");
+  const missions = data.missions.map((m: Record<string,unknown>) => {
+    if (!m || typeof m.key !== "string" || !Object.hasOwn(weeklyMissionCopy,m.key)
+      || !Number.isSafeInteger(m.target) || Number(m.target) < 1 || !Number.isSafeInteger(m.progress)
+      || Number(m.progress) < 0 || Number(m.progress) > Number(m.target) || !Number.isSafeInteger(m.rewardXp) || Number(m.rewardXp) < 1
+      || typeof m.completed !== "boolean" || m.completed !== (m.progress === m.target)
+      || (m.completed ? typeof m.completedAt !== "string" || !Number.isFinite(Date.parse(m.completedAt)) : m.completedAt !== null)) throw new Error("Invalid weekly mission");
+    return {key:m.key,target:m.target,progress:m.progress,rewardXp:m.rewardXp,completed:m.completed,completedAt:m.completedAt};
+  });
+  return {catalogVersion:data.catalogVersion,weekStart:data.weekStart,nextResetAt:data.nextResetAt,missions} as WeeklySnapshot;
 }

@@ -6,10 +6,10 @@ import { ProgressionProvider, useProgression } from "@/components/progression/Pr
 import { notifyProgressionChanged } from "@/lib/progression/events";
 import { getProgression } from "@/lib/progression/formulaV1";
 
-const mocks = vi.hoisted(() => ({getSession:vi.fn(),subscribe:vi.fn(),query:vi.fn(),recent:vi.fn(),missions:vi.fn(),pathname:"/"}));
+const mocks = vi.hoisted(() => ({getSession:vi.fn(),subscribe:vi.fn(),query:vi.fn(),recent:vi.fn(),missions:vi.fn(),weekly:vi.fn(),pathname:"/"}));
 vi.mock("next/navigation", () => ({usePathname:() => mocks.pathname}));
 vi.mock("@/lib/supabaseClient", () => ({getSupabaseClient:() => ({auth:{getSession:mocks.getSession,onAuthStateChange:mocks.subscribe}})}));
-vi.mock("@/lib/progression/queries", () => ({getMyProgression:mocks.query,getMyRecentXpEvents:mocks.recent,getMyPermanentMissions:mocks.missions}));
+vi.mock("@/lib/progression/queries", () => ({getMyProgression:mocks.query,getMyRecentXpEvents:mocks.recent,getMyPermanentMissions:mocks.missions,getMyWeeklyMissions:mocks.weekly}));
 let auth: (event: string, session: unknown) => void;
 const session = (id: string) => ({user:{id}});
 function Consumer() {
@@ -23,9 +23,9 @@ beforeEach(() => {
   vi.clearAllMocks(); mocks.pathname = "/";
   mocks.subscribe.mockImplementation((callback) => {auth = callback; return {data:{subscription:{unsubscribe:vi.fn()}}};});
   mocks.getSession.mockResolvedValue({data:{session:session("a")},error:null});
-  mocks.query.mockResolvedValue(getProgression(0)); mocks.recent.mockResolvedValue([]); mocks.missions.mockResolvedValue([]);
+  mocks.query.mockResolvedValue(getProgression(0)); mocks.recent.mockResolvedValue([]); mocks.missions.mockResolvedValue([]); mocks.weekly.mockResolvedValue({catalogVersion:1,weekStart:"2026-09-28",nextResetAt:"2099-01-05T23:00:00Z",missions:[]});
 });
-afterEach(() => {cleanup(); vi.unstubAllGlobals();});
+afterEach(() => {cleanup(); vi.useRealTimers(); vi.unstubAllGlobals();});
 describe("shared progression read provider", () => {
   it("retries an initial auth failure without reloading the page", async () => {
     mocks.getSession.mockRejectedValueOnce(new Error("temporary auth failure")); mount();
@@ -37,7 +37,7 @@ describe("shared progression read provider", () => {
   it("signed-out never queries XP", async () => {
     mocks.getSession.mockResolvedValue({data:{session:null},error:null}); mount();
     await waitFor(() => expect(snapshot().status).toBe("signed-out"));
-    expect(snapshot().summary).toBeNull(); expect(mocks.query).not.toHaveBeenCalled();
+    expect(snapshot().summary).toBeNull(); expect(mocks.query).not.toHaveBeenCalled(); expect(mocks.weekly).not.toHaveBeenCalled();
   });
   it.each([0,100,700])("loads the canonical summary for %i XP", async (xp) => {
     mocks.query.mockResolvedValue(getProgression(xp)); mount();
@@ -106,4 +106,35 @@ it("refreshes missions through the shared event and clears them on sign-out", as
   await waitFor(() => expect(snapshot().permanentMissions).toHaveLength(1));
   expect(mocks.missions).toHaveBeenCalledTimes(2);
   act(() => auth("SIGNED_OUT",null)); expect(snapshot().permanentMissions).toEqual([]);
+});
+
+it("weekly error is isolated and shared refresh loads weekly",async()=>{
+  mocks.weekly.mockRejectedValueOnce(new Error("weekly DB"));mount();await waitFor(()=>expect(snapshot().status).toBe("ready"));
+  expect(snapshot().weeklyError).toBe(true);expect(snapshot().summary.level).toBe(1);expect(snapshot().missionsError).toBe(false);
+  act(()=>notifyProgressionChanged());await waitFor(()=>expect(snapshot().weeklyError).toBe(false));expect(mocks.weekly).toHaveBeenCalledTimes(2);
+});
+it("ignores stale weekly response after account switch",async()=>{
+  let resolve!: (value:unknown)=>void;mocks.weekly.mockImplementationOnce(()=>new Promise(done=>{resolve=done;}));
+  mount();await waitFor(()=>expect(mocks.weekly).toHaveBeenCalledTimes(1));
+  act(()=>auth("SIGNED_IN",session("b")));expect(snapshot().weeklySnapshot).toBeNull();
+  await waitFor(()=>expect(snapshot().status).toBe("ready"));const current=snapshot().weeklySnapshot;
+  await act(async()=>resolve({catalogVersion:99}));expect(snapshot().weeklySnapshot).toEqual(current);
+});
+it.each([false,true])("rollover replaces week without reload, StrictMode=%s, cleanup removes timer",async strict=>{
+  vi.useFakeTimers();vi.setSystemTime(new Date("2026-10-04T21:59:59Z"));
+  const weekA={catalogVersion:1,weekStart:"2026-09-28",nextResetAt:"2026-10-04T22:00:00Z",missions:[]};
+  const weekB={...weekA,weekStart:"2026-10-05",nextResetAt:"2026-10-11T22:00:00Z"};
+  mocks.weekly.mockResolvedValueOnce(weekA).mockResolvedValue(weekB);
+  const child=<ProgressionProvider><Consumer/></ProgressionProvider>;
+  const view=render(strict ? <React.StrictMode>{child}</React.StrictMode>:child);
+  await act(async()=>{await vi.advanceTimersByTimeAsync(200);});expect(snapshot().weeklySnapshot.weekStart).toBe(weekA.weekStart);
+  await act(async()=>{await vi.advanceTimersByTimeAsync(1000);});expect(snapshot().weeklySnapshot.weekStart).toBe(weekB.weekStart);
+  expect(mocks.weekly).toHaveBeenCalledTimes(2);view.unmount();expect(vi.getTimerCount()).toBe(0);vi.useRealTimers();
+});
+it("a stale reset response causes one local invalidation, never polling",async()=>{
+  vi.useFakeTimers();vi.setSystemTime(new Date("2026-10-04T21:59:59Z"));
+  mocks.weekly.mockResolvedValue({catalogVersion:1,weekStart:"2026-09-28",nextResetAt:"2026-10-04T22:00:00Z",missions:[]});
+  const view=mount();await act(async()=>{await vi.advanceTimersByTimeAsync(200);});
+  await act(async()=>{await vi.advanceTimersByTimeAsync(10000);});expect(mocks.weekly).toHaveBeenCalledTimes(2);
+  act(()=>auth("SIGNED_OUT",null));expect(snapshot().weeklySnapshot).toBeNull();view.unmount();expect(vi.getTimerCount()).toBe(0);vi.useRealTimers();
 });

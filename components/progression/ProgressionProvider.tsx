@@ -4,11 +4,13 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { usePathname } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/lib/supabaseClient";
-import { getMyProgression, getMyRecentXpEvents, getMyPermanentMissions, type RecentXpEvent } from "@/lib/progression/queries";
+import { getMyProgression, getMyRecentXpEvents, getMyPermanentMissions, getMyWeeklyMissions, type RecentXpEvent } from "@/lib/progression/queries";
 import type { ProgressionSummary } from "@/lib/progression/formulaV1";
 import { PROGRESSION_CHANGED_EVENT } from "@/lib/progression/events";
 
 import type { PermanentMission } from "@/lib/progression/permanentMissions";
+
+import type { WeeklySnapshot } from "@/lib/progression/weeklyMissions";
 
 type Snapshot = {
   status: "loading" | "signed-out" | "ready" | "error";
@@ -19,8 +21,10 @@ type Snapshot = {
   recentError: boolean;
   permanentMissions: PermanentMission[];
   missionsError: boolean;
+  weeklySnapshot: WeeklySnapshot | null;
+  weeklyError: boolean;
 };
-const initial: Snapshot = {status:"loading",userId:null,summary:null,error:null,recentEvents:[],recentError:false,permanentMissions:[],missionsError:false};
+const initial: Snapshot = {status:"loading",userId:null,summary:null,error:null,recentEvents:[],recentError:false,permanentMissions:[],missionsError:false,weeklySnapshot:null,weeklyError:false};
 type ProgressionContextValue = Snapshot & { loading: boolean; signedOut: boolean; refresh: () => void };
 const Context = createContext<ProgressionContextValue | null>(null);
 
@@ -38,6 +42,7 @@ export function ProgressionProvider({ children }: { children: ReactNode }) {
   const inFlightRef = useRef(false);
   const rerunRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetAttemptRef = useRef<string | null>(null);
   const retryAuthRef = useRef<(() => void) | null>(null);
 
   const load = useCallback(async () => {
@@ -48,12 +53,13 @@ export function ProgressionProvider({ children }: { children: ReactNode }) {
     inFlightRef.current = true;
     const epoch = epochRef.current;
     try {
-      const [progression, recent, missions] = await Promise.allSettled([getMyProgression(client), getMyRecentXpEvents(client), getMyPermanentMissions(client)]);
+      const [progression, recent, missions, weekly] = await Promise.allSettled([getMyProgression(client), getMyRecentXpEvents(client), getMyPermanentMissions(client), getMyWeeklyMissions(client)]);
       if (epoch !== epochRef.current) return;
       if (progression.status === "rejected") throw progression.reason;
       setSnapshot({status:"ready",userId,summary:progression.value,error:null,
         recentEvents:recent.status === "fulfilled" ? recent.value : [],recentError:recent.status === "rejected",
-        permanentMissions:missions.status === "fulfilled" ? missions.value : [],missionsError:missions.status === "rejected"});
+        permanentMissions:missions.status === "fulfilled" ? missions.value : [],missionsError:missions.status === "rejected",
+        weeklySnapshot:weekly.status === "fulfilled" ? weekly.value : null,weeklyError:weekly.status === "rejected"});
     } catch {
       if (epoch === epochRef.current) setSnapshot({...initial,status:"error",userId,error:"Impossible de charger ta progression. Réessaie."});
     } finally {
@@ -81,6 +87,7 @@ export function ProgressionProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       if (sessionRef.current?.user.id === next?.user.id && next) { sessionRef.current = next; return; }
       epochRef.current += 1;
+      resetAttemptRef.current = null;
       sessionRef.current = next;
       inFlightRef.current = false;
       rerunRef.current = false;
@@ -129,5 +136,21 @@ export function ProgressionProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", visible);
     };
   }, [refresh]);
+  useEffect(() => {
+    if (snapshot.status !== "ready" || !snapshot.weeklySnapshot || snapshot.weeklyError) return;
+    const resetAt = Date.parse(snapshot.weeklySnapshot.nextResetAt);
+    const resetKey = `${snapshot.userId}:${snapshot.weeklySnapshot.nextResetAt}`;
+    if (resetAttemptRef.current === resetKey) return;
+    let resetTimer: ReturnType<typeof setTimeout>;
+    const arm = () => {
+      const remaining = resetAt - Date.now();
+      resetTimer = setTimeout(() => {
+        if (resetAt > Date.now()) arm();
+        else {resetAttemptRef.current = resetKey; refresh();}
+      }, Math.max(0, Math.min(remaining, 2_147_483_647)));
+    };
+    arm();
+    return () => clearTimeout(resetTimer);
+  }, [snapshot.status, snapshot.userId, snapshot.weeklySnapshot, snapshot.weeklyError, refresh]);
   return <Context.Provider value={{...snapshot,loading:snapshot.status === "loading",signedOut:snapshot.status === "signed-out",refresh}}>{children}</Context.Provider>;
 }

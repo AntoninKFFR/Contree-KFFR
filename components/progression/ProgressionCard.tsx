@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { WeeklyMissionsCard } from "./WeeklyMissionsCard";
 import type { ProgressionSummary } from "@/lib/progression/formulaV1";
 import { formatProgressionNumber, formatXp } from "@/lib/progression/format";
 import { AppEyebrow, AppSurface, appSecondaryActionClass } from "@/components/ui/AppShell";
@@ -43,5 +44,5 @@ export function ProfileProgressionCard() {
 export function HomeProgressionCard() {
   const {status, summary, userId} = useProgression();
   if (!userId) return null;
-  return status === "ready" && summary ? <ProgressionSummaryCard compact summary={summary} /> : <ProgressionStatusCard />;
+  return status === "ready" && summary ? <div className="grid gap-3"><ProgressionSummaryCard compact summary={summary} /><WeeklyMissionsCard compact /></div> : <ProgressionStatusCard />;
 }
