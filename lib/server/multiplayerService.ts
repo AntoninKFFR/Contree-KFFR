@@ -30,6 +30,8 @@ import { getSupabaseAdmin } from "./supabaseAdmin";
 import { DEFAULT_MULTIPLAYER_TABLE_PREFERENCES, normalizeMultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 import { cleanUsername, validateUsername } from "@/lib/profiles";
 import { resolveBotRating } from "./botRatings";
+import { assertProgressionArchiveReady } from "./progressionReadiness";
+import { applyProgressionAfterFinish } from "./progressionService";
 
 const ROOM_COLUMNS = "id,code,status,host_user_id,active_game_id,scoring_mode,target_score,ruleset_id,ruleset_version,ruleset_snapshot,presentation_settings,game_phase,state_version,turn_deadline_at,created_at,updated_at,started_at,finished_at";
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -45,6 +47,7 @@ async function applyRatingAfterFinish(gameId: string): Promise<void> {
   } catch (error) {
     console.error("rating apply failed", { source_game_id: gameId, error });
   }
+  await applyProgressionAfterFinish(gameId);
 }
 
 function ratingBotSeats(players: RoomPlayerRow[]) {
@@ -153,6 +156,9 @@ export async function roomView(
   if (result.room.status !== "lobby" && seatIndex === null) {
     throw new MultiplayerError("Tu ne fais pas partie de cette table.", 403, "not_a_member");
   }
+  if (result.room.status === "finished" && result.room.active_game_id) {
+    await applyProgressionAfterFinish(result.room.active_game_id);
+  }
   const [game, ratingsByUserId] = await Promise.all([
     seat && (result.room.status === "playing" || result.room.status === "finished")
       ? serverState(roomId).then((state) => toPlayerGameView(state, seat.seat_index))
@@ -232,6 +238,7 @@ async function commit(
         forfeitingSeatIndex,
       })
     : null;
+  await assertProgressionArchiveReady(archive);
   const startingGame = room.status === "lobby" && status === "playing" && activeGameId !== undefined;
   const { data, error } = await getSupabaseAdmin().rpc(startingGame ? "start_multiplayer_game" : "commit_room_state", {
     p_room_id: room.id,
@@ -326,6 +333,7 @@ async function commitBotTakeover(input: {
         finishedAt: new Date(input.nowMs).toISOString(),
       })
     : null;
+  await assertProgressionArchiveReady(archive);
   const { data, error } = await getSupabaseAdmin().rpc("enable_bot_takeover", {
     p_room_id: input.room.id,
     p_actor_user_id: input.userId,
@@ -364,6 +372,7 @@ async function commitTimedOutTurn(input: {
         finishedAt: new Date(nowMs).toISOString(),
       })
     : null;
+  await assertProgressionArchiveReady(archive);
   const { data, error } = await getSupabaseAdmin().rpc("commit_timed_out_turn", {
     p_room_id: input.room.id,
     p_expected_version: input.room.state_version,

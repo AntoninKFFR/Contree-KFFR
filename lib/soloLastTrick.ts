@@ -1,25 +1,25 @@
 import { activePlayersForRound } from "@/engine/activePlayers";
-import { playableCardsForCurrentPlayer } from "@/engine/game";
-import type { Card, GameState, PlayerId } from "@/engine/types";
+import { soloHumanHand, soloLegalHumanCards, type SoloDisplayState } from "./solo/publicState";
+import type { Card, PlayerId } from "@/engine/types";
 
 /** A played card counts as that player's sole card for the current final trick. */
-export function isForcedLastTrick(state: GameState): boolean {
+export function isForcedLastTrick(state: SoloDisplayState): boolean {
   if (state.phase !== "playing" || state.completedTricks.length !== 7) return false;
   return activePlayersForRound(state).every((playerId) =>
-    state.hands[playerId].length + Number(state.currentTrick.cards.some((played) => played.playerId === playerId)) === 1);
+    ("hands" in state ? state.hands[playerId].length : state.handCounts[playerId]) + Number(state.currentTrick.cards.some((played) => played.playerId === playerId)) === 1);
 }
 
-export function forcedHumanLastCard(state: GameState, humanPlayerId: PlayerId): Card | null {
-  if (!isForcedLastTrick(state) || state.currentPlayerId !== humanPlayerId || state.hands[humanPlayerId].length !== 1) return null;
-  const legal = playableCardsForCurrentPlayer(state);
+export function forcedHumanLastCard(state: SoloDisplayState, humanPlayerId: PlayerId): Card | null {
+  if (!isForcedLastTrick(state) || state.currentPlayerId !== humanPlayerId || soloHumanHand(state, humanPlayerId).length !== 1) return null;
+  const legal = soloLegalHumanCards(state);
   return legal.length === 1 ? legal[0] : null;
 }
 
 export function queueForcedHumanLastCard(
-  state: GameState,
+  state: SoloDisplayState,
   humanPlayerId: PlayerId,
   delayMs: number,
-  commit: (expectedState: GameState, card: Card) => void,
+  commit: (expectedState: SoloDisplayState, card: Card) => void,
 ): () => void {
   const card = forcedHumanLastCard(state, humanPlayerId);
   if (!card) return () => undefined;

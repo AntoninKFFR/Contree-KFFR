@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { toPlayerGameView } from "@/engine/views";
 import { activePlayersForRound } from "@/engine/activePlayers";
 import { createInitialGame, makeBid, playCard, playableCardsForCurrentPlayer } from "@/engine/game";
 import type { Card, GameState } from "@/engine/types";
@@ -79,5 +80,8 @@ describe("forced final Solo trick", () => {
     vi.advanceTimersByTime(40);
     expect(committed).not.toHaveBeenCalled();
     expect(forcedHumanLastCard(state, 0)).toEqual(state.hands[0][0]);
+    const view = toPlayerGameView(state, 0);
+    expect(isForcedLastTrick(view)).toBe(true);
+    expect(forcedHumanLastCard(view, 0)).toEqual(state.hands[0][0]);
   });
 });

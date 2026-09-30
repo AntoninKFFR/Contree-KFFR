@@ -1,4 +1,3 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { GameState } from "@/engine/types";
 
 type SavedGamePayload = {
@@ -43,18 +42,4 @@ export function buildSavedGamePayload(
     round_history: state.roundHistory,
     player_names: state.playerNames,
   };
-}
-
-export async function saveCompletedGame(
-  supabase: SupabaseClient,
-  state: GameState,
-  userId: string,
-) {
-  const payload = buildSavedGamePayload(state, userId);
-
-  if (!payload) {
-    return { error: null };
-  }
-
-  return supabase.from("games").insert(payload);
 }

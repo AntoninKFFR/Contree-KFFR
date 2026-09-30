@@ -6,7 +6,7 @@ import { completedTrickKey } from "@/lib/trickPresentation";
 
 /** Only a bot's lead after an automatically animated collection needs the visual gate. */
 export function soloBotCollectionKey(
-  state: GameState,
+  state: Pick<GameState, "completedTricks" | "currentTrick" | "phase" | "currentPlayerId" | "roundNumber">,
   preferences: PlayerPreferences,
   effectiveReducedMotion: boolean,
 ): string | null {

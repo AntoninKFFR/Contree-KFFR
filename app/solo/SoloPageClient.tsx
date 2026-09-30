@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { soloHumanHand } from "@/lib/solo/publicState";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { BotReviewHistory, BotReviewPanel } from "@/components/BotReviewPanel";
 import { SoloBotHandsPanel } from "@/components/BotHandAnalysis";
@@ -22,8 +23,7 @@ import {
 } from "@/engine/seats";
 import type { BidValue, Card, ContractMode } from "@/engine/types";
 import { buildCustomRuleset, rulesetToCustomInput, type CustomRulesetInput } from "@/engine/rulesets/custom";
-import { saveCompletedGame } from "@/lib/games";
-import { getSupabaseClient } from "@/lib/supabaseClient";
+import { soloSessionTransport } from "@/lib/solo/sessionApi";
 import {
   BOT_REVIEW_MODE_ENABLED,
   appendBotReviewHistory,
@@ -51,7 +51,6 @@ export default function SoloPage() {
   const { preferences, effectiveReducedMotion } = usePlayerPreferences();
   const gameIdRef = useRef<string | null>(null);
   const hasLoadedRulesRef = useRef(false);
-  const savedGameIdsRef = useRef(new Set<string>());
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
@@ -71,8 +70,9 @@ export default function SoloPage() {
   const {
     gameState, humanCanPlay, humanCanBid, currentContract, gameRules, currentMode,
     humanCanCoinche, humanCanSurcoinche, legalHumanCards, dispatchGameAction,
-    startGame, startNextRound, onAutoCollectComplete,
+    startGame, startNextRound, onAutoCollectComplete, sessionId, isBusy, connectionError, retrySynchronization,
   } = useSoloGameLoop({
+    transport: soloSessionTransport,
     preferences,
     effectiveReducedMotion,
     tableVisible: !isMobilePortrait,
@@ -96,7 +96,7 @@ export default function SoloPage() {
     [botReviewHistory, lastBotReview, selectedBotReviewId],
   );
   const analysisDesktop = isSoloDesktopAnalysisLayout(
-    BOT_REVIEW_MODE_ENABLED,
+    BOT_REVIEW_MODE_ENABLED && !sessionId,
     isAnalysisModeEnabled,
     isMobileLandscape,
   );
@@ -137,49 +137,13 @@ export default function SoloPage() {
     };
   }, []);
 
-  useEffect(() => {
-    const gameId = gameIdRef.current;
-    if (!gameState || !gameId || gameState.phase !== "game-over" || savedGameIdsRef.current.has(gameId)) {
-      return;
-    }
-
-    const supabase = getSupabaseClient();
-
-    if (!supabase) {
-      return;
-    }
-
-    let isCancelled = false;
-
-    supabase.auth.getSession().then(async ({ data }) => {
-      const userId = data.session?.user.id;
-
-      if (!userId || isCancelled || savedGameIdsRef.current.has(gameId)) {
-        return;
-      }
-
-      savedGameIdsRef.current.add(gameId);
-
-      const { error } = await saveCompletedGame(supabase, gameState, userId);
-
-      if (error) {
-        savedGameIdsRef.current.delete(gameId);
-        console.error("Impossible d'enregistrer la partie terminee.", error);
-      }
-    });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [gameState]);
-
   function handlePlayCard(card: Card) {
     dispatchGameAction({ type: "play-card", playerId: localHumanPlayerId, card });
   }
 
   function illegalCardMessage(card: Card): string {
     if (!gameState || !currentMode || !gameRules) return "Cette carte n'est pas jouable.";
-    return explainIllegalCard({ hand: gameState.hands[localHumanPlayerId], trick: gameState.currentTrick, card, playerId: localHumanPlayerId, mode: currentMode, rules: gameRules.cardPlay }) ?? "Cette carte n'est pas jouable.";
+    return explainIllegalCard({ hand: soloHumanHand(gameState, localHumanPlayerId), trick: gameState.currentTrick, card, playerId: localHumanPlayerId, mode: currentMode, rules: gameRules.cardPlay }) ?? "Cette carte n'est pas jouable.";
   }
 
   function handleHumanBid(value: BidValue, contractMode: ContractMode) {
@@ -219,6 +183,7 @@ export default function SoloPage() {
   }
 
   function activeGameId(): string {
+    if (sessionId) return sessionId;
     if (!gameIdRef.current) throw new Error("Partie Solo sans identifiant actif.");
     return gameIdRef.current;
   }
@@ -246,17 +211,19 @@ export default function SoloPage() {
   const rulesDialog = isRulesOpen ? <AccessibleDialog description={gameState ? "Ces règles remplaceront la partie en cours." : "Ces règles seront utilisées au démarrage de la partie."} footer={<div className="grid items-center gap-2 sm:grid-cols-[1fr_auto]"><div className="hidden sm:block"><RulesetSummary ruleset={buildCustomRuleset(rulesDraft)} compact /></div><button className={`${appPrimaryActionClass} w-full sm:w-auto`} type="button" onClick={applyRules}>{gameState ? "Appliquer et nouvelle partie" : "Enregistrer les règles"}</button></div>} onClose={() => setIsRulesOpen(false)} stableHeight title="Règles de la prochaine partie"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null;
   const soloMenuActions = [
     { label: "Règles de la prochaine partie", onSelect: () => { setRulesDraft(rulesInput); setIsRulesOpen(true); } },
-    ...(BOT_REVIEW_MODE_ENABLED ? [{ label: `Mode développeur : ${isAnalysisModeEnabled ? "activé" : "désactivé"}`, onSelect: () => setIsAnalysisModeEnabled((current) => !current) }] : []),
+    ...(BOT_REVIEW_MODE_ENABLED && !sessionId ? [{ label: `Mode développeur : ${isAnalysisModeEnabled ? "activé" : "désactivé"}`, onSelect: () => setIsAnalysisModeEnabled((current) => !current) }] : []),
     ...(gameState ? [{ label: "Abandonner et redistribuer", tone: "danger" as const, onSelect: () => setIsNewGameConfirmationOpen(true) }] : []),
   ];
+
+  const synchronizationNotice = connectionError ? <div role="alert" className="p-3 text-sm">{connectionError} <button type="button" disabled={isBusy} onClick={retrySynchronization}>Réessayer</button></div> : null;
 
   if (!gameState) {
     return (
       <>
         <GameMenuPopover focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" showFocusMode={false} />
-        <AppPage className="min-h-[calc(100dvh-112px)] justify-center" width="wide">
+        {synchronizationNotice}<AppPage className="min-h-[calc(100dvh-112px)] justify-center" width="wide">
           <AppPageHeader eyebrow="Contrée Solo" title="Prêt à lancer une partie ?" description={rulesetDisplayName(buildCustomRuleset(rulesInput))}
-            actions={<button className={`${appPrimaryActionClass} min-w-56`} disabled={!hasLoadedRules} onClick={() => startSoloGame()} type="button">Commencer la partie</button>} />
+            actions={<button className={`${appPrimaryActionClass} min-w-56`} disabled={!hasLoadedRules || isBusy} onClick={() => startSoloGame()} type="button">Commencer la partie</button>} />
         </AppPage>
         {rulesDialog}
         {isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}
@@ -273,7 +240,7 @@ export default function SoloPage() {
       aria-label={`Partie Solo, objectif ${gameState.settings.targetScore} points`}
       className={soloMainClassName(analysisDesktop, isMobileLandscape)}
     >
-      <div className={soloContentClassName(analysisDesktop)}>
+      {synchronizationNotice}<div className={soloContentClassName(analysisDesktop)}>
         <div
           className={soloGridClassName(analysisDesktop, isMobileLandscape)}
         >
@@ -297,7 +264,7 @@ export default function SoloPage() {
               /> : null}
               hand={(gameState.phase === "bidding" || gameState.phase === "playing") ? <HumanHand
                 canPlay={humanCanPlay}
-                cards={gameState.hands[localHumanPlayerId]}
+                cards={soloHumanHand(gameState, localHumanPlayerId)}
                 contractMode={currentMode}
                 illegalCardMessage={illegalCardMessage}
                 inScene
@@ -311,7 +278,7 @@ export default function SoloPage() {
               showLiveScore={preferences.assistance.showLivePoints}
             />
 
-            {BOT_REVIEW_MODE_ENABLED && isAnalysisModeEnabled && !isMobileLandscape && !isFocusMode ? (
+            {"hands" in gameState && BOT_REVIEW_MODE_ENABLED && isAnalysisModeEnabled && !isMobileLandscape && !isFocusMode ? (
               <>
                 <SoloBotHandsPanel state={gameState} />
                 {botReviewHistory.length > 0 ? (
@@ -328,7 +295,7 @@ export default function SoloPage() {
               </>
             ) : null}
 
-            {shouldShowBotReviewAction(BOT_REVIEW_MODE_ENABLED, isAnalysisModeEnabled, isMobileLandscape, Boolean(lastBotReview), isFocusMode) && lastBotReview ? (
+            {"hands" in gameState && shouldShowBotReviewAction(BOT_REVIEW_MODE_ENABLED, isAnalysisModeEnabled, isMobileLandscape, Boolean(lastBotReview), isFocusMode) && lastBotReview ? (
               <div className="grid gap-2">
                 <button
                   className="justify-self-end rounded-md border border-amber-400 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-stone-800 shadow-sm hover:bg-amber-100"
