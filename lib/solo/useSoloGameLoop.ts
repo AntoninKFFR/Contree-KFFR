@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { chooseBotBidWithTrace, chooseBotCard } from "@/bots/simpleBot";
 import { applyGameAction, type GameAction } from "@/engine/actions";
-import { canCoinche, canSurcoinche } from "@/engine/bidding";
+import { canCoinche, canSurcoinche, getCurrentContractFromBids } from "@/engine/bidding";
 import { resolveContractMode } from "@/engine/contractMode";
-import { createInitialGame, getCurrentContract, playableCardsForCurrentPlayer } from "@/engine/game";
+import { createInitialGame } from "@/engine/game";
 import { resolveGameRules, createGameSettings } from "@/engine/rulesets/resolve";
 import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import { firstHumanSeat, isBotSeat, isHumanSeat, SOLO_SEAT_ASSIGNMENTS } from "@/engine/seats";
@@ -14,6 +14,7 @@ import type { PlayerPreferences } from "@/lib/preferences/playerPreferences";
 import { scheduleSoloBotTurn, soloBotCollectionKey, type SoloBotTurnPacer } from "@/lib/soloBotPacing";
 import { queueForcedHumanLastCard } from "@/lib/soloLastTrick";
 import { rulesetToCustomInput } from "@/engine/rulesets/custom";
+import { soloLegalHumanCards, type SoloDisplayState } from "./publicState";
 import type { SoloSession, SoloIntent, SoloTransport } from "./sessionTypes";
 
 const humanPlayerId = firstHumanSeat(SOLO_SEAT_ASSIGNMENTS) ?? 0;
@@ -38,7 +39,7 @@ export type SoloGameLoopOptions = {
 };
 
 /** Shared browser-only Solo loop. Persistence and presentation belong to its caller. */
-export function useSoloGameLoop({
+function useSoloGameLoopImpl({
   preferences,
   effectiveReducedMotion,
   paused = false,
@@ -59,7 +60,7 @@ export function useSoloGameLoop({
   const botTurnPacerRef = useRef<SoloBotTurnPacer | null>(null);
   const collectedTrickKeysRef = useRef(new Set<string>());
   const botDecisionNumberRef = useRef(0);
-  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [gameState, setGameState] = useState<SoloDisplayState | null>(null);
   const sessionRef = useRef<SoloSession | null>(null);
   const generationRef = useRef(0);
   const pendingRef = useRef<(() => void) | null>(null);
@@ -79,7 +80,6 @@ export function useSoloGameLoop({
         sessionRef.current = result;
         setSessionId(result?.id ?? null);
         if (result) {
-          if (result.state.phase === "bidding" || gameState?.phase === "bidding") callbacksRef.current.onBiddingStateChange?.(result.state);
           setGameState(result.state);
         } else fallback?.();
         pendingRef.current = null;
@@ -97,7 +97,6 @@ export function useSoloGameLoop({
     synchronize(() => transport.load());
     return () => { generationRef.current += 1; };
     // Transport is a stable caller-owned adapter; presentation rerenders don't reload.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transport]);
 
   function remoteMove(intent: SoloIntent) {
@@ -110,19 +109,20 @@ export function useSoloGameLoop({
     && isHumanSeat(SOLO_SEAT_ASSIGNMENTS, gameState.currentPlayerId);
   const humanCanBid = !paused && !isBusy && !connectionError && gameState?.phase === "bidding"
     && isHumanSeat(SOLO_SEAT_ASSIGNMENTS, gameState.currentPlayerId);
-  const currentContract = useMemo(() => gameState ? getCurrentContract(gameState) : null, [gameState]);
+  const currentContract = useMemo(() => gameState ? getCurrentContractFromBids(gameState.bids) : null, [gameState]);
   const gameRules = useMemo(() => gameState ? resolveGameRules(gameState.settings) : null, [gameState]);
   const currentMode = useMemo(() => gameState ? resolveContractMode(gameState) : null, [gameState]);
   const humanCanCoinche = humanCanBid && canCoinche(humanPlayerId, currentContract, gameRules?.bidding);
   const humanCanSurcoinche = humanCanBid && canSurcoinche(humanPlayerId, currentContract, gameRules?.bidding);
   const legalHumanCards = useMemo(() => {
     if (!humanCanPlay || !gameState) return [];
-    return playableCardsForCurrentPlayer(gameState);
+    return soloLegalHumanCards(gameState);
   }, [gameState, humanCanPlay]);
 
   function dispatchGameAction(action: GameAction) {
     if (!gameState || pausedRef.current) return;
     if (sessionRef.current) { remoteMove(action); return; }
+    if (!("hands" in gameState)) return;
     const nextState = applyGameAction(gameState, action);
     if (gameState.phase === "bidding") callbacksRef.current.onBiddingStateChange?.(nextState);
     setGameState(nextState);
@@ -156,21 +156,6 @@ export function useSoloGameLoop({
 
     const currentState = gameState;
     if (sessionRef.current) {
-      // Developer analysis remains available, but this local trace never drives
-      // the trusted state: the request asks the server to choose the bot action.
-      if (callbacksRef.current.onBotDecision) {
-        botDecisionNumberRef.current += 1;
-        const started = performance.now();
-        if (currentState.phase === "bidding") {
-          const { bid, biddingTrace } = chooseBotBidWithTrace(currentState);
-          callbacksRef.current.onBotDecision({ kind: "bid", state: currentState, decisionNumber: botDecisionNumberRef.current,
-            elapsedMs: performance.now() - started, chosenBid: bid, biddingTrace });
-        } else {
-          const chosenCard = chooseBotCard(currentState);
-          callbacksRef.current.onBotDecision({ kind: "card", state: currentState, decisionNumber: botDecisionNumberRef.current,
-            elapsedMs: performance.now() - started, chosenCard });
-        }
-      }
       const delayMs = currentState.phase === "bidding" ? preferencesRef.current.gameplay.biddingDelayMs : preferencesRef.current.gameplay.botDelayMs;
       const collectionKey = soloBotCollectionKey(currentState, preferencesRef.current, reducedMotionRef.current);
       const pacer = scheduleSoloBotTurn(delayMs, collectionKey, () => {
@@ -180,6 +165,7 @@ export function useSoloGameLoop({
       if (collectionKey && collectedTrickKeysRef.current.has(collectionKey)) pacer.autoCollected(collectionKey);
       return () => { pacer.cancel(); if (botTurnPacerRef.current === pacer) botTurnPacerRef.current = null; };
     }
+    if (!("hands" in currentState)) return;
     botDecisionNumberRef.current += 1;
     const decisionNumber = botDecisionNumberRef.current;
     const started = performance.now();
@@ -227,7 +213,7 @@ export function useSoloGameLoop({
     return queueForcedHumanLastCard(gameState, humanPlayerId, preferencesRef.current.gameplay.botDelayMs,
       (currentState, card) => {
         if (sessionRef.current) { remoteMove({ type: "play-card", playerId: humanPlayerId, card }); return; }
-        setGameState((latest) => !pausedRef.current && latest === currentState
+        setGameState((latest) => !pausedRef.current && latest === currentState && "hands" in latest
           ? applyGameAction(latest, { type: "play-card", playerId: humanPlayerId, card }) : latest);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -253,4 +239,10 @@ export function useSoloGameLoop({
     startNextRound,
     onAutoCollectComplete,
   };
+}
+
+export function useSoloGameLoop(options: SoloGameLoopOptions & { transport: SoloTransport }): ReturnType<typeof useSoloGameLoopImpl>;
+export function useSoloGameLoop(options: SoloGameLoopOptions & { transport?: undefined }): Omit<ReturnType<typeof useSoloGameLoopImpl>, "gameState"> & { gameState: GameState | null };
+export function useSoloGameLoop(options: SoloGameLoopOptions) {
+  return useSoloGameLoopImpl(options);
 }

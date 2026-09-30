@@ -52,9 +52,15 @@ engine protocol version and timestamps. No browser role can access it directly,
 and even service_role has only SELECT plus explicit RPC EXECUTE. The Next server
 loads owner-scoped state, checks the phase and turn, and applies an action through
 the unchanged engine. Only the server chooses bot actions and deals subsequent
-rounds. Full Solo hands remain available to the existing Solo presentation and
-developer analysis, as before; changing a displayed state cannot change the stored
-state or determine a reward. The browser cannot submit an end result at all.
+rounds. The HTTP boundary projects every start/read/move response with
+`toPlayerGameView(serverState, 0)`. `SoloSession.state` is a `PlayerGameView`:
+only `hand` for seat 0 and `handCounts` for all seats, never `hands` or private
+opponent cards. SQL and engine retain the complete state. The connected hook and
+GameTable consume this view directly, without fabricated hands or placeholders.
+Human legality uses the existing `getLegalCards` with the human hand, public trick,
+contract mode and rules. Final-card autoplay uses public hand counts. Bot Review,
+local bot traces and full bundles are available only for local/anonymous games;
+connected sessions never run those analyses or expose hidden hands. The browser cannot submit an end result at all.
 
 `commit_solo_game_session` serializes on the session row and checks its expected
 version. A stale request returns the current state without another transition.
@@ -151,6 +157,35 @@ connected start/reload and anonymous local play, all Multi winner/forfeit matric
 bots, concurrency, source identity, total/ledger consistency and RPC denial with
 real JWTs. Existing progression, Elo, training, social and E2E workflows also run.
 
-Deploy the new migration and server/browser implementation together. No production
-database is modified by this development task. #103 can use `getMyProgression`
-unchanged; no UI reward/toast/level implementation is included here.
+## Fail-safe rollout
+
+Normal order: apply `20260930200000_progression_game_xp.sql`, verify the
+service-role-only `progression_game_xp_schema_version()` returns `20260930200000`,
+then deploy the application. No production database is modified by this task.
+The read-only invoker sentinel has an empty search_path and explicit EXECUTE
+permissions; anon/authenticated cannot call it. It is installed in the same
+transaction as the full schema and archive outbox trigger.
+
+`assertProgressionGameXpReady()` requires that exact version and fails with
+503 / `progression_schema_not_ready` on missing RPC, wrong version or network
+failure. There is no readiness cache, so retries recover immediately after the
+migration is visible to PostgREST. Connected Solo checks before creating any
+session; no unverified fallback occurs. Anonymous/local Solo remains available.
+
+All three archive-creating Multi commit primitives call the shared
+`assertProgressionArchiveReady(archive)` before invoking the SQL transaction.
+Nonterminal moves do not call the sentinel. If application code arrives before
+the migration, terminal actions (including bots, deadlines, takeover and
+forfeits) fail temporarily without committing state, archive, Elo or XP. The
+previous state/version remains retryable. After migration, replaying the
+transition atomically saves the archive and its trigger-created outbox job,
+then applies XP normally. This protects the rollout order; it does not promise
+compatibility with an administrator subsequently removing installed schema.
+
+Tests cover actual JSON responses from all Solo routes, public-view full games,
+local compatibility, missing-function/wrong-version/network readiness failures,
+503 with no session creation, terminal commit refusal and recovery, guards on
+all archive primitives, real JWT sentinel privileges and unchanged XP/history.
+
+#103 can use `getMyProgression` unchanged; no UI reward/toast/level implementation
+is included here.

@@ -180,4 +180,11 @@ $$;
 revoke all on function public.apply_progression_multiplayer_game(uuid) from public, anon, authenticated;
 grant execute on function public.apply_progression_multiplayer_game(uuid) to service_role;
 
+-- Rollout sentinel: exposed only once the complete Game XP migration is installed.
+create function public.progression_game_xp_schema_version() returns text
+language sql stable security invoker set search_path = '' as $$
+  select '20260930200000'::text;
+$$;
+revoke all on function public.progression_game_xp_schema_version() from public, anon, authenticated;
+grant execute on function public.progression_game_xp_schema_version() to service_role;
 notify pgrst, 'reload schema';

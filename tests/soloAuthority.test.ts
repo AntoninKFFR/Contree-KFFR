@@ -5,6 +5,8 @@ import { createGameSettings } from "@/engine/rulesets/resolve";
 import { buildCustomRuleset } from "@/engine/rulesets/custom";
 import { advanceSoloState, parseSoloIntent } from "@/lib/server/soloGame";
 import { chooseBotBid } from "@/bots/simpleBot";
+import { toPlayerGameView } from "@/engine/views";
+import { soloLegalHumanCards } from "@/lib/solo/publicState";
 import type { GameAction } from "@/engine/actions";
 
 vi.mock("server-only", () => ({}));
@@ -38,10 +40,12 @@ describe("authoritative Solo actions", () => {
       for (let step = 0; step < 500 && state.phase !== "game-over"; step += 1) {
         if (state.phase === "finished") state = advanceSoloState(state, { type: "start-next-round" });
         else if (state.currentPlayerId !== 0) state = advanceSoloState(state, { type: "advance-bot" });
-        else if (state.phase === "playing") state = advanceSoloState(state, {
-          type: "play-card", playerId: 0, card: playableCardsForCurrentPlayer(state)[0],
+        else if (state.phase === "playing") {
+          expect(soloLegalHumanCards(toPlayerGameView(state, 0))).toEqual(playableCardsForCurrentPlayer(state));
+          state = advanceSoloState(state, {
+          type: "play-card", playerId: 0, card: soloLegalHumanCards(toPlayerGameView(state, 0))[0],
         });
-        else {
+        } else {
           const bid = chooseBotBid(state);
           state = advanceSoloState(state, { ...bid, type: bid.action, playerId: 0 } as GameAction);
         }

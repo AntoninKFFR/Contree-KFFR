@@ -8,6 +8,7 @@ on:
       - "lib/solo/**"
       - "lib/server/solo*"
       - "lib/server/progressionService.ts"
+      - "lib/server/progressionReadiness.ts"
       - "lib/server/multiplayerService.ts"
       - "app/api/solo/**"
       - "app/solo/**"
@@ -24,6 +25,7 @@ on:
       - "lib/solo/**"
       - "lib/server/solo*"
       - "lib/server/progressionService.ts"
+      - "lib/server/progressionReadiness.ts"
       - "lib/server/multiplayerService.ts"
       - "app/api/solo/**"
       - "app/solo/**"
@@ -46,7 +48,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm test -- tests/progressionFormulaV1.test.ts tests/progressionQueries.test.ts tests/progressionFinish.test.ts tests/soloAuthority.test.ts tests/soloRoutes.test.ts tests/soloSessionLoop.test.ts
+      - run: npm test -- tests/progressionFormulaV1.test.ts tests/progressionQueries.test.ts tests/progressionFinish.test.ts tests/soloAuthority.test.ts tests/soloRoutes.test.ts tests/soloSessionLoop.test.ts tests/progressionReadiness.test.ts tests/progressionRollout.test.ts
       - uses: supabase/setup-cli@v3
         with:
           version: latest

@@ -2,6 +2,14 @@ begin;
 do $$
 declare v_role text; v_function text; v_result bigint;
 begin
+  if public.progression_game_xp_schema_version() <> '20260930200000'
+    or not has_function_privilege('service_role','public.progression_game_xp_schema_version()','EXECUTE')
+    or has_function_privilege('anon','public.progression_game_xp_schema_version()','EXECUTE')
+    or has_function_privilege('authenticated','public.progression_game_xp_schema_version()','EXECUTE')
+    or not exists (select 1 from pg_proc where oid = 'public.progression_game_xp_schema_version()'::regprocedure
+      and not prosecdef and proconfig @> array['search_path=""']) then
+    raise exception 'unsafe rollout sentinel';
+  end if;
   -- Unit tests of the one canonical tuning function, not duplicated TS constants.
   if private.progression_game_xp('solo',false,'score','human') <> 20
     or private.progression_game_xp('solo',true,'score','human') <> 30

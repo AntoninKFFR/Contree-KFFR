@@ -30,6 +30,7 @@ import { getSupabaseAdmin } from "./supabaseAdmin";
 import { DEFAULT_MULTIPLAYER_TABLE_PREFERENCES, normalizeMultiplayerTablePreferences } from "@/lib/multiplayerTablePreferences";
 import { cleanUsername, validateUsername } from "@/lib/profiles";
 import { resolveBotRating } from "./botRatings";
+import { assertProgressionArchiveReady } from "./progressionReadiness";
 import { applyProgressionAfterFinish } from "./progressionService";
 
 const ROOM_COLUMNS = "id,code,status,host_user_id,active_game_id,scoring_mode,target_score,ruleset_id,ruleset_version,ruleset_snapshot,presentation_settings,game_phase,state_version,turn_deadline_at,created_at,updated_at,started_at,finished_at";
@@ -237,6 +238,7 @@ async function commit(
         forfeitingSeatIndex,
       })
     : null;
+  await assertProgressionArchiveReady(archive);
   const startingGame = room.status === "lobby" && status === "playing" && activeGameId !== undefined;
   const { data, error } = await getSupabaseAdmin().rpc(startingGame ? "start_multiplayer_game" : "commit_room_state", {
     p_room_id: room.id,
@@ -331,6 +333,7 @@ async function commitBotTakeover(input: {
         finishedAt: new Date(input.nowMs).toISOString(),
       })
     : null;
+  await assertProgressionArchiveReady(archive);
   const { data, error } = await getSupabaseAdmin().rpc("enable_bot_takeover", {
     p_room_id: input.room.id,
     p_actor_user_id: input.userId,
@@ -369,6 +372,7 @@ async function commitTimedOutTurn(input: {
         finishedAt: new Date(nowMs).toISOString(),
       })
     : null;
+  await assertProgressionArchiveReady(archive);
   const { data, error } = await getSupabaseAdmin().rpc("commit_timed_out_turn", {
     p_room_id: input.room.id,
     p_expected_version: input.room.state_version,

@@ -2,8 +2,8 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { chooseBotBid } from "../bots/simpleBot";
-import { playableCardsForCurrentPlayer } from "../engine/game";
+import { getCurrentContractFromBids } from "../engine/bidding";
+import { soloLegalHumanCards } from "../lib/solo/publicState";
 import { getProgression } from "../lib/progression/formulaV1";
 import { getMyProgression } from "../lib/progression/queries";
 import type { SoloSession, SoloIntent } from "../lib/solo/sessionTypes";
@@ -48,7 +48,9 @@ async function api(path: string,token: string,body?: unknown) {
 }
 async function payload(response: Response): Promise<SoloSession> {
   assert.equal(response.status,200,await response.clone().text());
-  return (await response.json() as { data: SoloSession }).data;
+  const raw = await response.text();
+  assert.ok(!/"hands"\s*:/.test(raw),"no private hands in any real HTTP response");
+  return (JSON.parse(raw) as { data: SoloSession }).data;
 }
 async function total(user: typeof users[number]) {
   return checked(await user.client.rpc("get_my_progression"),"progression read").total_xp as number;
@@ -63,6 +65,16 @@ try {
   assert.equal((await api("","invalid-jwt",{ rules,startKey:randomUUID() })).status,401);
   const startKey = randomUUID();
   let session = await payload(await api("",a.token,{ rules,startKey }));
+  assert.equal(checked(await admin.rpc("progression_game_xp_schema_version"),"schema sentinel"),"20260930200000");
+  await denied(anonymous.rpc("progression_game_xp_schema_version"));
+  await denied(a.client.rpc("progression_game_xp_schema_version"));
+  const privateState = checked(await admin.from("solo_game_sessions").select("state").eq("id",session.id).single(),"private state").state;
+  assert.deepEqual(session.state.hand,privateState.hands[0]);
+  for (const seat of [1,2,3]) {
+    assert.equal(session.state.handCounts[seat as 1|2|3],privateState.hands[seat].length);
+    for (const card of privateState.hands[seat]) assert.ok(!JSON.stringify(session).includes(JSON.stringify(card)));
+  }
+  assert.deepEqual(await payload(await api(`/${session.id}`,a.token)),session);
   assert.notEqual(session.id,startKey);
   assert.deepEqual(await payload(await api("",a.token,{ rules,startKey })),session);
   assert.equal((await api(`/${session.id}`,b.token)).status,404);
@@ -84,12 +96,10 @@ try {
       let intent: SoloIntent;
       if (state.phase === "finished") intent = { type:"start-next-round" };
       else if (state.currentPlayerId !== 0) intent = { type:"advance-bot" };
-      else if (state.phase === "playing") intent = {type:"play-card",playerId:0,card:playableCardsForCurrentPlayer(state)[0]};
+      else if (state.phase === "playing") intent = {type:"play-card",playerId:0,card:soloLegalHumanCards(state)[0]};
       else {
-        const bid = chooseBotBid(state);
-        intent = { ...bid,type:bid.action,playerId:0 } as SoloIntent;
-        // Strip the bot's internal discriminant: clients send an action, not a bot decision.
-        delete (intent as unknown as Record<string,unknown>).action;
+        intent = getCurrentContractFromBids(state.bids) ? {type:"pass",playerId:0}
+          : {type:"bid",playerId:0,value:80,contractMode:{kind:"suit",suit:state.hand[0].suit}};
       }
       lastBody = {expectedVersion:session.version,intent};
       // Concurrent duplicate requests on every transition, including finalization.

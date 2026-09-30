@@ -1,7 +1,7 @@
 import type { GameAction } from "@/engine/actions";
-import type { GameState } from "@/engine/types";
+import type { PlayerGameView } from "@/engine/views";
 
-export type SoloSession = { id: string; version: number; state: GameState };
+export type SoloSession = { id: string; version: number; state: PlayerGameView };
 export type SoloIntent = GameAction | { type: "advance-bot" };
 export type SoloTransport = {
   start: (rules: unknown, startKey: string) => Promise<SoloSession | null>;

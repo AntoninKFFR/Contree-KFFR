@@ -2,21 +2,38 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { createInitialGame } from "@/engine/game";
+import { toPlayerGameView } from "@/engine/views";
 import { applyGameAction } from "@/engine/actions";
 import { clonePlayerPreferences } from "@/lib/preferences/playerPreferences";
 import { useSoloGameLoop } from "@/lib/solo/useSoloGameLoop";
 import type { SoloSession, SoloTransport } from "@/lib/solo/sessionTypes";
 
-function initial(): SoloSession { return { id:"server-issued-id",version:0,state:createInitialGame(() => 0.1) }; }
+function initial(): SoloSession { return { id:"server-issued-id",version:0,state:toPlayerGameView(createInitialGame(() => 0.1), 0) }; }
 function adapter() {
+  let state = createInitialGame(() => 0.1);
   return { load:vi.fn().mockResolvedValue(null),start:vi.fn().mockResolvedValue(initial()),
     move:vi.fn().mockImplementation(async (session,intent) => ({ ...session,version:session.version+1,
-      state:applyGameAction(session.state,intent) })) } satisfies SoloTransport;
+      state:toPlayerGameView(state = applyGameAction(state,intent), 0) })) } satisfies SoloTransport;
 }
 function mount(transport: SoloTransport) {
   return renderHook(() => useSoloGameLoop({preferences:clonePlayerPreferences(),effectiveReducedMotion:false,transport}));
 }
 describe("Solo connected transport compatibility", () => {
+  it("never runs bot review or bidding analysis against a connected public view", async () => {
+    const transport = adapter();
+    const onBotDecision = vi.fn();
+    const onBiddingStateChange = vi.fn();
+    const {result,unmount} = renderHook(() => useSoloGameLoop({preferences:clonePlayerPreferences(),
+      effectiveReducedMotion:false,transport,onBotDecision,onBiddingStateChange}));
+    await waitFor(() => expect(result.current.isBusy).toBe(false));
+    await act(async () => { result.current.startGame(); });
+    await act(async () => { result.current.dispatchGameAction({type:"pass",playerId:0}); });
+    expect(result.current.gameState).not.toHaveProperty("hands");
+    expect(onBotDecision).not.toHaveBeenCalled();
+    expect(onBiddingStateChange).not.toHaveBeenCalled();
+    unmount();
+  });
+
   it("uses server identity and sends only actions, with double-click suppression", async () => {
     const transport = adapter();
     const { result,unmount } = mount(transport);

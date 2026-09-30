@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { soloHumanHand } from "@/lib/solo/publicState";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { BotReviewHistory, BotReviewPanel } from "@/components/BotReviewPanel";
 import { SoloBotHandsPanel } from "@/components/BotHandAnalysis";
@@ -95,7 +96,7 @@ export default function SoloPage() {
     [botReviewHistory, lastBotReview, selectedBotReviewId],
   );
   const analysisDesktop = isSoloDesktopAnalysisLayout(
-    BOT_REVIEW_MODE_ENABLED,
+    BOT_REVIEW_MODE_ENABLED && !sessionId,
     isAnalysisModeEnabled,
     isMobileLandscape,
   );
@@ -142,7 +143,7 @@ export default function SoloPage() {
 
   function illegalCardMessage(card: Card): string {
     if (!gameState || !currentMode || !gameRules) return "Cette carte n'est pas jouable.";
-    return explainIllegalCard({ hand: gameState.hands[localHumanPlayerId], trick: gameState.currentTrick, card, playerId: localHumanPlayerId, mode: currentMode, rules: gameRules.cardPlay }) ?? "Cette carte n'est pas jouable.";
+    return explainIllegalCard({ hand: soloHumanHand(gameState, localHumanPlayerId), trick: gameState.currentTrick, card, playerId: localHumanPlayerId, mode: currentMode, rules: gameRules.cardPlay }) ?? "Cette carte n'est pas jouable.";
   }
 
   function handleHumanBid(value: BidValue, contractMode: ContractMode) {
@@ -210,7 +211,7 @@ export default function SoloPage() {
   const rulesDialog = isRulesOpen ? <AccessibleDialog description={gameState ? "Ces règles remplaceront la partie en cours." : "Ces règles seront utilisées au démarrage de la partie."} footer={<div className="grid items-center gap-2 sm:grid-cols-[1fr_auto]"><div className="hidden sm:block"><RulesetSummary ruleset={buildCustomRuleset(rulesDraft)} compact /></div><button className={`${appPrimaryActionClass} w-full sm:w-auto`} type="button" onClick={applyRules}>{gameState ? "Appliquer et nouvelle partie" : "Enregistrer les règles"}</button></div>} onClose={() => setIsRulesOpen(false)} stableHeight title="Règles de la prochaine partie"><RulesetConfigurator value={rulesDraft} onChange={setRulesDraft} /></AccessibleDialog> : null;
   const soloMenuActions = [
     { label: "Règles de la prochaine partie", onSelect: () => { setRulesDraft(rulesInput); setIsRulesOpen(true); } },
-    ...(BOT_REVIEW_MODE_ENABLED ? [{ label: `Mode développeur : ${isAnalysisModeEnabled ? "activé" : "désactivé"}`, onSelect: () => setIsAnalysisModeEnabled((current) => !current) }] : []),
+    ...(BOT_REVIEW_MODE_ENABLED && !sessionId ? [{ label: `Mode développeur : ${isAnalysisModeEnabled ? "activé" : "désactivé"}`, onSelect: () => setIsAnalysisModeEnabled((current) => !current) }] : []),
     ...(gameState ? [{ label: "Abandonner et redistribuer", tone: "danger" as const, onSelect: () => setIsNewGameConfirmationOpen(true) }] : []),
   ];
 
@@ -263,7 +264,7 @@ export default function SoloPage() {
               /> : null}
               hand={(gameState.phase === "bidding" || gameState.phase === "playing") ? <HumanHand
                 canPlay={humanCanPlay}
-                cards={gameState.hands[localHumanPlayerId]}
+                cards={soloHumanHand(gameState, localHumanPlayerId)}
                 contractMode={currentMode}
                 illegalCardMessage={illegalCardMessage}
                 inScene
@@ -277,7 +278,7 @@ export default function SoloPage() {
               showLiveScore={preferences.assistance.showLivePoints}
             />
 
-            {BOT_REVIEW_MODE_ENABLED && isAnalysisModeEnabled && !isMobileLandscape && !isFocusMode ? (
+            {"hands" in gameState && BOT_REVIEW_MODE_ENABLED && isAnalysisModeEnabled && !isMobileLandscape && !isFocusMode ? (
               <>
                 <SoloBotHandsPanel state={gameState} />
                 {botReviewHistory.length > 0 ? (
@@ -294,7 +295,7 @@ export default function SoloPage() {
               </>
             ) : null}
 
-            {shouldShowBotReviewAction(BOT_REVIEW_MODE_ENABLED, isAnalysisModeEnabled, isMobileLandscape, Boolean(lastBotReview), isFocusMode) && lastBotReview ? (
+            {"hands" in gameState && shouldShowBotReviewAction(BOT_REVIEW_MODE_ENABLED, isAnalysisModeEnabled, isMobileLandscape, Boolean(lastBotReview), isFocusMode) && lastBotReview ? (
               <div className="grid gap-2">
                 <button
                   className="justify-self-end rounded-md border border-amber-400 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-stone-800 shadow-sm hover:bg-amber-100"
