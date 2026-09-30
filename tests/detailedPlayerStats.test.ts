@@ -170,14 +170,14 @@ describe("shared detailed player statistics", () => {
       personalAverageBid: 110, personalAverageTakerPoints: 115, personalAverageBidDifference: 5, attackSuccessRate: 75 });
   });
 
-  it("uses true odd and even medians and separates successful and failed bid means", () => {
+  it("averages the team's contracts and separates successful and failed bid means", () => {
     const odd = stats(
       played(contract(0, 0, 100), { success: true, takerPoints: 127 }),
       played(contract(0, 0, 110), { success: false, takerPoints: 101 }),
       played(contract(0, 0, 130), { success: true, takerPoints: 150 }),
     );
-    expect(odd).toMatchObject({ medianBid: 110, averageSuccessfulBid: 115, averageFailedBid: 110, averageSuccessfulMargin: 24 });
-    expect(stats(played(contract(0, 0, 100)), played(contract(0, 0, 110)), played(contract(0, 0, 120)), played(contract(0, 0, 130))).medianBid).toBe(115);
+    expect(odd).toMatchObject({ averageBid: 113, averageSuccessfulBid: 115, averageFailedBid: 110, averageSuccessfulMargin: 24 });
+    expect(stats(played(contract(0, 0, 100)), played(contract(0, 0, 110)), played(contract(0, 0, 120)), played(contract(0, 0, 130))).averageBid).toBe(115);
   });
 
   it("builds every exact bid value and the three bid zones without empty 0% rates", () => {
@@ -196,6 +196,33 @@ describe("shared detailed player statistics", () => {
       { label: "Agressif", range: "130–160", contracts: 4, successRate: 0 },
     ]);
     expect(calculateDetailedPlayerStats([]).bidValues[0].successRate).toBeNull();
+    // Nine equal values: 11.1 % each, the largest-remainder rounding gives one extra point to keep 100.
+    expect(result.bidValues.map(({ share }) => share)).toEqual([12, 11, 11, 11, 11, 11, 11, 11, 11]);
+  });
+
+  it("distributes the team's contracts by value in shares adding up to exactly 100 %", () => {
+    const result = stats(
+      played(contract(0, 0, 80), { success: true }),
+      played(contract(0, 2, 80), { success: false }), // The partner's contracts count: the block is about the team.
+      played(contract(0, 0, 100), { success: true }),
+      played(contract(0, 2, 120), { success: false }),
+      played(contract(1, 1, 90)), // The opponents' contract is not the team's.
+      played({ kind: "capot", value: 250, teamId: 0, playerId: 0, status: "normal" }), // No numerical value.
+    );
+    const byValue = Object.fromEntries(result.bidValues.map(({ value, contracts, successes, share }) => [value, { contracts, successes, share }]));
+    expect(byValue[80]).toEqual({ contracts: 2, successes: 1, share: 50 });
+    expect(byValue[100]).toEqual({ contracts: 1, successes: 1, share: 25 });
+    expect(byValue[120]).toEqual({ contracts: 1, successes: 0, share: 25 });
+    expect(byValue[90]).toEqual({ contracts: 0, successes: 0, share: 0 });
+    expect(result.bidValues.reduce((sum, { share }) => sum + (share ?? 0), 0)).toBe(100);
+
+    const thirds = stats(played(contract(0, 0, 80)), played(contract(0, 0, 100)), played(contract(0, 0, 120)));
+    expect(thirds.bidValues.filter(({ contracts }) => contracts).map(({ share }) => share)).toEqual([34, 33, 33]);
+    expect(thirds.bidValues.reduce((sum, { share }) => sum + (share ?? 0), 0)).toBe(100);
+
+    const empty = calculateDetailedPlayerStats([]);
+    expect(empty.bidValues.every(({ share }) => share === null)).toBe(true);
+    expect(empty.averageBid).toBeNull();
   });
 
   it("classifies 1–9, 10–19 and 20+ point falls using real points below the bid", () => {
@@ -212,16 +239,6 @@ describe("shared detailed player statistics", () => {
       { label: "Grosses", contracts: 1, share: 33 },
     ]);
     expect(calculateDetailedPlayerStats([]).fallBands.every((band) => band.share === null)).toBe(true);
-  });
-
-  it("measures 120+ and 130+ among my classical bids only", () => {
-    const result = stats(
-      played(contract(0, 0, 100)), played(contract(0, 0, 120)),
-      played(contract(0, 0, 130)), played(contract(0, 0, 160)),
-      played(contract(0, 2, 160)),
-      played({ kind: "capot", value: 250, teamId: 0, playerId: 0, status: "normal" }),
-    );
-    expect(result).toMatchObject({ personalAtLeast120Rate: 75, personalAtLeast130Rate: 50 });
   });
 
   it("measures defense's known last tricks while excluding old unknown results", () => {
@@ -323,8 +340,12 @@ describe("shared detailed player statistics", () => {
     let markup: string;
     try { markup = renderToStaticMarkup(React.createElement(DetailedStatsDashboard, { stats: data })); }
     finally { vi.unstubAllGlobals(); }
-    expect(markup).toContain("Contrat 110 : 100 %, 1 réussi sur 1");
+    // The comfort zone shows each value's share of the team's contracts, split into won and lost.
+    expect(markup).toContain("Contrat 110 : 100 % des contrats, 1 réussi et 0 chuté");
     expect(markup).toContain("1/1");
+    expect(markup).toContain("Contrat moyen");
+    expect(markup).not.toContain("Contrat médian");
+    expect(markup).not.toContain("Mes contrats classiques");
     expect(markup).not.toContain("sans détail de manches");
   });
 });
