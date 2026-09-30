@@ -42,6 +42,11 @@ begin
     or not (select relrowsecurity from pg_class where oid = 'public.progression_multiplayer_jobs'::regclass) then
     raise exception 'missing RLS';
   end if;
+  if not has_table_privilege('authenticated','public.games','SELECT')
+    or not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'games'
+      and policyname = 'games_owner_read' and cmd = 'SELECT' and roles = array['authenticated']::name[]) then
+    raise exception 'legacy owner history read must remain available';
+  end if;
 end;
 $$;
 

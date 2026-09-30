@@ -69,7 +69,9 @@ history or touching XP. Concurrent requests cannot fork the stored trajectory.
 `SoloPageClient` no longer calls `saveCompletedGame`; the unsafe writer is removed
 from `lib/games.ts` while the existing pure payload builder remains for its callers
 and tests. A migration removes client write policies/privileges on `games` without
-changing any old rows. The new server path ships in the same PR.
+changing any old rows. An explicit `games_owner_read` SELECT policy preserves
+owner history access even if a legacy ALL policy supplied both reads and writes.
+The new server path ships in the same PR.
 
 The browser adapter retries transport/server failures three times using the same
 startup nonce or expected version. It stores the server session ID per user for

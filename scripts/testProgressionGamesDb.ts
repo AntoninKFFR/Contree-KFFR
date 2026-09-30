@@ -25,6 +25,9 @@ function checked<T extends {data:unknown;error:{message:string}|null}>(result: T
   if (result.error || result.data === null) throw new Error(`${label}: ${result.error?.message ?? "no data"}`);
   return result.data as NonNullable<T["data"]>;
 }
+function written(result: {error:{message:string}|null},label: string) {
+  if (result.error) throw new Error(`${label}: ${result.error.message}`);
+}
 async function who(index: number) {
   const tag = randomUUID().slice(0,8);
   const email = `xp-game-${index}-${tag}@example.test`;
@@ -104,6 +107,8 @@ try {
     assert.equal(history.length,1);
     assert.equal(history[0].won,session.state.winnerTeam === 0);
     assert.equal(history[0].player_score,session.state.totalScore[0]);
+    assert.equal(checked(await a.client.from("games").select("id").eq("id",session.id),"own history read").length,1);
+    assert.deepEqual(checked(await b.client.from("games").select("id").eq("id",session.id),"foreign history hidden"),[]);
     const ledger = checked(await admin.from("progression_xp_events").select("amount,source_type")
       .eq("user_id",a.id).eq("source_id",session.id),"verified ledger");
     assert.deepEqual(ledger,[{amount,source_type:"solo_game"}]);
@@ -113,6 +118,12 @@ try {
   }
   assert.deepEqual([...outcomes].sort(),[0,1],"real server games include both win and loss");
   assert.deepEqual(await getMyProgression(a.client),getProgression(expectedSolo));
+  const legacySoloId = randomUUID();
+  written(await admin.from("games").insert({id:legacySoloId,user_id:a.id,won:true,scoring_mode:"announced-points",
+    player_score:1200,bot_score:500,target_score:1000,created_at:"2026-09-01T00:00:00Z"}),"legacy Solo fixture");
+  assert.equal(checked(await a.client.from("games").select("id").eq("id",legacySoloId),"legacy own history visible").length,1);
+  assert.equal(await total(a),expectedSolo);
+  assert.deepEqual(checked(await admin.from("progression_xp_events").select("id").eq("source_id",legacySoloId),"no legacy Solo XP"),[]);
 
   // Browser integration: connected session starts, bot advances and reload resumes;
   // browser submits no final state, writes no legacy history, and guest stays local.
@@ -134,6 +145,16 @@ try {
     const resume = page.waitForResponse((response) => response.url().endsWith(`/api/solo/sessions/${persisted}`) && response.request().method() === "GET");
     await page.reload();
     assert.equal((await resume).status(),200);
+    // Drive a real human action through the browser adapter, including bots'
+    // automatically paced HTTP transitions before the human bidding turn.
+    await page.getByRole("button",{name:"Passer",exact:true}).waitFor({timeout:30_000});
+    const humanResponse = page.waitForResponse((response) => {
+      if (!response.url().endsWith(`/api/solo/sessions/${persisted}`) || response.request().method() !== "POST") return false;
+      const body = response.request().postDataJSON() as {intent?: {type?: string}};
+      return body.intent?.type === "pass";
+    });
+    await page.getByRole("button",{name:"Passer",exact:true}).click();
+    assert.equal((await humanResponse).status(),200);
     assert.equal(await total(b),0);
     const guest = await browser.newPage();
     const guestCalls: string[] = [];
@@ -155,12 +176,12 @@ try {
   ] as const) {
     const gameId = randomUUID();
     gameIds.push(gameId);
-    checked(await admin.from("multiplayer_games").insert({id:gameId,started_at:new Date().toISOString(),finished_at:new Date().toISOString(),
+    written(await admin.from("multiplayer_games").insert({id:gameId,started_at:new Date().toISOString(),finished_at:new Date().toISOString(),
       scoring_mode:"announced-points",target_score:1000,team_0_score:winner === 0 ? 1100:700,team_1_score:winner === 1 ? 1100:700,
       winner_team:winner,end_reason:endReason,forfeiting_team:endReason === "forfeit" ? 1-winner:null,round_count:8}),"archive fixture");
     const incomplete = await admin.rpc("apply_progression_multiplayer_game",{p_game_id:gameId});
     assert.equal(incomplete.error?.code,"23514");
-    checked(await admin.from("multiplayer_game_players").insert([0,1,2,3].map((seat) => {
+    written(await admin.from("multiplayer_game_players").insert([0,1,2,3].map((seat) => {
       const human = (humanSeats as readonly number[]).includes(seat);
       return {game_id:gameId,seat_index:seat,kind:human ? "human":"bot",user_id:human ? users[seat].id:null,
         display_name:`Seat ${seat}`,bot_profile_id:human ? null:"advanced_rules_v4",team_id:seat%2};
@@ -200,6 +221,6 @@ try {
   await denied(admin.from("solo_game_sessions").insert({user_id:a.id,start_key:randomUUID(),state:session.state}));
   console.log("Game XP: real JWT Solo win/loss, forged results, concurrent transitions, one archive/event, reload, browser/guest compatibility and Multi matrix passed.");
 } finally {
-  for (const id of gameIds) checked(await admin.from("multiplayer_games").delete().eq("id",id),"remove archive");
-  for (const user of users) checked(await admin.auth.admin.deleteUser(user.id),"remove fixture user");
+  for (const id of gameIds) written(await admin.from("multiplayer_games").delete().eq("id",id),"remove archive");
+  for (const user of users) written(await admin.auth.admin.deleteUser(user.id),"remove fixture user");
 }

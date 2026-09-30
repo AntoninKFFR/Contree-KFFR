@@ -37,11 +37,16 @@ grant select on public.solo_game_sessions to service_role;
 do $$ declare v_policy text;
 begin
   for v_policy in select policyname from pg_policies where schemaname = 'public'
-    and tablename = 'games' and cmd in ('INSERT', 'UPDATE', 'DELETE', 'ALL') loop
+    and tablename = 'games' loop
     execute format('drop policy %I on public.games', v_policy);
   end loop;
 end $$;
 revoke insert, update, delete, truncate, references, trigger on public.games from public, anon, authenticated;
+-- A legacy ALL policy might have been the only read policy. Explicitly retain
+-- owner history reads when removing it, including on pre-migration accounts.
+grant select on public.games to authenticated;
+create policy games_owner_read on public.games for select to authenticated
+  using (user_id = (select auth.uid()));
 
 create function public.create_solo_game_session(p_user_id uuid, p_start_key uuid, p_state jsonb)
 returns jsonb language plpgsql security definer set search_path = '' as $$
