@@ -27,6 +27,11 @@ export default defineConfig({
       },
   projects: [
     {
+      name: "progression-ui",
+      grep: /@progression-ui/,
+      use: { ...devices["Desktop Chrome"], trace: "off" },
+    },
+    {
       name: "smoke",
       grep: /@smoke/,
       use: { ...devices["Desktop Chrome"], trace: "retain-on-failure" },

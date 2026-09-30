@@ -1,3 +1,4 @@
+import { notifyProgressionChanged } from "@/lib/progression/events";
 import type { MultiplayerRoomView, RoomIntent } from "@/lib/roomTypes";
 import type { CustomRulesetInput } from "@/engine/rulesets/custom";
 
@@ -39,6 +40,8 @@ async function request<T>(url: string, token: AccessTokenSource, init?: RequestI
       body.code ?? "unknown_error",
     );
   }
+  const room = body.data as Partial<MultiplayerRoomView>;
+  if (room.room?.status === "finished" && room.game?.phase === "game-over") notifyProgressionChanged();
   return body.data as T;
 }
 

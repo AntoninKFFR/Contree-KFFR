@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { AppTopNav, appNavigationLinks } from "@/components/AppTopNav";
+import { ProgressionProvider } from "@/components/progression/ProgressionProvider";
 import { MusicProvider } from "@/components/settings/MusicProvider";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
 
@@ -13,7 +14,7 @@ describe("unified application navigation", () => {
   it("renders the training menu button with an initially closed state", () => {
     const markup = renderToStaticMarkup(
       React.createElement(PlayerPreferencesProvider, null,
-        React.createElement(MusicProvider, null, React.createElement(AppTopNav))),
+        React.createElement(MusicProvider, null, React.createElement(ProgressionProvider, null, React.createElement(AppTopNav)))),
     );
     expect(markup).toContain('aria-label="Navigation principale"');
     expect(markup).toContain('href="/"');

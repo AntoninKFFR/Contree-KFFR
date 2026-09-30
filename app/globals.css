@@ -1349,3 +1349,25 @@ summary:focus-visible {
 }
 @media (max-height: 410px) and (orientation: landscape) { .training-section-heading { padding-top: .75rem; } .training-result { padding: 1rem; } .training-result-score { margin-top: .3rem; font-size: 3rem; } }
 @media (prefers-reduced-motion: reduce) { .training-mode-card, .training-progress-track span, .training-bid-option { transition: none; } .training-feedback { animation: none; } }
+
+/* Shared permanent progression; no animation or gameplay styling. */
+.progression-bar { height: 8px; overflow: hidden; border-radius: 99px; background: var(--accent-soft); border: 1px solid var(--border); }
+.progression-bar > span { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+.progression-bar--mini { height: 3px; border: 0; }
+.progression-level-badge { display: inline-flex; flex-shrink: 0; white-space: nowrap; border-radius: var(--radius-control); padding: .25rem .5rem; background: var(--accent-soft); color: var(--accent); font-size: .75rem; font-weight: 800; }
+.progression-card { min-width: 0; color: var(--text-primary); }
+.progression-card--compact { padding-block: 1rem; }
+.progression-account { width: 11.5rem; max-width: 11.5rem; padding-block: .3rem; }
+.progression-account-line { display: flex; align-items: center; gap: .4rem; min-width: 0; }
+.progression-account-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.progression-account .progression-level-badge { padding: 0; background: none; font-size: .7rem; }
+.progression-account-placeholder { display: block; width: 3rem; }
+.progression-account-track { display: block; height: 3px; margin-top: 3px; }
+.progression-mobile-account { min-width: 0; border-top: 1px solid var(--border); margin-top: .5rem; padding-top: .5rem; }
+@media (min-width: 1120px) and (max-width: 1439px) {
+  .progression-account { width: 9rem; max-width: 9rem; }
+}
+@media (max-width: 1119px) {
+  .progression-account-desktop { display: none; }
+  .progression-account { width: auto; max-width: 7rem; }
+}

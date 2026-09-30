@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useProgression } from "@/components/progression/ProgressionProvider";
+import { ProgressionBar, ProgressionLevelBadge } from "@/components/progression/ProgressionCard";
+import { formatProgressionNumber, formatXp } from "@/lib/progression/format";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
@@ -31,6 +34,7 @@ function active(pathname: string, href: string) {
 }
 
 export function AppTopNav() {
+  const progression = useProgression();
   const pathname = usePathname() ?? "/";
   const [session, setSession] = useState<Session | null>(null);
   const [username, setUsername] = useState<string | null>(null);
@@ -79,6 +83,7 @@ export function AppTopNav() {
     return () => { document.removeEventListener("keydown", close); document.removeEventListener("pointerdown", close); };
   }, [mobileOpen, openMenu]);
 
+  const summary = progression.status === "ready" && progression.userId === session?.user.id ? progression.summary : null;
   const links = appNavigationLinks(Boolean(session));
   const playActive = pathname === "/solo" || pathname.startsWith("/multiplayer");
   const trainingActive = active(pathname, "/training");
@@ -114,7 +119,7 @@ export function AppTopNav() {
   };
 
   return <header className="coinche-global-header sticky top-0 z-50 h-14 border-b shadow-lg backdrop-blur-md" ref={rootRef}>
-    <div className="mx-auto grid h-full w-full max-w-[1600px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3 sm:px-5">
+    <div className="mx-auto grid h-full w-full max-w-[1600px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 sm:px-5 min-[1440px]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
       <Link aria-label="Accueil — KFFR Contrée" className="col-start-1 shrink-0 justify-self-start" href="/"><KffrLogo className="h-8 w-[5.25rem]" variant="compact" /></Link>
       <nav aria-label="Navigation principale" className="col-start-2 hidden min-w-0 items-center gap-1 justify-self-center min-[1120px]:flex">
         <Link aria-current={pathname === "/" ? "page" : undefined} className={linkClass("/")} href="/">Accueil</Link>
@@ -142,7 +147,11 @@ export function AppTopNav() {
         <AudioPopover />
         <ThemeToggle />
         <div className="hidden min-[480px]:block">
-          {session ? <Link className="coinche-account-link max-w-28 truncate" href="/profile">{username ?? "Profil"}</Link> : <Link className="coinche-account-link" href="/login">Se connecter</Link>}
+          {session ? <Link className="coinche-account-link progression-account" href="/profile" title={username ?? "Profil"}>
+            <span className="progression-account-line"><span className="progression-account-name">{username ?? "Profil"}</span>
+              <span className="progression-account-desktop">{summary ? <ProgressionLevelBadge summary={summary} /> : <span className="progression-account-placeholder" aria-hidden="true" />}</span></span>
+            <span className="progression-account-desktop progression-account-track">{summary ? <ProgressionBar mini summary={summary} /> : null}</span>
+          </Link> : <Link className="coinche-account-link" href="/login">Se connecter</Link>}
         </div>
         <button aria-controls="mobile-navigation" aria-expanded={mobileOpen} aria-label="Ouvrir le menu" className="coinche-chrome-icon min-[1120px]:hidden" onClick={() => setMobileOpen((value) => !value)} type="button">☰</button>
       </div>
@@ -155,9 +164,11 @@ export function AppTopNav() {
         <p className={`coinche-mobile-nav-label ${trainingActive ? "coinche-topnav-link--active" : ""}`}>Entraînement</p>
         <div className="ml-3 grid gap-1 border-l border-[var(--border)] pl-3">{TRAINING_LINKS.map((item) => <Link aria-current={item.href === "/training" && pathname === "/training" ? "page" : undefined} className={item.href === "/training" && pathname === "/training" ? "coinche-topnav-link coinche-topnav-link--active" : "coinche-topnav-link"} href={item.href} key={item.href} onClick={closeTrainingNavigation}>{item.label}</Link>)}</div>
       </div> : <Link aria-current={active(pathname, link.href) ? "page" : undefined} className={linkClass(link.href)} href={link.href} key={link.href}>{link.label}</Link>)}
-      <div className="min-[480px]:hidden">
-        {session ? <Link className={linkClass("/profile")} href="/profile">{username ?? "Profil"}</Link> : <Link className={linkClass("/login")} href="/login">Se connecter</Link>}
-      </div>
+      {session ? <div className="progression-mobile-account">
+        <Link className={linkClass("/profile")} href="/profile"><span className="break-words">{username ?? "Profil"}</span></Link>
+        {summary ? <><p className="px-3 text-sm text-[var(--text-secondary)]">Niv. {summary.level} · {formatProgressionNumber(summary.xpIntoLevel)} / {formatXp(summary.xpForNextLevel)}</p><div className="px-3 py-2"><ProgressionBar summary={summary} /></div></> : null}
+        <Link className={linkClass("/progression")} href="/progression">Ma progression</Link>
+      </div> : <div className="min-[480px]:hidden"><Link className={linkClass("/login")} href="/login">Se connecter</Link></div>}
     </nav> : null}
   </header>;
 }

@@ -7,9 +7,10 @@ import ProfilePage from "@/app/profile/page";
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(), refresh: vi.fn(), signOut: vi.fn().mockResolvedValue({ error: null }),
-  saveUsername: vi.fn(),
+  saveUsername: vi.fn(), progression: vi.fn(),
 }));
 
+vi.mock("@/components/progression/ProgressionProvider", () => ({useProgression: mocks.progression}));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push, refresh: mocks.refresh }) }));
 vi.mock("@/lib/supabaseClient", () => ({
   getSupabaseClient: () => ({ auth: {
@@ -29,14 +30,24 @@ vi.mock("@/lib/rating/queries", () => ({ getMyRatingSummary: async () => ({
 beforeEach(() => {
   vi.stubGlobal("React", React);
   vi.clearAllMocks();
+  mocks.progression.mockReturnValue({status:"ready",userId:"me",summary:{level:2,totalXp:150,levelStartXp:100,xpIntoLevel:50,xpForNextLevel:125,xpRemaining:75,progressPercent:40},refresh:vi.fn()});
   mocks.saveUsername.mockResolvedValue({ username: "Arthur", error: null });
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("own player profile", () => {
+  it("keeps identity and statistics working when progression fails", async () => {
+    mocks.progression.mockReturnValue({status:"error",userId:"me",summary:null,error:"Impossible de charger ta progression.",refresh:vi.fn()});
+    render(React.createElement(ProfilePage));
+    await screen.findByRole("heading",{name:"Antonin"});
+    expect(screen.getByRole("tabpanel")).toBeTruthy();
+    expect(screen.getByRole("button",{name:"Réessayer"})).toBeTruthy();
+  });
   it("defaults to Solo, switches the existing dashboard and exposes Elo only in Multijoueur", async () => {
     render(React.createElement(ProfilePage));
     await screen.findByRole("heading", { name: "Antonin" });
+    expect(screen.getByText("Niveau 2")).toBeTruthy();
+    expect(screen.getByRole("link",{name:"Voir ma progression"}).getAttribute("href")).toBe("/progression");
     const panel = screen.getByRole("tabpanel");
     const total = () => within(panel).getByText("Parties jouées").parentElement?.textContent;
     expect(screen.getByRole("tab", { name: "Solo" }).getAttribute("aria-selected")).toBe("true");

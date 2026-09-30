@@ -6,6 +6,7 @@ import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferenc
 import { MusicProvider } from "@/components/settings/MusicProvider";
 import { SocialNotificationsProvider } from "@/components/social/SocialNotifications";
 import { SocialPresenceHeartbeat } from "@/components/social/SocialPresenceHeartbeat";
+import { ProgressionProvider } from "@/components/progression/ProgressionProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,11 +32,13 @@ export default function RootLayout({
         <PlayerPreferencesProvider>
           <MusicProvider>
             <SocialNotificationsProvider>
-              <SocialPresenceHeartbeat />
-              <div className="min-h-dvh">
-                <AppTopNav />
-                {children}
-              </div>
+              <ProgressionProvider>
+                <SocialPresenceHeartbeat />
+                <div className="min-h-dvh">
+                  <AppTopNav />
+                  {children}
+                </div>
+              </ProgressionProvider>
             </SocialNotificationsProvider>
           </MusicProvider>
         </PlayerPreferencesProvider>

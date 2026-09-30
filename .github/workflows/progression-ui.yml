@@ -1,0 +1,37 @@
+name: Progression UI
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/progression/**"
+      - "lib/solo/sessionApi.ts"
+      - "lib/multiplayerApi.ts"
+      - "e2e/progressionUI.spec.ts"
+      - "playwright.config.ts"
+      - ".github/workflows/progression-ui.yml"
+jobs:
+  public-presentation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Synthetic browser-only fixtures intercepted by Playwright. No DB credentials.
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: progression-ui-fixture
+      E2E_PRODUCTION_SERVER: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npx playwright test --project=progression-ui
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: progression-ui-report
+          path: test-results/
+          retention-days: 7
