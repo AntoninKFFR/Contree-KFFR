@@ -150,12 +150,18 @@ test.describe("@social private friend presence", () => {
 
       for (const [width, height] of [[390, 844], [667, 375], [844, 390]]) {
         await a.setViewportSize({ width, height });
-        await a.locator("[data-testid=friends-presence-scroll]").scrollIntoViewIfNeeded();
-        assertInsideViewport(await a.locator("[data-testid=friends-presence-scroll]").boundingBox(), width, height);
-        for (const button of await a.locator(".friend-presence-row button").all()) {
-          assertInsideViewport(await button.boundingBox(), width, height);
-        }
-        expect(await a.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+        // A live presence refresh can replace the list while scrolling. Reacquire
+        // it and verify the complete geometry after that transient render.
+        await expect(async () => {
+          const scroll = a!.locator("[data-testid=friends-presence-scroll]");
+          await expect(a!.locator(".friend-presence-row").filter({ hasText: usernameB })).toContainText("Hors ligne", { timeout: 1000 });
+          await scroll.scrollIntoViewIfNeeded({ timeout: 1000 });
+          assertInsideViewport(await scroll.boundingBox(), width, height);
+          for (const button of await a!.locator(".friend-presence-row button").all()) {
+            assertInsideViewport(await button.boundingBox(), width, height);
+          }
+          expect(await a!.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+        }).toPass({ timeout: 10_000 });
       }
       await a.setViewportSize({ width: 1280, height: 720 });
       const offlineRoom = await createRoomThroughUi(a);
