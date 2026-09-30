@@ -66,7 +66,7 @@ test.describe("@social private friend presence", () => {
       if (!a || !b) throw new Error("Two authenticated pages required");
       const aId = await identity(a);
       bId = await identity(b);
-      const usernameB = (await b.locator('a[href="/profile"]').first().innerText()).trim();
+      const usernameB = (await b.locator('.progression-account-name').first().innerText()).trim();
       if ((await socialApi<FriendData>(a, "/api/social")).friends.some((friend) => friend.userId === bId)) {
         await socialApi(a, `/api/social/friends/${bId}`, "DELETE");
       }
