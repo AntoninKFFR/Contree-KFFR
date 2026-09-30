@@ -71,9 +71,10 @@ for (const theme of ["dark","light"] as const) {
       await page.goto("/solo");
       const header = page.locator(".coinche-global-header");
       await expect(header.getByRole("button",{name:"Menu Partie"})).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
       const nav = (await header.getByRole("navigation",{name:"Navigation principale"}).boundingBox())!;
       const controls = (await header.locator(".col-start-3").boundingBox())!;
-      expect(nav.x+nav.width).toBeLessThanOrEqual(controls.x);
+      expect(nav.x+nav.width, `game controls overlap at ${width}px`).toBeLessThanOrEqual(controls.x);
       await noOverflow(page);
     }
   });
