@@ -1,0 +1,59 @@
+// @vitest-environment jsdom
+import React from "react";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ProgressionBar, ProgressionSummaryCard, HomeProgressionCard } from "@/components/progression/ProgressionCard";
+import ProgressionPage from "@/app/progression/page";
+import { getProgression } from "@/lib/progression/formulaV1";
+
+const hook = vi.hoisted(() => vi.fn());
+vi.mock("@/components/progression/ProgressionProvider", () => ({useProgression:hook}));
+beforeEach(() => {vi.stubGlobal("React",React); hook.mockReturnValue({status:"ready",userId:"me",summary:getProgression(0),recentEvents:[],refresh:vi.fn()});});
+afterEach(() => {cleanup(); vi.unstubAllGlobals();});
+describe("progression presentation", () => {
+  it.each([0,50,99,100])("uses canonical progress and ARIA at %i XP", (xp) => {
+    const summary = getProgression(xp); render(<ProgressionBar summary={summary} />);
+    const bar = screen.getByRole("progressbar");
+    expect(bar.getAttribute("aria-valuemin")).toBe("0");
+    expect(bar.getAttribute("aria-valuemax")).toBe(String(summary.xpForNextLevel));
+    expect(bar.getAttribute("aria-valuenow")).toBe(String(summary.xpIntoLevel));
+    expect(bar.getAttribute("aria-label")).toContain(`niveau ${summary.level}`);
+    expect((bar.firstElementChild as HTMLElement).style.width).toBe(`${summary.progressPercent}%`);
+  });
+  it("shares real level, remaining, total and link", () => {
+    render(<ProgressionSummaryCard summary={getProgression(150)} />);
+    expect(screen.getByText("Niveau 2")).toBeTruthy(); expect(screen.getByText("50 / 125 XP")).toBeTruthy();
+    expect(screen.getByText("75 XP avant le niveau 3")).toBeTruthy(); expect(screen.getByText("150 XP au total")).toBeTruthy();
+    expect(screen.getByRole("link").getAttribute("href")).toBe("/progression");
+  });
+  it("Home signed-out has no markup", () => {
+    hook.mockReturnValue({status:"signed-out",userId:null}); const {container} = render(<HomeProgressionCard />);
+    expect(container.innerHTML).toBe("");
+  });
+  it("Home connected shows only progression and CTA", () => {
+    render(<HomeProgressionCard />); expect(screen.getByText("Niveau 1")).toBeTruthy();
+    expect(screen.getByText("0 / 100 XP")).toBeTruthy(); expect(screen.queryByText("Missions")).toBeNull();
+  });
+  it.each([0,100,150])("progression page renders canonical values for %i XP", (xp) => {
+    const summary = getProgression(xp); hook.mockReturnValue({status:"ready",userId:"me",summary,recentEvents:[]}); render(<ProgressionPage />);
+    expect(screen.getByRole("heading",{level:1}).textContent).toBe(`Niveau ${summary.level}`);
+    expect(screen.getByText(`${summary.xpIntoLevel} / ${summary.xpForNextLevel} XP`)).toBeTruthy();
+    expect(screen.getByText(`${summary.xpRemaining} XP avant le niveau ${summary.level+1}`)).toBeTruthy();
+    expect(screen.getByText("Missions")).toBeTruthy(); expect(screen.getByText("Récompenses")).toBeTruthy();
+    expect(screen.queryByText("Gagner 3 parties")).toBeNull();
+  });
+  it("provides signed-out login with a return path", () => {
+    hook.mockReturnValue({status:"signed-out"}); render(<ProgressionPage />);
+    expect(screen.getByRole("link").getAttribute("href")).toBe("/login?next=%2Fprogression");
+  });
+  it.each(["loading","error"])("keeps a clean %s state", (status) => {
+    hook.mockReturnValue({status,userId:"me",error:"Impossible de charger ta progression.",refresh:vi.fn()}); render(<ProgressionPage />);
+    expect(screen.getByRole("status")).toBeTruthy(); expect(screen.queryByRole("progressbar")).toBeNull();
+  });
+  it("recent XP uses product labels without source IDs", () => {
+    hook.mockReturnValue({status:"ready",summary:getProgression(80),recentEvents:[{amount:30,sourceType:"solo_game",createdAt:"2026-09-30T12:00:00Z"},{amount:50,sourceType:"multiplayer_game",createdAt:"2026-09-30T11:00:00Z"}]});
+    const {container} = render(<ProgressionPage />);
+    expect(screen.getByText("+30 XP · Partie Solo")).toBeTruthy(); expect(screen.getByText("+50 XP · Multijoueur")).toBeTruthy();
+    expect(container.textContent).not.toContain("source_id");
+  });
+});

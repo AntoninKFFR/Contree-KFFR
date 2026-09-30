@@ -12,3 +12,20 @@ export async function getMyProgression(supabase: SupabaseClient): Promise<Progre
   }
   return getProgression(data.total_xp);
 }
+
+export type RecentXpEvent = { amount: number; sourceType: string; createdAt: string };
+
+/** Existing owner SELECT RLS; no source identity is exposed to presentation. */
+export async function getMyRecentXpEvents(supabase: SupabaseClient): Promise<RecentXpEvent[]> {
+  const { data, error } = await supabase.from("progression_xp_events")
+    .select("amount,source_type,created_at").order("created_at", { ascending: false })
+    .order("id", { ascending: false }).limit(5);
+  if (error) throw error;
+  return (data ?? []).map((row) => {
+    if (!Number.isSafeInteger(row.amount) || row.amount <= 0 || typeof row.source_type !== "string"
+      || typeof row.created_at !== "string" || !Number.isFinite(Date.parse(row.created_at))) {
+      throw new Error("Invalid progression event");
+    }
+    return { amount: row.amount, sourceType: row.source_type, createdAt: row.created_at };
+  });
+}

@@ -1,3 +1,4 @@
+import { notifyProgressionChanged } from "@/lib/progression/events";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import type { SoloSession, SoloTransport } from "./sessionTypes";
 
@@ -23,6 +24,7 @@ async function call(path: string, token: string, body?: unknown): Promise<SoloSe
         throw error;
       }
       const { data } = await response.json() as { data: SoloSession };
+      if (data.state.phase === "game-over") notifyProgressionChanged();
       return data;
     } catch (error) {
       if (attempt === 2 || (error && typeof error === "object" && "terminal" in error)) throw error;

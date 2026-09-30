@@ -4,7 +4,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import HomePage from "@/app/page";
 import { KffrLogo } from "@/components/ui/KffrLogo";
+import { ProgressionProvider } from "@/components/progression/ProgressionProvider";
 
+vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 vi.stubGlobal("React", React);
 
 describe("KFFR branding", () => {
@@ -31,7 +33,7 @@ describe("KFFR branding", () => {
   });
 
   it("uses the full KFFR logo instead of playing cards as the home hero visual", () => {
-    const markup = renderToStaticMarkup(React.createElement(HomePage));
+    const markup = renderToStaticMarkup(React.createElement(ProgressionProvider, null, React.createElement(HomePage)));
     const homeSource = readFileSync("app/page.tsx", "utf8");
     const shellSource = readFileSync("components/ui/AppShell.tsx", "utf8");
 

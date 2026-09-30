@@ -78,10 +78,10 @@ test.describe("@social global notifications with two accounts", () => {
       if (!a || !b) throw new Error("Two authenticated pages required");
       const assertSafeA = monitorSocialPrivacy(a);
       const assertSafeB = monitorSocialPrivacy(b);
-      await expect.poll(async () => (await a!.locator('a[href="/profile"]').first().innerText()).trim()).not.toBe("Profil");
-      await expect.poll(async () => (await b!.locator('a[href="/profile"]').first().innerText()).trim()).not.toBe("Profil");
-      const usernameA = (await a.locator('a[href="/profile"]').first().innerText()).trim();
-      const usernameB = (await b.locator('a[href="/profile"]').first().innerText()).trim();
+      await expect.poll(async () => (await a!.locator('.progression-account-name').first().innerText()).trim()).not.toBe("Profil");
+      await expect.poll(async () => (await b!.locator('.progression-account-name').first().innerText()).trim()).not.toBe("Profil");
+      const usernameA = (await a.locator('.progression-account-name').first().innerText()).trim();
+      const usernameB = (await b.locator('.progression-account-name').first().innerText()).trim();
       const identityA = await socialApi<{ friends: Array<{ userId: string }> }>(a, "/api/social");
       const identityB = await socialApi<{ friends: Array<{ userId: string }> }>(b, "/api/social");
       const aId = (await a.evaluate(() => {
@@ -239,9 +239,9 @@ test('@social Duo friend invitation joins the shared lobby without a code', asyn
     }
     await b.goto('/training');
     await a.goto('/friends');
-    for (const page of [a,b]) await expect.poll(async () => (await page.locator('a[href="/profile"]').first().innerText()).trim()).not.toBe("Profil");
-    const usernameA = (await a.locator('a[href="/profile"]').first().innerText()).trim();
-    const usernameB = (await b.locator('a[href="/profile"]').first().innerText()).trim();
+    for (const page of [a,b]) await expect.poll(async () => (await page.locator('.progression-account-name').first().innerText()).trim()).not.toBe("Profil");
+    const usernameA = (await a.locator('.progression-account-name').first().innerText()).trim();
+    const usernameB = (await b.locator('.progression-account-name').first().innerText()).trim();
     await a.locator('.friend-presence-row').filter({hasText:usernameB}).getByRole('button',{name:'S’entraîner'}).click();
     const dialog = a.getByRole('dialog',{name:'S’entraîner avec '+usernameB});
     await dialog.getByRole('combobox',{name:'Niveau'}).selectOption('2');

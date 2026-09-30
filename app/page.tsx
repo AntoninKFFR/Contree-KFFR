@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HomeProgressionCard } from "@/components/progression/ProgressionCard";
 import type { Metadata } from "next";
 import { AppPage, appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { KffrLogo } from "@/components/ui/KffrLogo";
@@ -29,6 +30,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      <HomeProgressionCard />
     </AppPage>
   );
 }

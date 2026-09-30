@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ProfileProgressionCard } from "@/components/progression/ProgressionCard";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
@@ -236,6 +237,8 @@ export default function ProfilePage() {
           {identityMessage ? <p className="mt-2 text-sm text-[var(--text-secondary)]" role="status">{identityMessage}</p> : null}
         </AppSurface>
       </div>
+
+      <ProfileProgressionCard />
 
       <div aria-label="Mode des statistiques" className="flex gap-2" role="tablist">
         <button aria-controls="player-stats-panel" aria-selected={statsMode === "solo"} className={appSegmentedItemClass} id="solo-stats-tab" onClick={() => setStatsMode("solo")} role="tab" type="button">Solo</button>
