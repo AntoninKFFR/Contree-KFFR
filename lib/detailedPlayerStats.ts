@@ -13,7 +13,8 @@ export type PlayerStatsGame = {
 };
 
 export type SuitStats = { suit: Suit; contracts: number; share: number | null; successRate: number | null; averageBid: number | null };
-export type ContractValueStats = { value: BidValue; contracts: number; successes: number; successRate: number | null };
+/** `share`: part of the team's numeric contracts at this value, in whole percents adding up to exactly 100. */
+export type ContractValueStats = { value: BidValue; contracts: number; successes: number; successRate: number | null; share: number | null };
 export type ContractZoneStats = { label: "Prudent" | "Intermédiaire" | "Agressif"; range: string; contracts: number; successRate: number | null };
 export type FallBandStats = { label: "Serrées" | "Moyennes" | "Grosses"; contracts: number; share: number | null };
 export type SpecialModeStats = { mode: "no-trump" | "all-trump"; contracts: number; successRate: number | null; averageBid: number | null };
@@ -34,9 +35,8 @@ export type DetailedPlayerStats = {
   personalContracts: number | null; personalSuccessRate: number | null;
   personalAverageBid: number | null; personalAverageTakerPoints: number | null; personalAverageBidDifference: number | null;
   partnerContracts: number | null; partnerSuccessRate: number | null;
-  medianBid: number | null; averageSuccessfulBid: number | null; averageFailedBid: number | null;
+  averageSuccessfulBid: number | null; averageFailedBid: number | null;
   averageSuccessfulMargin: number | null;
-  personalAtLeast120Rate: number | null; personalAtLeast130Rate: number | null;
   bidValues: ContractValueStats[]; contractZones: ContractZoneStats[];
   fallBands: FallBandStats[]; fallTotal: number;
   defenseSuccessRate: number | null; averageDefensePoints: number | null;
@@ -59,11 +59,22 @@ const average = (sum: number, count: number): number | null => count ? Math.roun
 const otherTeam = (team: TeamId): TeamId => team === 0 ? 1 : 0;
 const pointBid = (result: Extract<RoundHistoryEntry["result"], { kind: "played" }>): BidValue | null =>
   result.contract.kind === undefined || result.contract.kind === "points" ? result.contract.value : null;
-const median = (values: number[]): number | null => {
-  if (!values.length) return null;
-  const ordered = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(ordered.length / 2);
-  return ordered.length % 2 ? ordered[middle] : (ordered[middle - 1] + ordered[middle]) / 2;
+/** Whole percents adding up to exactly 100 (largest remainder); null for every entry when the total is 0. */
+const wholePercents = (counts: number[]): Array<number | null> => {
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  if (!total) return counts.map(() => null);
+  const exact = counts.map((count) => count * 100 / total);
+  const shares = exact.map(Math.floor);
+  let missing = 100 - shares.reduce((sum, share) => sum + share, 0);
+  const byRemainder = exact
+    .map((value, index) => ({ index, remainder: value - shares[index] }))
+    .sort((a, b) => b.remainder - a.remainder || a.index - b.index);
+  for (const { index } of byRemainder) {
+    if (missing <= 0) break;
+    shares[index]++;
+    missing--;
+  }
+  return shares;
 };
 
 function contractOutcomes(games: PlayerStatsGame[]) {
@@ -138,12 +149,10 @@ export function calculateDetailedPlayerStats(games: PlayerStatsGame[]): Detailed
   let defenseTenDeDerKnown = 0, defenseTenDeDerWon = 0;
   let personalContracts = 0, personalWins = 0, partnerContracts = 0, partnerWins = 0;
   let personalPointContracts = 0, personalBidSum = 0, personalTakerPoints = 0;
-  let personalAtLeast120 = 0, personalAtLeast130 = 0;
   let successfulBidSum = 0, successfulBidCount = 0, failedBidSum = 0, failedBidCount = 0;
   let successfulMarginSum = 0;
   let winningCoincheGapSum = 0, winningCoincheGapCount = 0;
   let personalCoinchedMarginSum = 0, personalCoinchedMarginCount = 0;
-  const pointBids: number[] = [];
   const fallCounts = { Serrées: 0, Moyennes: 0, Grosses: 0 };
   const bidCounts = new Map<BidValue, { contracts: number; successes: number }>(BID_VALUES.map((value) => [value, { contracts: 0, successes: 0 }]));
   const suitCounts = new Map<Suit, { contracts: number; successes: number; bidSum: number; bidCount: number }>(SUITS.map((suit) => [suit, { contracts: 0, successes: 0, bidSum: 0, bidCount: 0 }]));
@@ -180,8 +189,6 @@ export function calculateDetailedPlayerStats(games: PlayerStatsGame[]): Detailed
           personalPointContracts++;
           personalBidSum += bid;
           personalTakerPoints += result.takerPoints;
-          if (bid >= 120) personalAtLeast120++;
-          if (bid >= 130) personalAtLeast130++;
         }
       } else {
         partnerContracts++;
@@ -210,7 +217,6 @@ export function calculateDetailedPlayerStats(games: PlayerStatsGame[]): Detailed
       // A numerical bid can be compared to the canonical taker points; Capot/Générale cannot.
       if (bid !== null) {
         pointContracts++;
-        pointBids.push(bid);
         bidSum += bid;
         takerPointSum += result.takerPoints;
         const byValue = bidCounts.get(bid)!;
@@ -259,9 +265,13 @@ export function calculateDetailedPlayerStats(games: PlayerStatsGame[]): Detailed
 
   const suitContractTotal = [...suitCounts.values()].reduce((sum, item) => sum + item.contracts, 0);
   const attackShare = percent(attackRounds, attackRounds + defenseRounds);
-  const bidValues: ContractValueStats[] = BID_VALUES.map((value) => {
+  const shares = wholePercents(BID_VALUES.map((value) => bidCounts.get(value)!.contracts));
+  const bidValues: ContractValueStats[] = BID_VALUES.map((value, index) => {
     const values = bidCounts.get(value)!;
-    return { value, contracts: values.contracts, successes: values.successes, successRate: percent(values.successes, values.contracts) };
+    return {
+      value, contracts: values.contracts, successes: values.successes,
+      successRate: percent(values.successes, values.contracts), share: shares[index],
+    };
   });
   const zones: Array<{ label: ContractZoneStats["label"]; range: string; values: BidValue[] }> = [
     { label: "Prudent", range: "80–100", values: [80, 90, 100] },
@@ -319,10 +329,8 @@ export function calculateDetailedPlayerStats(games: PlayerStatsGame[]): Detailed
     personalAverageTakerPoints: average(personalTakerPoints, personalPointContracts),
     personalAverageBidDifference: average(personalTakerPoints - personalBidSum, personalPointContracts),
     partnerContracts: hasRoundData ? partnerContracts : null, partnerSuccessRate: percent(partnerWins, partnerContracts),
-    medianBid: median(pointBids), averageSuccessfulBid: average(successfulBidSum, successfulBidCount),
+    averageSuccessfulBid: average(successfulBidSum, successfulBidCount),
     averageFailedBid: average(failedBidSum, failedBidCount), averageSuccessfulMargin: average(successfulMarginSum, successfulBidCount),
-    personalAtLeast120Rate: percent(personalAtLeast120, personalPointContracts),
-    personalAtLeast130Rate: percent(personalAtLeast130, personalPointContracts),
     bidValues, contractZones, fallBands, fallTotal,
     defenseSuccessRate: percent(defenseWins, defenseRounds), averageDefensePoints: average(defensePointSum, defenseRounds),
     averageDefeatedContractGap: average(defeatedGapSum, defeatedPointContracts),

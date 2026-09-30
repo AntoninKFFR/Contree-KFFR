@@ -109,12 +109,25 @@ export function DetailedStatsDashboard({ stats }: { stats: DetailedPlayerStats }
       <AppEyebrow>Zone de confort</AppEyebrow>
       <div className="mt-3 grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
         <div className="space-y-1">
-          {stats.bidValues.map(({ value, contracts, successes, successRate }) => <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_7.5rem] items-center gap-2 text-xs sm:grid-cols-[3rem_minmax(0,1fr)_9rem]" key={value}>
-            <strong className="tabular-nums">{value}</strong>
-            <div aria-label={`Contrat ${value} : ${rate(successRate)}, ${successes} réussi${successes > 1 ? "s" : ""} sur ${contracts}`} className="h-3 overflow-hidden rounded-full bg-[color:var(--surface-muted)]" role="img"><div className="h-full rounded-full bg-[color:var(--stats-accent)]" style={{ width: `${successRate ?? 0}%` }} /></div>
-            <span className="text-right tabular-nums text-[color:var(--text-secondary)]">{rate(successRate)} · {contracts ? `${successes}/${contracts}` : "—"}</span>
-          </div>)}
-          <p className="pt-1 text-xs text-[color:var(--text-secondary)]">Taux · contrats réussis / contrats joués</p>
+          {/* A distribution: bar widths are shares of the team's contracts and add up to 100 %. */}
+          {stats.bidValues.map(({ value, contracts, successes, share }) => {
+            const failures = contracts - successes;
+            return <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_7.5rem] items-center gap-2 text-xs sm:grid-cols-[3rem_minmax(0,1fr)_9rem]" key={value}>
+              <strong className="tabular-nums">{value}</strong>
+              <div aria-label={`Contrat ${value} : ${rate(share)} des contrats, ${successes} réussi${successes > 1 ? "s" : ""} et ${failures} chuté${failures > 1 ? "s" : ""}`} className="h-3 overflow-hidden rounded-full bg-[color:var(--surface-muted)]" role="img">
+                {contracts ? <div className="flex h-full overflow-hidden rounded-full" style={{ width: `${share ?? 0}%` }}>
+                  {successes ? <span aria-hidden="true" className="h-full basis-0 bg-[color:var(--stats-accent)]" style={{ flexGrow: successes }} /> : null}
+                  {failures ? <span aria-hidden="true" className="h-full basis-0 bg-[color:var(--stats-danger)]" style={{ flexGrow: failures }} /> : null}
+                </div> : null}
+              </div>
+              <span className="text-right tabular-nums text-[color:var(--text-secondary)]">{rate(share)} · {contracts ? `${successes}/${contracts}` : "—"}</span>
+            </div>;
+          })}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs text-[color:var(--text-secondary)]">
+            <span>Part des contrats de l&apos;équipe · réussis / joués</span>
+            <span className="flex items-center gap-1.5"><span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-[color:var(--stats-accent)]" />Réussis</span>
+            <span className="flex items-center gap-1.5"><span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-[color:var(--stats-danger)]" />Chutés</span>
+          </div>
         </div>
         <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
           {stats.contractZones.map((zone) => <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-muted)] px-3 py-2" key={zone.label}>
@@ -124,12 +137,11 @@ export function DetailedStatsDashboard({ stats }: { stats: DetailedPlayerStats }
         </div>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Metric label="Contrat médian" value={number(stats.medianBid)} />
+        <Metric label="Contrat moyen" value={number(stats.averageBid)} />
         <Metric label="Moyenne réussis" value={number(stats.averageSuccessfulBid)} />
         <Metric label="Moyenne chutés" value={number(stats.averageFailedBid)} />
         <Metric label="Marge réussite" value={signed(stats.averageSuccessfulMargin)} />
       </div>
-      <div className="mt-3 grid gap-x-6 sm:grid-cols-2"><Line label="Mes contrats classiques ≥ 120" value={rate(stats.personalAtLeast120Rate)} /><Line label="Mes contrats classiques ≥ 130" value={rate(stats.personalAtLeast130Rate)} /></div>
     </AppSurface>
 
     <div className="grid gap-4 lg:grid-cols-2">
