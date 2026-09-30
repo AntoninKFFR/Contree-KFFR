@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { notifyProgressionChanged } from "@/lib/progression/events";
+import { shouldInvalidateProgressionForRoomTransition } from "@/lib/progression/roomTransition";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { PRESENCE_HEARTBEAT_INTERVAL_MS } from "@/lib/multiplayerPresence";
 import { ensureProfile } from "@/lib/profiles";
@@ -224,9 +226,20 @@ export function useMultiplayerRoomSync(
   const [localDisplayName, setLocalDisplayName] = useState("Joueur");
   const [profileUsername, setProfileUsername] = useState<string | null>(null);
   const [roomWithPlayers, setRoomWithPlayers] = useState<MultiplayerRoomView | null>(null);
+  const previousRoomView = useRef<MultiplayerRoomView | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const accessToken = session?.access_token ?? null;
   const viewerSeatIndex = roomWithPlayers?.viewerSeatIndex ?? null;
+
+  // All loads, actions, ticks and heartbeats share this committed view. Keep the
+  // event outside state updater functions, which React may replay in StrictMode.
+  useEffect(() => {
+    const previous = previousRoomView.current;
+    previousRoomView.current = roomWithPlayers;
+    if (roomWithPlayers && shouldInvalidateProgressionForRoomTransition(previous, roomWithPlayers)) {
+      notifyProgressionChanged();
+    }
+  }, [roomWithPlayers]);
 
   const loadRoom = useCallback((options: LoadRoomOptions = {}) => loadMultiplayerRoom({
     options,

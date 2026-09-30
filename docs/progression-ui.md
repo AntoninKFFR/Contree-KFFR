@@ -10,11 +10,18 @@ formula. UI components never credit XP or compute another level curve.
 Reads occur after session initialization/account changes, navigation, explicit
 retry, returning to a visible window, reconnecting, and `PROGRESSION_CHANGED_EVENT`.
 `notifyProgressionChanged()` emits that signal after a successful server Solo
-`game-over` response or a Multi `finished`/`game-over` response. Repeated signals
+`game-over` response or when `useMultiplayerRoomSync` applies a new terminal Multi
+view. `shouldInvalidateProgressionForRoomTransition` compares room ID, game ID,
+room status and game phase against the previous committed view. An initial
+finished room invalidates once; repeated terminal heartbeats/loads do not. A new
+game ID can invalidate again when it finishes. The generic Multi transport only
+returns data. Detection runs in an effect, never in a replayable state updater.
+Repeated signals
 are debounced for 150 ms; concurrent reads coalesce into one subsequent read.
-There is no periodic progression polling. Existing game transports may repeat
-terminal responses, which safely request another read (including delayed outbox
-completion). No event handler invokes an XP write RPC.
+There is no periodic progression polling. Presence heartbeats remain active and
+update room views without repeatedly invalidating the same finished game. Delayed
+outbox completion is reflected on navigation/focus/online or explicit refresh.
+No event handler invokes an XP write RPC.
 
 Account changes clear the snapshot immediately. An epoch discards obsolete
 requests; logout clears XP and recent events. Errors preserve the rest of the
