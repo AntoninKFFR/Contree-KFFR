@@ -186,12 +186,19 @@ async function testFriendProfileSecurity() {
   assert.deepEqual(result.multiplayer,result.solo); assert.equal(result.rating,null);
   assert.deepEqual(Object.keys(result).sort(),["userId","username","level","equipped","solo","multiplayer","rating"].sort());
   assert.equal(checked(await admin.from("player_progression").select("user_id").eq("user_id",b.id),"virtual level").length,0);
-  // The dedicated projection does not weaken underlying owner reads.
+  checked(await admin.rpc("credit_progression_xp", { p_user_id:b.id,p_amount:550,p_source_type:"permanent_mission",p_source_id:`friend-profile-security-${b.id}` }), "seed private progression");
+  await rpc(b,"set_my_profile_cosmetic",{p_slot:"title",p_cosmetic_key:"title_taker"});
+  checked(await admin.from("games").insert({user_id:b.id,won:true,scoring_mode:"announced-points",player_score:1000,bot_score:500,target_score:1000}), "seed private Solo");
+  checked(await admin.from("player_ratings").insert({user_id:b.id}), "seed private rating");
+  const equippedProfile=await rpc(a,"get_friend_profile",{p_friend_id:b.id});
+  assert.equal(equippedProfile.level,5); assert.equal(equippedProfile.equipped.title.key,"title_taker");
+  assert.deepEqual(equippedProfile.solo,{games:1,wins:1,losses:0,winrate:100});
+  // The dedicated projection does not weaken owner reads, even for populated rows.
   for (const table of ["games","player_progression","profile_cosmetic_unlocks","profile_cosmetic_equipment","player_ratings"]) {
     const rows=await a.client.from(table).select("user_id").eq("user_id",b.id);
     if (!rows.error) assert.deepEqual(rows.data,[]);
   }
-  assert.equal((await rpc(a,"get_my_social_snapshot")).friends[0].level,1);
+  assert.equal((await rpc(a,"get_my_social_snapshot")).friends[0].level,5);
   await rpc(a,"remove_friend",{p_other_user_id:b.id});
   await rejected(a.client.rpc("get_friend_profile",{p_friend_id:b.id}),/^friend_profile_unavailable$/);
   await rpc(a,"cancel_friend_request",{p_request_id:pending.id});
