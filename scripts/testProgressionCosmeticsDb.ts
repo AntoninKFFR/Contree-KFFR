@@ -257,6 +257,7 @@ try {
     await page.getByLabel("Email").fill(a.email);
     await page.getByLabel("Mot de passe").fill(a.password);
     await page
+      .locator("form")
       .getByRole("button", { name: "Se connecter", exact: true })
       .click();
     await page.waitForURL((url) => url.pathname !== "/login");
