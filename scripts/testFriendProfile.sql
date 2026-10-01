@@ -26,7 +26,7 @@ begin
   exception when sqlstate 'P0001' then if sqlerrm<>'friend_profile_unavailable' then raise;end if;end;
   perform set_config('request.jwt.claim.sub',a::text,true);
   insert into public.games(user_id,won,scoring_mode,player_score,bot_score,target_score)
-    select b,i<=6,'announced-points',1000,500,1000 from generate_series(1,10) i;
+    select b,series.n<=6,'announced-points',1000,500,1000 from generate_series(1,10) as series(n);
   for i in 1..5 loop
     game:=gen_random_uuid();
     insert into public.multiplayer_games(id,started_at,finished_at,scoring_mode,target_score,team_0_score,team_1_score,winner_team,end_reason,forfeiting_team,round_count)
