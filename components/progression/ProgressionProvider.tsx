@@ -138,18 +138,16 @@ export function ProgressionProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
   useEffect(() => {
     if (snapshot.status !== "ready" || !snapshot.weeklySnapshot || snapshot.weeklyError) return;
-    const resetAt = Date.parse(snapshot.weeklySnapshot.nextResetAt);
-    const resetKey = `${snapshot.userId}:${snapshot.weeklySnapshot.nextResetAt}`;
+    const {serverNow, nextResetAt} = snapshot.weeklySnapshot;
+    // Guard only an exact replay of an already consumed server snapshot. A newer
+    // serverNow in the same week must be allowed to arm its own one-shot timer.
+    const resetKey = `${snapshot.userId}:${serverNow}:${nextResetAt}`;
     if (resetAttemptRef.current === resetKey) return;
-    let resetTimer: ReturnType<typeof setTimeout>;
-    const arm = () => {
-      const remaining = resetAt - Date.now();
-      resetTimer = setTimeout(() => {
-        if (resetAt > Date.now()) arm();
-        else {resetAttemptRef.current = resetKey; refresh();}
-      }, Math.max(0, Math.min(remaining, 2_147_483_647)));
-    };
-    arm();
+    const delay = Math.max(0, Date.parse(nextResetAt) - Date.parse(serverNow)) + 1000;
+    const resetTimer = setTimeout(() => {
+      resetAttemptRef.current = resetKey;
+      refresh();
+    }, delay);
     return () => clearTimeout(resetTimer);
   }, [snapshot.status, snapshot.userId, snapshot.weeklySnapshot, snapshot.weeklyError, refresh]);
   return <Context.Provider value={{...snapshot,loading:snapshot.status === "loading",signedOut:snapshot.status === "signed-out",refresh}}>{children}</Context.Provider>;

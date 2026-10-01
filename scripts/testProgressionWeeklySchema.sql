@@ -181,4 +181,16 @@ begin
   if (select total_xp from public.player_progression where user_id=u)<>expected_xp then raise exception 'trusted transaction reward mismatch %',mode;end if;
  end loop;
 end $$;
+-- All read timestamps derive from the same DB statement, independently of clients.
+do $$ declare u uuid:=gen_random_uuid(); snapshot jsonb; server_at timestamptz;
+begin
+ insert into auth.users(id) values(u);
+ perform set_config('request.jwt.claim.sub',u::text,true);
+ snapshot:=public.get_my_weekly_missions();server_at:=(snapshot->>'serverNow')::timestamptz;
+ if server_at is distinct from statement_timestamp()
+ or (snapshot->>'weekStart')::date is distinct from private.weekly_week_start(server_at)
+ or (snapshot->>'nextResetAt')::timestamptz is distinct from private.weekly_next_reset(private.weekly_week_start(server_at))
+ or server_at >= (snapshot->>'nextResetAt')::timestamptz then raise exception 'incoherent weekly server clock';end if;
+ if exists(select 1 from public.progression_weekly_progress where user_id=u) then raise exception 'read created progress';end if;
+end $$;
 rollback;

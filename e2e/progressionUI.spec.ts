@@ -27,7 +27,7 @@ async function fixture(page: Page, theme: "dark" | "light", signedIn = true) {
     }
     else if (path.endsWith("/get_my_weekly_missions")) {
       if (weeklyFailure) {await route.fulfill({status:500,body:"weekly failure"});return;}
-      data = {catalogVersion:1,weekStart:"2026-09-28",nextResetAt:"2026-10-04T22:00:00Z",missions:[
+      data = {catalogVersion:1,weekStart:"2026-09-28",serverNow:"2026-09-30T12:00:00Z",nextResetAt:"2026-10-04T22:00:00Z",missions:[
         {key:"wins",target:3,progress:3,rewardXp:300,completed:true,completedAt:"2026-10-01T00:00:00Z"},
         {key:"solo_games",target:3,progress:1,rewardXp:200,completed:false,completedAt:null},
         {key:"training_series",target:3,progress:0,rewardXp:200,completed:false,completedAt:null}]};

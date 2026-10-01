@@ -144,7 +144,8 @@ revoke all on function private.weekly_week_start(timestamptz),private.weekly_nex
 -- browser-executable. Reading this definer RPC never creates progress rows.
 create function public.get_my_weekly_missions() returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
-declare v_user uuid := auth.uid(); v_week date := private.weekly_week_start(statement_timestamp()); v_missions jsonb; v_version integer;
+declare v_user uuid := auth.uid(); v_now timestamptz := statement_timestamp();
+  v_week date := private.weekly_week_start(v_now); v_missions jsonb; v_version integer;
 begin
   if v_user is null then raise exception 'authentication_required' using errcode='28000'; end if;
   select version into v_version from public.progression_weekly_catalog_versions where active_from_week <= v_week order by active_from_week desc limit 1;
@@ -152,7 +153,7 @@ begin
     'rewardXp',m.reward_xp,'completed',p.completed_at is not null,'completedAt',p.completed_at) order by m.sort_order)
     into v_missions from private.get_weekly_selection(v_week) m left join public.progression_weekly_progress p
     on p.user_id=v_user and p.week_start=v_week and p.catalog_version=m.catalog_version and p.mission_key=m.key;
-  return jsonb_build_object('catalogVersion',v_version,'weekStart',v_week,'nextResetAt',private.weekly_next_reset(v_week),'missions',coalesce(v_missions,'[]'::jsonb));
+  return jsonb_build_object('catalogVersion',v_version,'weekStart',v_week,'serverNow',v_now,'nextResetAt',private.weekly_next_reset(v_week),'missions',coalesce(v_missions,'[]'::jsonb));
 end;
 $$;
 revoke all on function public.get_my_weekly_missions() from public,anon,authenticated,service_role;

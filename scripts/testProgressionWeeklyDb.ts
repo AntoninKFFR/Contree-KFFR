@@ -73,7 +73,7 @@ try {
   }
   assert.equal(await total(who),480+rewards);
   const before=await getMyWeeklyMissions(who.client);for(const id of games)assert.equal(checked(await admin.rpc("apply_progression_multiplayer_game",{p_game_id:id})),"already_applied");
-  assert.deepEqual(await getMyWeeklyMissions(who.client),before);
+  const after=await getMyWeeklyMissions(who.client);assert.deepEqual({...after,serverNow:before.serverNow},before);
  }
  console.log("Weekly real JWT snapshot/no-write/RLS/grants, verified Training steps and combined rewards, fake modes, concurrent reversed-seat Multi and outbox retries passed.");
 } finally {

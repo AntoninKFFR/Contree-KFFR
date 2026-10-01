@@ -76,18 +76,21 @@ processing_at existe uniquement dans le helper privé pour des tests temporels.
 
 `get_my_weekly_missions()` sans argument dérive auth.uid(), filtre explicitement
 le compte courant et ne crée aucune ligne. JSON : catalogVersion, weekStart,
-nextResetAt, missions [{key,target,progress,rewardXp,completed,completedAt}].
+serverNow, nextResetAt, missions [{key,target,progress,rewardXp,completed,completedAt}].
 Compte neuf : trois objectifs à zéro. La query valide ce contrat et retire les
 identités techniques. TypeScript ne contient que copie produit ; descriptions
 interpolent le target du serveur.
 
 Le Provider charge weekly avec XP/récents/permanent et isole weeklyError.
 Il conserve l’événement partagé, debounce 150 ms, coalescing et refresh existants.
-Un seul timeout jusqu’à nextResetAt invalide la lecture ; les délais supérieurs
-au maximum JS sont réarmés séquentiellement. Cleanup sur compte, erreur et unmount,
-StrictMode couvert. Un reset déjà tenté n’est pas repollé si une réponse périmée
-revient. Focus/navigation/online permettent ensuite de récupérer une erreur.
-Le nouveau snapshot programme le prochain reset, sans hard refresh.
+Un timeout par snapshot utilise `max(0, nextResetAt - serverNow) + 1000 ms`,
+avec le meme statement_timestamp DB pour serverNow et week_start. Le delai reste
+sous sept jours et une heure (DST), sans dependre de l'horloge absolue du PC.
+Cleanup sur compte, erreur et unmount ; StrictMode couvert. Seul le rejeu exact
+(serverNow/reset) d'un snapshot consomme est ignore, sans bloquer une lecture
+plus recente de la meme semaine. Aucun polling ni retry reseau automatique.
+Le nouveau snapshot programme le reset suivant. Le countdown part de serverNow
+et mesure le temps ecoule avec performance.now(), sans timezone navigateur.
 
 Cette semaine précède Missions de départ sur /progression : trois cartes, compteur,
 barre ARIA plafonnée, reward, Terminé et reset commun. Home reste serveur et utilise

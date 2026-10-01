@@ -8,7 +8,7 @@ export const weeklyMissionCopy = {
 } as const;
 export type WeeklyMissionKey = keyof typeof weeklyMissionCopy;
 export type WeeklyMission = {key: WeeklyMissionKey; target: number; progress: number; rewardXp: number; completed: boolean; completedAt: string | null};
-export type WeeklySnapshot = {catalogVersion: number; weekStart: string; nextResetAt: string; missions: WeeklyMission[]};
+export type WeeklySnapshot = {catalogVersion: number; weekStart: string; serverNow: string; nextResetAt: string; missions: WeeklyMission[]};
 
 export function resetRemainingLabel(nextResetAt: string, now: number) {
   const minutes = Math.max(0, Math.ceil((Date.parse(nextResetAt)-now)/60000));

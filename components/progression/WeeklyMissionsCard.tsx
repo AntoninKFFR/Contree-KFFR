@@ -13,9 +13,15 @@ export function WeeklyProgressBar({mission,mini = false}: {mission: WeeklyMissio
     aria-valuemin={0} aria-valuemax={mission.target} aria-valuenow={progress}>
     <span style={{width:`${100*progress/mission.target}%`}} /></div>;
 }
-function ResetLabel({at}: {at: string}) {
+function ResetLabel({at,serverNow}: {at: string; serverNow: string}) {
   const [now,setNow] = useState<number | null>(null);
-  useEffect(() => {setNow(Date.now()); const timer = setInterval(() => setNow(Date.now()),60000);return () => clearInterval(timer);},[at]);
+  useEffect(() => {
+    const started = performance.now(), serverTime = Date.parse(serverNow);
+    const update = () => setNow(serverTime + performance.now() - started);
+    update();
+    const timer = setInterval(update,60000);
+    return () => clearInterval(timer);
+  },[at,serverNow]);
   return <p className="mt-2 text-xs text-[var(--text-secondary)]">{now === null ? "Reset lundi à 00:00 · Europe/Paris" : resetRemainingLabel(at,now)}</p>;
 }
 export function WeeklyMissionsCard({compact = false}: {compact?: boolean}) {
@@ -25,7 +31,7 @@ export function WeeklyMissionsCard({compact = false}: {compact?: boolean}) {
   return <AppSurface className="weekly-missions-card"><h2 className="font-black text-[var(--text-primary)]">Cette semaine</h2>
     {status !== "ready" ? <p className="mt-3 text-sm text-[var(--text-secondary)]">Chargement des missions hebdomadaires…</p>
       : weeklyError || !weeklySnapshot ? <p className="mt-3 text-sm text-[var(--text-secondary)]">Les missions hebdomadaires sont momentanément indisponibles.</p>
-        : <><ResetLabel at={weeklySnapshot.nextResetAt} /><ul aria-label="Missions hebdomadaires" className={compact ? "mt-3 grid gap-3 sm:grid-cols-3" : "mt-4 grid gap-4 md:grid-cols-3"}>
+        : <><ResetLabel at={weeklySnapshot.nextResetAt} serverNow={weeklySnapshot.serverNow} /><ul aria-label="Missions hebdomadaires" className={compact ? "mt-3 grid gap-3 sm:grid-cols-3" : "mt-4 grid gap-4 md:grid-cols-3"}>
           {missions.map(m => <li key={m.key} className={compact ? "min-w-0" : "min-w-0 rounded-2xl border border-[var(--border)] p-4"}>
             <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-bold text-[var(--text-primary)]">{weeklyMissionCopy[m.key].title}</h3>
               <span className={m.completed ? "text-xs font-bold text-[var(--accent)]" : "text-xs text-[var(--text-secondary)]"}>{m.completed && compact ? "✓ Terminé" : `${m.progress} / ${m.target}`}</span></div>

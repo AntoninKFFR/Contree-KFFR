@@ -53,7 +53,10 @@ export async function getMyWeeklyMissions(supabase: SupabaseClient): Promise<Wee
   if (!data || !Number.isSafeInteger(data.catalogVersion) || data.catalogVersion < 1
     || typeof data.weekStart !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(data.weekStart)
     || !Number.isFinite(Date.parse(data.weekStart)) || typeof data.nextResetAt !== "string"
-    || !Number.isFinite(Date.parse(data.nextResetAt)) || !Array.isArray(data.missions) || data.missions.length !== 3
+    || !Number.isFinite(Date.parse(data.nextResetAt)) || typeof data.serverNow !== "string"
+    || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(data.serverNow)
+    || !Number.isFinite(Date.parse(data.serverNow)) || Date.parse(data.serverNow) >= Date.parse(data.nextResetAt)
+    || Date.parse(data.nextResetAt) - Date.parse(data.serverNow) > 169 * 3600000 || !Array.isArray(data.missions) || data.missions.length !== 3
     || new Set(data.missions.map((m: {key:unknown}) => m?.key)).size !== 3) throw new Error("Invalid weekly snapshot");
   const missions = data.missions.map((m: Record<string,unknown>) => {
     if (!m || typeof m.key !== "string" || !Object.hasOwn(weeklyMissionCopy,m.key)
@@ -63,5 +66,5 @@ export async function getMyWeeklyMissions(supabase: SupabaseClient): Promise<Wee
       || (m.completed ? typeof m.completedAt !== "string" || !Number.isFinite(Date.parse(m.completedAt)) : m.completedAt !== null)) throw new Error("Invalid weekly mission");
     return {key:m.key,target:m.target,progress:m.progress,rewardXp:m.rewardXp,completed:m.completed,completedAt:m.completedAt};
   });
-  return {catalogVersion:data.catalogVersion,weekStart:data.weekStart,nextResetAt:data.nextResetAt,missions} as WeeklySnapshot;
+  return {catalogVersion:data.catalogVersion,weekStart:data.weekStart,serverNow:data.serverNow,nextResetAt:data.nextResetAt,missions} as WeeklySnapshot;
 }

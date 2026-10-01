@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react";
-import { render,screen,cleanup,within } from "@testing-library/react";
+import { act,render,screen,cleanup,within } from "@testing-library/react";
 import { afterEach,beforeEach,expect,it,vi } from "vitest";
 import { getMyWeeklyMissions } from "@/lib/progression/queries";
 import { WeeklyMissionsCard,WeeklyProgressBar } from "@/components/progression/WeeklyMissionsCard";
@@ -11,7 +11,7 @@ import { resetRemainingLabel,type WeeklySnapshot } from "@/lib/progression/weekl
 import { xpSourceLabel } from "@/lib/progression/format";
 const hook=vi.hoisted(()=>vi.fn());
 vi.mock("@/components/progression/ProgressionProvider",()=>({useProgression:hook}));
-export const fixture: WeeklySnapshot = {catalogVersion:1,weekStart:"2026-09-28",nextResetAt:"2026-10-04T22:00:00Z",missions:[
+export const fixture: WeeklySnapshot = {catalogVersion:1,weekStart:"2026-09-28",serverNow:"2026-09-30T12:00:00Z",nextResetAt:"2026-10-04T22:00:00Z",missions:[
   {key:"wins",target:3,progress:0,rewardXp:300,completed:false,completedAt:null},
   {key:"solo_games",target:3,progress:2,rewardXp:200,completed:false,completedAt:null},
   {key:"training_series",target:3,progress:3,rewardXp:200,completed:true,completedAt:"2026-10-01T00:00:00Z"},
@@ -22,7 +22,8 @@ it("reads only own weekly data and strips technical fields",async()=>{
  const rpc=vi.fn().mockResolvedValue({data:{...fixture,source_id:"secret"},error:null});
  expect(await getMyWeeklyMissions({rpc} as never)).toEqual(fixture);expect(rpc).toHaveBeenCalledExactlyOnceWith("get_my_weekly_missions");
 });
-it.each([null,{...fixture,missions:[]},{...fixture,catalogVersion:0},{...fixture,nextResetAt:"invalid"},
+it.each([null,{...fixture,missions:[]},{...fixture,catalogVersion:0},{...fixture,nextResetAt:"invalid"},{...fixture,serverNow:"invalid"},{...fixture,serverNow:"2026-09-30"},
+ {...fixture,serverNow:fixture.nextResetAt},{...fixture,serverNow:"2026-10-05T00:00:00Z"},
  {...fixture,missions:[fixture.missions[0],fixture.missions[0],fixture.missions[1]]},
  {...fixture,missions:fixture.missions.map(m=>({...m,progress:4}))},
  {...fixture,missions:fixture.missions.map(m=>({...m,rewardXp:-1}))}])("rejects invalid snapshot %j",async data=>{
@@ -50,4 +51,11 @@ it("signed-out Home has no weekly markup",()=>{hook.mockReturnValue({status:"sig
 it("relative clock has no business date calculation and weekly label hides IDs",()=>{
  expect(resetRemainingLabel(fixture.nextResetAt,Date.parse(fixture.nextResetAt)-3.5*86400000)).toBe("Réinitialisation dans 3 j 12 h");
  expect(resetRemainingLabel(fixture.nextResetAt,Date.parse(fixture.nextResetAt))).toContain("en cours");expect(xpSourceLabel("weekly_mission")).toBe("Mission hebdomadaire");
+});
+
+it.each([600000,-600000])("countdown uses server time despite client clock offset %i",offset=>{
+ vi.useFakeTimers();vi.setSystemTime(new Date(Date.parse(fixture.serverNow)+offset));
+ render(<WeeklyMissionsCard/>);expect(screen.getByText("Réinitialisation dans 4 j 10 h")).toBeTruthy();
+ act(()=>{vi.advanceTimersByTime(3600000);});expect(screen.getByText("Réinitialisation dans 4 j 9 h")).toBeTruthy();
+ cleanup();vi.useRealTimers();
 });

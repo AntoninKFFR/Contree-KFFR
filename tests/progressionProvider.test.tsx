@@ -23,7 +23,7 @@ beforeEach(() => {
   vi.clearAllMocks(); mocks.pathname = "/";
   mocks.subscribe.mockImplementation((callback) => {auth = callback; return {data:{subscription:{unsubscribe:vi.fn()}}};});
   mocks.getSession.mockResolvedValue({data:{session:session("a")},error:null});
-  mocks.query.mockResolvedValue(getProgression(0)); mocks.recent.mockResolvedValue([]); mocks.missions.mockResolvedValue([]); mocks.weekly.mockResolvedValue({catalogVersion:1,weekStart:"2026-09-28",nextResetAt:"2099-01-05T23:00:00Z",missions:[]});
+  mocks.query.mockResolvedValue(getProgression(0)); mocks.recent.mockResolvedValue([]); mocks.missions.mockResolvedValue([]); mocks.weekly.mockResolvedValue({catalogVersion:1,weekStart:"2026-09-28",serverNow:"2098-12-30T12:00:00Z",nextResetAt:"2099-01-05T23:00:00Z",missions:[]});
 });
 afterEach(() => {cleanup(); vi.useRealTimers(); vi.unstubAllGlobals();});
 describe("shared progression read provider", () => {
@@ -120,24 +120,47 @@ it("ignores stale weekly response after account switch",async()=>{
   await waitFor(()=>expect(snapshot().status).toBe("ready"));const current=snapshot().weeklySnapshot;
   await act(async()=>resolve({catalogVersion:99}));expect(snapshot().weeklySnapshot).toEqual(current);
 });
-it.each([false,true])("rollover replaces week without reload, StrictMode=%s, cleanup removes timer",async strict=>{
-  vi.useFakeTimers();vi.setSystemTime(new Date("2026-11-08T22:59:59Z"));
+it.each([0,600000,-600000])("server duration controls rollover with client clock offset %i",async offset=>{
+  const strict=true;
+  vi.useFakeTimers();vi.setSystemTime(new Date(Date.parse("2026-11-08T22:59:59Z")+offset));
   const missions=[{key:"regular_games",target:5,progress:4,rewardXp:300,completed:false,completedAt:null},
     {key:"wins",target:3,progress:2,rewardXp:300,completed:false,completedAt:null},
     {key:"solo_games",target:3,progress:2,rewardXp:200,completed:false,completedAt:null}];
-  const weekA={catalogVersion:1,weekStart:"2026-11-02",nextResetAt:"2026-11-08T23:00:00Z",missions};
-  const weekB={...weekA,weekStart:"2026-11-09",nextResetAt:"2026-11-15T23:00:00Z",missions:missions.map(m=>({...m,progress:0}))};
+  const weekA={catalogVersion:1,weekStart:"2026-11-02",serverNow:"2026-11-08T22:59:59Z",nextResetAt:"2026-11-08T23:00:00Z",missions};
+  const weekB={...weekA,weekStart:"2026-11-09",serverNow:"2026-11-08T23:00:02Z",nextResetAt:"2026-11-15T23:00:00Z",missions:missions.map(m=>({...m,progress:0}))};
   mocks.weekly.mockResolvedValueOnce(weekA).mockResolvedValue(weekB);
   const child=<ProgressionProvider><Consumer/></ProgressionProvider>;
   const view=render(strict ? <React.StrictMode>{child}</React.StrictMode>:child);
   await act(async()=>{await vi.advanceTimersByTimeAsync(200);});expect(snapshot().weeklySnapshot.weekStart).toBe(weekA.weekStart);
-  await act(async()=>{await vi.advanceTimersByTimeAsync(1000);});expect(snapshot().weeklySnapshot.weekStart).toBe(weekB.weekStart);expect(snapshot().weeklySnapshot.missions).toEqual(weekB.missions);
-  expect(mocks.weekly).toHaveBeenCalledTimes(2);view.unmount();expect(vi.getTimerCount()).toBe(0);vi.useRealTimers();
+  await act(async()=>{await vi.advanceTimersByTimeAsync(1999);});expect(mocks.weekly).toHaveBeenCalledTimes(1);
+  await act(async()=>{await vi.advanceTimersByTimeAsync(1);});expect(mocks.weekly).toHaveBeenCalledTimes(1);
+  await act(async()=>{await vi.advanceTimersByTimeAsync(150);});expect(snapshot().weeklySnapshot.weekStart).toBe(weekB.weekStart);expect(snapshot().weeklySnapshot.missions).toEqual(weekB.missions);
+  expect(mocks.weekly).toHaveBeenCalledTimes(2);
+  const weekCDelay=Date.parse(weekB.nextResetAt)-Date.parse(weekB.serverNow)+1000;
+  mocks.weekly.mockResolvedValue({...weekB,weekStart:"2026-11-16",serverNow:"2026-11-15T23:00:02Z",nextResetAt:"2026-11-22T23:00:00Z"});
+  await act(async()=>{await vi.advanceTimersByTimeAsync(weekCDelay);});
+  await act(async()=>{await vi.advanceTimersByTimeAsync(150);});
+  expect(mocks.weekly).toHaveBeenCalledTimes(3);view.unmount();expect(vi.getTimerCount()).toBe(0);vi.useRealTimers();
 });
 it("a stale reset response causes one local invalidation, never polling",async()=>{
   vi.useFakeTimers();vi.setSystemTime(new Date("2026-10-04T21:59:59Z"));
-  mocks.weekly.mockResolvedValue({catalogVersion:1,weekStart:"2026-09-28",nextResetAt:"2026-10-04T22:00:00Z",missions:[]});
+  mocks.weekly.mockResolvedValue({catalogVersion:1,weekStart:"2026-09-28",serverNow:"2026-10-04T21:59:59Z",nextResetAt:"2026-10-04T22:00:00Z",missions:[]});
   const view=mount();await act(async()=>{await vi.advanceTimersByTimeAsync(200);});
   await act(async()=>{await vi.advanceTimersByTimeAsync(10000);});expect(mocks.weekly).toHaveBeenCalledTimes(2);
   act(()=>auth("SIGNED_OUT",null));expect(snapshot().weeklySnapshot).toBeNull();view.unmount();expect(vi.getTimerCount()).toBe(0);vi.useRealTimers();
+});
+
+it("a newer server snapshot of the same week rearms after an exact replay, account switch clears its timer",async()=>{
+ vi.useFakeTimers();
+ const a={catalogVersion:1,weekStart:"2026-09-28",serverNow:"2026-10-04T21:59:59Z",nextResetAt:"2026-10-04T22:00:00Z",missions:[]};
+ mocks.weekly.mockResolvedValue(a);const view=mount();
+ await act(async()=>{await vi.advanceTimersByTimeAsync(200);});
+ await act(async()=>{await vi.advanceTimersByTimeAsync(2150);});expect(mocks.weekly).toHaveBeenCalledTimes(2);
+ mocks.weekly.mockResolvedValue({...a,serverNow:"2026-10-04T21:59:59.500Z"});
+ act(()=>notifyProgressionChanged());await act(async()=>{await vi.advanceTimersByTimeAsync(150);});
+ await act(async()=>{await vi.advanceTimersByTimeAsync(1650);});expect(mocks.weekly).toHaveBeenCalledTimes(4);
+ act(()=>auth("SIGNED_IN",session("b")));expect(snapshot().weeklySnapshot).toBeNull();
+ await act(async()=>{await vi.advanceTimersByTimeAsync(150);});expect(snapshot().userId).toBe("b");
+ expect(vi.getTimerCount()).toBe(1);
+ act(()=>auth("SIGNED_OUT",null));expect(vi.getTimerCount()).toBe(0);view.unmount();
 });
