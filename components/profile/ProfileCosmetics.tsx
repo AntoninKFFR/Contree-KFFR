@@ -1,10 +1,10 @@
 "use client";
 import type { ReactNode } from "react";
+import type { EquippedCosmetic, CosmeticSlot } from "@/lib/profileCosmetics";
 import {
   cosmeticRenderers,
   equippedCosmetics,
   type BadgeVariant,
-  type CosmeticItem,
   type CosmeticsSnapshot,
   type FrameVariant,
 } from "@/lib/profileCosmetics";
@@ -107,19 +107,21 @@ export function ProfileFrame({
     </Tag>
   );
 }
-export function ProfileTitle({ item }: { item?: CosmeticItem }) {
+export function ProfileTitle({ item }: { item?: EquippedCosmetic }) {
   return item ? <span className="profile-title">{item.name}</span> : null;
 }
 export function ProfileIdentity({
   snapshot,
+  equipped,
   name,
   compact = false,
 }: {
   snapshot?: CosmeticsSnapshot | null;
+  equipped?: Record<CosmeticSlot, EquippedCosmetic | null>;
   name: ReactNode;
   compact?: boolean;
 }) {
-  const { title, badge, frame } = equippedCosmetics(snapshot);
+  const { title, badge, frame } = equipped ?? equippedCosmetics(snapshot);
   const Line = compact ? "span" : "div";
   return (
     <ProfileFrame
@@ -139,7 +141,7 @@ export function ProfileIdentity({
         ) : null}
         {name}
       </Line>
-      {!compact ? <ProfileTitle item={title} /> : null}
+      {!compact ? <ProfileTitle item={title ?? undefined} /> : null}
     </ProfileFrame>
   );
 }

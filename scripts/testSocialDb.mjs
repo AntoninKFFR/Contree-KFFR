@@ -171,6 +171,32 @@ async function testSocialRealtime() {
   }
 }
 
+async function testFriendProfileSecurity() {
+  const [a,b,c] = await Promise.all([createIdentity("ProfileA"),createIdentity("ProfileB"),createIdentity("ProfileC")]);
+  await rejected(anonymous.rpc("get_friend_profile", { p_friend_id:b.id }), /permission|denied|function/i);
+  for (const id of [a.id,b.id,c.id,randomUUID(),null]) await rejected(a.client.rpc("get_friend_profile", { p_friend_id:id }), /^friend_profile_unavailable$/);
+  const pending = await rpc(a,"send_friend_request", { p_recipient_id:c.id });
+  await rejected(a.client.rpc("get_friend_profile", { p_friend_id:c.id }), /^friend_profile_unavailable$/);
+  await rejected(c.client.rpc("get_friend_profile", { p_friend_id:a.id }), /^friend_profile_unavailable$/);
+  await befriend(a,b);
+  const result = await rpc(a,"get_friend_profile", { p_friend_id:b.id });
+  assert.equal(result.level,1); assert.equal(result.username,b.username);
+  assert.deepEqual(result.equipped,{ title:null,badge:null,frame:null });
+  assert.deepEqual(result.solo,{ games:0,wins:0,losses:0,winrate:0 });
+  assert.deepEqual(result.multiplayer,result.solo); assert.equal(result.rating,null);
+  assert.deepEqual(Object.keys(result).sort(),["userId","username","level","equipped","solo","multiplayer","rating"].sort());
+  assert.equal(checked(await admin.from("player_progression").select("user_id").eq("user_id",b.id),"virtual level").length,0);
+  // The dedicated projection does not weaken underlying owner reads.
+  for (const table of ["games","player_progression","profile_cosmetic_unlocks","profile_cosmetic_equipment","player_ratings"]) {
+    const rows=await a.client.from(table).select("user_id").eq("user_id",b.id);
+    if (!rows.error) assert.deepEqual(rows.data,[]);
+  }
+  assert.equal((await rpc(a,"get_my_social_snapshot")).friends[0].level,1);
+  await rpc(a,"remove_friend",{p_other_user_id:b.id});
+  await rejected(a.client.rpc("get_friend_profile",{p_friend_id:b.id}),/^friend_profile_unavailable$/);
+  await rpc(a,"cancel_friend_request",{p_request_id:pending.id});
+}
+
 async function testSocialPresence() {
   const [a, b, c] = await Promise.all([createIdentity("PresenceA"), createIdentity("PresenceB"), createIdentity("PresenceC")]);
   await rejected(anonymous.rpc("touch_social_presence"), /permission|denied|function/i);
@@ -391,6 +417,7 @@ async function run() {
 }
 
 try {
+  await testFriendProfileSecurity();
   await run();
 } finally {
   for (const roomId of roomIds) await admin.from("rooms").delete().eq("id", roomId);

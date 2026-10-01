@@ -7,10 +7,9 @@ import { FriendsView, type FriendsPageState } from "@/components/friends/Friends
 import { useFriendPresence } from "@/components/social/useFriendPresence";
 import { TrainWithFriendDialog } from "@/components/friends/TrainWithFriendDialog";
 import type { BidReadingLevel } from "@/engine/training/bidReading";
-import { createTrainingDuoSession } from "@/lib/trainingDuoApi";
-import { sendTrainingDuoInvitation } from "@/lib/trainingDuoInvitationsApi";
+import { friendGamePath } from "@/lib/friendGameActions";
 import { duoErrorMessage } from "@/components/training/useTrainingDuoSync";
-import { createMultiplayerRoom, MultiplayerApiError } from "@/lib/multiplayerApi";
+import { MultiplayerApiError } from "@/lib/multiplayerApi";
 import {
   acceptFriendRequest,
   cancelGameInvitation,
@@ -24,7 +23,6 @@ import {
   resolveGameInvitation,
   searchSocialPlayers,
   sendFriendRequest,
-  sendGameInvitation,
   socialErrorMessage,
   SocialApiError,
   type GameInvitationsSnapshot,
@@ -214,14 +212,7 @@ export function FriendsPageClient() {
     setActionMessage(null);
     let navigating = false;
     try {
-      const result = await createMultiplayerRoom({ rules: { presetId: "contree-kffr" } }, session);
-      let roomPath = `/multiplayer/${result.room.id}`;
-      try {
-        await sendGameInvitation(result.room.id, userId, session);
-      } catch {
-        roomPath += "?inviteFriends=1";
-      }
-      router.push(roomPath);
+      router.push(await friendGamePath(userId, session));
       navigating = true;
     } catch (error) {
       setActionMessage(error instanceof MultiplayerApiError ? error.message : socialErrorMessage(error));
@@ -242,11 +233,7 @@ export function FriendsPageClient() {
     setActionMessage(null);
     let navigating = false;
     try {
-      const result = await createTrainingDuoSession(level, session);
-      let path = `/training/duo/${result.session.id}`;
-      try { await sendTrainingDuoInvitation(result.session.id, trainingFriend.userId, session); }
-      catch { path += "?inviteFriends=1"; }
-      router.push(path);
+      router.push(await friendGamePath(trainingFriend.userId, session, level));
       navigating = true;
     } catch (cause) {
       setTrainingFriend(null);

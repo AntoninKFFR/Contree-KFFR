@@ -9,7 +9,7 @@ vi.stubGlobal("React", React);
 afterEach(cleanup);
 
 const snapshot: SocialSnapshot = {
-  friends: [{ userId: "alice", username: "Alice", createdAt: "now" }],
+  friends: [{ userId: "alice", username: "Alice", createdAt: "now", level: 1 }],
   received: [{ id: "r1", userId: "bob", username: "Bob", createdAt: "now" }],
   sent: [{ id: "r2", userId: "carol", username: "Carol", createdAt: "now" }],
   counts: { friends: 1, received: 1, sent: 1 },

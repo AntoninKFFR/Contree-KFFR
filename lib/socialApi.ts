@@ -1,3 +1,5 @@
+import { parseFriendProfile } from "@/lib/friendProfile";
+
 type AccessTokenSource = { access_token: string };
 
 type ErrorResponse = { data?: unknown; error?: string; code?: string };
@@ -6,9 +8,10 @@ export type SocialFriend = {
   userId: string;
   username: string;
   createdAt: string;
+  level: number;
 };
 
-export type SocialFriendRequest = SocialFriend & { id: string };
+export type SocialFriendRequest = Omit<SocialFriend, "level"> & { id: string };
 
 export type SocialSnapshot = {
   friends: SocialFriend[];
@@ -83,7 +86,7 @@ function requiredCount(record: Record<string, unknown>, key: string, snake = key
   return value as number;
 }
 
-function parseFriend(value: unknown): SocialFriend {
+function parseFriendIdentity(value: unknown): Omit<SocialFriend, "level"> {
   if (!isRecord(value)) throw new Error("Invalid social friend");
   return {
     userId: requiredString(value, "userId", "user_id"),
@@ -92,9 +95,16 @@ function parseFriend(value: unknown): SocialFriend {
   };
 }
 
+function parseFriend(value: unknown): SocialFriend {
+  const identity = parseFriendIdentity(value);
+  const level = (value as Record<string, unknown>).level;
+  if (!Number.isSafeInteger(level) || (level as number) < 1) throw new Error("Invalid friend level");
+  return { ...identity, level: level as number };
+}
+
 function parseFriendRequest(value: unknown): SocialFriendRequest {
   if (!isRecord(value)) throw new Error("Invalid social friend request");
-  return { ...parseFriend(value), id: requiredString(value, "id") };
+  return { ...parseFriendIdentity(value), id: requiredString(value, "id") };
 }
 
 export function parseSocialSnapshot(value: unknown): SocialSnapshot {
@@ -371,4 +381,15 @@ export function socialErrorMessage(error: unknown): string {
     return error.message;
   }
   return "Erreur réseau. Réessaie.";
+}
+
+export function fetchFriendProfile(userId: string, token: AccessTokenSource) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+    throw new SocialApiError("Ce profil n’est pas disponible.", 400, "invalid_id");
+  }
+  return request(`/api/social/friends/${userId.toLowerCase()}/profile`, token, (value) => {
+    const profile = parseFriendProfile(value);
+    if (profile.userId !== userId.toLowerCase()) throw new Error("Unexpected friend identity");
+    return profile;
+  });
 }

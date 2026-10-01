@@ -89,6 +89,7 @@ export function FriendsView(props: FriendsViewProps) {
           {snapshot.friends.length === 0 ? <EmptyText>Tu n&apos;as pas encore d&apos;amis ajoutés.</EmptyText> : (
             <div className="friend-presence-scroll" data-testid="friends-presence-scroll">
               <FriendPresenceList friends={snapshot.friends} onlineIds={props.onlineIds ?? new Set()} action={(friend) => <div className="friend-play-actions flex flex-wrap justify-end gap-2">
+                <Link className={appSecondaryActionClass} href={`/friends/${friend.userId}`}>Voir le profil</Link>
                 <button
                   className={`${appPrimaryActionClass} friend-presence-button`}
                   disabled={Boolean(props.pendingAction)}

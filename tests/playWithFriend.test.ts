@@ -31,8 +31,8 @@ vi.mock("@/lib/socialApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/socialApi")>()),
   fetchSocialSnapshot: async () => ({
     friends: [
-      { userId: "alice", username: "Alice", createdAt: "now" },
-      { userId: "bob", username: "Bob", createdAt: "now" },
+      { userId: "alice", username: "Alice", createdAt: "now", level: 1 },
+      { userId: "bob", username: "Bob", createdAt: "now", level: 1 },
     ],
     received: [], sent: [], counts: { friends: 2, received: 0, sent: 0 },
   }),

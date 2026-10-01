@@ -28,6 +28,7 @@ function PresenceGroup<T extends PresenceFriend>({ title, friends, online, actio
         <span aria-hidden="true" className={`friend-presence-dot ${online ? "friend-presence-dot--online" : ""}`} />
         <span className="friend-presence-identity">
           <span className="friend-presence-name">{friend.username}</span>
+          {"level" in friend ? <span className="friend-presence-status">Niv. {String(friend.level)}</span> : null}
           <span className={`friend-presence-status ${online ? "friend-presence-status--online" : ""}`}>{online ? "En ligne" : "Hors ligne"}</span>
         </span>
         <span className="friend-presence-action">{action(friend)}</span>

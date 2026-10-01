@@ -46,7 +46,7 @@ describe("friend presence ordering", () => {
 
 it("renders compact friend groups and keeps public search free of presence labels", () => {
   const snapshot: SocialSnapshot = {
-    friends: friends.map((friend) => ({ ...friend, createdAt: "now" })), received: [], sent: [],
+    friends: friends.map((friend) => ({ ...friend, createdAt: "now", level: 1 })), received: [], sent: [],
     counts: { friends: 4, received: 0, sent: 0 },
   };
   const onRemove = vi.fn();

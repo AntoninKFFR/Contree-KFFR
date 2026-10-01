@@ -1,3 +1,4 @@
+import { parseFriendProfile } from "@/lib/friendProfile";
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
@@ -97,8 +98,10 @@ export function mapSocialRpcError(error: RpcError): SocialServerError {
   if (code === "42501") {
     return new SocialServerError("Action non autorisée.", 403, "access_denied");
   }
-  const known = rpcMessage.match(/authentication_required|username_required|invalid_prefix|invalid_recipient|invalid_friend|invalid_invitee|recipient_unavailable|request_not_found|request_conflict|request_cooldown|not_friends|room_unavailable|invitation_not_found|invitation_conflict|seat_required/)?.[0];
+  const known = rpcMessage.match(/friend_profile_unavailable|authentication_required|username_required|invalid_prefix|invalid_recipient|invalid_friend|invalid_invitee|recipient_unavailable|request_not_found|request_conflict|request_cooldown|not_friends|room_unavailable|invitation_not_found|invitation_conflict|seat_required/)?.[0];
   switch (known) {
+    case "friend_profile_unavailable":
+      return new SocialServerError("Ce profil n’est pas disponible.", 404, known);
     case "authentication_required":
       return new SocialServerError("Authentication required.", 401, known);
     case "username_required":
@@ -245,4 +248,12 @@ export function socialApiFailure(error: unknown, route: string, action: string) 
 
 export function socialApiSuccess(data: unknown) {
   return NextResponse.json({ data }, { headers: { "Cache-Control": "private, no-store" } });
+}
+
+export function getFriendProfile(request: Request, userId: string) {
+  return callRpc(request, "get_friend_profile", { p_friend_id: userId }, (value) => {
+    const profile = parseFriendProfile(value);
+    if (profile.userId !== userId) throw new Error("Unexpected friend identity");
+    return profile;
+  });
 }
