@@ -60,7 +60,7 @@ for (const theme of ["dark", "light"] as const) {
     await page.getByRole("button", { name: "Menu Partie" }).click();
     await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
     await expectInsideSafeViewport(page, page.getByRole("dialog", { name: "Paramètres" }).locator(".coinche-dialog"), areas);
-    await expect(page.getByRole("textbox", { name: "Rechercher un paramètre" })).toHaveCSS("font-size", "16px");
+    await expect(page.getByRole("searchbox", { name: "Rechercher un paramètre" })).toHaveCSS("font-size", "16px");
     await page.keyboard.press("Escape");
 
     let hand: string[] | null = null;
