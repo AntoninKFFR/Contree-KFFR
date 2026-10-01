@@ -220,12 +220,14 @@ export function cosmeticsFixture(level = 1): CosmeticsSnapshot {
         unlockType: "level",
         unlockLevel: 40,
       },
-    ].map((item) => ({
-      ...item,
-      unlocked: level >= item.unlockLevel,
-      unlockedAt: level >= item.unlockLevel ? "2026-10-01T00:00:00Z" : null,
-      equipped: false,
-    })),
+    ]
+      .filter((item) => level >= item.unlockLevel)
+      .map((item) => ({
+        ...item,
+        unlocked: level >= item.unlockLevel,
+        unlockedAt: level >= item.unlockLevel ? "2026-10-01T00:00:00Z" : null,
+        equipped: false,
+      })),
   } as CosmeticsSnapshot;
 }
 export function withEquipment(level = 40, slots = ["title", "badge", "frame"]) {

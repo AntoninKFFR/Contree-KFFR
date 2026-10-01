@@ -1,4 +1,4 @@
-# Collection profil V1 (#106)
+# Collection profil V1 (#106) et découverte (#113)
 
 La Collection contient uniquement 10 titres, 8 badges SVG et 6 cadres CSS. Aucun effet sur XP, Elo, scoring ou gameplay. Pas de dos de carte, tapis, avatar, boutique, monnaie ni claim. Chaque slot accepte un objet ou aucun objet ; le déblocage ne provoque jamais d’équipement automatique.
 
@@ -54,19 +54,21 @@ RLS sur les quatre tables. Catalogue/version lisibles par authenticated ; invent
 
 `set_my_profile_cosmetic(p_slot, p_cosmetic_key)` utilise exclusivement l’utilisateur du JWT, sans paramètre utilisateur. EXECUTE réservé à authenticated. Slot connu obligatoire ; clé connue, du même slot et débloquée obligatoire. Une clé NULL retire ce slot. Un upsert remplace atomiquement l’objet précédent ; le même objet conserve sa date. Un verrou transactionnel par utilisateur sérialise les remplacements/retraits concurrents, sans écriture XP.
 
-`get_my_profile_cosmetics()` est une lecture pure owner-only. JSON :
+`get_my_profile_cosmetics()` est **legacy / deprecated** : elle reste strictement inchangée et retourne les 24 objets pour le client #112. TODO : retirer cette RPC dans une migration séparée uniquement après abandon vérifié de tous les anciens clients.
+
+`get_my_unlocked_profile_cosmetics()` est désormais la lecture canonique owner-only, pure, sans argument. Elle joint uniquement les unlocks de `auth.uid()` au catalogue et retourne de 0 à 24 objets, tous `unlocked: true`. Les slots non-null correspondent obligatoirement à un item présent. Compte neuf : aucune progression, XP, unlock ou équipement créé. Exemples : niveaux 1/2/5/20/40 → 0/1/5/16/24 objets. JSON niveau 2 :
 
 ```json
-{"catalogVersion":1,"equipped":{"title":null,"badge":null,"frame":null},"items":[{"key":"title_taker","slot":"title","name":"Preneur","description":null,"visualVariant":"standard","unlockType":"level","unlockLevel":2,"unlocked":false,"unlockedAt":null,"equipped":false}]}
+{"catalogVersion":1,"equipped":{"title":null,"badge":null,"frame":null},"items":[{"key":"title_taker","slot":"title","name":"Preneur","description":null,"visualVariant":"standard","unlockType":"level","unlockLevel":2,"unlocked":true,"unlockedAt":"2026-10-01T00:00:00Z","equipped":false}]}
 ```
 
-L’exemple réduit la liste : le vrai résultat contient les 24 objets. Le parseur TS vérifie version, exhaustivité, unicité, clés connues, slots/variantes, niveaux entiers positifs, dates, booléens et cohérence equipped. Aucune variante DB n’est interpolée dans une classe libre.
+Le parseur TS vérifie version, taille maximale 24, unicité, clés connues, slots/variantes, niveaux entiers positifs, dates obligatoires, unlocked strictement vrai et cohérence equipped. Un slot équipé absent des items est une erreur, jamais une omission silencieuse. Aucune variante DB n’est interpolée dans une classe libre.
 
 ## Client et rendu
 
 Le Provider partagé lit XP, gains récents, permanent, weekly et collection via `Promise.allSettled`. Une erreur cosmétique est isolée. Sign-out/changement de compte effacent les données et les réponses obsolètes sont ignorées. Les événements XP existants actualisent aussi les unlocks. Après succès RPC, `kffr:profile-cosmetics-changed` déclenche le refresh partagé débouncé, sans polling ni équipement optimiste.
 
-Collection remplace le placeholder Récompenses : onglets Titres (par défaut), Badges, Cadres ; previews et états Verrouillé/Débloqué/Équipé ; actions Équiper/Retirer uniquement sur les objets débloqués. Actions désactivées pendant une mutation, erreur humaine et navigation clavier des onglets.
+Collection remplace le placeholder Récompenses : onglets Titres (par défaut), Badges, Cadres ; previews possédées et états Débloqué/Équipé ; actions Équiper/Retirer uniquement sur les objets débloqués. Actions désactivées pendant une mutation, erreur humaine et navigation clavier des onglets.
 
 `ProfileBadge`, `ProfileFrame`, `ProfileTitle` et `ProfileIdentity` sont communs à Collection, Profil et Navbar. SVG déterministes sans emoji OS ; six variantes CSS explicites noir/ivoire/or, sans codes de rang ou effet lumineux. Le cadre du profil entoure uniquement badge/pseudo/titre ; Modifier, formulaire et déconnexion restent accessibles à l’extérieur. Modifier le pseudo conserve l’équipement. La navbar affiche un mini-badge et un cadre compact, jamais le titre ; niveau/XP, hauteur 56 px et largeur compte restent contraints.
 
@@ -81,3 +83,11 @@ Playwright UI : six cadres × light/dark × 1440/1120/375/320 px, pseudo long, a
 ## Extensions futures
 
 La colonne `unlock_type` accepte de futurs identifiants sans modifier les clés existantes. Une condition comme « 100 victoires » nécessitera sa propre preuve serveur, paramètres versionnés, migration et tests : elle n’est pas implémentée ici. Le client V1 refuse une version/variante inconnue ; une future version doit faire évoluer son parseur et son registre explicitement avant déploiement. Aucun calcul de condition future ne doit être confié au navigateur.
+
+## Politique surprise et rollout #113
+
+Le nouveau client appelle exclusivement `get_my_unlocked_profile_cosmetics`. Le serveur ne transmet aucun objet verrouillé dans ce snapshot : noms, previews et niveaux futurs ne sont donc jamais rendus. Aucun compteur total, carte grisée, « ??? », ratio de collection ni prochain palier. Le registre de rendu conserve les clés/variantes existantes, sans noms ni seuils métier de récompenses futures. Le catalogue DB et la RPC legacy restent accessibles selon leurs anciens droits pour compatibilité ; cette évolution protège la découverte dans le parcours canonique, sans promettre de secret cryptographique sur les assets.
+
+Chaque onglet vide affiche « Continue de progresser pour découvrir de nouveaux titres/badges/cadres. ». Un objet possédé affiche « Débloqué au niveau X ». Équiper/remplacer/retirer, Provider, Profil et Navbar conservent leurs comportements et visuels.
+
+Appliquer séparément `20261001030000_profile_cosmetics_surprise.sql` **avant merge/déploiement du client #113**. La migration ajoute uniquement la RPC canonique ; l’ancienne fonction, ses grants, les tables, les 24 clés/niveaux/visuels, le trigger et le backfill ne changent pas. Le client #112 continue à recevoir 24 objets. Aucun fallback client vers la RPC legacy (qui divulguerait le catalogue). Aucune migration production exécutée par Codex.

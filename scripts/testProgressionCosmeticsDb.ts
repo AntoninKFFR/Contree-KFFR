@@ -79,17 +79,21 @@ const denied = async (r: PromiseLike<{ error: unknown }>) =>
 try {
   const [a, b] = await Promise.all([identity(), identity()]);
   const fresh = await getMyProfileCosmetics(a.client);
-  assert.equal(fresh.items.length, 24);
-  assert.ok(fresh.items.every((i) => !i.unlocked && !i.equipped));
+  assert.equal(fresh.items.length, 0);
+  const legacy = checked(await a.client.rpc("get_my_profile_cosmetics"));
+  assert.equal(legacy.items.length, 24);
+  assert.deepEqual(fresh.equipped, { title: null, badge: null, frame: null });
   assert.equal(
     checked(
       await admin.from("player_progression").select("*").eq("user_id", a.id),
     ).length,
     0,
   );
-  await denied(anonymous.rpc("get_my_profile_cosmetics"));
-  await denied(admin.rpc("get_my_profile_cosmetics"));
-  await denied(a.client.rpc("get_my_profile_cosmetics", { user_id: b.id }));
+  await denied(anonymous.rpc("get_my_unlocked_profile_cosmetics"));
+  await denied(admin.rpc("get_my_unlocked_profile_cosmetics"));
+  await denied(
+    a.client.rpc("get_my_unlocked_profile_cosmetics", { user_id: b.id }),
+  );
   await denied(
     a.client.rpc("set_my_profile_cosmetic", {
       p_slot: "title",
@@ -98,7 +102,9 @@ try {
     }),
   );
   const exec = promisify(execFile);
-  for (const level of new Set(fresh.items.map((i) => i.unlockLevel))) {
+  for (const level of new Set<number>(
+    legacy.items.map((i: { unlockLevel: number }) => i.unlockLevel),
+  )) {
     const { stdout } = await exec("docker", [
       "exec",
       "supabase_db_contree-kffr",
@@ -144,6 +150,7 @@ try {
     badge: null,
     frame: null,
   });
+  assert.deepEqual((await getMyProfileCosmetics(b.client)).items, []);
   await setMyProfileCosmetic(a.client, "title", "title_taker");
   await setMyProfileCosmetic(a.client, "title", "title_auction_master");
   await setMyProfileCosmetic(a.client, "badge", "badge_coinche");
@@ -235,9 +242,9 @@ try {
     }
   await credit(b, 6175, "solo_game");
   const level20 = await getMyProfileCosmetics(b.client);
-  assert.equal(level20.items.length, 24);
+  assert.equal(level20.items.length, 16);
   assert.equal(level20.items.filter((i) => i.unlocked).length, 16);
-  assert.ok(level20.items.every((i) => i.unlocked === i.unlockLevel <= 20));
+  assert.ok(level20.items.every((i) => i.unlocked && i.unlockLevel <= 20));
   assert.deepEqual(level20.equipped, { title: null, badge: null, frame: null });
   await setMyProfileCosmetic(b.client, "title", "title_contree_ace");
   assert.equal(

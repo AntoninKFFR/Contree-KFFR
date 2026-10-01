@@ -82,6 +82,8 @@ jobs:
         run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionWeeklySchema.sql
       - name: Test cosmetic thresholds, equipment permissions and atomic unlocks
         run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionCosmeticsSchema.sql
+      - name: Test unlocked-only surprise reads and legacy compatibility
+        run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionCosmeticsSurprise.sql
       - run: node scripts/testProgressionWeeklyConcurrency.mjs
       - run: supabase db lint --local --level warning --fail-on error
       - run: supabase db advisors --local --type all --level warn --fail-on error

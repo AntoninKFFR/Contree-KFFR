@@ -70,7 +70,7 @@ export function notifyProfileCosmeticsChanged() {
 export async function getMyProfileCosmetics(
   client: SupabaseClient,
 ): Promise<CosmeticsSnapshot> {
-  const { data, error } = await client.rpc("get_my_profile_cosmetics");
+  const { data, error } = await client.rpc("get_my_unlocked_profile_cosmetics");
   if (error) throw error;
   const invalid = () => {
     throw new Error("Invalid profile collection");
@@ -79,7 +79,7 @@ export async function getMyProfileCosmetics(
     !data ||
     data.catalogVersion !== 1 ||
     !Array.isArray(data.items) ||
-    data.items.length !== 24 ||
+    data.items.length > 24 ||
     !data.equipped ||
     typeof data.equipped !== "object"
   )
@@ -110,13 +110,13 @@ export async function getMyProfileCosmetics(
         ) ||
         !Number.isSafeInteger(row.unlockLevel) ||
         Number(row.unlockLevel) < 1 ||
-        typeof row.unlocked !== "boolean" ||
+        row.unlocked !== true ||
         typeof row.equipped !== "boolean" ||
-        (row.equipped && !row.unlocked) ||
-        (row.unlocked
-          ? typeof row.unlockedAt !== "string" ||
-            !Number.isFinite(Date.parse(row.unlockedAt))
-          : row.unlockedAt !== null)
+        typeof row.unlockedAt !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(
+          row.unlockedAt,
+        ) ||
+        !Number.isFinite(Date.parse(row.unlockedAt))
       )
         return invalid();
       return {
