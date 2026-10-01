@@ -1383,6 +1383,7 @@ summary:focus-visible {
 .profile-frame--gold-fine { box-shadow: inset 0 0 0 1px var(--accent); }
 .profile-frame--ivory { background: #14231c; color: #f4efdf; box-shadow: inset 0 0 0 1px #e5ddc7; }
 .profile-frame--ivory h1, .profile-frame--signature h1 { color: inherit; }
+.profile-frame--ivory .profile-badge, .profile-frame--signature .profile-badge { color: #cfb677; }
 .profile-frame--ivory .profile-title, .profile-frame--signature .profile-title { color: #dfd5be; }
 .profile-frame--black-gold { background: var(--surface-muted); box-shadow: inset 0 0 0 1px var(--accent), inset 0 0 0 3px var(--surface-muted), inset 0 0 0 4px var(--border-strong); }
 .profile-frame--contree { border-inline: 2px solid var(--accent); background: var(--accent-soft); border-radius: .25rem .7rem; }
