@@ -33,7 +33,7 @@ async function fixture(page: Page, theme: "dark" | "light", signedIn = true) {
         {key:"solo_games",target:3,progress:1,rewardXp:200,completed:false,completedAt:null},
         {key:"training_series",target:3,progress:0,rewardXp:200,completed:false,completedAt:null}]};
     }
-    else if (path.endsWith("/get_my_profile_cosmetics")) data = cosmeticsFixture(2);
+    else if (path.endsWith("/get_my_unlocked_profile_cosmetics")) data = cosmeticsFixture(2);
     else if (path.endsWith("/profiles")) data = [{id:userId,username}];
     else if (path.endsWith("/progression_xp_events")) data = [{amount:30,source_type:"solo_game",created_at:"2026-09-30T12:00:00Z"}];
     else if (path.endsWith("/get_my_rating_summary")) data = {rating:1000,rated_games:0,wins:0,losses:0,forfeits:0,peak_rating:1000,rank:null,position:null,placement_games:0,is_ranked:false,pending_matches:0};

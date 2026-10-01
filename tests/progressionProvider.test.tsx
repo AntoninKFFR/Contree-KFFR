@@ -170,7 +170,7 @@ it("a newer server snapshot of the same week rearms after an exact replay, accou
 });
 
 it("loads collection, isolates its failure, and refreshes through XP and equipment signals",async()=>{
- mount();await waitFor(()=>expect(snapshot().cosmeticsSnapshot.items).toHaveLength(24));
+ mount();await waitFor(()=>expect(snapshot().cosmeticsSnapshot.items).toHaveLength(0));
  mocks.cosmetics.mockRejectedValueOnce(new Error("collection private details"));
  act(()=>notifyProgressionChanged());await waitFor(()=>expect(snapshot().cosmeticsError).toBe(true));
  expect(snapshot().summary.level).toBe(1);expect(snapshot().weeklyError).toBe(false);expect(snapshot().missionsError).toBe(false);

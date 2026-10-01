@@ -64,6 +64,7 @@ function CollectionPanel({ snapshot }: { snapshot: CosmeticsSnapshot }) {
       if (live.current) setPending(null);
     }
   }
+  const items = snapshot.items.filter((item) => item.slot === slot);
   return (
     <>
       <div
@@ -122,40 +123,38 @@ function CollectionPanel({ snapshot }: { snapshot: CosmeticsSnapshot }) {
           aria-label={labels[slot]}
           className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {snapshot.items
-            .filter((item) => item.slot === slot)
-            .map((item) => (
-              <li key={item.key} className="collection-item">
-                <CosmeticPreview item={item} />
-                <h3 className="mt-3 break-words font-bold">{item.name}</h3>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                  Niveau {item.unlockLevel} requis
-                </p>
-                <p className="mt-2 text-sm font-semibold">
-                  {item.equipped
-                    ? "✓ Équipé"
-                    : item.unlocked
-                      ? "Débloqué"
-                      : "Verrouillé"}
-                </p>
-                {item.unlocked ? (
-                  <button
-                    type="button"
-                    className={`${appSecondaryActionClass} mt-3 w-full`}
-                    disabled={pending !== null}
-                    aria-label={`${item.equipped ? "Retirer" : "Équiper"} ${item.name}`}
-                    onClick={() => void equip(item)}
-                  >
-                    {pending === item.key
-                      ? "Enregistrement…"
-                      : item.equipped
-                        ? "Retirer"
-                        : "Équiper"}
-                  </button>
-                ) : null}
-              </li>
-            ))}
+          {items.map((item) => (
+            <li key={item.key} className="collection-item">
+              <CosmeticPreview item={item} />
+              <h3 className="mt-3 break-words font-bold">{item.name}</h3>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                Débloqué au niveau {item.unlockLevel}
+              </p>
+              <p className="mt-2 text-sm font-semibold">
+                {item.equipped ? "✓ Équipé" : "Débloqué"}
+              </p>
+              <button
+                type="button"
+                className={`${appSecondaryActionClass} mt-3 w-full`}
+                disabled={pending !== null}
+                aria-label={`${item.equipped ? "Retirer" : "Équiper"} ${item.name}`}
+                onClick={() => void equip(item)}
+              >
+                {pending === item.key
+                  ? "Enregistrement…"
+                  : item.equipped
+                    ? "Retirer"
+                    : "Équiper"}
+              </button>
+            </li>
+          ))}
         </ul>
+        {items.length === 0 ? (
+          <p role="status" className="text-sm text-[var(--text-secondary)]">
+            Continue de progresser pour découvrir de nouveaux{" "}
+            {labels[slot].toLowerCase()}.
+          </p>
+        ) : null}
       </div>
     </>
   );

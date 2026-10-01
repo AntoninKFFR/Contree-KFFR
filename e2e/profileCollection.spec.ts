@@ -1,8 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import { cosmeticsFixture } from "../tests/helpers/profileCosmetics";
 import type { CosmeticSlot, CosmeticKey } from "../lib/profileCosmetics";
-async function fixture(page: Page, theme: "light" | "dark") {
-  const snapshot = cosmeticsFixture(40),
+async function fixture(page: Page, theme: "light" | "dark", level = 40) {
+  const snapshot = cosmeticsFixture(level),
     user = {
       id: "11111111-1111-4111-8111-111111111111",
       aud: "authenticated",
@@ -45,8 +45,10 @@ async function fixture(page: Page, theme: "light" | "dark") {
     const path = new URL(route.request().url()).pathname;
     let data: unknown = [];
     if (path.endsWith("/auth/v1/user")) data = user;
-    else if (path.endsWith("/get_my_progression")) data = { total_xp: 22425 };
-    else if (path.endsWith("/get_my_profile_cosmetics")) data = snapshot;
+    else if (path.endsWith("/get_my_progression"))
+      data = { total_xp: (25 * (level - 1) * (level + 6)) / 2 };
+    else if (path.endsWith("/get_my_unlocked_profile_cosmetics"))
+      data = snapshot;
     else if (path.endsWith("/set_my_profile_cosmetic")) {
       const body = route.request().postDataJSON();
       equip(body.p_slot, body.p_cosmetic_key);
@@ -295,4 +297,63 @@ for (const theme of ["light", "dark"] as const) {
       0,
     );
   });
+}
+
+for (const theme of ["light", "dark"] as const) {
+  for (const level of [1, 2, 5]) {
+    test(`@progression-ui surprise level ${level} ${theme} mobile empty/discovered categories`, async ({
+      page,
+    }, info) => {
+      const { snapshot } = await fixture(page, theme, level);
+      const requests: string[] = [];
+      page.on("request", (r) => {
+        if (r.url().includes("/rest/v1/rpc/"))
+          requests.push(new URL(r.url()).pathname);
+      });
+      for (const width of [320, 375]) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto("/progression");
+        await expect(
+          page.getByRole("tab", { name: "Titres", exact: true }),
+        ).toBeVisible();
+        for (const [slot, label] of [
+          ["title", "Titres"],
+          ["badge", "Badges"],
+          ["frame", "Cadres"],
+        ] as const) {
+          await page.getByRole("tab", { name: label, exact: true }).click();
+          const items = snapshot.items.filter((i) => i.slot === slot);
+          await expect(
+            page
+              .getByRole("list", { name: label, exact: true })
+              .getByRole("listitem"),
+          ).toHaveCount(items.length);
+          if (!items.length)
+            await expect(
+              page.getByText(
+                `Continue de progresser pour découvrir de nouveaux ${label.toLowerCase()}.`,
+                { exact: true },
+              ),
+            ).toBeVisible();
+          await expect(
+            page.getByText("Verrouillé", { exact: true }),
+          ).toHaveCount(0);
+          await expect(
+            page.getByText(
+              /Niveau .* requis|[0-9]+ \/ 24 débloqués|Légende KFFR|Couronne|Prestige/,
+            ),
+          ).toHaveCount(0);
+          await noOverflow(page);
+          await page.screenshot({
+            path: info.outputPath(`${theme}-${level}-${label}-${width}.png`),
+            fullPage: true,
+          });
+        }
+      }
+      expect(requests).toContain(
+        "/rest/v1/rpc/get_my_unlocked_profile_cosmetics",
+      );
+      expect(requests).not.toContain("/rest/v1/rpc/get_my_profile_cosmetics");
+    });
+  }
 }
