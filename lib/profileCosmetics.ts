@@ -45,6 +45,7 @@ export type FrameVariant =
   | "contree"
   | "prestige"
   | "kffr_signature";
+export type EquippedCosmetic = Pick<CosmeticItem, "key" | "slot" | "name" | "visualVariant">;
 export type CosmeticItem = {
   key: CosmeticKey;
   slot: CosmeticSlot;

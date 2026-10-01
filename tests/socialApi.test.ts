@@ -20,12 +20,12 @@ afterEach(() => vi.unstubAllGlobals());
 describe("social API client", () => {
   it("parses and normalizes the bounded social payloads", () => {
     expect(parseSocialSnapshot({
-      friends: [{ user_id: "friend-1", username: "Alice", created_at: "2026-09-21" }],
+      friends: [{ user_id: "friend-1", username: "Alice", created_at: "2026-09-21", level: 1 }],
       received: [{ id: "request-1", user_id: "friend-2", username: "Bob", created_at: "2026-09-21" }],
       sent: [],
       counts: { friends: 1, received: 1, sent: 0 },
     })).toEqual({
-      friends: [{ userId: "friend-1", username: "Alice", createdAt: "2026-09-21" }],
+      friends: [{ userId: "friend-1", username: "Alice", createdAt: "2026-09-21", level: 1 }],
       received: [{ id: "request-1", userId: "friend-2", username: "Bob", createdAt: "2026-09-21" }],
       sent: [],
       counts: { friends: 1, received: 1, sent: 0 },

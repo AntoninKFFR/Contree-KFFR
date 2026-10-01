@@ -104,10 +104,10 @@ test.describe("@social private friend presence", () => {
 
       // A UI-only long-list fixture proves the list actually scrolls without
       // creating a hundred database accounts or changing invitation rights.
-      const longList = [{ userId: bId, username: usernameB, createdAt: "now" }, ...Array.from({ length: 99 }, (_, index) => ({
+      const longList = [{ userId: bId, username: usernameB, createdAt: "now", level: 1 }, ...Array.from({ length: 99 }, (_, index) => ({
         userId: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
         username: `Fixture${String(index).padStart(3, "0")}`,
-        createdAt: "now",
+        createdAt: "now", level: 1,
       }))];
       await a.route("**/api/social", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: {
         friends: longList, received: [], sent: [], counts: { friends: 100, received: 0, sent: 0 },

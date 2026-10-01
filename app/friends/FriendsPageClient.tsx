@@ -1,16 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { FriendsView, type FriendsPageState } from "@/components/friends/FriendsView";
 import { useFriendPresence } from "@/components/social/useFriendPresence";
 import { TrainWithFriendDialog } from "@/components/friends/TrainWithFriendDialog";
 import type { BidReadingLevel } from "@/engine/training/bidReading";
-import { createTrainingDuoSession } from "@/lib/trainingDuoApi";
-import { sendTrainingDuoInvitation } from "@/lib/trainingDuoInvitationsApi";
+import { friendGamePath } from "@/lib/friendGameActions";
 import { duoErrorMessage } from "@/components/training/useTrainingDuoSync";
-import { createMultiplayerRoom, MultiplayerApiError } from "@/lib/multiplayerApi";
+import { MultiplayerApiError } from "@/lib/multiplayerApi";
 import {
   acceptFriendRequest,
   cancelGameInvitation,
@@ -24,7 +23,6 @@ import {
   resolveGameInvitation,
   searchSocialPlayers,
   sendFriendRequest,
-  sendGameInvitation,
   socialErrorMessage,
   SocialApiError,
   type GameInvitationsSnapshot,
@@ -51,6 +49,13 @@ export function FriendsPageClient() {
   const snapshotSequence = useRef(0);
   const searchSequence = useRef(0);
   const pendingActionRef = useRef<string | null>(null);
+  const gameNavigationEpoch = useRef(0);
+
+  useLayoutEffect(() => {
+    const epoch = gameNavigationEpoch;
+    // Invalidate synchronously on unmount, before a settled promise can navigate.
+    return () => { epoch.current += 1; };
+  }, []);
   const [trainingFriend, setTrainingFriend] = useState<{ userId: string; username: string } | null>(null);
 
   const refreshSnapshot = useCallback(async (activeSession: Session | null) => {
@@ -208,26 +213,23 @@ export function FriendsPageClient() {
 
   async function handlePlayWithFriend(userId: string) {
     if (!session || pendingActionRef.current) return;
+    const epoch = gameNavigationEpoch.current;
     const key = `play:${userId}`;
     pendingActionRef.current = key;
     setPendingAction(key);
     setActionMessage(null);
     let navigating = false;
     try {
-      const result = await createMultiplayerRoom({ rules: { presetId: "contree-kffr" } }, session);
-      let roomPath = `/multiplayer/${result.room.id}`;
-      try {
-        await sendGameInvitation(result.room.id, userId, session);
-      } catch {
-        roomPath += "?inviteFriends=1";
-      }
-      router.push(roomPath);
+      const path = await friendGamePath(userId, session);
+      if (epoch !== gameNavigationEpoch.current) return;
+      router.push(path);
       navigating = true;
     } catch (error) {
+      if (epoch !== gameNavigationEpoch.current) return;
       setActionMessage(error instanceof MultiplayerApiError ? error.message : socialErrorMessage(error));
     } finally {
       // Keep the lock until navigation unmounts the page, so another click cannot create a room.
-      if (!navigating) {
+      if (epoch === gameNavigationEpoch.current && !navigating) {
         pendingActionRef.current = null;
         setPendingAction(null);
       }
@@ -236,23 +238,23 @@ export function FriendsPageClient() {
 
   async function handleTrainWithFriend(level: BidReadingLevel) {
     if (!session || !trainingFriend || pendingActionRef.current) return;
+    const epoch = gameNavigationEpoch.current;
     const key = `train:${trainingFriend.userId}`;
     pendingActionRef.current = key;
     setPendingAction(key);
     setActionMessage(null);
     let navigating = false;
     try {
-      const result = await createTrainingDuoSession(level, session);
-      let path = `/training/duo/${result.session.id}`;
-      try { await sendTrainingDuoInvitation(result.session.id, trainingFriend.userId, session); }
-      catch { path += "?inviteFriends=1"; }
+      const path = await friendGamePath(trainingFriend.userId, session, level);
+      if (epoch !== gameNavigationEpoch.current) return;
       router.push(path);
       navigating = true;
     } catch (cause) {
+      if (epoch !== gameNavigationEpoch.current) return;
       setTrainingFriend(null);
       setActionMessage(duoErrorMessage(cause));
     } finally {
-      if (!navigating) { pendingActionRef.current = null; setPendingAction(null); }
+      if (epoch === gameNavigationEpoch.current && !navigating) { pendingActionRef.current = null; setPendingAction(null); }
     }
   }
 

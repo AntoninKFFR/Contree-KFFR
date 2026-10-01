@@ -13,6 +13,13 @@ on:
       - "scripts/testSocialDb.mjs"
       - "scripts/provisionSocialE2e.mjs"
       - "scripts/testSocialPublication.sql"
+      - "scripts/testFriendProfile*"
+      - "e2e/friendProfile.spec.ts"
+      - "app/friends/**"
+      - "app/api/social/friends/**"
+      - "lib/friendProfile.ts"
+      - "lib/friendGameActions.ts"
+      - "components/friends/**"
       - "e2e/socialNotifications.spec.ts"
       - "e2e/socialPresence.spec.ts"
       - "components/social/**"
@@ -41,6 +48,13 @@ on:
       - "scripts/testSocialDb.mjs"
       - "scripts/provisionSocialE2e.mjs"
       - "scripts/testSocialPublication.sql"
+      - "scripts/testFriendProfile*"
+      - "e2e/friendProfile.spec.ts"
+      - "app/friends/**"
+      - "app/api/social/friends/**"
+      - "lib/friendProfile.ts"
+      - "lib/friendGameActions.ts"
+      - "components/friends/**"
       - "e2e/socialNotifications.spec.ts"
       - "e2e/socialPresence.spec.ts"
       - "components/social/**"
@@ -79,6 +93,10 @@ jobs:
         run: supabase db advisors --local --type all --level warn --fail-on error
       - name: Verify narrow social Realtime publication
         run: supabase db query --local --file scripts/testSocialPublication.sql
+      - name: Test friend profile projection and exact XP levels
+        run: |
+          docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testFriendProfile.sql
+          npx vite-node --config vitest.config.ts scripts/testFriendProfileFormula.ts
       - name: Test social RLS with local Auth JWTs
         shell: bash
         run: |
