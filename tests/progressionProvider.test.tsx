@@ -121,14 +121,17 @@ it("ignores stale weekly response after account switch",async()=>{
   await act(async()=>resolve({catalogVersion:99}));expect(snapshot().weeklySnapshot).toEqual(current);
 });
 it.each([false,true])("rollover replaces week without reload, StrictMode=%s, cleanup removes timer",async strict=>{
-  vi.useFakeTimers();vi.setSystemTime(new Date("2026-10-04T21:59:59Z"));
-  const weekA={catalogVersion:1,weekStart:"2026-09-28",nextResetAt:"2026-10-04T22:00:00Z",missions:[]};
-  const weekB={...weekA,weekStart:"2026-10-05",nextResetAt:"2026-10-11T22:00:00Z"};
+  vi.useFakeTimers();vi.setSystemTime(new Date("2026-11-08T22:59:59Z"));
+  const missions=[{key:"regular_games",target:5,progress:4,rewardXp:300,completed:false,completedAt:null},
+    {key:"wins",target:3,progress:2,rewardXp:300,completed:false,completedAt:null},
+    {key:"solo_games",target:3,progress:2,rewardXp:200,completed:false,completedAt:null}];
+  const weekA={catalogVersion:1,weekStart:"2026-11-02",nextResetAt:"2026-11-08T23:00:00Z",missions};
+  const weekB={...weekA,weekStart:"2026-11-09",nextResetAt:"2026-11-15T23:00:00Z",missions:missions.map(m=>({...m,progress:0}))};
   mocks.weekly.mockResolvedValueOnce(weekA).mockResolvedValue(weekB);
   const child=<ProgressionProvider><Consumer/></ProgressionProvider>;
   const view=render(strict ? <React.StrictMode>{child}</React.StrictMode>:child);
   await act(async()=>{await vi.advanceTimersByTimeAsync(200);});expect(snapshot().weeklySnapshot.weekStart).toBe(weekA.weekStart);
-  await act(async()=>{await vi.advanceTimersByTimeAsync(1000);});expect(snapshot().weeklySnapshot.weekStart).toBe(weekB.weekStart);
+  await act(async()=>{await vi.advanceTimersByTimeAsync(1000);});expect(snapshot().weeklySnapshot.weekStart).toBe(weekB.weekStart);expect(snapshot().weeklySnapshot.missions).toEqual(weekB.missions);
   expect(mocks.weekly).toHaveBeenCalledTimes(2);view.unmount();expect(vi.getTimerCount()).toBe(0);vi.useRealTimers();
 });
 it("a stale reset response causes one local invalidation, never polling",async()=>{

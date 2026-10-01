@@ -88,6 +88,22 @@ begin
  or not exists(select 1 from public.progression_weekly_progress where user_id=b and week_start='2026-09-28' and progress=3) then raise exception 'rollover';end if;
  begin perform private.apply_weekly_progression_event(a,'training_series',gen_random_uuid(),now(),'solo',true);raise exception 'forged mode';exception when invalid_parameter_value then null;end;
 end $$;
+-- Exact rollover contract: keep 4/5 untouched while the new week starts at 0.
+do $$ declare u uuid:=gen_random_uuid(); changed integer;
+begin
+ insert into auth.users(id) values(u);
+ for i in 1..4 loop
+  perform private.apply_weekly_progression_event(u,'solo_game',gen_random_uuid(),'2026-11-04 12:00+00','solo',false,'2026-11-04 12:00+00');
+ end loop;
+ if not exists(select 1 from public.progression_weekly_progress where user_id=u and week_start='2026-11-02' and mission_key='regular_games' and progress=4 and completed_at is null) then raise exception 'expected week A 4/5';end if;
+ if (select count(*) from private.get_weekly_selection('2026-11-09'))<>3
+ or exists(select 1 from private.get_weekly_selection('2026-11-09') m left join public.progression_weekly_progress p on p.user_id=u and p.week_start='2026-11-09' and p.catalog_version=m.catalog_version and p.mission_key=m.key where coalesce(p.progress,0)<>0) then raise exception 'new week not virtual zero';end if;
+ changed:=private.apply_weekly_progression_event(u,'solo_game',gen_random_uuid(),'2026-11-08 22:59:59+00','solo',false,'2026-11-08 23:00:00+00');
+ if changed<>0 then raise exception 'late event changed 4/5';end if;
+ perform private.apply_weekly_progression_event(u,'solo_game',gen_random_uuid(),'2026-11-08 23:00:00+00','solo',false,'2026-11-08 23:00:00+00');
+ if not exists(select 1 from public.progression_weekly_progress where user_id=u and week_start='2026-11-02' and mission_key='regular_games' and progress=4 and completed_at is null)
+ or not exists(select 1 from public.progression_weekly_progress where user_id=u and week_start='2026-11-09' and mission_key='regular_games' and progress=1) then raise exception 'new event touched old week';end if;
+end $$;
 -- Authoritative hooks at actual server time, plus normal/forfeit/delayed Multi.
 do $$
 declare u uuid:=gen_random_uuid(); loser uuid:=gen_random_uuid(); delayed uuid:=gen_random_uuid(); solo_id uuid; game_id uuid; result text; weekly_at timestamptz:=clock_timestamp(); sel public.progression_weekly_missions; expected integer;
