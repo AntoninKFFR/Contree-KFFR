@@ -4,12 +4,15 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProgressionProvider, useProgression } from "@/components/progression/ProgressionProvider";
 import { notifyProgressionChanged } from "@/lib/progression/events";
+import { cosmeticsFixture } from "./helpers/profileCosmetics";
+import { PROFILE_COSMETICS_CHANGED_EVENT } from "@/lib/profileCosmetics";
 import { getProgression } from "@/lib/progression/formulaV1";
 
-const mocks = vi.hoisted(() => ({getSession:vi.fn(),subscribe:vi.fn(),query:vi.fn(),recent:vi.fn(),missions:vi.fn(),weekly:vi.fn(),pathname:"/"}));
+const mocks = vi.hoisted(() => ({getSession:vi.fn(),subscribe:vi.fn(),query:vi.fn(),recent:vi.fn(),missions:vi.fn(),weekly:vi.fn(),cosmetics:vi.fn(),pathname:"/"}));
 vi.mock("next/navigation", () => ({usePathname:() => mocks.pathname}));
 vi.mock("@/lib/supabaseClient", () => ({getSupabaseClient:() => ({auth:{getSession:mocks.getSession,onAuthStateChange:mocks.subscribe}})}));
 vi.mock("@/lib/progression/queries", () => ({getMyProgression:mocks.query,getMyRecentXpEvents:mocks.recent,getMyPermanentMissions:mocks.missions,getMyWeeklyMissions:mocks.weekly}));
+vi.mock("@/lib/profileCosmetics",async importOriginal=>({...await importOriginal<typeof import("@/lib/profileCosmetics")>(),getMyProfileCosmetics:mocks.cosmetics}));
 let auth: (event: string, session: unknown) => void;
 const session = (id: string) => ({user:{id}});
 function Consumer() {
@@ -23,6 +26,7 @@ beforeEach(() => {
   vi.clearAllMocks(); mocks.pathname = "/";
   mocks.subscribe.mockImplementation((callback) => {auth = callback; return {data:{subscription:{unsubscribe:vi.fn()}}};});
   mocks.getSession.mockResolvedValue({data:{session:session("a")},error:null});
+  mocks.cosmetics.mockResolvedValue(cosmeticsFixture());
   mocks.query.mockResolvedValue(getProgression(0)); mocks.recent.mockResolvedValue([]); mocks.missions.mockResolvedValue([]); mocks.weekly.mockResolvedValue({catalogVersion:1,weekStart:"2026-09-28",serverNow:"2098-12-30T12:00:00Z",nextResetAt:"2099-01-05T23:00:00Z",missions:[]});
 });
 afterEach(() => {cleanup(); vi.useRealTimers(); vi.unstubAllGlobals();});
@@ -37,7 +41,7 @@ describe("shared progression read provider", () => {
   it("signed-out never queries XP", async () => {
     mocks.getSession.mockResolvedValue({data:{session:null},error:null}); mount();
     await waitFor(() => expect(snapshot().status).toBe("signed-out"));
-    expect(snapshot().summary).toBeNull(); expect(mocks.query).not.toHaveBeenCalled(); expect(mocks.weekly).not.toHaveBeenCalled();
+    expect(snapshot().summary).toBeNull(); expect(mocks.query).not.toHaveBeenCalled(); expect(mocks.weekly).not.toHaveBeenCalled();expect(mocks.cosmetics).not.toHaveBeenCalled();
   });
   it.each([0,100,700])("loads the canonical summary for %i XP", async (xp) => {
     mocks.query.mockResolvedValue(getProgression(xp)); mount();
@@ -163,4 +167,21 @@ it("a newer server snapshot of the same week rearms after an exact replay, accou
  await act(async()=>{await vi.advanceTimersByTimeAsync(150);});expect(snapshot().userId).toBe("b");
  expect(vi.getTimerCount()).toBe(1);
  act(()=>auth("SIGNED_OUT",null));expect(vi.getTimerCount()).toBe(0);view.unmount();
+});
+
+it("loads collection, isolates its failure, and refreshes through XP and equipment signals",async()=>{
+ mount();await waitFor(()=>expect(snapshot().cosmeticsSnapshot.items).toHaveLength(24));
+ mocks.cosmetics.mockRejectedValueOnce(new Error("collection private details"));
+ act(()=>notifyProgressionChanged());await waitFor(()=>expect(snapshot().cosmeticsError).toBe(true));
+ expect(snapshot().summary.level).toBe(1);expect(snapshot().weeklyError).toBe(false);expect(snapshot().missionsError).toBe(false);
+ act(()=>window.dispatchEvent(new Event(PROFILE_COSMETICS_CHANGED_EVENT)));
+ await waitFor(()=>expect(snapshot().cosmeticsError).toBe(false));expect(mocks.cosmetics).toHaveBeenCalledTimes(3);
+ act(()=>auth("SIGNED_OUT",null));expect(snapshot().cosmeticsSnapshot).toBeNull();
+});
+it("clears collection on account switch and discards stale collection responses",async()=>{
+ let resolve!:(value:unknown)=>void;mocks.cosmetics.mockImplementationOnce(()=>new Promise(done=>{resolve=done;}));
+ mount();await waitFor(()=>expect(mocks.cosmetics).toHaveBeenCalledTimes(1));
+ act(()=>auth("SIGNED_IN",session("b")));expect(snapshot().cosmeticsSnapshot).toBeNull();
+ await waitFor(()=>expect(snapshot().status).toBe("ready"));const current=snapshot().cosmeticsSnapshot;
+ await act(async()=>resolve(cosmeticsFixture(40)));expect(snapshot().cosmeticsSnapshot).toEqual(current);expect(snapshot().userId).toBe("b");
 });

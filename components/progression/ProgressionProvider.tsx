@@ -10,6 +10,7 @@ import { PROGRESSION_CHANGED_EVENT } from "@/lib/progression/events";
 
 import type { PermanentMission } from "@/lib/progression/permanentMissions";
 
+import { getMyProfileCosmetics, PROFILE_COSMETICS_CHANGED_EVENT, type CosmeticsSnapshot } from "@/lib/profileCosmetics";
 import type { WeeklySnapshot } from "@/lib/progression/weeklyMissions";
 
 type Snapshot = {
@@ -23,8 +24,10 @@ type Snapshot = {
   missionsError: boolean;
   weeklySnapshot: WeeklySnapshot | null;
   weeklyError: boolean;
+  cosmeticsSnapshot: CosmeticsSnapshot | null;
+  cosmeticsError: boolean;
 };
-const initial: Snapshot = {status:"loading",userId:null,summary:null,error:null,recentEvents:[],recentError:false,permanentMissions:[],missionsError:false,weeklySnapshot:null,weeklyError:false};
+const initial: Snapshot = {status:"loading",userId:null,summary:null,error:null,recentEvents:[],recentError:false,permanentMissions:[],missionsError:false,weeklySnapshot:null,weeklyError:false,cosmeticsSnapshot:null,cosmeticsError:false};
 type ProgressionContextValue = Snapshot & { loading: boolean; signedOut: boolean; refresh: () => void };
 const Context = createContext<ProgressionContextValue | null>(null);
 
@@ -53,13 +56,14 @@ export function ProgressionProvider({ children }: { children: ReactNode }) {
     inFlightRef.current = true;
     const epoch = epochRef.current;
     try {
-      const [progression, recent, missions, weekly] = await Promise.allSettled([getMyProgression(client), getMyRecentXpEvents(client), getMyPermanentMissions(client), getMyWeeklyMissions(client)]);
+      const [progression, recent, missions, weekly, cosmetics] = await Promise.allSettled([getMyProgression(client), getMyRecentXpEvents(client), getMyPermanentMissions(client), getMyWeeklyMissions(client), getMyProfileCosmetics(client)]);
       if (epoch !== epochRef.current) return;
       if (progression.status === "rejected") throw progression.reason;
       setSnapshot({status:"ready",userId,summary:progression.value,error:null,
         recentEvents:recent.status === "fulfilled" ? recent.value : [],recentError:recent.status === "rejected",
         permanentMissions:missions.status === "fulfilled" ? missions.value : [],missionsError:missions.status === "rejected",
-        weeklySnapshot:weekly.status === "fulfilled" ? weekly.value : null,weeklyError:weekly.status === "rejected"});
+        weeklySnapshot:weekly.status === "fulfilled" ? weekly.value : null,weeklyError:weekly.status === "rejected",
+        cosmeticsSnapshot:cosmetics.status === "fulfilled" ? cosmetics.value : null,cosmeticsError:cosmetics.status === "rejected"});
     } catch {
       if (epoch === epochRef.current) setSnapshot({...initial,status:"error",userId,error:"Impossible de charger ta progression. Réessaie."});
     } finally {
@@ -126,11 +130,13 @@ export function ProgressionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const visible = () => { if (!document.hidden) refresh(); };
     window.addEventListener(PROGRESSION_CHANGED_EVENT, refresh);
+    window.addEventListener(PROFILE_COSMETICS_CHANGED_EVENT, refresh);
     window.addEventListener("focus", visible);
     window.addEventListener("online", visible);
     document.addEventListener("visibilitychange", visible);
     return () => {
       window.removeEventListener(PROGRESSION_CHANGED_EVENT, refresh);
+      window.removeEventListener(PROFILE_COSMETICS_CHANGED_EVENT, refresh);
       window.removeEventListener("focus", visible);
       window.removeEventListener("online", visible);
       document.removeEventListener("visibilitychange", visible);
