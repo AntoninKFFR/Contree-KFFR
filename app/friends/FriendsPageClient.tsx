@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { FriendsView, type FriendsPageState } from "@/components/friends/FriendsView";
@@ -49,6 +49,13 @@ export function FriendsPageClient() {
   const snapshotSequence = useRef(0);
   const searchSequence = useRef(0);
   const pendingActionRef = useRef<string | null>(null);
+  const gameNavigationEpoch = useRef(0);
+
+  useLayoutEffect(() => {
+    const epoch = gameNavigationEpoch;
+    // Invalidate synchronously on unmount, before a settled promise can navigate.
+    return () => { epoch.current += 1; };
+  }, []);
   const [trainingFriend, setTrainingFriend] = useState<{ userId: string; username: string } | null>(null);
 
   const refreshSnapshot = useCallback(async (activeSession: Session | null) => {
@@ -206,19 +213,23 @@ export function FriendsPageClient() {
 
   async function handlePlayWithFriend(userId: string) {
     if (!session || pendingActionRef.current) return;
+    const epoch = gameNavigationEpoch.current;
     const key = `play:${userId}`;
     pendingActionRef.current = key;
     setPendingAction(key);
     setActionMessage(null);
     let navigating = false;
     try {
-      router.push(await friendGamePath(userId, session));
+      const path = await friendGamePath(userId, session);
+      if (epoch !== gameNavigationEpoch.current) return;
+      router.push(path);
       navigating = true;
     } catch (error) {
+      if (epoch !== gameNavigationEpoch.current) return;
       setActionMessage(error instanceof MultiplayerApiError ? error.message : socialErrorMessage(error));
     } finally {
       // Keep the lock until navigation unmounts the page, so another click cannot create a room.
-      if (!navigating) {
+      if (epoch === gameNavigationEpoch.current && !navigating) {
         pendingActionRef.current = null;
         setPendingAction(null);
       }
@@ -227,19 +238,23 @@ export function FriendsPageClient() {
 
   async function handleTrainWithFriend(level: BidReadingLevel) {
     if (!session || !trainingFriend || pendingActionRef.current) return;
+    const epoch = gameNavigationEpoch.current;
     const key = `train:${trainingFriend.userId}`;
     pendingActionRef.current = key;
     setPendingAction(key);
     setActionMessage(null);
     let navigating = false;
     try {
-      router.push(await friendGamePath(trainingFriend.userId, session, level));
+      const path = await friendGamePath(trainingFriend.userId, session, level);
+      if (epoch !== gameNavigationEpoch.current) return;
+      router.push(path);
       navigating = true;
     } catch (cause) {
+      if (epoch !== gameNavigationEpoch.current) return;
       setTrainingFriend(null);
       setActionMessage(duoErrorMessage(cause));
     } finally {
-      if (!navigating) { pendingActionRef.current = null; setPendingAction(null); }
+      if (epoch === gameNavigationEpoch.current && !navigating) { pendingActionRef.current = null; setPendingAction(null); }
     }
   }
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { FriendsPageClient } from "@/app/friends/FriendsPageClient";
 import { MultiplayerApiError } from "@/lib/multiplayerApi";
 
@@ -161,5 +161,90 @@ describe("play with a friend", () => {
     fireEvent.click((await friendRow("Bob")).getByRole("button", { name: "Jouer" }));
     expect(createRoom).toHaveBeenCalledTimes(1);
     expect(invite).toHaveBeenCalledTimes(1);
+  });
+});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (cause: Error) => void;
+  const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
+  return { promise, resolve, reject };
+}
+
+describe.each(["play", "training"] as const)("%s deferred friendGamePath regression", (flow) => {
+  function delayCreation() {
+    const result = deferred<{ room: { id: string }; session: { id: string } }>();
+    (flow === "play" ? createRoom : createDuo).mockImplementationOnce(() => result.promise);
+    return result;
+  }
+  async function start() {
+    const view = render(React.createElement(FriendsPageClient));
+    const row = await friendRow("Alice");
+    expect(row.getByRole("link", { name: "Voir le profil" })).toHaveProperty("href", expect.stringContaining("/friends/alice"));
+    fireEvent.click(row.getByRole("button", { name: flow === "play" ? "Jouer" : "S’entraîner" }));
+    if (flow === "training") fireEvent.click(screen.getByRole("button", { name: "Créer le duo" }));
+    return view;
+  }
+  const resolved = { room: { id: "delayed-room" }, session: { id: "delayed-duo" } };
+  const path = flow === "play" ? "/multiplayer/delayed-room" : "/training/duo/delayed-duo";
+
+  it("removes active profile links while pending and navigates exactly once on success", async () => {
+    const result = delayCreation();
+    await start();
+    expect(screen.queryAllByRole("link", { name: "Voir le profil" })).toHaveLength(0);
+    for (const button of screen.getAllByRole("button", { name: "Voir le profil" })) {
+      expect(button).toHaveProperty("disabled", true);
+      expect(button.getAttribute("aria-disabled")).toBe("true");
+      expect(button.hasAttribute("href")).toBe(false);
+      fireEvent.click(button);
+    }
+    fireEvent.click((await friendRow("Bob")).getByRole("button", { name: "Jouer" }));
+    expect(createRoom.mock.calls.length + createDuo.mock.calls.length).toBe(1);
+    expect(push).not.toHaveBeenCalled();
+    await act(async () => { result.resolve(resolved); await result.promise; });
+    expect(push).toHaveBeenCalledExactlyOnceWith(path);
+    // Keep the successful creation locked until router navigation unmounts Friends.
+    expect(screen.queryAllByRole("link", { name: "Voir le profil" })).toHaveLength(0);
+    fireEvent.click((await friendRow("Bob")).getByRole("button", { name: "Jouer" }));
+    expect(createRoom.mock.calls.length + createDuo.mock.calls.length).toBe(1);
+  });
+
+  it("ignores late navigation after leaving Friends, including a fresh mount", async () => {
+    const result = delayCreation();
+    const view = await start();
+    view.unmount();
+    // A new Friends instance must not make the old instance's result valid again.
+    render(React.createElement(FriendsPageClient));
+    await friendRow("Alice");
+    await act(async () => { result.resolve(resolved); await result.promise; });
+    expect(push).not.toHaveBeenCalled();
+    expect((await friendRow("Alice")).getByRole("link", { name: "Voir le profil" })).toBeTruthy();
+  });
+
+  it("releases the lock and restores profile links on a deferred error, allowing retry", async () => {
+    const result = delayCreation();
+    await start();
+    await act(async () => { result.reject(new Error("Création échouée.")); await result.promise.catch(() => undefined); });
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.getAllByRole("link", { name: "Voir le profil" })).toHaveLength(2);
+    const row = await friendRow("Alice");
+    const button = row.getByRole("button", { name: flow === "play" ? "Jouer" : "S’entraîner" });
+    expect(button).toHaveProperty("disabled", false);
+    fireEvent.click(button);
+    if (flow === "training") fireEvent.click(screen.getByRole("button", { name: "Créer le duo" }));
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    expect(flow === "play" ? createRoom : createDuo).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignores a late rejection after unmount without affecting a new creation", async () => {
+    const result = delayCreation();
+    const view = await start();
+    view.unmount();
+    const fresh = await start();
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    await act(async () => { result.reject(new Error("Ancienne création échouée.")); await result.promise.catch(() => undefined); });
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(screen.queryAllByRole("link", { name: "Voir le profil" })).toHaveLength(0);
+    fresh.unmount();
   });
 });
