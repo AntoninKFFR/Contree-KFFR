@@ -39,7 +39,7 @@ describe("progression presentation", () => {
     expect(screen.getByRole("heading",{level:1}).textContent).toBe(`Niveau ${summary.level}`);
     expect(screen.getByText(`${summary.xpIntoLevel} / ${summary.xpForNextLevel} XP`)).toBeTruthy();
     expect(screen.getByText(`${summary.xpRemaining} XP avant le niveau ${summary.level+1}`)).toBeTruthy();
-    expect(screen.getByText("Missions de départ")).toBeTruthy(); expect(screen.getByText("Récompenses")).toBeTruthy();
+    expect(screen.getByText("Missions de départ")).toBeTruthy(); expect(screen.getByText("Collection")).toBeTruthy();
     expect(screen.queryByText("Gagner 3 parties")).toBeNull();
   });
   it("provides signed-out login with a return path", () => {

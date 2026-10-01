@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ProfileCollection } from "@/components/profile/ProfileCollection";
 import { WeeklyMissionsCard } from "@/components/progression/WeeklyMissionsCard";
 import { PermanentMissionsCard } from "@/components/progression/PermanentMissionsCard";
 import { useProgression } from "@/components/progression/ProgressionProvider";
@@ -16,7 +17,7 @@ export default function ProgressionPage() {
     description="Ton niveau KFFR progresse au fil des parties et reste permanent." />
     {status === "ready" && summary ? <ProgressionSummaryCard summary={summary} link={false} /> : <ProgressionStatusCard />}
     <div className="grid gap-5"><WeeklyMissionsCard /><PermanentMissionsCard />
-      <AppSurface><h2 className="font-black text-[var(--text-primary)]">Récompenses</h2><p className="mt-2 text-sm text-[var(--text-secondary)]">Les récompenses cosmétiques arriveront dans une prochaine étape.</p></AppSurface></div>
+      <ProfileCollection /></div>
     {status === "ready" ? <AppSurface><h2 className="font-black text-[var(--text-primary)]">XP récents</h2>
       {recentError ? <p className="mt-3 text-sm text-[var(--text-secondary)]">Les gains récents sont momentanément indisponibles.</p>
         : !recentEvents.length ? <p className="mt-3 text-sm text-[var(--text-secondary)]">Tes premiers gains d’XP apparaîtront ici après une partie.</p>

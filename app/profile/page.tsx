@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { ProfileIdentity } from "@/components/profile/ProfileCosmetics";
+import { useProgression } from "@/components/progression/ProgressionProvider";
 import { ProfileProgressionCard } from "@/components/progression/ProgressionCard";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -34,6 +36,7 @@ type PageState = "loading" | "ready" | "signed-out" | "unavailable";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const progression = useProgression();
   const [games, setGames] = useState<GameRow[]>([]);
   const [multiplayerGames, setMultiplayerGames] = useState<MultiplayerHistoryGame[]>([]);
   const [pageState, setPageState] = useState<PageState>("loading");
@@ -221,7 +224,7 @@ export default function ProfilePage() {
               <AppEyebrow>Compte / Identité</AppEyebrow>
               <p className="mt-2 text-xs font-semibold text-[var(--text-secondary)]">Pseudo</p>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
-                <h1 className="min-w-0 break-words text-2xl font-black tracking-tight text-[var(--text-primary)]">{pageState === "loading" ? "Chargement…" : username ?? "Profil sans pseudo"}</h1>
+                <ProfileIdentity snapshot={pageState === "ready" && progression.userId === session?.user.id ? progression.cosmeticsSnapshot:null} name={<h1 className="min-w-0 break-words text-2xl font-black tracking-tight text-[var(--text-primary)]">{pageState === "loading" ? "Chargement…" : username ?? "Profil sans pseudo"}</h1>} />
                 {username && !isEditingUsername ? <button className={`${appSecondaryActionClass} !px-3 !py-1.5`} onClick={() => { setIsEditingUsername(true); setIdentityMessage(null); }} type="button">Modifier</button> : null}
               </div>
             </div>

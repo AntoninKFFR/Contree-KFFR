@@ -3,6 +3,7 @@ import React from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppTopNav } from "@/components/AppTopNav";
+import { withEquipment } from "./helpers/profileCosmetics";
 import { getProgression } from "@/lib/progression/formulaV1";
 
 const mocks = vi.hoisted(() => ({progression:vi.fn(),session:null as unknown,username:"Antonin"}));
@@ -51,4 +52,13 @@ describe("compact progression navigation", () => {
     await screen.findByText("Antonin"); expect(screen.queryByRole("progressbar")).toBeNull();
     expect(screen.getByRole("button",{name:"Audio"})).toBeTruthy();
   });
+});
+
+it("decorates desktop/mobile identity with miniature badge/frame, never title, preserving XP",async()=>{
+ mocks.progression.mockReturnValue({...mocks.progression(),cosmeticsSnapshot:withEquipment()});
+ render(<AppTopNav/>);await screen.findByText("Antonin");
+ expect(document.querySelector('.coinche-account-link .profile-frame')).toBeTruthy();
+ expect(document.querySelector('.coinche-account-link .profile-badge--mini')).toBeTruthy();expect(document.querySelector('.profile-title')).toBeNull();
+ fireEvent.click(screen.getByRole("button",{name:"Ouvrir le menu"}));const menu=screen.getByRole("navigation",{name:"Navigation mobile"});
+ expect(menu.querySelector('.profile-frame')).toBeTruthy();expect(menu.querySelector('.profile-badge--mini')).toBeTruthy();expect(within(menu).getByRole("progressbar")).toBeTruthy();
 });

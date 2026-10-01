@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ProfileIdentity } from "@/components/profile/ProfileCosmetics";
 import { useProgression } from "@/components/progression/ProgressionProvider";
 import { ProgressionBar, ProgressionLevelBadge } from "@/components/progression/ProgressionCard";
 import { formatProgressionNumber, formatXp } from "@/lib/progression/format";
@@ -84,6 +85,7 @@ export function AppTopNav() {
   }, [mobileOpen, openMenu]);
 
   const summary = progression.status === "ready" && progression.userId === session?.user.id ? progression.summary : null;
+  const cosmetics = progression.status === "ready" && progression.userId === session?.user.id ? progression.cosmeticsSnapshot:null;
   const links = appNavigationLinks(Boolean(session));
   const playActive = pathname === "/solo" || pathname.startsWith("/multiplayer");
   const trainingActive = active(pathname, "/training");
@@ -148,7 +150,7 @@ export function AppTopNav() {
         <ThemeToggle />
         <div className="hidden min-[480px]:block">
           {session ? <Link className="coinche-account-link progression-account" href="/profile" title={username ?? "Profil"}>
-            <span className="progression-account-line"><span className="progression-account-name">{username ?? "Profil"}</span>
+            <span className="progression-account-line"><ProfileIdentity compact snapshot={cosmetics} name={<span className="progression-account-name">{username ?? "Profil"}</span>}/>
               <span className="progression-account-desktop">{summary ? <ProgressionLevelBadge summary={summary} /> : <span className="progression-account-placeholder" aria-hidden="true" />}</span></span>
             <span className="progression-account-desktop progression-account-track">{summary ? <ProgressionBar mini summary={summary} /> : null}</span>
           </Link> : <Link className="coinche-account-link" href="/login">Se connecter</Link>}
@@ -165,7 +167,7 @@ export function AppTopNav() {
         <div className="ml-3 grid gap-1 border-l border-[var(--border)] pl-3">{TRAINING_LINKS.map((item) => <Link aria-current={item.href === "/training" && pathname === "/training" ? "page" : undefined} className={item.href === "/training" && pathname === "/training" ? "coinche-topnav-link coinche-topnav-link--active" : "coinche-topnav-link"} href={item.href} key={item.href} onClick={closeTrainingNavigation}>{item.label}</Link>)}</div>
       </div> : <Link aria-current={active(pathname, link.href) ? "page" : undefined} className={linkClass(link.href)} href={link.href} key={link.href}>{link.label}</Link>)}
       {session ? <div className="progression-mobile-account">
-        <Link className={linkClass("/profile")} href="/profile"><span className="break-words">{username ?? "Profil"}</span></Link>
+        <Link className={linkClass("/profile")} href="/profile"><ProfileIdentity compact snapshot={cosmetics} name={<span className="break-words">{username ?? "Profil"}</span>}/></Link>
         {summary ? <><p className="px-3 text-sm text-[var(--text-secondary)]">Niv. {summary.level} · {formatProgressionNumber(summary.xpIntoLevel)} / {formatXp(summary.xpForNextLevel)}</p><div className="px-3 py-2"><ProgressionBar summary={summary} /></div></> : null}
         <Link className={linkClass("/progression")} href="/progression">Ma progression</Link>
       </div> : <div className="min-[480px]:hidden"><Link className={linkClass("/login")} href="/login">Se connecter</Link></div>}

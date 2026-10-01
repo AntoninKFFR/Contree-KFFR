@@ -3,6 +3,7 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { withEquipment } from "./helpers/profileCosmetics";
 import ProfilePage from "@/app/profile/page";
 
 const mocks = vi.hoisted(() => ({
@@ -82,4 +83,19 @@ describe("own player profile", () => {
     expect(mocks.signOut).toHaveBeenCalledOnce();
     expect(mocks.refresh).toHaveBeenCalledOnce();
   });
+});
+
+it.each([[],["title"],["badge"],["frame"],["title","badge","frame"]].map(slots=>({slots:slots as string[]})))("decorates only identity and preserves editing/logout with slots $slots",async({slots})=>{
+ const equipped=withEquipment(40,slots as string[]);
+ mocks.progression.mockReturnValue({...mocks.progression(),cosmeticsSnapshot:equipped});
+ render(React.createElement(ProfilePage));await screen.findByRole("heading",{name:"Antonin"});
+ const identity=document.querySelector('#profile-username')!;
+ expect(identity.querySelectorAll('.profile-title').length).toBe(slots.includes("title") ? 1:0);
+ expect(identity.querySelectorAll('.profile-badge').length).toBe(slots.includes("badge") ? 1:0);
+ expect(identity.querySelectorAll('.profile-frame').length).toBe(slots.includes("frame") ? 1:0);
+ fireEvent.click(screen.getByRole("button",{name:"Modifier"}));
+ fireEvent.change(screen.getByRole("textbox",{name:"Pseudo"}),{target:{value:"Arthur"}});
+ fireEvent.click(screen.getByRole("button",{name:"Enregistrer"}));await screen.findByRole("heading",{name:"Arthur"});
+ expect(screen.getByRole("button",{name:"Se déconnecter"}).closest('.profile-frame')).toBeNull();
+ expect(identity.querySelectorAll('.profile-title').length).toBe(slots.includes("title") ? 1:0);
 });
