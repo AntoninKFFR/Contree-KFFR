@@ -14,9 +14,12 @@ import { SOCIAL_CHANGED_EVENT } from "@/lib/socialEvents";
 vi.stubGlobal("React",React);
 const id="22222222-2222-4222-8222-222222222222";
 const profile={userId:id,username:"Benjamin",level:1,equipped:{title:null,badge:null,frame:null},solo:{games:0,wins:0,losses:0,winrate:0},multiplayer:{games:0,wins:0,losses:0,winrate:0},rating:null};
-afterEach(cleanup);beforeEach(()=>{vi.clearAllMocks();mocks.fetch.mockResolvedValue(profile);mocks.game.mockResolvedValue("/multiplayer/room");});
+afterEach(()=>{cleanup();vi.restoreAllMocks();});beforeEach(()=>{vi.clearAllMocks();mocks.fetch.mockResolvedValue(profile);mocks.game.mockResolvedValue("/multiplayer/room");});
 it("clears identity after friendship removal and refuses it on refresh",async()=>{
+  const listen=vi.spyOn(window,"addEventListener");
   render(<FriendProfileClient userId={id}/>);await screen.findByText("Benjamin");
+  // The rendered identity may appear before the passive event subscription runs.
+  await waitFor(()=>expect(listen).toHaveBeenCalledWith(SOCIAL_CHANGED_EVENT,expect.any(Function)));
   mocks.fetch.mockRejectedValue(new SocialApiError("Ce profil n’est pas disponible.",404,"friend_profile_unavailable"));
   act(()=>window.dispatchEvent(new Event(SOCIAL_CHANGED_EVENT)));
   expect(screen.queryByText("Benjamin")).toBeNull();await screen.findByText("Ce profil n’est pas disponible.");
