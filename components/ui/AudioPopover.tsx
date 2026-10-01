@@ -40,7 +40,7 @@ export function AudioPopover() {
 
   return <div className="relative" ref={rootRef}>
     <button aria-controls="audio-popover" aria-expanded={open} aria-label="Contrôles audio" className="coinche-chrome-icon" onClick={() => setOpen((value) => !value)} type="button"><SpeakerIcon /></button>
-    {open ? <div aria-label="Lecteur audio" className="coinche-popover absolute right-0 top-[calc(100%+0.6rem)] z-[70] w-72 rounded-2xl border p-4 shadow-2xl" id="audio-popover" role="dialog">
+    {open ? <div aria-label="Lecteur audio" className="coinche-popover coinche-audio-popover z-[70] overflow-y-auto overscroll-contain rounded-2xl border p-4 shadow-2xl" id="audio-popover" role="dialog">
       <p className="truncate text-sm font-bold text-[var(--text-primary)]">{track.title}</p>
       <p className="truncate text-xs text-[var(--text-secondary)]">{track.artist}</p>
       <div className="mt-4 flex items-center justify-center gap-5">

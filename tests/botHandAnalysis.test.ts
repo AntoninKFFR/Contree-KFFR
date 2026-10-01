@@ -209,14 +209,14 @@ describe("solo bot hand analysis", () => {
 
     const normalDesktop = isSoloDesktopAnalysisLayout(true, false, false);
     expect(normalDesktop).toBe(false);
-    expect(soloMainClassName(normalDesktop, false)).toContain("h-[calc(100dvh-56px)]");
+    expect(soloMainClassName(normalDesktop, false)).toContain("h-[var(--content-height)]");
     expect(soloMainClassName(normalDesktop, false)).toContain("lg:overflow-hidden");
     expect(soloContentClassName(normalDesktop)).toContain("h-full");
     expect(soloGridClassName(normalDesktop, false)).toContain("flex-1");
 
     const mobileLandscape = isSoloDesktopAnalysisLayout(true, true, true);
     expect(mobileLandscape).toBe(false);
-    expect(soloMainClassName(mobileLandscape, true)).toContain("overflow-hidden px-0 py-0");
+    expect(soloMainClassName(mobileLandscape, true)).toContain("overflow-hidden [--shell-padding-x:0px] [--shell-padding-y:0px] py-0");
   });
 
   it("shows move analysis only while developer mode is enabled", () => {

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <AppPage className="justify-center sm:min-h-[calc(100dvh-112px)]" width="wide">
+    <AppPage className="justify-center sm:min-h-0" width="wide">
       <section className="coinche-home-hero relative overflow-hidden border px-5 py-8 sm:px-10 sm:py-10 lg:px-14 lg:py-12">
         <div className="lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12">
           <div className="relative">

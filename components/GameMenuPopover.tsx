@@ -35,7 +35,7 @@ export function GameMenuPanel({
   const regularActions = menuActions.filter((action) => action.tone !== "danger");
   const dangerActions = menuActions.filter((action) => action.tone === "danger");
 
-  return <aside aria-label="Menu de partie" className="coinche-popover fixed right-3 top-14 z-[80] max-h-[calc(100dvh-4rem)] w-[min(19rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border p-3 shadow-2xl sm:absolute sm:right-0 sm:top-full sm:mt-2" id="game-menu-panel">
+  return <aside aria-label="Menu de partie" className="coinche-popover coinche-game-menu fixed z-[80] overflow-y-auto overscroll-contain rounded-2xl border p-3 shadow-2xl sm:absolute sm:mt-2" id="game-menu-panel">
     {showFocusMode ? <>
       <p className="coinche-nav-section-label mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.18em]">Affichage</p>
       <button aria-checked={!focusMode} className="coinche-drawer-action flex w-full items-center justify-between gap-4" onClick={() => onSelect(onToggleFocusMode)} role="switch" type="button"><span>Scores en direct</span><span aria-hidden="true" className={`relative h-6 w-11 shrink-0 rounded-full shadow-inner transition ${focusMode ? "bg-white/15" : "bg-emerald-600"}`}><span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${focusMode ? "left-0.5" : "left-0.5 translate-x-5"}`} /></span></button>

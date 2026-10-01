@@ -190,7 +190,7 @@ export function TrainingGameClient() {
   return <main aria-label="Partie d’entraînement"
     data-training-question-pending={pendingQuestion !== null}
     data-game-state-key={`${gameState.phase}:${gameState.roundNumber}:${gameState.completedTricks.length}:${gameState.currentPlayerId}:${gameState.currentTrick.cards.length}:${gameState.bids.length}`}
-    className={`coinche-game-shell h-[calc(100dvh-56px)] min-h-0 overflow-x-hidden overflow-y-auto px-2 py-2 sm:px-3 lg:overflow-hidden ${mobileLandscape ? "overflow-hidden px-0 py-0 sm:px-4" : ""}`}>
+    className={`coinche-game-shell h-[var(--content-height)] min-h-0 overflow-x-hidden overflow-y-auto [--shell-padding-x:0.5rem] py-2 sm:[--shell-padding-x:0.75rem] lg:overflow-hidden ${mobileLandscape ? "overflow-hidden [--shell-padding-x:0px] [--shell-padding-y:0px] py-0 sm:[--shell-padding-x:1rem]" : ""}`}>
     {mobilePortrait ? <MobileLandscapeNotice /> : <div className="mx-auto flex h-full w-full max-w-none flex-col gap-2">
       <div className="relative grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] gap-2">
         <GameTable state={gameState} immersiveMobileLandscape={mobileLandscape}

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppTopNav } from "@/components/AppTopNav";
@@ -15,6 +15,12 @@ export const metadata: Metadata = {
     default: "Contrée KFFR",
   },
   description: "La contrée, en solo ou entre amis",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 const themeBootstrap = `(()=>{try{const raw=localStorage.getItem("coinche:player-preferences:v1");const value=raw?JSON.parse(raw):null;document.documentElement.dataset.theme=value?.visual?.theme==="light"?"light":"dark"}catch{document.documentElement.dataset.theme="dark"}})()`;
@@ -34,7 +40,7 @@ export default function RootLayout({
             <SocialNotificationsProvider>
               <ProgressionProvider>
                 <SocialPresenceHeartbeat />
-                <div className="min-h-dvh">
+                <div className="coinche-viewport-dynamic">
                   <AppTopNav />
                   {children}
                 </div>

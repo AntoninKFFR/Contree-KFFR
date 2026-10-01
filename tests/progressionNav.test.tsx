@@ -15,6 +15,7 @@ vi.mock("@/components/ui/AudioPopover", () => ({AudioPopover:() => <button>Audio
 vi.mock("@/components/ui/ThemeToggle", () => ({ThemeToggle:() => <button>Thème</button>}));
 vi.mock("@/components/social/SocialNotifications", () => ({SocialNotificationTrigger:() => <button>Social</button>}));
 beforeEach(() => {
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
   mocks.session = {user:{id:"me"}}; mocks.username = "Antonin";
   mocks.progression.mockReturnValue({status:"ready",userId:"me",summary:getProgression(700)});
 });

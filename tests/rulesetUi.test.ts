@@ -24,7 +24,7 @@ describe("ruleset configuration UI", () => {
       stableHeight: true,
       title: "Règles de la table",
     } as unknown as React.ComponentProps<typeof AccessibleDialog>, editor));
-    expect(markup).toContain("sm:h-[min(46rem,calc(100dvh-1.5rem))]");
+    expect(markup).toContain("coinche-dialog--stable");
     expect(markup).toContain("coinche-rules-configurator flex h-full min-h-0");
     expect(markup).toContain("min-h-0 flex-1 overflow-y-auto");
     expect(markup).toContain("md:min-h-0 md:flex-col md:overflow-x-hidden md:overflow-y-auto");

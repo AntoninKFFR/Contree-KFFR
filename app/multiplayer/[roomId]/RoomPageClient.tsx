@@ -315,12 +315,12 @@ export default function MultiplayerRoomPage() {
     <><GameMenuPopover focusMode={isFocusMode} menuActions={gameMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} showFocusMode={isPlayingLayout} /><main
       className={
         isPlayingLayout
-          ? `coinche-game-shell h-[calc(100dvh-56px)] min-h-0 overflow-x-hidden overflow-y-auto px-2 py-2 sm:px-3 lg:overflow-hidden${isMobileLandscape ? " overflow-hidden px-0 py-0 sm:px-3" : ""}`
+          ? `coinche-game-shell h-[var(--content-height)] min-h-0 overflow-x-hidden overflow-y-auto [--shell-padding-x:0.5rem] py-2 sm:[--shell-padding-x:0.75rem] lg:overflow-hidden${isMobileLandscape ? " overflow-hidden [--shell-padding-x:0px] [--shell-padding-y:0px] py-0 sm:[--shell-padding-x:0.75rem]" : ""}`
           : isLobbyLayout
-          ? "coinche-app-page coinche-lobby-shell h-[calc(100dvh-56px)] min-h-0 overflow-hidden px-2 py-2 sm:px-3"
+          ? "coinche-app-page coinche-lobby-shell h-[var(--content-height)] min-h-0 overflow-hidden [--shell-padding-x:0.5rem] py-2 sm:[--shell-padding-x:0.75rem]"
           : isFinishedLayout
-          ? "coinche-app-page flex h-[calc(100dvh-56px)] min-h-0 items-start justify-center overflow-y-auto px-3 py-4"
-          : "coinche-app-page min-h-[calc(100dvh-56px)] px-3 py-5 text-stone-50 sm:px-5 sm:py-7"
+          ? "coinche-app-page coinche-page-shell coinche-content-min coinche-safe-bottom flex items-start justify-center"
+          : "coinche-app-page coinche-page-shell coinche-content-min coinche-safe-bottom text-stone-50"
       }
       style={isFinishedLayout ? { alignItems: "safe center" } : undefined}
     >
@@ -358,7 +358,7 @@ export default function MultiplayerRoomPage() {
         ) : null}
 
         {error && pageState === "ready" ? (
-          <p className="fixed left-1/2 top-14 z-40 -translate-x-1/2 rounded-xl border border-red-300/30 bg-red-950/90 px-4 py-2 text-sm font-semibold text-red-100 shadow-xl">
+          <p className="coinche-room-feedback fixed left-1/2 top-[var(--header-shell-height)] z-40 -translate-x-1/2 rounded-xl border border-red-300/30 bg-red-950/90 px-4 py-2 text-sm font-semibold text-red-100 shadow-xl">
             {error}
           </p>
         ) : null}
