@@ -10,15 +10,14 @@ export const appBadgeClass = "coinche-status-badge inline-flex items-center bord
 type AppPageProps = {
   children: ReactNode;
   className?: string;
-  stickyContent?: boolean;
   width?: "narrow" | "medium" | "wide";
 };
 
-export function AppPage({ children, className = "", stickyContent = false, width = "medium" }: AppPageProps) {
+export function AppPage({ children, className = "", width = "medium" }: AppPageProps) {
   const widthClass = width === "narrow" ? "max-w-xl" : width === "wide" ? "max-w-6xl" : "max-w-4xl";
   return (
-    <main className={`coinche-app-page relative min-h-[calc(100dvh-56px)] ${stickyContent ? "overflow-x-clip" : "overflow-hidden"} px-3 py-5 sm:px-5 sm:py-7`}>
-      <div className={`mx-auto flex w-full ${widthClass} flex-col gap-5 ${className}`}>{children}</div>
+    <main className="coinche-app-page coinche-page-shell coinche-content-min coinche-safe-bottom relative">
+      <div className={`mx-auto flex min-w-0 w-full ${widthClass} flex-col gap-5 ${className}`}>{children}</div>
     </main>
   );
 }

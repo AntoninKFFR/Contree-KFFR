@@ -27,6 +27,16 @@ export default defineConfig({
       },
   projects: [
     {
+      name: "mobile",
+      grep: /@mobile/,
+      use: { ...devices["Desktop Chrome"], trace: "off" },
+    },
+    {
+      name: "mobile-webkit",
+      grep: /@mobile/,
+      use: { ...devices["Desktop Safari"], trace: "off" },
+    },
+    {
       name: "progression-ui",
       grep: /@progression-ui/,
       use: { ...devices["Desktop Chrome"], trace: "off" },

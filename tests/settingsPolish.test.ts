@@ -73,7 +73,7 @@ describe("premium settings navigation", () => {
     expect(markup).not.toContain("Enregistré automatiquement");
     expect(markup).not.toContain("MES PARAMÈTRES");
     expect(markup).toContain('aria-label="Fermer les paramètres"');
-    expect(markup).toContain("sm:h-[min(46rem,calc(100dvh-1.5rem))]");
+    expect(markup).toContain("coinche-dialog--stable");
     expect(markup).toContain("<svg");
     expect(markup).not.toContain("Les règles des parties ne seront pas modifiées");
   });
@@ -85,7 +85,7 @@ describe("premium settings navigation", () => {
     })));
     expect(markup).toContain('aria-label="Fermer les préférences"');
     expect(markup).toContain("coinche-settings-panel");
-    expect(markup).toContain("sm:h-[min(46rem,calc(100dvh-1.5rem))]");
+    expect(markup).toContain("coinche-dialog--stable");
     expect(markup).toContain("bg-[var(--coinche-settings-canvas)]");
     expect(markup).toContain("bg-[var(--coinche-settings-surface)]");
     expect(markup.match(/Réinitialiser mes paramètres/g)).toHaveLength(1);

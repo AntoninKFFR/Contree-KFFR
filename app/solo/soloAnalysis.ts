@@ -18,11 +18,11 @@ export function shouldShowBotReviewAction(
 
 export function soloMainClassName(analysisDesktop: boolean, mobileLandscape: boolean): string {
   return [
-    "coinche-game-shell h-[calc(100dvh-56px)] min-h-0 overflow-x-hidden overflow-y-auto px-2 py-2 sm:px-3",
+    "coinche-game-shell h-[var(--content-height)] min-h-0 overflow-x-hidden overflow-y-auto [--shell-padding-x:0.5rem] py-2 sm:[--shell-padding-x:0.75rem]",
     analysisDesktop
-      ? "lg:h-auto lg:min-h-[calc(100dvh-56px)] lg:overflow-y-auto"
-      : "lg:h-[calc(100dvh-56px)] lg:overflow-hidden",
-    mobileLandscape ? "overflow-hidden px-0 py-0 sm:px-4" : "",
+      ? "lg:h-auto lg:min-h-[var(--content-height)] lg:overflow-y-auto"
+      : "lg:h-[var(--content-height)] lg:overflow-hidden",
+    mobileLandscape ? "overflow-hidden [--shell-padding-x:0px] [--shell-padding-y:0px] py-0 sm:[--shell-padding-x:1rem]" : "",
   ].join(" ");
 }
 

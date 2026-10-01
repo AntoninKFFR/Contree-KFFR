@@ -67,7 +67,7 @@ describe("premium gameplay shell", () => {
       actionLabel: "Manche suivante", onAction: () => undefined, state,
     }));
     expect(markup).toContain("fixed");
-    expect(markup).toContain("safe-area-inset-bottom");
+    expect(markup).toContain("coinche-fullscreen-safe");
     expect(markup).toContain("Manche suivante");
     expect(markup).toContain("Contrat réussi");
     expect(markup).toContain("90 ♦");

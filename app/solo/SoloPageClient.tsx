@@ -221,7 +221,7 @@ export default function SoloPage() {
     return (
       <>
         <GameMenuPopover focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" showFocusMode={false} />
-        {synchronizationNotice}<AppPage className="min-h-[calc(100dvh-112px)] justify-center" width="wide">
+        {synchronizationNotice}<AppPage className="min-h-0 justify-center" width="wide">
           <AppPageHeader eyebrow="Contrée Solo" title="Prêt à lancer une partie ?" description={rulesetDisplayName(buildCustomRuleset(rulesInput))}
             actions={<button className={`${appPrimaryActionClass} min-w-56`} disabled={!hasLoadedRules || isBusy} onClick={() => startSoloGame()} type="button">Commencer la partie</button>} />
         </AppPage>

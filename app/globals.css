@@ -2,6 +2,108 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Viewport and safe-area inputs. Tests override the four inputs on :root only. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --viewport-dynamic: 100vh;
+  --viewport-stable: 100vh;
+  --header-height: 56px;
+  --header-shell-height: calc(var(--header-height) + var(--safe-top));
+  --content-height: max(0px, calc(var(--viewport-dynamic) - var(--header-shell-height)));
+}
+@supports (height: 100svh) {
+  :root { --viewport-stable: 100svh; --viewport-dynamic: 100svh; }
+}
+@supports (height: 100dvh) {
+  :root { --viewport-dynamic: 100dvh; }
+}
+
+.coinche-viewport-dynamic { min-height: var(--viewport-dynamic); }
+.coinche-viewport-stable { min-height: var(--viewport-stable); }
+.coinche-content-min { min-height: var(--content-height); }
+.coinche-safe-bottom { padding-bottom: calc(var(--bottom-spacing, 0px) + var(--safe-bottom)); }
+.coinche-fullscreen-safe {
+  --fullscreen-gap: 0px;
+  height: var(--viewport-dynamic);
+  padding-top: max(var(--fullscreen-gap), var(--safe-top));
+  padding-right: max(var(--fullscreen-gap), var(--safe-right));
+  padding-bottom: max(var(--fullscreen-gap), var(--safe-bottom));
+  padding-left: max(var(--fullscreen-gap), var(--safe-left));
+}
+.coinche-page-shell {
+  --shell-padding-x: .75rem;
+  --bottom-spacing: 1.25rem;
+  padding-top: 1.25rem;
+  padding-left: calc(var(--shell-padding-x) + var(--safe-left));
+  padding-right: calc(var(--shell-padding-x) + var(--safe-right));
+}
+.coinche-page-shell > div { min-height: calc(var(--content-height) - 2 * var(--bottom-spacing) - var(--safe-bottom)); }
+.coinche-header-content {
+  --shell-padding-x: .75rem;
+  height: calc(var(--header-height) - 1px);
+  padding-left: calc(var(--shell-padding-x) + var(--safe-left));
+  padding-right: calc(var(--shell-padding-x) + var(--safe-right));
+}
+.coinche-global-header { height: var(--header-shell-height); padding-top: var(--safe-top); }
+.coinche-mobile-nav {
+  --bottom-spacing: .75rem;
+  max-height: var(--content-height);
+  padding-top: .75rem;
+  padding-left: calc(.75rem + var(--safe-left));
+  padding-right: calc(.75rem + var(--safe-right));
+}
+.coinche-game-shell, .coinche-lobby-shell {
+  padding-left: calc(var(--shell-padding-x, .5rem) + var(--safe-left));
+  padding-right: calc(var(--shell-padding-x, .5rem) + var(--safe-right));
+  padding-bottom: calc(var(--shell-padding-y, .5rem) + var(--safe-bottom));
+}
+.coinche-mobile-notice {
+  --bottom-spacing: 1.5rem;
+  padding-top: 1.5rem;
+  padding-left: calc(1.5rem + var(--safe-left));
+  padding-right: calc(1.5rem + var(--safe-right));
+}
+/* A notice nested in a game shell consumes its already-safe content box. */
+.coinche-game-shell > .coinche-mobile-notice { min-height: 100%; padding: 1.5rem; }
+.coinche-dialog { height: 100%; max-height: 100%; }
+.coinche-game-menu {
+  top: var(--header-shell-height);
+  right: calc(.75rem + var(--safe-right));
+  width: min(19rem, calc(100vw - 1.5rem - var(--safe-left) - var(--safe-right)));
+  max-height: calc(var(--content-height) - .5rem - var(--safe-bottom));
+}
+.coinche-audio-popover {
+  position: fixed;
+  top: calc(var(--header-shell-height) + .5rem);
+  right: calc(.75rem + var(--safe-right));
+  width: min(18rem, calc(100vw - 1.5rem - var(--safe-left) - var(--safe-right)));
+  max-height: calc(var(--content-height) - 1rem - var(--safe-bottom));
+}
+.coinche-round-overlay {
+  --fullscreen-gap: .5rem;
+  /* The existing entry animation moves down 8px; keep that motion above the inset. */
+  padding-bottom: max(var(--fullscreen-gap), calc(var(--safe-bottom) + .5rem));
+}
+.coinche-round-completion { max-height: calc(var(--content-height) - 1rem - var(--safe-bottom)); }
+.coinche-sticky-under-header { top: var(--header-shell-height); }
+.coinche-room-feedback {
+  left: calc((100% + var(--safe-left) - var(--safe-right)) / 2);
+  max-width: calc(100% - 1.5rem - var(--safe-left) - var(--safe-right));
+}
+@media (min-width: 640px) {
+  .coinche-page-shell { --shell-padding-x: 1.25rem; --bottom-spacing: 1.75rem; padding-top: 1.75rem; }
+  .coinche-header-content { --shell-padding-x: 1.25rem; }
+  .coinche-fullscreen-safe { --fullscreen-gap: .75rem; }
+  .coinche-round-overlay { --fullscreen-gap: 1rem; }
+  .coinche-dialog { height: auto; }
+  .coinche-dialog--stable { height: min(46rem, 100%); }
+  .coinche-game-menu { top: 100%; right: 0; }
+  .coinche-audio-popover { position: absolute; top: calc(100% + .6rem); right: 0; }
+}
+
 :root,
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -137,10 +239,14 @@
 
 html {
   scrollbar-gutter: stable;
+  min-height: var(--viewport-dynamic);
+  background: var(--app-bg);
+  scroll-padding-top: var(--header-shell-height);
 }
 
 body {
   margin: 0;
+  min-height: var(--viewport-dynamic);
   background: var(--app-bg);
   color: var(--text-primary);
   transition: background-color 160ms ease, color 160ms ease;
@@ -159,6 +265,7 @@ textarea {
 }
 
 .coinche-app-surface {
+  min-width: 0;
   border-color: var(--border);
   border-radius: var(--radius-card);
   background: var(--surface);
@@ -386,14 +493,14 @@ summary:focus-visible {
   background: var(--surface-raised); color: var(--text-primary); box-shadow: 0 12px 30px rgb(0 0 0 / 20%);
 }
 .social-notification-center {
-  position: fixed; z-index: 70; top: 4rem; right: max(1rem, calc((100vw - 1600px) / 2 + 1rem));
-  width: min(23.75rem, calc(100vw - 2rem)); max-height: min(68dvh, 32rem); overflow-y: auto; padding: .9rem;
+  position: fixed; z-index: 70; top: calc(var(--header-shell-height) + .5rem); right: max(calc(1rem + var(--safe-right)), calc((100vw - 1600px) / 2 + 1rem));
+  width: min(23.75rem, calc(100vw - 2rem - var(--safe-left) - var(--safe-right))); max-height: min(calc(var(--content-height) - 1rem - var(--safe-bottom)), 32rem); overflow-y: auto; overscroll-behavior: contain; padding: .9rem;
 }
 .social-notification-center h2 { font-size: 1rem; font-weight: 800; margin-bottom: .7rem; }
 .social-notification-list { display: grid; gap: .65rem; }
 .social-notification-toasts {
-  position: fixed; z-index: 65; top: 4rem; right: max(1rem, calc((100vw - 1600px) / 2 + 1rem));
-  width: min(23.75rem, calc(100vw - 2rem)); display: grid; gap: .65rem; pointer-events: none;
+  position: fixed; z-index: 65; top: calc(var(--header-shell-height) + .5rem); right: max(calc(1rem + var(--safe-right)), calc((100vw - 1600px) / 2 + 1rem));
+  width: min(23.75rem, calc(100vw - 2rem - var(--safe-left) - var(--safe-right))); max-height: calc(var(--content-height) - 1rem - var(--safe-bottom)); overflow-y: auto; overscroll-behavior: contain; display: grid; gap: .65rem; pointer-events: none;
 }
 .social-notification-toast { position: relative; padding: .8rem; pointer-events: auto; }
 .social-notification-toast .social-notification-card { border: 0; padding: 0; }
@@ -406,10 +513,10 @@ summary:focus-visible {
 .social-notification-actions button:disabled { opacity: .55; }
 .social-notification-dismiss { position: absolute; top: .25rem; right: .35rem; display: grid; width: 2rem; height: 2rem; place-items: center; font-size: 1.3rem; }
 .social-notification-toast .social-notification-title { padding-right: 2rem; }
-.social-notification-feedback { position: fixed; z-index: 66; top: 4rem; right: 1rem; max-width: calc(100vw - 2rem); padding: .65rem .9rem; font-size: .875rem; }
+.social-notification-feedback { position: fixed; z-index: 66; top: calc(var(--header-shell-height) + .5rem); right: calc(1rem + var(--safe-right)); max-width: calc(100vw - 2rem - var(--safe-left) - var(--safe-right)); padding: .65rem .9rem; font-size: .875rem; }
 @media (max-width: 600px) {
-  .social-notification-center, .social-notification-toasts { left: .75rem; right: .75rem; width: auto; top: 4rem; }
-  .social-notification-center { max-height: min(65dvh, 25rem); }
+  .social-notification-center, .social-notification-toasts { left: calc(.75rem + var(--safe-left)); right: calc(.75rem + var(--safe-right)); width: auto; }
+  .social-notification-center { max-height: min(calc(var(--content-height) - 1rem - var(--safe-bottom)), 25rem); }
   .social-notification-toast:not(:last-child) { display: none; }
   .social-notification-toast { padding: .55rem .7rem; }
   .social-notification-toast .social-notification-card { font-size: .8rem; }
@@ -755,6 +862,14 @@ summary:focus-visible {
 
 .coinche-input::placeholder { color: var(--field-placeholder); }
 
+/* Keep larger fields unchanged; prevent Safari focus zoom on small controls. */
+@media (max-width: 1119px) and (pointer: coarse), (max-width: 600px) {
+  .coinche-input.text-sm, .coinche-input.text-xs,
+  .coinche-settings-panel input[type="search"],
+  .coinche-app-field input, .coinche-app-field select,
+  .coinche-rules-configurator input[type="number"], .coinche-rules-configurator select { font-size: 16px; }
+}
+
 .coinche-ui-kicker { color: var(--ui-kicker); }
 .coinche-ui-link { color: var(--ui-link); }
 .coinche-ui-link:hover { color: var(--ui-link-hover); }
@@ -1059,7 +1174,7 @@ summary:focus-visible {
 @media (max-height: 500px) and (orientation: landscape) {
   .coinche-lobby-shell {
     padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
+    --shell-padding-y: .25rem;
   }
 
   .coinche-lobby-shell > div {
@@ -1100,11 +1215,17 @@ summary:focus-visible {
   }
 }
 
+/* The lobby is a page, not a game scene: short landscapes must be able to grow. */
+@media (max-width: 1119px) and (max-height: 500px) and (orientation: landscape) {
+  .coinche-lobby-shell { height: auto; min-height: var(--content-height); overflow: visible; }
+  .coinche-lobby-table { min-height: 14rem; }
+}
+
 @media (max-width: 600px) and (orientation: portrait) {
   .coinche-lobby-shell {
     height: auto;
-    min-height: calc(100dvh - 48px);
-    overflow-y: auto;
+    min-height: var(--content-height);
+    overflow: visible;
   }
 
   .coinche-lobby-table {
@@ -1330,7 +1451,7 @@ summary:focus-visible {
 .training-player-badge { display: inline-block; margin-top: .5rem; margin-right: .35rem; border: 1px solid var(--border); border-radius: 999px; padding: .2rem .55rem; font-size: .72rem; font-weight: 800; }
 .training-start-action { min-width: 10rem; }
 .training-wait { border: 1px solid var(--accent); border-radius: 1rem; background: var(--accent-soft); padding: 1.25rem; }
-.training-conventions-nav { display: flex; flex-wrap: wrap; gap: .4rem; position: sticky; top: 4rem; z-index: 10; border-bottom: 1px solid var(--border); background: var(--app-bg); padding: .5rem 0; }
+.training-conventions-nav { display: flex; flex-wrap: wrap; gap: .4rem; position: sticky; top: calc(var(--header-shell-height) + .5rem); z-index: 10; border-bottom: 1px solid var(--border); background: var(--app-bg); padding: .5rem 0; }
 .training-conventions-nav a { border-radius: var(--radius-control); padding: .55rem .8rem; color: var(--text-secondary); font-size: .85rem; font-weight: 750; }
 .training-conventions-nav a:hover, .training-conventions-nav a:focus-visible { background: var(--accent-soft); color: var(--text-primary); }
 .training-convention-section { border-bottom: 1px solid var(--border); padding-block: 1rem 1.5rem; scroll-margin-top: 9rem; }
