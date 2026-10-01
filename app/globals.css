@@ -47,6 +47,11 @@
   padding-left: calc(var(--shell-padding-x) + var(--safe-left));
   padding-right: calc(var(--shell-padding-x) + var(--safe-right));
 }
+/* Leave room for all existing account/game controls at 320px, including font rounding. */
+@media (max-width: 479px) {
+  .coinche-header-content { column-gap: .5rem; }
+  .coinche-header-content > div { column-gap: .25rem; }
+}
 .coinche-global-header { height: var(--header-shell-height); padding-top: var(--safe-top); }
 .coinche-mobile-nav {
   --bottom-spacing: .75rem;
@@ -937,6 +942,9 @@ summary:focus-visible {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 80px), 1fr));
   gap: .25rem;
 }
+
+/* Fieldsets default to min-content, which defeats their intentional local scrollers. */
+.coinche-bidding-panel fieldset { min-width: 0; }
 
 .coinche-round-completion.coinche-round-completion--success {
   border-color: color-mix(in srgb, var(--accent) 45%, transparent) !important;

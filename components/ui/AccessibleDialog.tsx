@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { IconCloseButton } from "@/components/ui/IconCloseButton";
+import { lockBodyScroll } from "@/lib/ui/bodyScrollLock";
 
 type Props = { children: ReactNode; backdropClassName?: string; closeLabel?: string; description?: string; footer?: ReactNode; minimalHeader?: boolean; onClose: () => void; showCloseButton?: boolean; stableHeight?: boolean; title: string; width?: "wide" | "medium" };
 const FOCUSABLE = "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])";
@@ -15,8 +16,7 @@ export function AccessibleDialog({ children, backdropClassName = "", closeLabel,
   onCloseRef.current = onClose;
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const releaseScroll = lockBodyScroll(document.body);
     (closeRef.current ?? panelRef.current?.querySelector<HTMLElement>(FOCUSABLE))?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") { event.preventDefault(); onCloseRef.current(); return; }
@@ -29,7 +29,7 @@ export function AccessibleDialog({ children, backdropClassName = "", closeLabel,
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
     document.addEventListener("keydown", handleKeyDown);
-    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener("keydown", handleKeyDown); previousFocus?.focus(); };
+    return () => { releaseScroll(); document.removeEventListener("keydown", handleKeyDown); previousFocus?.focus(); };
   }, []);
   return <div aria-describedby={description ? descriptionId : undefined} aria-labelledby={titleId} aria-modal="true" className={`coinche-dialog-backdrop coinche-fullscreen-safe fixed inset-0 z-[60] flex items-center justify-center backdrop-blur-sm ${backdropClassName}`} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} role="dialog">
     <section className={`coinche-dialog flex w-full flex-col overflow-hidden border sm:rounded-3xl ${stableHeight ? "coinche-dialog--stable" : ""} ${width === "wide" ? "sm:max-w-6xl" : "sm:max-w-3xl"}`} onClick={(event) => event.stopPropagation()} ref={panelRef}>

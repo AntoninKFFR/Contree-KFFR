@@ -8,6 +8,8 @@ L’audit de `layout`, `globals.css`, `AppTopNav`, `AppShell` et `MobileLandscap
 
 Le document possède le scroll des pages normales. `html`, `body` et le root ont une hauteur **minimum** dynamique et le même fond `--app-bg`, défini avant hydratation par le bootstrap thème existant. Les pages peuvent grandir sans plafond. Il n’y a aucun `overflow-x: hidden/clip` global. Les scrollers locaux restent explicites : listes d’amis, choix d’enchères, règles, paramètres, popovers et menu mobile. Les petits paysages du lobby reviennent au flux naturel pour éviter l’écrasement des sièges ; la scène de jeu conserve son shell contraint.
 
+La suppression du clipping a révélé un débordement réel dans l’exercice d’enchères : les `fieldset` avaient une largeur minimum intrinsèque malgré leurs scrollers internes. `min-width: 0` sur ces fieldsets conserve leurs boutons et leur scroll horizontal local, sans agrandir le document.
+
 ## Viewport Next.js
 
 `app/layout.tsx` exporte `viewport: Viewport` :
@@ -46,7 +48,7 @@ Cinq primitives réutilisables :
 
 Le header reste sticky, garde sa zone interne de 56 px bordure comprise et ajoute `safe-top` au-dessus. Son contenu intègre séparément safe-left et safe-right. Les ancres et barres sticky secondaires utilisent la même hauteur globale. Aucun listener global `resize`, `window.innerHeight` ou variable JS `--vh` n’est introduit. Les observateurs d’orientation existants restent en place.
 
-AppPage conserve 20/28 px d’espacement bas selon le breakpoint et **ajoute** safe-bottom. Aucun forfait de 100 px : le chrome navigateur est traité par `dvh`, le Home Indicator par l’inset. Le dernier contenu est atteignable en scrollant le document. Les modales réservent le bas du panneau et peuvent faire défiler leur contenu interne ; les footers restent dans la zone sûre. Le menu mobile verrouille temporairement le document, possède son seul scroll et restaure le document à la fermeture ou au passage desktop. Les popovers audio, de partie et notifications sont bornés par la hauteur disponible et les insets latéraux.
+AppPage conserve 20/28 px d’espacement bas selon le breakpoint et **ajoute** safe-bottom. Aucun forfait de 100 px : le chrome navigateur est traité par `dvh`, le Home Indicator par l’inset. Le dernier contenu est atteignable en scrollant le document. Les modales réservent le bas du panneau et peuvent faire défiler leur contenu interne ; les footers restent dans la zone sûre. Le menu mobile verrouille temporairement le document, possède son seul scroll et restaure le document à la fermeture ou au passage desktop. `lib/ui/bodyScrollLock.ts` partage ce verrou avec les modales : des ouvertures simultanées ne peuvent ni libérer le document trop tôt, ni le laisser bloqué après Escape. Les popovers audio, de partie et notifications sont bornés par la hauteur disponible et les insets latéraux.
 
 `MobileLandscapeNotice` garde « Tournez votre téléphone », son aspect et les conditions produit existantes. Son shell est centré sous le header, avec hauteur minimum dynamique et quatre côtés sûrs. La notice Training imbriquée dans le shell utilise la zone sûre déjà réservée par son parent pour éviter une deuxième hauteur viewport.
 
@@ -67,7 +69,7 @@ Le projet mobile utilise Chromium et WebKit. En environnement de fixture, constr
 
 `e2e/helpers/mobile.ts` expose `MOBILE_VIEWPORTS`, `DESKTOP_VIEWPORTS`, `setMobileViewport`, `expectNoPageHorizontalOverflow`, `expectInsideSafeViewport` et `simulateSafeAreas`. La simulation réassigne les **entrées** `--safe-*` sur `document.documentElement.style` ; toutes les variables dérivées se recalculent. Aucune branche test ne s’exécute dans l’app et aucune valeur fixture n’est hardcodée en production.
 
-Matrice portrait : 320×568, 375×667, 390×844, 430×932. Paysage : 568×320, 667×375, 844×390, 932×430. Desktop : 1120×800, 1440×900. Les deux thèmes sont vérifiés. Les pages publiques incluent `/`, `/friends`, `/training`, `/multiplayer`, `/solo` avant partie, `/rules`, `/login`, `/progression`, `/profile`, `/history`, `/leaderboard`. La fixture couvre lobby et partie multi. Solo couvre notice, rotation, main conservée, absence de reload et de scroll fantôme. Safe areas : top 47, bottom 34, left 44/right 0, puis left 0/right 44. Les tests contrôlent aussi les modales, menus, inputs, fonds et accès au bas.
+Matrice portrait : 320×568, 375×667, 390×844, 430×932. Paysage : 568×320, 667×375, 844×390, 932×430. Desktop : 1120×800, 1440×900. Les deux thèmes sont vérifiés. Les pages publiques incluent `/`, `/friends`, `/training`, `/multiplayer`, `/solo` avant partie, `/rules`, `/login`, `/progression`, `/profile`, `/history`, `/leaderboard`. La fixture couvre aussi Accueil, Friends, Training et Multiplayer authentifiés à 320/390 px, puis lobby et partie multi. Solo couvre notice, rotation, main conservée, absence de reload et de scroll fantôme. Safe areas : top 47, bottom 34, left 44/right 0, puis left 0/right 44. Les tests contrôlent aussi les modales, menus, inputs, fonds, enchères à 320/390 px et accès au bas.
 
 `.github/workflows/mobile-responsive.yml` exécute cette matrice sur le build production en Chromium/WebKit. Les autres workflows existants restent les gates smoke, Social, Progression, Training, Duo et Rating. Les captures de diagnostic restent dans `test-results/`, ignoré par Git.
 

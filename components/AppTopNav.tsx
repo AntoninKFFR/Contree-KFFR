@@ -14,6 +14,7 @@ import { AudioPopover } from "@/components/ui/AudioPopover";
 import { KffrLogo } from "@/components/ui/KffrLogo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { SocialNotificationTrigger } from "@/components/social/SocialNotifications";
+import { lockBodyScroll } from "@/lib/ui/bodyScrollLock";
 
 const PUBLIC_LINKS = [{ href: "/", label: "Accueil" }, { href: "/training", label: "Entraînement" }, { href: "/rules", label: "Règles" }] as const;
 const PRIVATE_LINKS = [{ href: "/leaderboard", label: "Classement" }, { href: "/friends", label: "Amis" }, { href: "/history", label: "Historique" }] as const;
@@ -123,13 +124,12 @@ export function AppTopNav() {
   // Only the open mobile menu owns a scroller; restore normal document scrolling on close.
   useEffect(() => {
     if (!mobileOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const releaseScroll = lockBodyScroll(document.body);
     const desktop = window.matchMedia("(min-width: 1120px)");
     const closeOnDesktop = () => { if (desktop.matches) setMobileOpen(false); };
     desktop.addEventListener("change", closeOnDesktop);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      releaseScroll();
       desktop.removeEventListener("change", closeOnDesktop);
     };
   }, [mobileOpen]);

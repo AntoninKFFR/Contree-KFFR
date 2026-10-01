@@ -1,18 +1,21 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../lib/preferences/playerPreferences";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 import { installMobileRoomFixture } from "./helpers/mobileRoomFixture";
 import { DESKTOP_VIEWPORTS, MOBILE_VIEWPORTS, expectInsideSafeViewport, expectNoPageHorizontalOverflow, setMobileViewport, simulateSafeAreas } from "./helpers/mobile";
 
 const routes = ["/", "/friends", "/training", "/multiplayer", "/solo", "/rules", "/login", "/progression", "/profile", "/history", "/leaderboard"];
+async function seedTheme(page: Page, theme: "dark" | "light") {
+  const preferences = clonePlayerPreferences();
+  preferences.visual.theme = theme;
+  await page.addInitScript(({ key, preferences }) => localStorage.setItem(key, JSON.stringify(preferences)), { key: PLAYER_PREFERENCES_STORAGE_KEY, preferences });
+}
 for (const theme of ["dark", "light"] as const) {
   for (const viewport of [...MOBILE_VIEWPORTS, ...DESKTOP_VIEWPORTS]) {
     test(`@mobile ${theme} natural pages at ${viewport.width}×${viewport.height}`, async ({ page }) => {
       test.setTimeout(120_000);
       const errors = monitorBrowserErrors(page);
-      const preferences = clonePlayerPreferences();
-      preferences.visual.theme = theme;
-      await page.addInitScript(({ key, preferences }) => localStorage.setItem(key, JSON.stringify(preferences)), { key: PLAYER_PREFERENCES_STORAGE_KEY, preferences });
+      await seedTheme(page, theme);
       await setMobileViewport(page, viewport);
       for (const path of routes) {
         await page.goto(path);
@@ -123,15 +126,33 @@ for (const theme of ["dark", "light"] as const) {
     errors.assertClean();
   });
 
+  test(`@mobile ${theme} authenticated standard pages at 320px and 390px`, async ({ page }) => {
+    await seedTheme(page, theme);
+    await installMobileRoomFixture(page);
+    const errors = monitorBrowserErrors(page);
+    for (const viewport of [MOBILE_VIEWPORTS[0], MOBILE_VIEWPORTS[2]]) {
+      await setMobileViewport(page, viewport);
+      for (const path of ["/", "/friends", "/training", "/multiplayer"]) {
+        await page.goto(path);
+        await expect(page.getByRole("button", { name: "Notifications", exact: true })).toBeVisible();
+        await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+        await expectNoPageHorizontalOverflow(page);
+        await page.waitForLoadState("networkidle");
+      }
+    }
+    errors.assertClean();
+  });
+
   test(`@mobile ${theme} authenticated lobby and multiplayer fixture across the mobile matrix`, async ({ page }) => {
     test.setTimeout(90_000);
+    await seedTheme(page, theme);
     const fixture = await installMobileRoomFixture(page);
     const errors = monitorBrowserErrors(page);
     for (const viewport of MOBILE_VIEWPORTS) {
       await setMobileViewport(page, viewport);
       await page.goto(fixture.path);
       await expect(page.getByRole("button", { name: "Notifications", exact: true })).toBeVisible();
-      if (theme === "light" && await page.locator("html").getAttribute("data-theme") !== "light") await page.getByRole("switch", { name: "Activer le thème clair" }).click();
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       await expect(page.locator(".coinche-lobby-table")).toBeVisible();
       await expectNoPageHorizontalOverflow(page);
       const table = await page.locator(".coinche-lobby-felt").boundingBox();
@@ -193,9 +214,35 @@ test("@mobile audio popover fits 320px and mobile menu releases body scroll on d
   await expectInsideSafeViewport(page, page.getByRole("dialog", { name: "Lecteur audio" }));
   await expectNoPageHorizontalOverflow(page);
   await page.keyboard.press("Escape");
+  await page.goto("/solo");
+  await page.getByRole("button", { name: "Ouvrir le menu" }).click();
+  await page.getByRole("button", { name: "Menu Partie" }).click();
+  await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
+  await expect(page.getByRole("dialog", { name: "Paramètres" })).toBeVisible();
+  await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Paramètres" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Navigation mobile" })).toHaveCount(0);
+  await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
   await page.getByRole("button", { name: "Ouvrir le menu" }).click();
   await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
   await setMobileViewport(page, DESKTOP_VIEWPORTS[0]);
   await expect(page.getByRole("navigation", { name: "Navigation mobile" })).toHaveCount(0);
   await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
+});
+
+test("@mobile bidding fieldsets contain their horizontal scrollers at 320px and 390px", async ({ page }) => {
+  for (const viewport of [MOBILE_VIEWPORTS[0], MOBILE_VIEWPORTS[2]]) {
+    await setMobileViewport(page, viewport);
+    await page.goto("/training/puzzle/bidding?level=1");
+    await expect(page.locator(".coinche-bidding-panel")).toBeVisible();
+    const choice = page.getByRole("button", { name: "Valeur 160" });
+    await choice.scrollIntoViewIfNeeded();
+    await expect(choice).toBeInViewport();
+    expect((await choice.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await expectNoPageHorizontalOverflow(page);
+    await page.getByRole("button", { name: "Passer", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Correction de l’annonce" })).toBeVisible();
+    await expectNoPageHorizontalOverflow(page);
+  }
 });
