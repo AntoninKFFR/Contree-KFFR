@@ -22,7 +22,8 @@ async function identity() {
   const who = {id:user.id,token:session!.access_token,client};users.push(who);return who;
 }
 const denied = async (r: PromiseLike<{error:unknown}>) => assert.ok((await r).error,"write/RPC must be denied");
-async function total(who: typeof users[number]) {return checked(await who.client.rpc("get_my_progression")).total_xp;}
+async function total(who: typeof users[number]) {const xp=checked(await who.client.rpc("get_my_progression")).total_xp;
+  return xp-checked(await who.client.from("progression_xp_events").select("amount").eq("source_type","weekly_mission")).reduce((sum: number,e: {amount:number})=>sum+e.amount,0);}
 async function submit(who: typeof users[number],body: unknown) {return fetch(`${api}/api/training/series`,{method:"POST",headers:{Authorization:`Bearer ${who.token}`,"Content-Type":"application/json"},body:JSON.stringify(body)});}
 try {
   const [a,b,c,d] = await Promise.all(Array.from({length:4},identity));
@@ -47,7 +48,7 @@ try {
   const repeated = await Promise.all(Array.from({length:8},() => submit(a,body)));
   for (const response of repeated) assert.equal(response.status,200,await response.clone().text());
   assert.equal(await total(a),100);
-  assert.equal(checked(await a.client.from("progression_xp_events").select("*")).length,1);
+  assert.equal(checked(await a.client.from("progression_xp_events").select("*").eq("source_type","permanent_mission")).length,1);
   assert.deepEqual(checked(await b.client.from("progression_permanent_mission_completions").select("*").eq("user_id",a.id)),[]);
   assert.equal((await submit(b,body)).status,200);assert.equal(await total(b),100);
   for (const client of [anonymous,a.client,admin]) {

@@ -56,7 +56,7 @@ begin
   repeat := private.complete_permanent_mission(a,'first_training','training_series',source);
   if not inserted or repeat then raise exception 'retry mismatch'; end if;
   repeat := private.complete_permanent_mission(a,'first_training','training_series',gen_random_uuid());
-  if repeat or (select total_xp from public.player_progression where user_id = a) <> 100
+  if repeat or (select total_xp - coalesce((select sum(amount) from public.progression_xp_events where user_id = a and source_type = 'weekly_mission'),0) from public.player_progression where user_id = a) <> 100
     or (select count(*) from public.progression_xp_events where user_id = a) <> 1
     or not exists (select 1 from public.progression_permanent_mission_completions where user_id = a and source_id = source) then raise exception 'duplicate credit or changed audit'; end if;
   begin
@@ -78,7 +78,7 @@ begin
   perform set_config('test.fail_mission','off',true);
   perform public.commit_solo_game_session(sess,b,0,final);
   perform public.commit_solo_game_session(sess,b,0,final);
-  if (select total_xp from public.player_progression where user_id = b) <> 220
+  if (select total_xp - coalesce((select sum(amount) from public.progression_xp_events where user_id = b and source_type = 'weekly_mission'),0) from public.player_progression where user_id = b) <> 220
     or (select count(*) from public.progression_permanent_mission_completions where user_id = b) <> 2
     or exists(select 1 from public.progression_permanent_mission_completions where user_id = b and mission_key = 'first_win') then raise exception 'first loss mismatch'; end if;
   for i in 1..2 loop
@@ -86,10 +86,10 @@ begin
     final := initial || '{"phase":"game-over","winnerTeam":0,"totalScore":{"0":100,"1":50}}'::jsonb;
     perform public.commit_solo_game_session(sess,b,0,final);
   end loop;
-  if (select total_xp from public.player_progression where user_id = b) <> 430 then raise exception 'second win repeated mission'; end if;
+  if (select total_xp - coalesce((select sum(amount) from public.progression_xp_events where user_id = b and source_type = 'weekly_mission'),0) from public.player_progression where user_id = b) <> 430 then raise exception 'second win repeated mission'; end if;
   sess := (public.create_solo_game_session(c,gen_random_uuid(),initial)->>'id')::uuid;
   perform public.commit_solo_game_session(sess,c,0,final);
-  if (select total_xp from public.player_progression where user_id = c) <> 380 then raise exception 'first Solo win'; end if;
+  if (select total_xp - coalesce((select sum(amount) from public.progression_xp_events where user_id = c and source_type = 'weekly_mission'),0) from public.player_progression where user_id = c) <> 380 then raise exception 'first Solo win'; end if;
 
   -- Old pending #102 job still gets game XP, never missions after #104.
   oldgame := gen_random_uuid();
@@ -99,7 +99,7 @@ begin
   insert into public.multiplayer_game_players(game_id,seat_index,kind,user_id,display_name,bot_profile_id,team_id)
     select oldgame,seat,case when seat=0 then 'human' else 'bot' end,case when seat=0 then d else null end,'Fixture',case when seat=0 then null else 'advanced_rules_v4' end,seat%2 from generate_series(0,3) seat;
   result := public.apply_progression_multiplayer_game(oldgame);
-  if (select total_xp from public.player_progression where user_id = d) <> 50 or exists(select 1 from public.progression_permanent_mission_completions where user_id = d) then raise exception 'old job awarded missions'; end if;
+  if (select total_xp - coalesce((select sum(amount) from public.progression_xp_events where user_id = d and source_type = 'weekly_mission'),0) from public.player_progression where user_id = d) <> 50 or exists(select 1 from public.progression_permanent_mission_completions where user_id = d) then raise exception 'old job awarded missions'; end if;
 
   -- Forfeit winner a receives 450 on top of Training; d receives nothing.
   game := gen_random_uuid();
@@ -111,15 +111,15 @@ begin
   begin
     perform public.apply_progression_multiplayer_game(game); raise exception 'expected Multi failure';
   exception when serialization_failure then null; end;
-  if (select total_xp from public.player_progression where user_id = a) <> 100
+  if (select total_xp - coalesce((select sum(amount) from public.progression_xp_events where user_id = a and source_type = 'weekly_mission'),0) from public.player_progression where user_id = a) <> 100
     or exists(select 1 from public.progression_xp_events where source_id = game::text)
     or not exists(select 1 from public.progression_multiplayer_jobs where game_id = game and applied_at is null) then raise exception 'Multi partial mission or lost job'; end if;
   perform set_config('test.fail_mission','off',true);
   result := public.apply_progression_multiplayer_game(game);
   if result <> 'applied' then raise exception 'Multi retry failed'; end if;
   result := public.apply_progression_multiplayer_game(game);
-  if result <> 'already_applied' or (select total_xp from public.player_progression where user_id = a) <> 550
-    or (select total_xp from public.player_progression where user_id = d) <> 50
+  if result <> 'already_applied' or (select total_xp - coalesce((select sum(amount) from public.progression_xp_events where user_id = a and source_type = 'weekly_mission'),0) from public.player_progression where user_id = a) <> 550
+    or (select total_xp - coalesce((select sum(amount) from public.progression_xp_events where user_id = d and source_type = 'weekly_mission'),0) from public.player_progression where user_id = d) <> 50
     or exists(select 1 from public.progression_permanent_mission_completions where user_id = d) then raise exception 'forfeit missions mismatch'; end if;
 
   -- Training insert, record and mission are one transaction; no direct Training XP.
@@ -135,7 +135,7 @@ begin
   for i in 1..2 loop
     series := public.record_verified_training_series(d,'trick-value',1,1,'contree-kffr',1,1,1,'[]',10,0,1000,true);
   end loop;
-  if (select total_xp from public.player_progression where user_id = d) <> 150
+  if (select total_xp - coalesce((select sum(amount) from public.progression_xp_events where user_id = d and source_type = 'weekly_mission'),0) from public.player_progression where user_id = d) <> 150
     or (select count(*) from public.progression_xp_events where user_id = d and source_type = 'permanent_mission' and source_id = 'first_training') <> 1 then raise exception 'training repeated mission'; end if;
   if exists(select 1 from public.progression_permanent_mission_completions c left join public.progression_xp_events e
     on e.user_id=c.user_id and e.source_type='permanent_mission' and e.source_id=c.mission_key where e.id is null) then raise exception 'completion without XP'; end if;

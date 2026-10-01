@@ -116,7 +116,7 @@ begin
   v_first := public.commit_solo_game_session(v_session,v_user,0,v_final);
   v_retry := public.commit_solo_game_session(v_session,v_user,0,v_final);
   if v_first <> v_retry or (select count(*) from public.games where id = v_session) <> 1
-    or (select total_xp from public.player_progression where user_id = v_user) <> 380 then
+    or (select total_xp - coalesce((select sum(amount) from public.progression_xp_events where user_id = v_user and source_type = 'weekly_mission'),0) from public.player_progression where user_id = v_user) <> 380 then
     raise exception 'Solo retry is not stable';
   end if;
 
@@ -135,7 +135,7 @@ begin
   exception when serialization_failure then null; end;
   if not exists (select 1 from public.multiplayer_games where id = v_game)
     or not exists (select 1 from public.progression_multiplayer_jobs where game_id = v_game and applied_at is null)
-    or (select total_xp from public.player_progression where user_id = v_user) <> 380 then
+    or (select total_xp - coalesce((select sum(amount) from public.progression_xp_events where user_id = v_user and source_type = 'weekly_mission'),0) from public.player_progression where user_id = v_user) <> 380 then
     raise exception 'Multi archive or retry job corrupted';
   end if;
   perform set_config('test.fail_xp','off',true);
@@ -143,7 +143,7 @@ begin
   -- read the balance before volatile function calls in one boolean expression.
   v_status := public.apply_progression_multiplayer_game(v_game);
   v_repeat := public.apply_progression_multiplayer_game(v_game);
-  select total_xp into v_total from public.player_progression where user_id = v_user;
+  select total_xp - coalesce((select sum(amount) from public.progression_xp_events where user_id=v_user and source_type='weekly_mission'),0) into v_total from public.player_progression where user_id = v_user;
   if v_status <> 'applied' or v_repeat <> 'already_applied' or v_total <> 580 then
     raise exception 'Multi retry failed: %, %, %',v_status,v_repeat,v_total;
   end if;

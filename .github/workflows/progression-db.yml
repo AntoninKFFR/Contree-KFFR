@@ -48,7 +48,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm test -- tests/progressionFormulaV1.test.ts tests/progressionQueries.test.ts tests/progressionFinish.test.ts tests/soloAuthority.test.ts tests/soloRoutes.test.ts tests/soloSessionLoop.test.ts tests/progressionReadiness.test.ts tests/progressionRollout.test.ts
+      - run: npm test -- tests/progressionFormulaV1.test.ts tests/progressionQueries.test.ts tests/progressionFinish.test.ts tests/soloAuthority.test.ts tests/soloRoutes.test.ts tests/soloSessionLoop.test.ts tests/progressionReadiness.test.ts tests/progressionRollout.test.ts tests/progressionWeekly.test.tsx tests/progressionProvider.test.tsx
       - uses: supabase/setup-cli@v3
         with:
           version: latest
@@ -59,11 +59,20 @@ jobs:
       - run: supabase migration up --local
       - name: Verify real migration has no retroactive mission rewards
         run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionMissionsAfter.sql
+      - run: supabase db reset --local --version 20261001000000
+      - name: Seed pre-weekly verified history and a permanent-eligible pending job
+        run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionWeeklyBefore.sql
+      - run: supabase migration up --local
+      - name: Verify weekly activation has no backfill and preserves permanent eligibility
+        run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionWeeklyAfter.sql
       - run: supabase db query --local --file scripts/testProgressionSchema.sql
       - name: Test game rewards, privileges and transactional recovery
         run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionGameSchema.sql
       - name: Test permanent missions and transactional rollback
         run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionMissionsSchema.sql
+      - name: Test weekly catalog, Paris/DST, events, caps and atomic rewards
+        run: docker exec -i supabase_db_contree-kffr psql -U postgres -d postgres -v ON_ERROR_STOP=1 < scripts/testProgressionWeeklySchema.sql
+      - run: node scripts/testProgressionWeeklyConcurrency.mjs
       - run: supabase db lint --local --level warning --fail-on error
       - run: supabase db advisors --local --type all --level warn --fail-on error
       - name: Test XP foundations with local Auth JWTs
@@ -101,3 +110,4 @@ jobs:
           done
           npm run test:db:progression-games
           npx vite-node --config vitest.config.ts scripts/testProgressionMissionsDb.ts
+          npx vite-node --config vitest.config.ts scripts/testProgressionWeeklyDb.ts

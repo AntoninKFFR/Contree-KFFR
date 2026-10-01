@@ -4,9 +4,11 @@ import { expect, test, type Page } from "@playwright/test";
 const userId = "11111111-1111-4111-8111-111111111111";
 const username = "UnPseudoTrèsLongPourTesterLaNavigation";
 async function fixture(page: Page, theme: "dark" | "light", signedIn = true) {
+  await page.clock.install({time:new Date("2026-09-30T12:00:00Z")});
   let xp = 150;
   let completed = 0;
   let missionsFailure = false;
+  let weeklyFailure = false;
   const user = {id:userId,aud:"authenticated",role:"authenticated",email:"ui@example.test",created_at:"2026-09-30T00:00:00Z",app_metadata:{},user_metadata:{username}};
   const encoded = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
   const token = `${encoded({alg:"HS256",typ:"JWT"})}.${encoded({sub:userId,exp:Math.floor(Date.now()/1000)+3600,role:"authenticated"})}.fixture`;
@@ -23,6 +25,13 @@ async function fixture(page: Page, theme: "dark" | "light", signedIn = true) {
       if (missionsFailure) {await route.fulfill({status:500,body:"mission read failed"});return;}
       data = ["first_game","first_win","first_solo","first_multiplayer","first_training"].map((key,index) => ({key,rewardXp:[100,150,100,150,100][index],completed:index<completed,completedAt:index<completed ? "2026-10-01T00:00:00Z":null}));
     }
+    else if (path.endsWith("/get_my_weekly_missions")) {
+      if (weeklyFailure) {await route.fulfill({status:500,body:"weekly failure"});return;}
+      data = {catalogVersion:1,weekStart:"2026-09-28",serverNow:"2026-09-30T12:00:00Z",nextResetAt:"2026-10-04T22:00:00Z",missions:[
+        {key:"wins",target:3,progress:3,rewardXp:300,completed:true,completedAt:"2026-10-01T00:00:00Z"},
+        {key:"solo_games",target:3,progress:1,rewardXp:200,completed:false,completedAt:null},
+        {key:"training_series",target:3,progress:0,rewardXp:200,completed:false,completedAt:null}]};
+    }
     else if (path.endsWith("/profiles")) data = [{id:userId,username}];
     else if (path.endsWith("/progression_xp_events")) data = [{amount:30,source_type:"solo_game",created_at:"2026-09-30T12:00:00Z"}];
     else if (path.endsWith("/get_my_rating_summary")) data = {rating:1000,rated_games:0,wins:0,losses:0,forfeits:0,peak_rating:1000,rank:null,position:null,placement_games:0,is_ranked:false,pending_matches:0};
@@ -30,7 +39,7 @@ async function fixture(page: Page, theme: "dark" | "light", signedIn = true) {
   });
   await page.route("**/api/social**", async (route) => route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({data:{friends:[],received:[],sent:[],invitations:[],counts:{friends:0,received:0,sent:0,receivedPending:0,sentPending:0}}})}));
   await page.route("**/api/training/duo/invitations", async (route) => route.fulfill({status:200,contentType:"application/json",body:'{"data":[]}'}));
-  return {setXp:(value: number) => {xp = value;},setCompleted:(value: number) => {completed = value;},failMissions:() => {missionsFailure = true;}};
+  return {setXp:(value: number) => {xp = value;},setCompleted:(value: number) => {completed = value;},failMissions:() => {missionsFailure = true;},failWeekly:()=>{weeklyFailure=true;}};
 }
 async function noOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -120,4 +129,15 @@ test("@progression-ui missions update together and a mission error keeps XP visi
   await expect(page.getByText("Les missions sont momentanément indisponibles.")).toBeVisible();
   await expect(page.locator(".progression-card").getByRole("progressbar")).toBeVisible();
   await noOverflow(page);
+});
+
+test("@progression-ui compact Home weekly at 320px and isolated weekly failure",async({page})=>{
+ const data=await fixture(page,"dark");await page.setViewportSize({width:320,height:900});await page.goto("/");
+ const weekly=page.getByRole("list",{name:"Missions hebdomadaires"});await expect(weekly.getByRole("listitem")).toHaveCount(3);
+ await expect(weekly.getByRole("heading").first()).toHaveText("Solo");await noOverflow(page);
+ await page.getByRole("link",{name:/Voir ma progression/}).click();await expect(weekly.getByRole("listitem")).toHaveCount(3);
+ await expect(page.getByText("+300 XP")).toBeVisible();await expect(page.getByText("Missions de départ")).toBeVisible();await noOverflow(page);
+ data.failWeekly();await page.evaluate(()=>window.dispatchEvent(new Event("kffr:progression-changed")));
+ await expect(page.getByText(/hebdomadaires sont momentanément/)).toBeVisible();await expect(page.locator(".progression-card").getByText("Niveau 2")).toBeVisible();
+ await expect(page.getByRole("list",{name:"Missions de départ"}).getByRole("listitem")).toHaveCount(5);
 });

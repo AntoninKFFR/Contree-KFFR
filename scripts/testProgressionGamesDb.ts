@@ -5,7 +5,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getCurrentContractFromBids } from "../engine/bidding";
 import { soloLegalHumanCards } from "../lib/solo/publicState";
 import { getProgression } from "../lib/progression/formulaV1";
-import { getMyProgression } from "../lib/progression/queries";
+import { getMyProgression, getMyWeeklyMissions } from "../lib/progression/queries";
 import type { SoloSession, SoloIntent } from "../lib/solo/sessionTypes";
 import { chromium } from "@playwright/test";
 
@@ -53,7 +53,9 @@ async function payload(response: Response): Promise<SoloSession> {
   return (JSON.parse(raw) as { data: SoloSession }).data;
 }
 async function total(user: typeof users[number]) {
-  return checked(await user.client.rpc("get_my_progression"),"progression read").total_xp as number;
+  const summary = checked(await user.client.rpc("get_my_progression"),"progression read");
+  const weekly = checked(await user.client.from("progression_xp_events").select("amount").eq("source_type","weekly_mission"),"weekly balance");
+  return summary.total_xp - weekly.reduce((sum: number,e: {amount:number}) => sum + e.amount,0);
 }
 async function denied(result: PromiseLike<{ error: unknown }>) { assert.ok((await result).error,"client operation must fail"); }
 const rules = { presetId:"contree-kffr",overrides:{ game:{ targetScore:100 } } };
@@ -88,6 +90,7 @@ try {
   assert.deepEqual(checked(await admin.from("games").select("id").eq("id",session.id),"not finished"),[]);
   const outcomes = new Set<number>();
   let expectedSolo = 0;
+  let soloWins = 0;
   const completedByUser = new Map(users.map(user => [user.id,new Set<string>()]));
   const rewards: Record<string,number> = Object.fromEntries(checked(await a.client.rpc("get_my_permanent_missions"),"mission catalog").map((m: {key:string;rewardXp:number}) => [m.key,m.rewardXp]));
   function missionBonus(userId: string,keys: string[]) {
@@ -118,6 +121,11 @@ try {
     assert.equal(session.state.phase,"game-over");
     const amount = session.state.winnerTeam === 0 ? 30 : 20;
     outcomes.add(session.state.winnerTeam!);
+    soloWins += Number(session.state.winnerTeam === 0);
+    for (const mission of (await getMyWeeklyMissions(a.client)).missions) {
+      const count = mission.key === "wins" ? soloWins : mission.key === "regular_games" || mission.key === "solo_games" ? game + 1 : 0;
+      assert.equal(mission.progress, Math.min(count,mission.target),"authoritative Solo weekly counter");
+    }
     expectedSolo += amount + missionBonus(a.id,["first_game","first_solo",...(amount === 30 ? ["first_win"]:[])]);
     assert.equal(await total(a),expectedSolo);
     const history = checked(await admin.from("games").select("*").eq("id",session.id),"verified history");
@@ -134,7 +142,7 @@ try {
     assert.equal(await total(a),expectedSolo);
   }
   assert.deepEqual([...outcomes].sort(),[0,1],"real server games include both win and loss");
-  assert.deepEqual(await getMyProgression(a.client),getProgression(expectedSolo));
+  assert.deepEqual(await getMyProgression(a.client),getProgression(checked(await a.client.rpc("get_my_progression"),"combined total").total_xp));
   const legacySoloId = randomUUID();
   written(await admin.from("games").insert({id:legacySoloId,user_id:a.id,won:true,scoring_mode:"announced-points",
     player_score:1200,bot_score:500,target_score:1000,created_at:"2026-09-01T00:00:00Z"}),"legacy Solo fixture");
