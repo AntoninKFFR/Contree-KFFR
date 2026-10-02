@@ -491,7 +491,16 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       const disconnectedIndex = 2;
       const disconnectedStorage = await contexts[disconnectedIndex].storageState();
       await contexts[disconnectedIndex].close();
+      // The click starts an async mutation. A concurrent GET can see the old
+      // room before its game reset finishes, so wait for the actual successful POST.
+      const completedRematch = hostPage.waitForResponse((response) => {
+        const request = response.request();
+        return response.status() === 200 && request.method() === "POST"
+          && new URL(response.url()).pathname === `/api/multiplayer/rooms/${roomId}`
+          && request.postDataJSON()?.intent?.type === "rematch";
+      });
       await hostPage.getByRole("button", { name: "Retour au lobby" }).click();
+      await completedRematch;
       const rematch = await expectRoom(
         hostPage,
         roomId,
