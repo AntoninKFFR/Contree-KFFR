@@ -3,6 +3,12 @@ name: Training DB security
 on:
   pull_request:
     paths:
+      # The shared header is mounted in these authenticated flows.
+      - "components/AppTopNav.tsx"
+      - "components/navigation/**"
+      - "components/ui/AccessibleDialog.tsx"
+      - "lib/ui/appNavigation.ts"
+      - "app/globals.css"
       - "supabase/migrations/**"
       - "app/api/training/duo/**"
       - "lib/server/trainingDuo*"
@@ -15,6 +21,11 @@ on:
   push:
     branches: [main]
     paths:
+      - "components/AppTopNav.tsx"
+      - "components/navigation/**"
+      - "components/ui/AccessibleDialog.tsx"
+      - "lib/ui/appNavigation.ts"
+      - "app/globals.css"
       - "supabase/migrations/**"
       - "app/api/training/duo/**"
       - "lib/server/trainingDuo*"

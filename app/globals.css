@@ -80,12 +80,66 @@
   .coinche-header-content > div { column-gap: .25rem; }
 }
 .coinche-global-header { height: var(--header-shell-height); padding-top: var(--safe-top); }
-.coinche-mobile-nav {
-  --bottom-spacing: .75rem;
-  max-height: var(--content-height);
-  padding-top: .75rem;
-  padding-left: calc(.75rem + var(--safe-left));
-  padding-right: calc(.75rem + var(--safe-right));
+:root { --layer-header: 50; --layer-navigation: 80; --layer-dialog: 90; }
+/* Navigation owns one scroller; the shared fullscreen primitive reserves insets. */
+.coinche-navigation-backdrop {
+  --fullscreen-gap: 0px;
+  justify-content: flex-end;
+  z-index: var(--layer-navigation);
+}
+.coinche-dialog.coinche-dialog--navigation {
+  width: min(88vw, 24rem, 100%);
+  max-width: none;
+  height: 100%;
+  max-height: 100%;
+  border-radius: var(--radius-card) 0 0 var(--radius-card);
+  box-shadow: 0 20px 60px var(--shadow);
+  animation: coinche-navigation-enter 160ms ease-out;
+}
+.coinche-dialog--navigation .coinche-dialog-header { min-height: 56px; padding: .25rem .75rem; }
+.coinche-dialog--navigation .coinche-icon-button { width: 44px; height: 44px; }
+.coinche-dialog--navigation .coinche-mobile-nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: .5rem .75rem .75rem;
+  gap: .5rem;
+}
+.coinche-mobile-nav-routes { display: grid; gap: .125rem; }
+.coinche-mobile-nav .coinche-topnav-link { display: flex; align-items: center; min-height: 44px; }
+.coinche-mobile-play { padding-top: .125rem; }
+.coinche-mobile-play .coinche-mobile-nav-label { padding: .25rem .7rem; font-size: .7rem; line-height: 1rem; text-transform: uppercase; letter-spacing: .08em; }
+.coinche-mobile-play > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .25rem; }
+.coinche-mobile-play .coinche-topnav-link { border: 1px solid var(--border); justify-content: center; }
+.coinche-mobile-training-toggle { width: 100%; justify-content: space-between; text-align: left; }
+.coinche-mobile-training-links { padding-left: .5rem; margin-left: .7rem; border-left: 1px solid var(--border); }
+.coinche-mobile-nav .progression-mobile-account { margin-top: auto; padding-top: .5rem; }
+.coinche-mobile-identity { gap: .5rem; justify-content: space-between; }
+.coinche-mobile-identity > .profile-frame, .coinche-mobile-identity > .profile-frame-none { flex: 1; }
+.coinche-mobile-username { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coinche-mobile-profile-label { flex: none; color: var(--text-muted); font-size: .75rem; }
+.coinche-mobile-progression { padding: .125rem .7rem .5rem; }
+.coinche-mobile-progression p { margin-bottom: .35rem; color: var(--text-secondary); font-size: .75rem; line-height: 1.25rem; }
+@keyframes coinche-navigation-enter { from { opacity: 0; transform: translateX(1rem); } to { opacity: 1; transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .coinche-dialog.coinche-dialog--navigation { animation: none; } }
+@media (max-width: 1119px) {
+  .coinche-header-content { grid-template-columns: minmax(0, 1fr) auto; column-gap: .25rem; --shell-padding-x: .5rem; }
+  .coinche-header-content > .coinche-header-controls { grid-column: 2; column-gap: .125rem; }
+  .coinche-header-logo { display: flex; align-items: center; min-width: 0; height: 44px; width: min(5.25rem, 100%); }
+  .coinche-header-logo .coinche-brand-logo { width: 100%; }
+  .coinche-header-controls > .coinche-chrome-icon, .coinche-header-controls .coinche-chrome-icon, .coinche-header-controls .coinche-theme-toggle,
+  #app-topnav-game-actions button[aria-label="Menu Partie"] { width: 44px; min-width: 44px; height: 44px; min-height: 44px; }
+  #app-topnav-game-actions button[aria-label="Menu Partie"] { display: flex; align-items: center; justify-content: center; padding: 0; }
+  #app-topnav-game-actions button[aria-label="Menu Partie"] > span:first-child { display: none; }
+  #app-topnav-game-actions button[aria-label="Menu Partie"] > span:last-child { display: inline; }
+  /* Anchor to the existing safe header shell, including short tablet landscapes. */
+  .coinche-header-controls .coinche-audio-popover { position: fixed; top: calc(var(--header-shell-height) + .5rem); right: calc(.75rem + var(--safe-right)); }
+}
+@media (max-width: 479px) {
+  .coinche-header-content:has(#app-topnav-game-actions:not(:empty)) { --shell-padding-x: .25rem; }
 }
 .coinche-game-shell, .coinche-lobby-shell {
   padding-left: calc(var(--shell-padding-x, .5rem) + var(--safe-left));

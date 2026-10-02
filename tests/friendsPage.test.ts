@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { FriendsView } from "@/components/friends/FriendsView";
 import type { GameInvitationsSnapshot, SocialSnapshot } from "@/lib/socialApi";
+import { appNavigationItems } from "@/lib/ui/appNavigation";
 
 vi.stubGlobal("React", React);
 const noop = () => undefined;
@@ -136,9 +137,7 @@ describe("friends page", () => {
   });
 
   it("adds private destinations to the topbar only when a session exists", () => {
-    const topbar = readFileSync("components/AppTopNav.tsx", "utf8");
-    expect(topbar).toContain('{ href: "/friends", label: "Amis" }');
-    expect(topbar).toContain('{ href: "/leaderboard", label: "Classement" }');
-    expect(topbar).toContain("appNavigationLinks(Boolean(session))");
+    expect(appNavigationItems(true).map((item) => item.href)).toEqual(expect.arrayContaining(["/friends", "/leaderboard"]));
+    expect(appNavigationItems(false).map((item) => item.href)).not.toEqual(expect.arrayContaining(["/friends", "/leaderboard"]));
   });
 });

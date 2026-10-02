@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { AppTopNav, appNavigationLinks } from "@/components/AppTopNav";
+import { APP_NAVIGATION } from "@/lib/ui/appNavigation";
 import { ProgressionProvider } from "@/components/progression/ProgressionProvider";
 import { MusicProvider } from "@/components/settings/MusicProvider";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
@@ -29,13 +30,9 @@ describe("unified application navigation", () => {
 
   it("defines the two game destinations and authenticated direct links", () => {
     const source = readFileSync("components/AppTopNav.tsx", "utf8");
-    for (const href of ["/solo", "/multiplayer", "/training", "/leaderboard", "/friends", "/history", "/rules", "/profile"]) {
-      expect(source).toContain(`\"${href}\"`);
-    }
-    expect(source).toContain('aria-current={pathname === "/solo" ? "page" : undefined}');
-    for (const href of ["/training#calculer", "/training#memoriser", "/training#deduire", "/training#annoncer"]) {
-      expect(source).toContain(`"${href}"`);
-    }
+    const destinations = APP_NAVIGATION.flatMap((item) => [item.href, ...item.children?.map((link) => link.href) ?? []]);
+    expect(destinations).toEqual(expect.arrayContaining(["/solo", "/multiplayer", "/training", "/leaderboard", "/friends", "/history", "/rules",
+      "/training#calculer", "/training#memoriser", "/training#deduire", "/training#annoncer"]));
     expect(source).toContain("PROFILE_CHANGED_EVENT");
     expect(appNavigationLinks(false).map((link) => link.href)).toEqual(["/", "/training", "/rules"]);
     expect(appNavigationLinks(true).map((link) => link.href)).toEqual(["/", "/leaderboard", "/friends", "/history", "/training", "/rules"]);

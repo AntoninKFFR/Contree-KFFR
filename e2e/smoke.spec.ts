@@ -183,9 +183,9 @@ test.describe("@smoke public production readiness", () => {
       await page.goto("/");
       await expect(header.getByRole("navigation", { name: "Navigation principale" })).toBeHidden();
       await header.getByRole("button", { name: "Ouvrir le menu" }).click();
-      const mobile = header.getByRole("navigation", { name: "Navigation mobile" });
+      const mobile = page.getByRole("navigation", { name: "Navigation mobile" });
       await expect(mobile).toBeVisible();
-      await expect(mobile).toHaveCSS("position", "absolute");
+      await expect(page.getByRole("dialog", { name: "Navigation KFFR" })).toHaveCSS("position", "fixed");
       await expect(mobile.getByRole("link", { name: "Solo", exact: true })).toBeVisible();
       if (viewport.width < 480) await expect(mobile.getByRole("link", { name: "Se connecter" })).toBeVisible();
       await page.keyboard.press("Escape");
@@ -267,8 +267,8 @@ test.describe("@smoke public production readiness", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/training");
     await header.getByRole("button", { name: "Ouvrir le menu" }).click();
-    const mobile = header.getByRole("navigation", { name: "Navigation mobile" });
-    const group = mobile.getByText("Entraînement", { exact: true }).locator("..");
+    const mobile = page.getByRole("navigation", { name: "Navigation mobile" });
+    const group = mobile.getByRole("button", { name: "Entraînement", exact: true }).locator("..");
     for (const [label, href] of items) {
       await expect(group.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
     }

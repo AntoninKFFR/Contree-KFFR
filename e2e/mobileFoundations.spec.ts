@@ -229,6 +229,8 @@ test("@mobile audio popover fits 320px and mobile menu releases body scroll on d
   await page.keyboard.press("Escape");
   await page.goto("/solo");
   await page.getByRole("button", { name: "Ouvrir le menu" }).click();
+  await expect(page.getByRole("dialog", { name: "Navigation KFFR" })).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Menu Partie" }).click();
   await page.getByRole("complementary", { name: "Menu de partie" }).getByRole("button", { name: "Paramètres" }).click();
   await expect(page.getByRole("dialog", { name: "Paramètres" })).toBeVisible();
