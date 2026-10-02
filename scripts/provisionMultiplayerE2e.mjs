@@ -15,7 +15,8 @@ for (let player = 1; player <= 4; player++) {
   const email = `multi-e2e-${player}-${suffix}@example.test`;
   const password = `Local-${randomUUID()}-test`;
   process.stdout.write(`::add-mask::${email}\n::add-mask::${password}\n`);
-  const { error } = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { username: `MultiE2E${player}${suffix}` } });
+  // Existing multiplayer scenarios intentionally use these four public seat names.
+  const { error } = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { username: `E2E_P${player}` } });
   if (error) throw error;
   appendFileSync(output, `E2E_USER_${player}_EMAIL=${email}\nE2E_USER_${player}_PASSWORD=${password}\n`, { mode: 0o600 });
 }

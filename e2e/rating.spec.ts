@@ -95,6 +95,7 @@ test.describe("@multiplayer @rating authenticated Elo lifecycle", () => {
         await assertRankState(pages[seat], playerAfter);
       }
       await pages[0].goto("/profile");
+      await pages[0].getByRole("tab", { name: "Multijoueur", exact: true }).click();
       await expect(pages[0].getByRole("heading", { name: "Classement Contrée" })).toBeVisible();
       await pages[0].goto("/leaderboard");
       await expect(pages[0].getByRole("heading", { name: "Classement", exact: true })).toBeVisible();
