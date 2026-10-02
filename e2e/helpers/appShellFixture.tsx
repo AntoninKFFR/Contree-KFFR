@@ -21,6 +21,10 @@ export function appShellFixture(width: "narrow" | "medium" | "wide" = "medium") 
         <label className={appFieldClass}>Message<textarea className={appInputClass} /></label>
         <button className={appPrimaryActionClass} type="button">Enregistrer les réglages</button>
       </form>
+      <div className="flex flex-wrap gap-2">
+        <button className={`${appPrimaryActionClass} min-h-14 min-w-56`}>Action ample</button>
+        <button className={`${appSecondaryActionClass} min-w-32`}>Pause</button>
+      </div>
       <div className={appSegmentedGroupClass} role="group" aria-label="Mode de partie">
         <button className={appSegmentedItemClass} aria-pressed>Contrée classique</button>
         <button className={appSegmentedItemClass}>Une traduction potentiellement beaucoup plus longue</button>

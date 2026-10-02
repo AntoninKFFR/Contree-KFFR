@@ -5,7 +5,7 @@ export const appPrimaryActionClass = "coinche-primary-action coinche-action inli
 export const appSecondaryActionClass = "coinche-secondary-action coinche-action inline-flex items-center justify-center border px-4 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50";
 export const appDangerActionClass = "coinche-danger-action coinche-action inline-flex items-center justify-center border px-4 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50";
 export const appInputClass = "coinche-input min-h-11 w-full border px-3 py-2.5 text-sm font-medium outline-none disabled:cursor-not-allowed disabled:opacity-50";
-export const appSegmentedItemClass = "coinche-segmented-item inline-flex min-h-10 items-center justify-center border px-3.5 py-2 text-sm font-bold transition";
+export const appSegmentedItemClass = "coinche-segmented-item inline-flex items-center justify-center border px-3.5 py-2 text-sm font-bold transition";
 export const appBadgeClass = "coinche-status-badge inline-flex items-center border px-2.5 py-1 text-xs font-bold";
 // Opt-in compositions: existing pages keep their own content and layout choices.
 export const appSegmentedGroupClass = "coinche-segmented-group";

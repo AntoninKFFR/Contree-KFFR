@@ -917,7 +917,8 @@ summary:focus-visible {
   box-shadow: 0 3px 10px color-mix(in srgb, var(--shadow) 38%, transparent);
 }
 
-.coinche-action { min-height: 2.75rem; border-radius: var(--radius-control); line-height: 1.25; }
+:where(.coinche-action) { min-height: 2.75rem; }
+.coinche-action { border-radius: var(--radius-control); line-height: 1.25; }
 .coinche-action:focus-visible, .coinche-segmented-item:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .coinche-danger-action { border-color: color-mix(in srgb, var(--danger) 30%, var(--border)); background: color-mix(in srgb, var(--danger) 10%, var(--surface)); color: var(--danger); }
 .coinche-danger-action:hover { background: color-mix(in srgb, var(--danger) 17%, var(--surface)); }
@@ -970,6 +971,7 @@ summary:focus-visible {
   --header-gap: 1.25rem;
 }
 .coinche-page-stack { gap: var(--section-gap); }
+:where(.coinche-segmented-item) { min-height: 2.5rem; }
 /* Low specificity preserves explicit desktop utility overrides (p-7, py-8, etc.). */
 :where(.coinche-app-surface) { padding: 1rem; }
 @media (min-width: 640px) { :where(.coinche-app-surface) { padding: 1.25rem; } }
@@ -1009,10 +1011,12 @@ summary:focus-visible {
   .coinche-page-header-description { margin-top: .375rem; font-size: .875rem; line-height: 1.5; }
   .coinche-page-header-actions { gap: .5rem; }
   .coinche-page-header-main > .coinche-action { margin-top: 0; }
+  /* Defaults stay below utilities such as min-h-14 and min-w-56. */
+  :where(.coinche-app-page .coinche-action, .coinche-dialog:not(.coinche-dialog--navigation) .coinche-action,
+    .coinche-app-page .coinche-segmented-item, .coinche-dialog:not(.coinche-dialog--navigation) .coinche-segmented-item) { min-width: 0; }
+  :where(.coinche-app-page .coinche-segmented-item, .coinche-dialog:not(.coinche-dialog--navigation) .coinche-segmented-item) { min-height: 2.75rem; }
   :is(.coinche-app-page, .coinche-dialog:not(.coinche-dialog--navigation)) .coinche-action,
   :is(.coinche-app-page, .coinche-dialog:not(.coinche-dialog--navigation)) .coinche-segmented-item {
-    min-height: 2.75rem;
-    min-width: 0;
     max-width: 100%;
     padding: .5rem .75rem;
     white-space: normal;

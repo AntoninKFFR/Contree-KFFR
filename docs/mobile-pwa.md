@@ -234,6 +234,8 @@ Les actions se replient naturellement dans leur conteneur, sans imposer la plein
 
 ### Actions et formulaires
 
+Les minima par défaut ont une spécificité nulle (`:where`) pour conserver les tailles plus grandes déclarées par les composants : `min-h-14` reste à 56 px, `min-w-56` à 224 px et `min-w-32` à 128 px. Cela rétablit aussi les hauteurs explicitement demandées par les contrôles de comptage ; les pages témoins desktop gardent leur géométrie existante. La suite navigateur vérifie les vrais contrôles Solo et Compter son tas, ainsi que ces overrides dans la fixture de primitives.
+
 Les classes primary/secondary/danger conservent couleurs, focus visible, disabled et minimum tactile de 44 px. Sous 1120 px, leur padding passe à 8/12 px, avec wrap des labels longs. Les segmented items passent également à 44 px minimum ; les groupes existants restent explicites. Desktop conserve les valeurs actuelles.
 
 `appInputClass` garde 44 px minimum ; les petits inputs/selects/textareas de cette primitive restent à 16 CSS px sous 1120 px, y compris les paysages téléphone. Les champs déjà plus grands et les contrôles de jeu hors shell app sont conservés. Le padding mobile vaut 8/12 px et une scroll-margin tient compte du header safe. Les formulaires app contenant cette primitive passent à un gap de 10 px ; les labels à 4 px entre texte et champ. Les labels, erreurs et valeurs restent présents. Le document reste scrollable lorsque le viewport se raccourcit, sans mesure permanente du clavier.

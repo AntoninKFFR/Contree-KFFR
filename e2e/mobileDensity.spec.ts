@@ -27,6 +27,9 @@ for (const theme of ["dark", "light"] as const) {
         expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44);
       }
       for (const field of await page.locator(".coinche-input").all()) expect(await field.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+      await expect(page.getByRole("button", {name:"Action ample"})).toHaveCSS("min-height", "56px");
+      await expect(page.getByRole("button", {name:"Action ample"})).toHaveCSS("min-width", "224px");
+      await expect(page.getByRole("button", {name:"Pause",exact:true})).toHaveCSS("min-width", "128px");
       const padding = await page.locator(".coinche-app-surface").evaluate((el) => parseFloat(getComputedStyle(el).paddingTop));
       expect(padding).toBeLessThanOrEqual(viewport.width <= 479 ? 12 : 18);
       const actions = header.locator(".coinche-page-header-actions > button");
@@ -92,4 +95,18 @@ test("@mobile @density narrow, medium and wide variants use the available phone 
     await expectNoPageHorizontalOverflow(page);
     expect((await page.locator("main > div").boundingBox())!.width).toBeGreaterThanOrEqual(270);
   }
+});
+
+test("@mobile @density explicit Solo and pile action minima survive compact defaults", async ({page}) => {
+  await installMobileNavigationFixture(page, {authenticated:false});
+  await setMobileViewport(page, {width:844,height:390}); await page.goto("/solo");
+  await expect(page.getByRole("button", {name:"Commencer la partie"})).toHaveCSS("min-width", "224px");
+  await page.goto("/training/puzzle/pile-count?mode=manual");
+  await page.getByRole("button", {name:"Commencer à compter"}).click();
+  await expect(page.getByRole("button", {name:"Carte précédente"})).toHaveCSS("min-height", "56px");
+  await expect(page.getByRole("button", {name:"Carte suivante"})).toHaveCSS("min-height", "56px");
+  await expectNoPageHorizontalOverflow(page);
+  await page.goto("/training/puzzle/pile-count?mode=beginner");
+  await page.getByRole("button", {name:"Lancer le défilement"}).click();
+  await expect(page.getByRole("button", {name:"Pause",exact:true})).toHaveCSS("min-width", "128px");
 });
