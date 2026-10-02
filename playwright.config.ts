@@ -14,6 +14,9 @@ export default defineConfig({
   reporter: [["line"], ["html", { open: "never", outputFolder: "playwright-report" }]],
   use: {
     baseURL: remoteBaseUrl || localBaseUrl,
+    // API fixtures must remain observable/routable, including in WebKit.
+    // Real service-worker integration tests explicitly enable workers.
+    serviceWorkers: "block",
     screenshot: "only-on-failure",
     video: "off",
   },
@@ -28,12 +31,12 @@ export default defineConfig({
   projects: [
     {
       name: "mobile",
-      grep: /@mobile/,
+      grep: /@mobile|@pwa/,
       use: { ...devices["Desktop Chrome"], trace: "off" },
     },
     {
       name: "mobile-webkit",
-      grep: /@mobile/,
+      grep: /@mobile|@pwa/,
       use: { ...devices["Desktop Safari"], trace: "off" },
     },
     {

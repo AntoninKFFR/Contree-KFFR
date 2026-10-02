@@ -30,7 +30,7 @@ on:
 jobs:
   local-supabase:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -58,3 +58,35 @@ jobs:
             | grep '^RATING_TEST_')
           set +a
           npm run test:db:rating
+      - name: Export disposable browser configuration
+        shell: bash
+        run: |
+          set -a
+          source <(supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+            --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY \
+            | grep -E '^(NEXT_PUBLIC_SUPABASE_|SUPABASE_SERVICE_ROLE_KEY)')
+          set +a
+          echo "::add-mask::$SUPABASE_SERVICE_ROLE_KEY"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+      - run: node scripts/provisionMultiplayerE2e.mjs
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Exercise real multiplayer and Rating in disposable browsers
+        run: npm run test:e2e -- --project=multiplayer
+        env:
+          E2E_PRODUCTION_SERVER: "1"
+          E2E_RATING_MUTATION: "1"
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rating-multiplayer-playwright-report
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 3
