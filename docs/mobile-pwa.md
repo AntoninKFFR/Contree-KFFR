@@ -273,3 +273,28 @@ Le gap entre header et élément suivant suit le token 20→12 px lorsque ces é
 `tests/appShell.test.tsx` vérifie les variantes, la hiérarchie du header, les informations, les actions/disabled, les sections plain/panel et les vrais labels/contrôles de formulaire. `e2e/mobileDensity.spec.ts` utilise le build production en Chromium/WebKit. La fixture SSR de test rend les vrais composants AppShell ; aucune route de test n'est livrée dans l'app. Elle couvre titre sur deux lignes avec description et actions, pseudo de 40 caractères, titre et labels longs, grandes valeurs XP, 16 px, 44 px, tableau à scroll interne et absence d'overflow global. Les vraies pages sont aussi parcourues en auth/anonyme, light/dark, portrait/paysage, tablette 768/1024. Le formulaire login est testé à 390×844 puis 390×380 : focus conservé, champ et CTA atteignables au scroll. Cette simulation ne prétend pas tester un clavier iPhone physique.
 
 La matrice #118, la navigation/drawer #120 et les régressions de dialog #131 restent dans la suite mobile/PWA. Les workflows existants incluent automatiquement les nouveaux tests via le tag `@mobile` et les chemins `e2e/helpers/**`, sans ajout de job ou duplication de matrice CI.
+
+## Accueil et progression mobile
+
+L'Accueil #122 conserve son titre « La contrée, en solo ou entre amis » et ses quatre destinations. Sous 1120 px, `coinche-home-page` aligne le contenu en haut : le chargement de la progression ne recentre plus le hero verticalement. Le hero réutilise `--header-padding` et les actions de #121. Son titre fluide vaut 28–34 px sous 480 px, puis 28–40 px jusqu'au desktop ; les espacements titre/actions/règles valent 12/8 px.
+
+Solo reste primaire et occupe la première ligne. Les deux actions secondaires utilisent une grille auto-fit de largeur minimum 136 px ; elles tiennent côte à côte sur les téléphones usuels et se replient à 320 px si l'espace disponible l'exige. Les CTA gardent au moins 44 px ; Voir les règles reste un lien compact avec focus visible. Le logo décoratif complet est masqué sous 480 px, sans garder son min-height. Entre 480 et 1119 px en portrait, il est réduit à 112–160 px. Sur les petits paysages de hauteur ≤450 px, il est masqué et titre/actions utilisent deux zones. Le logo du header est conservé.
+
+`HomeProgressionCard` garde le provider, les formats XP et son absence de markup pour un visiteur. Son mode `compact` présente Progression et Niveau N sur une ligne, la barre XP sur toute la largeur, puis XP courant/nécessaire et Voir ma progression. Le badge Niveau redondant est masqué dans cette présentation mobile. Le lien garde une cible de 44 px et le focus existant. Les états chargement/erreur utilisent toujours `ProgressionStatusCard` et Réessayer ; l'arrivée des données laisse le hero et le début de Progression à la même position.
+
+Les trois weekly Home deviennent des rows : titre et compteur/statut, puis barre. Le tri incomplètes avant terminées est inchangé, les descriptions/récompenses détaillées restent sur `/progression`, et ✓ Terminé ne dépend pas uniquement de la couleur. Le même `ResetLabel` et ses timers sont conservés. Niveau et weekly passent en colonnes à partir de 640 px sous le breakpoint desktop, avec des surfaces alignées en haut ; aucun remplissage artificiel en hauteur. Les titres longs peuvent se replier et les compteurs restent dans leur row.
+
+À 390×844 standalone simulé, avec safe-top 47 px et safe-bottom 34 px :
+
+| Mesure | Avant #122 | Après |
+| --- | --- | --- |
+| Hero Chromium / WebKit | ≈551 / 589 px | ≈237 / 238 px |
+| Début du bloc Progression Chromium / WebKit | ≈678 / 716 px depuis le haut du viewport | ≈364 / 365 px |
+| Résumé niveau | 206 px | 114 px |
+| Weekly Home | 215 px | 177 px |
+
+Header, titre, Solo, Multijoueur, Entraînement, règles, niveau, barre XP et lien Progression sont visibles dans le premier viewport sans scroll. Avec la fixture niveau 1, les trois weekly tiennent également au-dessus du safe-bottom. Le test `authenticated home exposes progression in the first iPhone viewport` contrôle les bounding boxes et échoue sur l'ancien build dans les deux moteurs/thèmes.
+
+À partir de 1120 px, le hero, grand titre, logo décoratif et cartes Progression gardent leur composition desktop. Les huit comparaisons avant/après (1120×800 et 1440×900, Chromium/WebKit, clair/sombre) donnent une géométrie identique et zéro pixel modifié. La page `/progression` conserve summary complet, descriptions et récompenses weekly, missions permanentes, collection et XP récents. Aucun changement de provider, formule XP, catalogue/reset weekly, requête, navigation, auth, PWA ou gameplay. Pas de dépendance, listener de resize ou JS responsive ajouté.
+
+`tests/progressionUI.test.tsx`, `tests/progressionWeekly.test.tsx` et branding couvrent les données, états, tri, liens et version complète. `e2e/homeMobileProgression.spec.ts` utilise les helpers standalone/auth existants : Chromium/WebKit, clair/sombre, anonyme/niveau 1/niveau élevé, huit tailles mobiles, tablette 768/1024, desktop 1120/1440, états weekly/chargement/erreur, routes, focus et texte long. Les mesures/captures comparatives restent dans `.playwright/home-progression/`, sans goldens dans Git. Les suites mobile/PWA, progression, smoke et services authentifiés en CI restent les validations de non-régression.

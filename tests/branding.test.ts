@@ -46,5 +46,7 @@ describe("KFFR branding", () => {
     expect(markup).not.toContain("Connecté :");
     expect(markup).toContain("Jouer en solo");
     expect(markup).toContain("Multijoueur");
+    expect(markup.match(/<h1/g)).toHaveLength(1);
+    for (const route of ["/solo", "/multiplayer", "/training", "/rules"]) expect(markup).toContain(`href="${route}"`);
   });
 });

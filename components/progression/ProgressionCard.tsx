@@ -19,14 +19,14 @@ export function ProgressionLevelBadge({summary}: {summary: ProgressionSummary}) 
 }
 export function ProgressionSummaryCard({summary, compact = false, link = true}: {summary: ProgressionSummary; compact?: boolean; link?: boolean}) {
   return <AppSurface className={`progression-card ${compact ? "progression-card--compact" : ""}`}>
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div><AppEyebrow>Progression</AppEyebrow><h2 className="mt-2 text-2xl font-black text-[var(--text-primary)]">Niveau {summary.level}</h2></div>
+    <div className={`${compact ? "home-progression-heading " : ""}flex flex-wrap items-center justify-between gap-3`}>
+      <div className={compact ? "home-progression-label" : undefined}><AppEyebrow>Progression</AppEyebrow><h2 className="mt-2 text-2xl font-black text-[var(--text-primary)]">Niveau {summary.level}</h2></div>
       <ProgressionLevelBadge summary={summary} />
     </div>
-    <div className="mt-4"><ProgressionBar summary={summary} /></div>
-    <p className="mt-2 font-bold text-[var(--text-primary)]">{formatProgressionNumber(summary.xpIntoLevel)} / {formatXp(summary.xpForNextLevel)}</p>
+    <div className={`${compact ? "home-progression-track " : ""}mt-4`}><ProgressionBar summary={summary} /></div>
+    <p className={`${compact ? "home-progression-xp " : ""}mt-2 font-bold text-[var(--text-primary)]`}>{formatProgressionNumber(summary.xpIntoLevel)} / {formatXp(summary.xpForNextLevel)}</p>
     {!compact ? <div className="mt-2 text-sm text-[var(--text-secondary)]"><p>{formatXp(summary.xpRemaining)} avant le niveau {summary.level + 1}</p><p className="mt-1">{formatXp(summary.totalXp)} au total</p></div> : null}
-    {link ? <Link className={`${appSecondaryActionClass} mt-4`} href="/progression">Voir ma progression <span aria-hidden="true" className="ml-2">→</span></Link> : null}
+    {link ? <Link className={`${compact ? "home-progression-link " : ""}${appSecondaryActionClass} mt-4`} href="/progression">Voir ma progression <span aria-hidden="true" className="ml-2">→</span></Link> : null}
   </AppSurface>;
 }
 export function ProgressionStatusCard() {
@@ -44,5 +44,5 @@ export function ProfileProgressionCard() {
 export function HomeProgressionCard() {
   const {status, summary, userId} = useProgression();
   if (!userId) return null;
-  return status === "ready" && summary ? <div className="grid gap-3"><ProgressionSummaryCard compact summary={summary} /><WeeklyMissionsCard compact /></div> : <ProgressionStatusCard />;
+  return <div className="home-progression grid gap-3">{status === "ready" && summary ? <><ProgressionSummaryCard compact summary={summary} /><WeeklyMissionsCard compact /></> : <ProgressionStatusCard />}</div>;
 }

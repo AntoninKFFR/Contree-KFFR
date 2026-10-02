@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProgressionBar, ProgressionSummaryCard, HomeProgressionCard } from "@/components/progression/ProgressionCard";
 import ProgressionPage from "@/app/progression/page";
 import { getProgression } from "@/lib/progression/formulaV1";
+import { formatProgressionNumber, formatXp } from "@/lib/progression/format";
 
 const hook = vi.hoisted(() => vi.fn());
 vi.mock("@/components/progression/ProgressionProvider", () => ({useProgression:hook}));
@@ -33,6 +34,29 @@ describe("progression presentation", () => {
   it("Home connected shows only progression and CTA", () => {
     render(<HomeProgressionCard />); expect(screen.getByText("Niveau 1")).toBeTruthy();
     expect(screen.getByText("0 / 100 XP")).toBeTruthy(); expect(screen.queryByText("Missions")).toBeNull();
+  });
+  it.each([5,1234567])("Home compact summary retains canonical level, XP, bar and link at %i XP", (xp) => {
+    const summary=getProgression(xp); hook.mockReturnValue({...hook(),summary});
+    const {container}=render(<HomeProgressionCard />);
+    expect(screen.getByRole("heading",{level:2,name:`Niveau ${summary.level}`})).toBeTruthy();
+    expect(screen.getByRole("link",{name:/Voir ma progression/}).getAttribute("href")).toBe("/progression");
+    const bar=container.querySelector(".progression-card [role=progressbar]")!;
+    expect(bar.getAttribute("aria-valuenow")).toBe(String(summary.xpIntoLevel));
+    expect(bar.getAttribute("aria-valuemax")).toBe(String(summary.xpForNextLevel));
+    expect(container.querySelector(".home-progression-xp")?.textContent).toBe(`${formatProgressionNumber(summary.xpIntoLevel)} / ${formatXp(summary.xpForNextLevel)}`);
+    expect(screen.queryByText(/XP au total/)).toBeNull();
+  });
+  it("Home loading keeps a status and no invented level", () => {
+    hook.mockReturnValue({status:"loading",userId:"me",refresh:vi.fn()});
+    render(<HomeProgressionCard />);
+    expect(screen.getByRole("status").textContent).toBe("Chargement de la progression…");
+    expect(screen.queryByRole("progressbar")).toBeNull();
+  });
+  it("Home error preserves the message and invokes the existing retry", () => {
+    const refresh=vi.fn(); hook.mockReturnValue({status:"error",userId:"me",error:"Impossible de charger ta progression. Réessaie.",refresh});
+    render(<HomeProgressionCard />);
+    expect(screen.getByRole("status").textContent).toBe("Impossible de charger ta progression. Réessaie.");
+    fireEvent.click(screen.getByRole("button",{name:"Réessayer"})); expect(refresh).toHaveBeenCalledOnce();
   });
   it.each([0,100,150])("progression page renders canonical values for %i XP", (xp) => {
     const summary = getProgression(xp); hook.mockReturnValue({status:"ready",userId:"me",summary,recentEvents:[]}); render(<ProgressionPage />);
