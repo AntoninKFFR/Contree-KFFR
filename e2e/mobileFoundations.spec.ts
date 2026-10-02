@@ -119,10 +119,14 @@ for (const theme of ["dark", "light"] as const) {
     expect(await page.locator(".coinche-scene-hand-card").allTextContents()).toEqual(hand);
     expect(await page.evaluate(() => performance.getEntriesByType("navigation").length)).toBe(1);
     await page.goto("/training");
+    // The root gate's neutral hydration shell can precede the actual page mount.
+    await expect(page.locator("main.coinche-app-page > div")).toBeVisible();
     await simulateSafeAreas(page, { top: 0, bottom: 34, left: 0, right: 44 });
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    const end = await page.locator("main > div").boundingBox();
-    expect(end!.y + end!.height).toBeLessThanOrEqual(390 - 34);
+    await expect.poll(async () => {
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      const end = await page.locator("main > div").boundingBox();
+      return end!.y + end!.height;
+    }).toBeLessThanOrEqual(390 - 34);
     errors.assertClean();
   });
 
