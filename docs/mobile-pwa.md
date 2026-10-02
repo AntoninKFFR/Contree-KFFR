@@ -48,7 +48,7 @@ Cinq primitives réutilisables :
 
 Le header reste sticky, garde sa zone interne de 56 px bordure comprise et ajoute `safe-top` au-dessus. Son contenu intègre séparément safe-left et safe-right. Les ancres et barres sticky secondaires utilisent la même hauteur globale. Aucun listener global `resize`, `window.innerHeight` ou variable JS `--vh` n’est introduit. Les observateurs d’orientation existants restent en place.
 
-AppPage conserve 20/28 px d’espacement bas selon le breakpoint et **ajoute** safe-bottom. Aucun forfait de 100 px : le chrome navigateur est traité par `dvh`, le Home Indicator par l’inset. Le dernier contenu est atteignable en scrollant le document. Les modales réservent le bas du panneau et peuvent faire défiler leur contenu interne ; les footers restent dans la zone sûre. Le menu mobile verrouille temporairement le document, possède son seul scroll et restaure le document à la fermeture ou au passage desktop. `lib/ui/bodyScrollLock.ts` partage ce verrou avec les modales : des ouvertures simultanées ne peuvent ni libérer le document trop tôt, ni le laisser bloqué après Escape. Les popovers audio, de partie et notifications sont bornés par la hauteur disponible et les insets latéraux.
+AppPage utilisait 20/28 px d’espacement bas dans #118 et **ajoute** safe-bottom. La couche #121 décrite en fin de document ajuste cet espacement mobile via les mêmes variables. Aucun forfait de 100 px : le chrome navigateur est traité par `dvh`, le Home Indicator par l’inset. Le dernier contenu est atteignable en scrollant le document. Les modales réservent le bas du panneau et peuvent faire défiler leur contenu interne ; les footers restent dans la zone sûre. Le menu mobile verrouille temporairement le document, possède son seul scroll et restaure le document à la fermeture ou au passage desktop. `lib/ui/bodyScrollLock.ts` partage ce verrou avec les modales : des ouvertures simultanées ne peuvent ni libérer le document trop tôt, ni le laisser bloqué après Escape. Les popovers audio, de partie et notifications sont bornés par la hauteur disponible et les insets latéraux.
 
 `MobileLandscapeNotice` garde « Tournez votre téléphone », son aspect et les conditions produit existantes. Son shell est centré sous le header, avec hauteur minimum dynamique et quatre côtés sûrs. La notice Training imbriquée dans le shell utilise la zone sûre déjà réservée par son parent pour éviter une deuxième hauteur viewport.
 
@@ -204,3 +204,70 @@ Les couches sont explicites : header et ses popovers à 50, navigation/backdrop 
 L’API `AppTopNav({ variant: "default" | "compact-game" })` expose `data-header-variant` pour #126. La variante est seulement préparée ; aucune table, page ou logique de jeu n’est redesignée. Le gate PWA, sa détection, les icônes, le manifest et le service worker ne changent pas.
 
 Validation : `tests/appNavigation.test.ts` couvre le catalogue et les routes ; `tests/mobileNavigation.test.tsx` couvre l’accordéon, les providers, le focus, les fermetures, le démontage, StrictMode et un dialog critique superposé. `e2e/mobileNavigation.spec.ts` couvre les huit tailles de #118 en Chromium/WebKit, standalone iPhone simulé, les deux thèmes, anonyme/niveau 1/XP élevé/pseudo long, les insets des deux côtés, les routes réelles et les ancres Next.js, les contrôles du header et desktop 1120/1440. Les captures de validation sont conservées localement dans `.playwright/validation/navigation-*.png`, sans goldens dans Git. La suite mobile/PWA existante et les suites smoke, progression, Social, Training, Duo et Multiplayer/Rating restent les contrôles de non-régression. Les workflows de services utilisent exclusivement une base Supabase jetable en CI.
+
+## Primitives UI mobiles
+
+La couche #121 densifie les composants de `components/ui/AppShell.tsx` sans modifier le contenu ou la composition propre aux pages. Aucun composant responsive JavaScript, dépendance, listener de resize ou deuxième feuille CSS. Les primitives restent dans `globals.css`, avec les couleurs, bordures, ombres et focus existants.
+
+### Espacement et breakpoints
+
+Six tokens communs alimentent les primitives :
+
+| Token | Téléphone <480 px | 480–1119 px | Desktop ≥1120 px |
+| --- | --- | --- | --- |
+| `--page-padding-x` | 12 px | `clamp(12px, 2vw, 20px)` | 20 px, rendu existant |
+| `--page-padding-y` | 12 px | `clamp(14px, 2vw, 24px)` | 28 px, rendu existant |
+| `--section-gap` | 12 px | `clamp(14px, 1.8vw, 18px)` | 20 px |
+| `--surface-padding` | 12 px | `clamp(14px, 1.8vw, 18px)` | 20 px par défaut, overrides conservés |
+| `--header-padding` | 16 px | `clamp(16px, 2.2vw, 28px)` | `clamp(22.4px, 3vw, 38.4px)`, formule existante |
+| `--header-gap` | 12 px | 12 px | 20 px |
+
+`AppPage` conserve les variantes `narrow`, `medium` (défaut) et `wide`, leur largeur maximum et le flux naturel du document. Toutes utilisent la largeur utile sur téléphone. La classe `coinche-page-stack` applique le gap commun. Les variables existantes `--shell-padding-x` et `--bottom-spacing` consomment les nouveaux tokens sous 1120 px ; safe-left/right s'ajoutent au padding latéral, safe-bottom au padding bas. Le viewport et le shell de navigation #118/#120 sont inchangés.
+
+`AppSurface` conserve `panel` et `plain` sans nouvelle prop de densité. Le panel reçoit un padding responsive et un rayon plafonné à 16 px sous 1120 px. La section plain conserve son canvas et son absence de padding de panel. Sur desktop, la faible spécificité du padding par défaut laisse fonctionner les overrides locaux existants ; un override explicite important reste prioritaire sur mobile aussi.
+
+### Header et typographie
+
+`AppPageHeader` conserve eyebrow, vrai h1, description entière, actions et children. Sous 480 px, le titre utilise `clamp(24px, 6.8vw, 30px)` ; entre 480 et 1119 px, `clamp(28px, 3.5vw, 40px)`. La line-height vaut 1.1 sur ces largeurs ; les mots longs peuvent se couper pour éviter l'overflow. La description vaut 14 px / 1.5, avec 6 px au-dessus. L'eyebrow vaut 11.2 px et tracking .1em sous 480 px. Les autres textes et la typographie gameplay conservent leurs classes.
+
+Les actions se replient naturellement dans leur conteneur, sans imposer la pleine largeur. Deux actions courtes peuvent rester côte à côte. Une action directe du header n'ajoute pas une deuxième marge verticale au gap de sa grille. Aucun line-clamp ou suppression de contenu.
+
+### Actions et formulaires
+
+Les classes primary/secondary/danger conservent couleurs, focus visible, disabled et minimum tactile de 44 px. Sous 1120 px, leur padding passe à 8/12 px, avec wrap des labels longs. Les segmented items passent également à 44 px minimum ; les groupes existants restent explicites. Desktop conserve les valeurs actuelles.
+
+`appInputClass` garde 44 px minimum ; les petits inputs/selects/textareas de cette primitive restent à 16 CSS px sous 1120 px, y compris les paysages téléphone. Les champs déjà plus grands et les contrôles de jeu hors shell app sont conservés. Le padding mobile vaut 8/12 px et une scroll-margin tient compte du header safe. Les formulaires app contenant cette primitive passent à un gap de 10 px ; les labels à 4 px entre texte et champ. Les labels, erreurs et valeurs restent présents. Le document reste scrollable lorsque le viewport se raccourcit, sans mesure permanente du clavier.
+
+Les compositions opt-in suivantes sont disponibles sous forme de classes exportées, sans nouveau composant ou variante de page :
+
+| Export | Composition |
+| --- | --- |
+| `appFormClass` / `appFieldClass` | Formulaire vertical et label avec champ |
+| `appSegmentedGroupClass` | Segments en flex wrap ; les items peuvent passer sur plusieurs lignes |
+| `appRowClass` | Titre/informations/actions qui se replient selon l'espace disponible |
+| `appMetadataClass` | Petites informations avec wrap, min-width:0 ; truncate peut être choisi explicitement |
+| `appTableScrollClass` | Overflow horizontal limité au tableau ; l'appelant fournit nom accessible et tabIndex si nécessaire |
+
+Ces outils ne transforment aucune table ni row existante automatiquement. Le choix de composition reste à la page ; Friends, Training et Multiplayer bénéficient ici uniquement des primitives déjà utilisées. Le hero Accueil, le drawer et AccessibleDialog gardent leur structure ; le correctif summary/details de #131 est intact.
+
+### Mesures et validation
+
+Mesures du build production, viewport 390×844, thème dark, depuis `main` 191029a54bbf5d5590b93d07c25f96811a26e411 :
+
+| Élément | Avant | Après |
+| --- | --- | --- |
+| Padding page vertical | 20 px | 12 px |
+| Gap de la pile AppPage | 20 px | 12 px |
+| Padding header | 22.4 px | 16 px |
+| Header Amis / Entraînement, Chromium et WebKit | ≈184 px | ≈131 px |
+| Header Multijoueur, Chromium | ≈235 px | ≈166 px |
+| Header Multijoueur, WebKit | ≈235 px | ≈195 px (titre sur deux lignes) |
+| Padding AppSurface standard | 16 px | 12 px |
+| Padding action vertical/horizontal | 10/16 px | 8/12 px |
+| Hauteur input et action primary | 44 px | 44 px |
+
+Le gap entre header et élément suivant suit le token 20→12 px lorsque ces éléments sont enfants directs d'AppPage ; les compositions internes des pages ne sont pas réécrites. Sur desktop 1120×800 et 1440×900, les mesures de Friends, Training et Multiplayer sont identiques avant/après dans les deux moteurs et thèmes. Les 12 images Chromium sont identiques au pixel ; WebKit compte dix images identiques et deux écarts de 38/21 pixels sur plus de 3.5/5.1 millions de pixels, sans changement géométrique. Les captures et mesures avant/après restent dans `.playwright/density/`, non versionné.
+
+`tests/appShell.test.tsx` vérifie les variantes, la hiérarchie du header, les informations, les actions/disabled, les sections plain/panel et les vrais labels/contrôles de formulaire. `e2e/mobileDensity.spec.ts` utilise le build production en Chromium/WebKit. La fixture SSR de test rend les vrais composants AppShell ; aucune route de test n'est livrée dans l'app. Elle couvre titre sur deux lignes avec description et actions, pseudo de 40 caractères, titre et labels longs, grandes valeurs XP, 16 px, 44 px, tableau à scroll interne et absence d'overflow global. Les vraies pages sont aussi parcourues en auth/anonyme, light/dark, portrait/paysage, tablette 768/1024. Le formulaire login est testé à 390×844 puis 390×380 : focus conservé, champ et CTA atteignables au scroll. Cette simulation ne prétend pas tester un clavier iPhone physique.
+
+La matrice #118, la navigation/drawer #120 et les régressions de dialog #131 restent dans la suite mobile/PWA. Les workflows existants incluent automatiquement les nouveaux tests via le tag `@mobile` et les chemins `e2e/helpers/**`, sans ajout de job ou duplication de matrice CI.
