@@ -162,6 +162,8 @@ Les E2E simulent UA et APIs standalone ; ils ne réalisent pas une installation 
 
 ### Checklist exacte sur un vrai iPhone
 
+Note de validation des routes : le shell neutre peut permettre à Next.js de commencer le streaming avant qu’une page dynamique ne termine sa validation. Les URLs Training invalides restent rejetées par `notFound()` avec écran 404 et `noindex`, mais le statut de transport peut être 200 pour une réponse streamée ([comportement Next.js documenté](https://nextjs.org/docs/app/api-reference/file-conventions/not-found)). Les tests vérifient ces deux garanties, sans changer les règles de niveaux. Les lectures de géométrie attendent également un rendu après le scroll pour tenir compte de l’hydratation.
+
 1. Ouvrir l’URL KFFR dans Safari.
 2. Vérifier le gate « Installer KFFR pour continuer », sans bouton de bypass.
 3. Appuyer sur Partager.

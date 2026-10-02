@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../lib/preferences/playerPreferences";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 import { installMobileRoomFixture } from "./helpers/mobileRoomFixture";
-import { DESKTOP_VIEWPORTS, MOBILE_VIEWPORTS, expectInsideSafeViewport, expectNoPageHorizontalOverflow, setMobileViewport, simulateSafeAreas } from "./helpers/mobile";
+import { DESKTOP_VIEWPORTS, MOBILE_VIEWPORTS, expectInsideSafeViewport, expectNoPageHorizontalOverflow, scrollDocumentToEnd, setMobileViewport, simulateSafeAreas } from "./helpers/mobile";
 
 const routes = ["/", "/friends", "/training", "/multiplayer", "/solo", "/rules", "/login", "/progression", "/profile", "/history", "/leaderboard"];
 async function seedTheme(page: Page, theme: "dark" | "light") {
@@ -19,7 +19,7 @@ for (const theme of ["dark", "light"] as const) {
       await setMobileViewport(page, viewport);
       for (const path of routes) {
         await page.goto(path);
-        await expect(page.locator("main")).toBeVisible();
+        await expect(page.locator("main.coinche-app-page > div")).toBeVisible();
         await expect(page.locator(".coinche-global-header")).toHaveCSS("height", "56px");
         await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
         const background = theme === "dark" ? "rgb(6, 18, 13)" : "rgb(238, 234, 222)";
@@ -28,7 +28,7 @@ for (const theme of ["dark", "light"] as const) {
         await expectNoPageHorizontalOverflow(page);
         const pageShell = page.locator("main");
         expect(await pageShell.evaluate((el) => getComputedStyle(el).overflowY), `${path}: document owns normal scroll`).toBe("visible");
-        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+        await scrollDocumentToEnd(page);
         const last = pageShell.locator(":scope > div").last();
         const box = await last.boundingBox();
         expect(box!.y + box!.height, `${path}: page end reachable`).toBeLessThanOrEqual(viewport.height + 1);
@@ -123,7 +123,7 @@ for (const theme of ["dark", "light"] as const) {
     await expect(page.locator("main.coinche-app-page > div")).toBeVisible();
     await simulateSafeAreas(page, { top: 0, bottom: 34, left: 0, right: 44 });
     await expect.poll(async () => {
-      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await scrollDocumentToEnd(page);
       const end = await page.locator("main > div").boundingBox();
       return end!.y + end!.height;
     }).toBeLessThanOrEqual(390 - 34);

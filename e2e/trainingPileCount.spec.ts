@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
+import { expectNotFoundPage } from "./helpers/notFound";
 import { SUIT_LABELS } from "@/engine/cards";
 import { generatePileCountSeries, pileGeneratorVersion, type PileCountMode } from "@/engine/training/pileCount";
 import { emptyTrainingProgress, pileCountSeriesSeed, recordPileCountSeries } from "@/components/training/progress";
@@ -182,8 +183,8 @@ test("@smoke pile-count normal unlocks after beginner, and bad routes are handle
   await expect(page.getByText(`soit ${first.cards.length} cartes.`)).toBeVisible();
   await expect(page.getByText("Mode Normal")).toBeVisible();
 
-  expect((await page.goto("/training/puzzle/pile-count?mode=expert"))?.status()).toBe(404);
-  expect((await page.goto("/training/puzzle/pile-count?level=1"))?.status()).toBe(404);
+  await expectNotFoundPage(page, "/training/puzzle/pile-count?mode=expert");
+  await expectNotFoundPage(page, "/training/puzzle/pile-count?level=1");
   await page.goto("/training/puzzle/pile-count");
   await expect(page).toHaveURL(/\/training$/);
 });

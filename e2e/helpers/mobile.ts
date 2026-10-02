@@ -22,6 +22,14 @@ export async function simulateSafeAreas(page: Page, areas: SafeAreas) {
   }, areas);
 }
 
+export async function scrollDocumentToEnd(page: Page) {
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  });
+}
+
 export async function expectNoPageHorizontalOverflow(page: Page) {
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), {
     message: "document width <= viewport (no global clipping)",
