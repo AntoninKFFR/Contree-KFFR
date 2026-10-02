@@ -22,6 +22,7 @@ for (const theme of ["dark", "light"] as const) {
     const identity = longRow.getByRole("link",{name:`Voir le profil de ${LONG_FRIEND_USERNAME}`});
     await expect(identity).toHaveAttribute("href",`/friends/${fixture.snapshot.friends[1].userId}`);
     await expect(identity).toHaveAttribute("title",LONG_FRIEND_USERNAME);
+    await expect(identity).toHaveAccessibleDescription("Niv. 311 Hors ligne");
     await expect(longRow).toContainText("Niv. 311"); await expect(longRow).toContainText("Hors ligne");
     for (const control of [identity,longRow.getByRole("button",{name:"Jouer"}),longRow.getByRole("button",{name:"S’entraîner"}),longRow.getByRole("button",{name:/Plus d’actions/})]) await hitbox(control);
     const layout = await longRow.evaluate(row => {
@@ -111,6 +112,10 @@ for (const theme of ["dark", "light"] as const) {
     await page.keyboard.press("Shift+Tab"); await expect(identity).toBeFocused();
     await more.focus();
     await page.keyboard.press("ArrowDown"); await expect(page.getByRole("menuitem",{name:"Supprimer de mes amis"})).toBeFocused();
+    for(const arrow of ["ArrowUp","ArrowDown"]){
+      await page.keyboard.press("Shift+Tab"); await expect(more).toBeFocused();
+      await page.keyboard.press(arrow); await expect(page.getByRole("menuitem",{name:"Supprimer de mes amis"})).toBeFocused();
+    }
     await page.keyboard.press("Escape"); await expect(more).toBeFocused(); await expect(more).toHaveAttribute("aria-expanded","false");
     await more.click(); const other=rowFor(page,"Ami 03").getByRole("button",{name:/Plus d’actions/}); await other.click();
     await expect(page.getByRole("menu")).toHaveCount(1); await expect(page.getByRole("menu",{name:"Actions pour Ami 03"})).toBeVisible();

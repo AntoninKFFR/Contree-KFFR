@@ -1,11 +1,11 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { sortFriendsByPresence, type PresenceFriend } from "@/lib/friendPresence";
 
 export function FriendPresenceList<T extends PresenceFriend>({ friends, onlineIds, action, identity }: {
   friends: readonly T[];
   onlineIds: ReadonlySet<string>;
   action: (friend: T) => ReactNode;
-  identity?: (friend: T, content: ReactNode) => ReactNode;
+  identity?: (friend: T, content: ReactNode, descriptionId: string) => ReactNode;
 }) {
   const sorted = sortFriendsByPresence(friends, onlineIds);
   const online = sorted.filter((friend) => onlineIds.has(friend.userId));
@@ -21,20 +21,24 @@ function PresenceGroup<T extends PresenceFriend>({ title, friends, online, actio
   friends: readonly T[];
   online: boolean;
   action: (friend: T) => ReactNode;
-  identity?: (friend: T, content: ReactNode) => ReactNode;
+  identity?: (friend: T, content: ReactNode, descriptionId: string) => ReactNode;
 }) {
+  const descriptionPrefix = useId();
   return <div className="friend-presence-group">
     <h3 className="friend-presence-heading">{title} · {friends.length}</h3>
     <ul className="friend-presence-rows">
       {friends.map((friend) => {
+        const levelId = `${descriptionPrefix}-${friend.userId}-level`;
+        const statusId = `${descriptionPrefix}-${friend.userId}-status`;
+        const descriptionId = `${"level" in friend ? `${levelId} ` : ""}${statusId}`;
         const content = <><span aria-hidden="true" className={`friend-presence-dot ${online ? "friend-presence-dot--online" : ""}`} />
         <span className="friend-presence-identity">
           <span className="friend-presence-name" title={friend.username}>{friend.username}</span>
-          {"level" in friend ? <span className="friend-presence-status">Niv. {String(friend.level)}</span> : null}
-          <span className={`friend-presence-status ${online ? "friend-presence-status--online" : ""}`}>{online ? "En ligne" : "Hors ligne"}</span>
+          {"level" in friend ? <span className="friend-presence-status" id={identity ? levelId : undefined}>Niv. {String(friend.level)}</span> : null}
+          <span className={`friend-presence-status ${online ? "friend-presence-status--online" : ""}`} id={identity ? statusId : undefined}>{online ? "En ligne" : "Hors ligne"}</span>
         </span></>;
         return <li className="friend-presence-row" key={friend.userId}>
-        {identity ? identity(friend, content) : content}
+        {identity ? identity(friend, content, descriptionId) : content}
         <span className="friend-presence-action">{action(friend)}</span>
       </li>; })}
     </ul>

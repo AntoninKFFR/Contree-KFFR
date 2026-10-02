@@ -32,7 +32,7 @@ beforeEach(() => { vi.clearAllMocks(); mocks.snapshot.mockResolvedValue(snapshot
 describe("compact friends identity and More interaction", () => {
   it("uses accessible identity links beside actions, with full long names, level and textual presence", () => {
     const view = render(<FriendsView {...props} />);
-    const profile = screen.getByRole("link", { name: `Voir le profil de ${longName}` });
+    const profile = screen.getByRole("link", { name: `Voir le profil de ${longName}`, description: "Niv. 311 Hors ligne" });
     expect(profile.getAttribute("href")).toBe("/friends/bob"); expect(profile.title).toBe(longName);
     expect(profile.getAttribute("tabindex")).toBe("0");
     expect(profile.querySelector("button")).toBeNull();
@@ -55,6 +55,17 @@ describe("compact friends identity and More interaction", () => {
     expect(screen.queryByRole("menu")).toBeNull(); expect(document.activeElement).toBe(trigger);
     fireEvent.click(trigger); fireEvent.click(trigger);
     expect(screen.queryByRole("menu")).toBeNull(); expect(document.activeElement).toBe(trigger);
+  });
+
+  it("refocuses the item with either arrow after returning to the trigger of an already-open menu", () => {
+    render(<FriendsView {...props} />);
+    const trigger=screen.getByRole("button",{name:"Plus d’actions pour Alice"}); fireEvent.click(trigger);
+    const item=screen.getByRole("menuitem",{name:"Supprimer de mes amis"});
+    for(const key of ["ArrowUp","ArrowDown"]){
+      act(()=>trigger.focus()); expect(screen.getByRole("menu")).toBeTruthy();
+      fireEvent.keyDown(trigger,{key}); expect(document.activeElement).toBe(item);
+      expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    }
   });
 
   it("allows only one inline menu and closes on outside click or native focus navigation", () => {

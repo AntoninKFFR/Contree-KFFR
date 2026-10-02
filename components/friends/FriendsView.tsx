@@ -106,7 +106,7 @@ function FriendsReadyView(props: FriendsViewProps & { snapshot: SocialSnapshot }
   }, [hasFriends]);
 
   useEffect(() => {
-    if (!menuOpen) { setMoreId(null); return; }
+    if (!menuOpen) { if (moreId !== null) setMoreId(null); return; }
     const menu = menuRef.current!;
     menu.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
     // Inline expansion stays in the list's flow. Reveal it using only that scroller.
@@ -171,9 +171,9 @@ function FriendsReadyView(props: FriendsViewProps & { snapshot: SocialSnapshot }
           {snapshot.friends.length === 0 ? <EmptyText>Tu n&apos;as pas encore d&apos;amis ajoutés.</EmptyText> : (
             <div className="friend-presence-scroll" data-testid="friends-presence-scroll" ref={scrollerRef}>
               <FriendPresenceList friends={snapshot.friends} onlineIds={props.onlineIds ?? new Set()}
-                identity={(friend, content) => props.pendingAction
-                  ? <button className="friends-identity" type="button" disabled aria-disabled="true" aria-label={`Voir le profil de ${friend.username}`} title={friend.username}>{content}</button>
-                  : <Link className="friends-identity" href={`/friends/${friend.userId}`} tabIndex={0} aria-label={`Voir le profil de ${friend.username}`} title={friend.username}>{content}</Link>}
+                identity={(friend, content, descriptionId) => props.pendingAction
+                  ? <button className="friends-identity" type="button" disabled aria-disabled="true" aria-describedby={descriptionId} aria-label={`Voir le profil de ${friend.username}`} title={friend.username}>{content}</button>
+                  : <Link className="friends-identity" href={`/friends/${friend.userId}`} tabIndex={0} aria-describedby={descriptionId} aria-label={`Voir le profil de ${friend.username}`} title={friend.username}>{content}</Link>}
                 action={(friend) => <div className="friend-play-actions friends-actions">
                 <button
                   className={`${appPrimaryActionClass} friend-presence-button`}
@@ -192,7 +192,11 @@ function FriendsReadyView(props: FriendsViewProps & { snapshot: SocialSnapshot }
                     aria-label={`Plus d’actions pour ${friend.username}`} aria-haspopup="menu" aria-expanded={menuOpen && moreId === friend.userId}
                     aria-controls={menuOpen && moreId === friend.userId ? menuId : undefined}
                     onClick={(event) => { if (menuOpen && moreId === friend.userId) closeMenu(true); else { triggerRef.current = event.currentTarget; setMoreId(friend.userId); } }}
-                    onKeyDown={(event) => { if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); triggerRef.current = event.currentTarget; setMoreId(friend.userId); } }}>
+                    onKeyDown={(event) => { if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                      event.preventDefault(); triggerRef.current = event.currentTarget;
+                      if (menuOpen && moreId === friend.userId) menuRef.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
+                      else setMoreId(friend.userId);
+                    } }}>
                     <span aria-hidden="true">…</span>
                   </button>
                   {menuOpen && moreId === friend.userId ? <div className="friends-more-menu" id={menuId} ref={menuRef} role="menu" aria-label={`Actions pour ${friend.username}`}>
