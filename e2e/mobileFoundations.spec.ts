@@ -28,10 +28,15 @@ for (const theme of ["dark", "light"] as const) {
         await expectNoPageHorizontalOverflow(page);
         const pageShell = page.locator("main");
         expect(await pageShell.evaluate((el) => getComputedStyle(el).overflowY), `${path}: document owns normal scroll`).toBe("visible");
-        await scrollDocumentToEnd(page);
         const last = pageShell.locator(":scope > div").last();
-        const box = await last.boundingBox();
-        expect(box!.y + box!.height, `${path}: page end reachable`).toBeLessThanOrEqual(viewport.height + 1);
+        // The root environment gate mounts these pages after hydration. Fonts and
+        // page effects can still change their height after the first rendered frame.
+        // Scroll the actual document and wait for its final content to be reachable.
+        await expect.poll(async () => {
+          await scrollDocumentToEnd(page);
+          const box = await last.boundingBox();
+          return box ? box.y + box.height : Infinity;
+        }, { message: `${path}: page end reachable` }).toBeLessThanOrEqual(viewport.height + 1);
         await expect(page.locator(".coinche-global-header")).toBeInViewport();
         if (viewport.width <= 600) {
           for (const input of await page.locator('input.coinche-input:not([type="checkbox"]), select.coinche-input, textarea.coinche-input').all()) {
