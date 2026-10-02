@@ -1,6 +1,6 @@
 # Fondations viewport et safe areas
 
-L’issue #118 pose le shell mobile commun à Safari iPhone et au mode standalone. L’issue #119, décrite ci-dessous, ajoute le gate PWA obligatoire sur téléphone : navigateur téléphone → installation obligatoire, standalone téléphone → app, desktop/tablette → web normal. L’icône Apple déjà présente dans `main` reste inchangée.
+L’issue #118 pose le shell mobile commun à Safari iPhone et au mode standalone. L’issue #119, décrite ci-dessous, ajoute le gate PWA obligatoire sur téléphone : navigateur téléphone → installation obligatoire, standalone téléphone → app, desktop/tablette → web normal.
 
 ## Audit et modèle global
 
@@ -91,7 +91,7 @@ Sur téléphone navigateur, KFFR affiche uniquement **Installer KFFR pour contin
 
 `app/manifest.ts`, typé `MetadataRoute.Manifest`, fournit `/manifest.webmanifest` : `id=/`, `name=KFFR Contrée`, `short_name=KFFR`, `start_url=/`, `scope=/`, `display=standalone`, `lang=fr`, fond `#06120d`, chrome `#071c17`. Aucune orientation globale imposée ; la partie conserve sa notice paysage existante.
 
-Les PNG opaques `/pwa/icon-192.png` et `/pwa/icon-512.png` sont des réductions du médaillon `public/brand/kffr-icon-master.png`, aplaties sur le fond KFFR. Le logo de l’application n’est pas modifié. L’icône Apple 180×180 existante (`app/apple-icon.png`) reste la source canonique Next.js. Aucun maskable déclaré : le master n’offre pas la marge sûre nécessaire.
+Les PNG opaques `/pwa/icon-192.png` et `/pwa/icon-512.png`, l’icône Apple 180×180 (`app/apple-icon.png`) et le favicon 48×48 (`app/icon.png`) sont des réductions sans déformation de `public/brand/kffr-icon-master.png`. Le master reprend l’image de référence : fond vert foncé sur tout le carré, grand K doré et petites cartes centrées dessous, sans contour ni coins noirs. Les chemins existants sont conservés, y compris pour `KffrLogo` en mode icône ; les logos horizontaux restent inchangés. Aucun maskable déclaré.
 
 Metadata Next.js : `appleWebApp.capable=true`, titre `KFFR`, status bar `black-translucent`. Next 15 émet la balise canonique `mobile-web-app-capable=yes`, les balises Apple titre/status bar et le lien Apple icon. `themeColor` est dans l’export `Viewport`. Le viewport #118 est inchangé et unique ; zoom conservé. La couleur native de lancement est fixe et cohérente avec le shell sombre ; le thème de contenu reste celui des préférences.
 
@@ -105,14 +105,15 @@ Les UA restent une approximation : navigateur qui falsifie son identité, mode b
 
 ### UX iOS
 
-L’écran utilise les quatre variables safe-area et `coinche-fullscreen-safe` de #118. Logo, vrai h1, étapes ordonnées, couleurs KFFR et contraste des thèmes. En petit paysage, deux colonnes compactes ; les petits portraits peuvent faire défiler explicitement l’écran, sans agrandir le document.
+L’écran utilise les quatre variables safe-area et `coinche-fullscreen-safe` de #118. Logo, vrai h1, étapes ordonnées, couleurs KFFR et contraste des thèmes. En petit paysage, deux colonnes compactes ; sur les petits écrans, les instructions peuvent défiler dans l’écran, sans agrandir le document.
 
 Étapes affichées :
 
-1. Appuie sur le bouton Partager de Safari.
-2. Choisis « Sur l’écran d’accueil ».
-3. Appuie sur « Ajouter ».
-4. Ouvre ensuite KFFR depuis son icône.
+1. Appuie sur le menu Safari (les 3 petites barres en bas de l’écran).
+2. Fais défiler puis choisis « Sur l’écran d’accueil ».
+3. Garde « Ouvrir comme app web » activé si iPhone le propose.
+4. Appuie sur « Ajouter ».
+5. Ouvre ensuite KFFR depuis son icône sur ton écran d’accueil.
 
 Il n’y a pas de bouton Installer iOS ni de faux dialogue. Dans un autre navigateur iOS/in-app identifié, l’écran ajoute « Ouvre cette page dans Safari pour installer KFFR. » Aucun deep link automatique. Certains navigateurs iOS récents supportent aussi l’ajout natif ; Safari reste le chemin documenté commun. Sur iOS proposant « Ouvrir comme app web », laisser cette option activée. Lancée depuis l’icône en standalone, l’app n’a plus le chrome Safari classique ; aucun JS ne tente de masquer Safari.
 
@@ -166,8 +167,8 @@ Note de validation des routes : le shell neutre peut permettre à Next.js de com
 
 1. Ouvrir l’URL KFFR dans Safari.
 2. Vérifier le gate « Installer KFFR pour continuer », sans bouton de bypass.
-3. Appuyer sur Partager.
-4. Choisir « Sur l’écran d’accueil » ; laisser « Ouvrir comme app web » activé si proposé.
+3. Appuyer sur le menu Safari (les 3 petites barres en bas de l’écran).
+4. Faire défiler puis choisir « Sur l’écran d’accueil » ; laisser « Ouvrir comme app web » activé si proposé.
 5. Appuyer sur Ajouter ; vérifier l’icône et le nom KFFR.
 6. Fermer Safari.
 7. Ouvrir KFFR depuis l’icône d’écran d’accueil.

@@ -34,6 +34,10 @@ test("@pwa manifest, icons and canonical iOS metadata in production", async ({ p
   expect(apple.headers()["content-type"]).toContain("image/png");
   const bytes = await apple.body();
   expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([180, 180]);
+  const favicon = await request.get((await page.locator('link[rel="icon"][type="image/png"]').getAttribute("href"))!);
+  expect(favicon.status()).toBe(200);
+  const faviconBytes = await favicon.body();
+  expect([faviconBytes.readUInt32BE(16), faviconBytes.readUInt32BE(20)]).toEqual([48, 48]);
 });
 
 for (const theme of ["dark", "light"] as const) {
@@ -47,7 +51,13 @@ for (const theme of ["dark", "light"] as const) {
       await page.goto("/multiplayer/deep-link?standalone=true");
       await expect(page.getByRole("heading", { level: 1, name: gateTitle })).toBeVisible();
       await expect(page.locator(".coinche-global-header, .coinche-game-scene")).toHaveCount(0);
-      await expect(page.locator("ol li")).toHaveCount(4);
+      await expect(page.locator("ol li")).toHaveText([
+        "Appuie sur le menu Safari (les 3 petites barres en bas de l’écran).",
+        "Fais défiler puis choisis « Sur l’écran d’accueil ».",
+        "Garde « Ouvrir comme app web » activé si iPhone le propose.",
+        "Appuie sur « Ajouter ».",
+        "Ouvre ensuite KFFR depuis son icône sur ton écran d’accueil.",
+      ]);
       await expect(page.getByRole("button")).toHaveCount(0);
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       const background = theme === "dark" ? "rgb(6, 18, 13)" : "rgb(238, 234, 222)";
@@ -58,13 +68,10 @@ for (const theme of ["dark", "light"] as const) {
         await simulateSafeAreas(page, safe);
         const screen = page.locator(".pwa-screen");
         await screen.evaluate((el) => { el.scrollTop = 0; });
-        if (viewport.width > viewport.height) {
-          await expectInsideSafeViewport(page, page.locator(".pwa-card"), safe);
-        } else {
-          await expectInsideSafeViewport(page, page.getByRole("heading", { name: gateTitle }), safe);
-          await screen.evaluate((el) => { el.scrollTop = el.scrollHeight; });
-          await expectInsideSafeViewport(page, page.locator(".pwa-reminder"), safe);
-        }
+        await expectInsideSafeViewport(page, page.getByRole("heading", { name: gateTitle }), safe);
+        await screen.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+        await expectInsideSafeViewport(page, page.locator("ol li").last(), safe);
+        await expectInsideSafeViewport(page, page.locator(".pwa-reminder"), safe);
         expect(await page.evaluate(() => document.documentElement.scrollHeight - innerHeight)).toBeLessThanOrEqual(1);
         await expectNoPageHorizontalOverflow(page);
       }

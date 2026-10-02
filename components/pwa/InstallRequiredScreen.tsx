@@ -64,16 +64,17 @@ export function InstallRequiredScreen({ environment }: { environment: MobileEnvi
         {environment.platform === "ios" ? <>
           {!environment.safari ? <p className="pwa-highlight">Ouvre cette page dans Safari pour installer KFFR.</p> : null}
           <ol>
-            <li>Appuie sur le bouton Partager de Safari.</li>
-            <li>Choisis « Sur l’écran d’accueil ».</li>
+            <li>Appuie sur le menu Safari (les 3 petites barres en bas de l’écran).</li>
+            <li>Fais défiler puis choisis « Sur l’écran d’accueil ».</li>
+            <li>Garde « Ouvrir comme app web » activé si iPhone le propose.</li>
             <li>Appuie sur « Ajouter ».</li>
-            <li>Ouvre ensuite KFFR depuis son icône.</li>
+            <li>Ouvre ensuite KFFR depuis son icône sur ton écran d’accueil.</li>
           </ol>
         </> : <>
           {available ? <button className={appPrimaryActionClass} disabled={busy} onClick={() => void install()} type="button">Installer KFFR</button> : null}
           <p>Dans le menu de ton navigateur, choisis « Installer l’application » ou « Ajouter à l’écran d’accueil », puis ouvre KFFR depuis son icône.</p>
         </>}
-        <p className="pwa-reminder">KFFR est peut-être déjà installé. Ouvre-le depuis ton écran d’accueil.</p>
+        <p className="pwa-reminder">KFFR est peut-être déjà installé. Ouvre-le directement depuis ton écran d’accueil.</p>
         <p role="status" aria-live="polite">{status}</p>
       </div>
     </section>
