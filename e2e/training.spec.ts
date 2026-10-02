@@ -92,8 +92,8 @@ test("@smoke completes ten level-1 exercises without an account on mobile", asyn
   await expect(page.getByText("Connecte-toi pour comparer tes records avec ceux de tes amis.")).toBeVisible();
   await expect(page.getByRole("list", { name: "Classement entre amis" })).toHaveCount(0);
   await page.getByRole("button", { name: "Ouvrir le menu" }).click();
-  await expect(page.getByRole("navigation", { name: "Navigation mobile" }).getByText("Entraînement", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Ouvrir le menu" }).click();
+  await expect(page.getByRole("navigation", { name: "Navigation mobile" }).getByRole("button", { name: "Entraînement", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Fermer le menu" }).click();
   await page.locator("article.training-mode-card").filter({ has: page.getByRole("heading", { name: "Valeur d’un pli" }) }).getByRole("link", { name: "Jouer", exact: true }).click();
   for (let exercise = 1; exercise <= 10; exercise += 1) {
     await expect(page.getByLabel(`Exercice ${exercise} sur 10`)).toBeVisible();
