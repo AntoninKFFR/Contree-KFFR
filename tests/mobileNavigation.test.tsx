@@ -97,13 +97,14 @@ describe("mobile drawer lifecycle in StrictMode", () => {
   });
   it("skips controls disabled by their fieldset and elements excluded from keyboard navigation", () => {
     render(<StrictMode><AccessibleDialog onClose={() => {}} title="Confirmation">
+      <button>Continuer</button>
       <fieldset disabled><button>Indisponible</button></fieldset>
       <button hidden>Masqué</button><a href="/rules" tabIndex={-1}>Hors du parcours</a>
-      <button>Continuer</button>
     </AccessibleDialog></StrictMode>);
     const close = screen.getByRole("button", { name: "Fermer Confirmation" });
     const next = screen.getByRole("button", { name: "Continuer" });
-    fireEvent.keyDown(close, { key: "Tab" }); expect(document.activeElement).toBe(next);
+    expect(fireEvent.keyDown(close, { key: "Tab" })).toBe(true); // jsdom does not perform native Tab navigation.
+    fireEvent.keyDown(close, { key: "Tab", shiftKey: true }); expect(document.activeElement).toBe(next);
     fireEvent.keyDown(next, { key: "Tab" }); expect(document.activeElement).toBe(close);
   });
   it("exposes the future compact-game API without changing the default mode", () => {

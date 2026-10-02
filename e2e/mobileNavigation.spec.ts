@@ -170,7 +170,9 @@ test("@mobile @navigation locks real document scroll, traps keyboard and restore
     const closeButton = page.getByRole("button", { name: "Fermer le menu" }); const last = nav(page).getByRole("link", { name: "Ma progression" });
     await page.keyboard.press("Shift+Tab"); await expect(last).toBeFocused();
     await page.keyboard.press("Tab"); await expect(closeButton).toBeFocused();
-    await page.keyboard.press("Tab"); await expect(nav(page).getByRole("link", { name: "Accueil", exact: true })).toBeFocused();
+    // Native Safari keyboard preferences can skip links: keep its interior Tab order.
+    await page.keyboard.press("Tab"); await expect(closeButton).not.toBeFocused();
+    await expect.poll(() => nav(page).evaluate((element) => element.contains(document.activeElement))).toBe(true);
     await page.keyboard.press("Shift+Tab"); await expect(closeButton).toBeFocused();
     await page.mouse.move(4, 400); await page.mouse.wheel(0, 500); await settledFrame(page);
     expect(await page.evaluate(() => scrollY)).toBe(240);
