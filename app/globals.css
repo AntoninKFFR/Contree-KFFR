@@ -446,6 +446,39 @@ textarea {
 .friend-presence-row:has(.friend-play-actions) .friend-presence-action { max-width: 100%; margin-left: auto; }
 .friend-presence-row:has(.friend-play-actions) .friend-presence-identity { flex-basis: 8rem; }
 @media (max-height: 430px) { .friend-presence-scroll--dialog { max-height: 30dvh; } }
+
+/* Friends opts into an identity link and three actions. Invitation dialogs keep
+   the generic presence list's original composition. Menus expand in the flow. */
+.friends-page .friend-presence-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; }
+.friends-page .friend-presence-action { min-width: 0; max-width: 100%; margin-left: 0; }
+.friends-identity { display: flex; min-width: 0; min-height: 44px; align-items: center; gap: .6rem; border-radius: var(--radius-control); text-align: left; }
+.friends-identity:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.friends-identity:disabled { cursor: not-allowed; opacity: .5; }
+.friends-identity .friend-presence-identity { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; flex-basis: auto; align-items: center; }
+.friends-actions { display: grid; grid-template-columns: auto auto 44px; align-items: center; gap: .5rem; }
+.friends-more { display: contents; }
+.friends-more-trigger { min-width: 44px; min-height: 44px; padding: .5rem; font-size: 1.25rem; }
+.friends-more-menu { grid-column: 1 / -1; display: flex; justify-content: flex-end; min-width: 0; }
+.friends-more-menu button { max-width: 100%; }
+.friends-remove-status { grid-column: 1 / -1; color: var(--text-secondary); font-size: .8rem; text-align: right; }
+.friends-request-content { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: .75rem; }
+.friends-training-dialog .coinche-dialog-header h2 { overflow-wrap: anywhere; }
+
+@media (max-width: 1119px) {
+  .friends-sections { gap: var(--section-gap); }
+  .friends-page .friends-request-row,
+  .friends-page .friends-invitation-row,
+  .friends-page .friends-search-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; padding-block: .5rem; }
+  .friends-request-content { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; grid-column: 1 / -1; }
+  .friends-page .friends-invitation-row p:not([title]) { overflow-wrap: anywhere; }
+  .friends-page .friends-search-row > button { max-width: 11rem; }
+}
+@media (max-width: 639px) {
+  .friends-page .friend-presence-row { grid-template-columns: minmax(0, 1fr); gap: .25rem; padding-block: .25rem; }
+  .friends-page .friend-presence-action { justify-self: end; }
+  .friends-page .friends-invitation-row { grid-template-columns: minmax(0, 1fr); }
+  .friends-invitation-row .friends-social-actions { justify-self: end; }
+}
 .coinche-empty-state { display: grid; justify-items: start; gap: .55rem; padding-block: 1.25rem; }
 .coinche-empty-state h2 { font-size: 1.15rem; font-weight: 850; }
 .coinche-empty-state p { max-width: 38rem; color: var(--text-secondary); font-size: .9rem; }

@@ -58,7 +58,8 @@ it("renders compact friend groups and keeps public search free of presence label
   expect(view.container.querySelector(".friend-presence-scroll")).toBeTruthy();
   expect(view.container.querySelectorAll(".friend-presence-row .coinche-app-card")).toHaveLength(0);
   expect(view.container.querySelector("li.coinche-social-row")?.textContent).toBe("DavidAjouter");
-  fireEvent.click(screen.getAllByRole("button", { name: "Supprimer" })[0]);
+  fireEvent.click(screen.getByRole("button", { name: "Plus d’actions pour Charlie" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Supprimer de mes amis" }));
   expect(onRemove).toHaveBeenCalledWith("charlie", "Charlie");
 });
 

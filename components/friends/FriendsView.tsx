@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useId, useRef, useState } from "react";
 import type { GameInvitationsSnapshot, SocialSearchResult, SocialSnapshot } from "@/lib/socialApi";
 import { FriendPresenceList } from "@/components/social/FriendPresenceList";
 import {
@@ -66,12 +69,91 @@ export function FriendsView(props: FriendsViewProps) {
 
   const snapshot = props.snapshot;
   if (!snapshot) return null;
+  return <FriendsReadyView {...props} snapshot={snapshot} />;
+}
+
+function FriendsReadyView(props: FriendsViewProps & { snapshot: SocialSnapshot }) {
+  const { snapshot } = props;
+  const [moreId, setMoreId] = useState<string | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const menuId = useId();
+  const hasFriends = snapshot.friends.length > 0;
+  const menuOpen = moreId !== null && !props.pendingAction && snapshot.friends.some((friend) => friend.userId === moreId);
+
+  function closeMenu(restoreFocus = false) {
+    setMoreId(null);
+    if (restoreFocus && triggerRef.current?.isConnected && !triggerRef.current.disabled) triggerRef.current.focus({ preventScroll: true });
+  }
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const containWheel = (event: WheelEvent) => {
+      // WebKit can chain wheel scrolling despite CSS overscroll containment.
+      // Leave scrolling within the list and user zoom entirely native.
+      if (event.ctrlKey || event.metaKey || event.shiftKey || !event.deltaY) return;
+      const max = scroller.scrollHeight - scroller.clientHeight;
+      if (max <= 0) return;
+      const unit = event.deltaMode === 1 ? parseFloat(getComputedStyle(scroller).lineHeight) || 24
+        : event.deltaMode === 2 ? scroller.clientHeight : 1;
+      const next = scroller.scrollTop + event.deltaY * unit;
+      if (next < 0 || next > max) { event.preventDefault(); scroller.scrollTop = Math.max(0, Math.min(max, next)); }
+    };
+    scroller.addEventListener("wheel", containWheel, { passive: false });
+    return () => scroller.removeEventListener("wheel", containWheel);
+  }, [hasFriends]);
+
+  useEffect(() => {
+    if (!menuOpen) { if (moreId !== null) setMoreId(null); return; }
+    const menu = menuRef.current!;
+    menu.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
+    // Inline expansion stays in the list's flow. Reveal it using only that scroller.
+    const scroller = menu.closest<HTMLElement>(".friend-presence-scroll");
+    if (scroller) {
+      const bounds = scroller.getBoundingClientRect();
+      const item = menu.getBoundingClientRect();
+      if (item.bottom > bounds.bottom) scroller.scrollTop += item.bottom - bounds.bottom;
+    }
+    // Read the current trigger: another row can open its menu in the same click.
+    const owns = (target: EventTarget | null) => triggerRef.current?.closest(".friends-more")?.contains(target as Node);
+    let pointerActive = false;
+    const pointerStart = () => { pointerActive = true; };
+    const pointerEnd = () => { pointerActive = false; };
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); closeMenu(true); }
+    };
+    const outside = (event: MouseEvent) => {
+      if (!owns(event.target)) {
+        const interactive = (event.target as Element).closest?.("a, button, input, select, textarea, [tabindex]");
+        closeMenu(!interactive);
+      }
+    };
+    // A pointer's focus precedes its click. Keep the inline row in place until
+    // that click so another row's control does not move away under the pointer.
+    const focusOutside = (event: FocusEvent) => { if (!pointerActive && !owns(event.target)) closeMenu(); };
+    document.addEventListener("pointerdown", pointerStart, true);
+    document.addEventListener("pointerup", pointerEnd, true);
+    document.addEventListener("pointercancel", pointerEnd, true);
+    document.addEventListener("keydown", keydown);
+    document.addEventListener("click", outside);
+    document.addEventListener("focusin", focusOutside);
+    return () => {
+      document.removeEventListener("pointerdown", pointerStart, true);
+      document.removeEventListener("pointerup", pointerEnd, true);
+      document.removeEventListener("pointercancel", pointerEnd, true);
+      document.removeEventListener("keydown", keydown);
+      document.removeEventListener("click", outside);
+      document.removeEventListener("focusin", focusOutside);
+    };
+  }, [menuOpen, moreId]);
   const friendIds = new Set(snapshot.friends.map((friend) => friend.userId));
   const sentByUser = new Map(snapshot.sent.map((request) => [request.userId, request]));
   const receivedByUser = new Map(snapshot.received.map((request) => [request.userId, request]));
 
   return (
-    <AppPage width="wide">
+    <AppPage width="wide" className="friends-page">
       <AppPageHeader description="Retrouve tes partenaires, réponds à tes demandes et cherche un joueur par son pseudo." eyebrow="Espace social" title="Amis" />
       {props.actionMessage ? <p className="coinche-notice" data-tone="success" role="status">{props.actionMessage}</p> : null}
 
@@ -84,14 +166,15 @@ export function FriendsView(props: FriendsViewProps) {
         pendingAction={props.pendingAction}
       />
 
-      <div className="grid gap-8">
+      <div className="friends-sections grid gap-8">
         <SocialSection count={snapshot.counts.friends} title="Mes amis">
           {snapshot.friends.length === 0 ? <EmptyText>Tu n&apos;as pas encore d&apos;amis ajoutés.</EmptyText> : (
-            <div className="friend-presence-scroll" data-testid="friends-presence-scroll">
-              <FriendPresenceList friends={snapshot.friends} onlineIds={props.onlineIds ?? new Set()} action={(friend) => <div className="friend-play-actions flex flex-wrap justify-end gap-2">
-                {props.pendingAction
-                  ? <button className={appSecondaryActionClass} type="button" disabled aria-disabled="true">Voir le profil</button>
-                  : <Link className={appSecondaryActionClass} href={`/friends/${friend.userId}`}>Voir le profil</Link>}
+            <div className="friend-presence-scroll" data-testid="friends-presence-scroll" ref={scrollerRef}>
+              <FriendPresenceList friends={snapshot.friends} onlineIds={props.onlineIds ?? new Set()}
+                identity={(friend, content, descriptionId) => props.pendingAction
+                  ? <button className="friends-identity" type="button" disabled aria-disabled="true" aria-describedby={descriptionId} aria-label={`Voir le profil de ${friend.username}`} title={friend.username}>{content}</button>
+                  : <Link className="friends-identity" href={`/friends/${friend.userId}`} tabIndex={0} aria-describedby={descriptionId} aria-label={`Voir le profil de ${friend.username}`} title={friend.username}>{content}</Link>}
+                action={(friend) => <div className="friend-play-actions friends-actions">
                 <button
                   className={`${appPrimaryActionClass} friend-presence-button`}
                   disabled={Boolean(props.pendingAction)}
@@ -100,18 +183,29 @@ export function FriendsView(props: FriendsViewProps) {
                 >
                   {props.pendingAction === `play:${friend.userId}` ? "Création…" : "Jouer"}
                 </button>
-                <button className={`${appPrimaryActionClass} friend-presence-button`} disabled={Boolean(props.pendingAction)} type="button"
+                <button className={`${appSecondaryActionClass} friend-presence-button`} disabled={Boolean(props.pendingAction)} type="button"
                   onClick={() => props.onTrainWithFriend?.(friend.userId, friend.username)}>
                   {props.pendingAction === `train:${friend.userId}` ? "Création…" : "S’entraîner"}
                 </button>
-                <button
-                  className={`${appDangerActionClass} friend-presence-button`}
-                  disabled={props.pendingAction === `friend:${friend.userId}` || (props.pendingAction?.startsWith("play:") || props.pendingAction?.startsWith("train:"))}
-                  onClick={() => props.onRemove?.(friend.userId, friend.username)}
-                  type="button"
-                >
-                  {props.pendingAction === `friend:${friend.userId}` ? "Suppression…" : "Supprimer"}
-                </button>
+                <div className="friends-more">
+                  <button className={`${appSecondaryActionClass} friends-more-trigger`} type="button" disabled={Boolean(props.pendingAction)}
+                    aria-label={`Plus d’actions pour ${friend.username}`} aria-haspopup="menu" aria-expanded={menuOpen && moreId === friend.userId}
+                    aria-controls={menuOpen && moreId === friend.userId ? menuId : undefined}
+                    onClick={(event) => { if (menuOpen && moreId === friend.userId) closeMenu(true); else { triggerRef.current = event.currentTarget; setMoreId(friend.userId); } }}
+                    onKeyDown={(event) => { if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                      event.preventDefault(); triggerRef.current = event.currentTarget;
+                      if (menuOpen && moreId === friend.userId) menuRef.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
+                      else setMoreId(friend.userId);
+                    } }}>
+                    <span aria-hidden="true">…</span>
+                  </button>
+                  {menuOpen && moreId === friend.userId ? <div className="friends-more-menu" id={menuId} ref={menuRef} role="menu" aria-label={`Actions pour ${friend.username}`}>
+                    <button className={`${appDangerActionClass} friend-presence-button`} type="button" role="menuitem"
+                      onKeyDown={(event) => { if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) { event.preventDefault(); event.currentTarget.focus(); } }}
+                      onClick={() => { closeMenu(true); props.onRemove?.(friend.userId, friend.username); }}>Supprimer de mes amis</button>
+                  </div> : null}
+                </div>
+                {props.pendingAction === `friend:${friend.userId}` ? <p className="friends-remove-status" role="status">Suppression…</p> : null}
               </div>} />
             </div>
           )}
@@ -122,10 +216,10 @@ export function FriendsView(props: FriendsViewProps) {
               {snapshot.received.map((request) => {
                 const pending = props.pendingAction === `request:${request.id}` || (props.pendingAction?.startsWith("play:") || props.pendingAction?.startsWith("train:"));
                 return (
-                  <li className="coinche-social-row" id={`friend-request-${request.id}`} key={request.id} tabIndex={-1}>
-                    <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+                  <li className="coinche-social-row friends-request-row" id={`friend-request-${request.id}`} key={request.id} tabIndex={-1}>
+                    <div className="friends-request-content w-full">
                       <PlayerName username={request.username} />
-                      <div className="flex flex-wrap gap-2">
+                      <div className="friends-social-actions flex gap-2">
                         <button className={appPrimaryActionClass} disabled={pending} onClick={() => props.onAccept?.(request.id)} type="button">{pending ? "En cours…" : "Accepter"}</button>
                         <button className={appSecondaryActionClass} disabled={pending} onClick={() => props.onDecline?.(request.id)} type="button">Refuser</button>
                       </div>
@@ -136,7 +230,7 @@ export function FriendsView(props: FriendsViewProps) {
             </ul> : null}
           {snapshot.sent.length > 0 ? <ul className="coinche-social-list">
               {snapshot.sent.map((request) => (
-                <li className="coinche-social-row" key={request.id}>
+                <li className="coinche-social-row friends-request-row" key={request.id}>
                   <PlayerName username={request.username} />
                   <button className={appSecondaryActionClass} disabled={props.pendingAction === `request:${request.id}` || (props.pendingAction?.startsWith("play:") || props.pendingAction?.startsWith("train:"))} onClick={() => props.onCancel?.(request.id)} type="button">
                     {props.pendingAction === `request:${request.id}` ? "Annulation…" : "Annuler"}
@@ -206,12 +300,12 @@ function GameInvitationsSection({
           {received.map((invitation) => {
             const pending = pendingAction === `game-invitation:${invitation.id}` || (pendingAction?.startsWith("play:") || pendingAction?.startsWith("train:"));
             return (
-              <li className="coinche-social-row" key={invitation.id}>
-                <div>
+              <li className="coinche-social-row friends-invitation-row" key={invitation.id}>
+                <div className="min-w-0">
                   <PlayerName username={invitation.otherUsername} />
                   <p className="mt-0.5 text-xs text-[var(--text-secondary)]">Table {invitation.roomCode} · expire {formatInvitationExpiry(invitation.expiresAt)}</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="friends-social-actions flex gap-2">
                   <button className={appPrimaryActionClass} disabled={pending} onClick={() => onJoin?.(invitation.id)} type="button">{pending ? "Vérification…" : "Rejoindre"}</button>
                   <button className={appSecondaryActionClass} disabled={pending} onClick={() => onDecline?.(invitation.id)} type="button">Refuser</button>
                 </div>
@@ -227,8 +321,8 @@ function GameInvitationsSection({
             {sent.map((invitation) => {
               const pending = pendingAction === `game-invitation:${invitation.id}` || (pendingAction?.startsWith("play:") || pendingAction?.startsWith("train:"));
               return (
-                <li className="coinche-social-row" key={invitation.id}>
-                  <div><PlayerName username={invitation.otherUsername} /><p className="mt-0.5 text-xs text-[var(--text-secondary)]">Table {invitation.roomCode}</p></div>
+                <li className="coinche-social-row friends-invitation-row" key={invitation.id}>
+                  <div className="min-w-0"><PlayerName username={invitation.otherUsername} /><p className="mt-0.5 text-xs text-[var(--text-secondary)]">Table {invitation.roomCode}</p></div>
                   <button className={appSecondaryActionClass} disabled={pending} onClick={() => onCancel?.(invitation.id)} type="button">{pending ? "Annulation…" : "Annuler"}</button>
                 </li>
               );
@@ -256,7 +350,7 @@ function SocialSection({ children, count, title }: { children: React.ReactNode; 
 }
 
 function PlayerName({ username }: { username: string }) {
-  return <p className="min-w-0 truncate font-bold text-[var(--text-primary)]">{username}</p>;
+  return <p className="min-w-0 truncate font-bold text-[var(--text-primary)]" title={username}>{username}</p>;
 }
 
 function EmptyText({ children }: { children: React.ReactNode }) {
@@ -297,11 +391,11 @@ function SearchResults({
         const received = receivedByUser.get(result.userId);
         const pending = pendingAction === `search:${result.userId}` || (pendingAction?.startsWith("play:") || pendingAction?.startsWith("train:"));
         let action: React.ReactNode;
-        if (friendIds.has(result.userId)) action = <span className="text-xs font-bold text-emerald-200">Déjà ami</span>;
+        if (friendIds.has(result.userId)) action = <span className="text-xs font-bold text-[var(--success)]">Déjà ami</span>;
         else if (sentByUser.has(result.userId)) action = <span className="text-xs font-bold text-[var(--text-secondary)]">Demande envoyée</span>;
-        else if (received) action = <button className={appSecondaryActionClass} onClick={() => onAnswerRequest?.(received.id)} type="button">Répondre à la demande</button>;
+        else if (received) action = <button className={appSecondaryActionClass} disabled={Boolean(pendingAction)} onClick={() => onAnswerRequest?.(received.id)} type="button">Répondre à la demande</button>;
         else action = <button className={appPrimaryActionClass} disabled={pending} onClick={() => onSend?.(result.userId)} type="button">{pending ? "Envoi…" : "Ajouter"}</button>;
-        return <li className="coinche-social-row" key={result.userId}><PlayerName username={result.username} />{action}</li>;
+        return <li className="coinche-social-row friends-search-row" key={result.userId}><PlayerName username={result.username} />{action}</li>;
       })}
     </ul>
   );

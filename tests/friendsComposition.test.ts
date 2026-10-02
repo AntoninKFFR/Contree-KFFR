@@ -28,7 +28,9 @@ it("keeps social content on the wide canvas in one column of simple rows with wo
   expect(view.container.querySelectorAll(".coinche-social-row")).toHaveLength(3);
   expect(view.container.querySelectorAll(".friend-presence-row")).toHaveLength(1);
   expect(view.container.querySelector(".coinche-app-card")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Supprimer" }));
+  expect(screen.queryByRole("menuitem")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Plus d’actions pour Alice" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Supprimer de mes amis" }));
   fireEvent.click(screen.getByRole("button", { name: "Accepter" }));
   fireEvent.click(screen.getByRole("button", { name: "Refuser" }));
   fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
