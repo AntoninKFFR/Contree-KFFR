@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
+import { expectNotFoundPage } from "./helpers/notFound";
 import { generatorVersion } from "@/engine/training/generator";
 import { generateTrickValueSeries } from "@/engine/training/trickValue";
 import { challengeDifficulty, challengeRunSeed, generateChallengeExercise } from "@/engine/training/trickValueChallenge";
@@ -241,14 +242,10 @@ test("@smoke invalid and locked training levels are handled", async ({ page }) =
   expect(locked?.status()).toBe(200);
   await expect(page.getByRole("heading", { name: "Niveau 2 verrouillé" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Retour aux niveaux" })).toBeVisible();
-  const invalid = await page.goto("/training/puzzle/trick-value?level=3");
-  expect(invalid?.status()).toBe(404);
-  const unknown = await page.goto("/training/puzzle/unknown-axis?level=1");
-  expect(unknown?.status()).toBe(404);
-  const badMode = await page.goto("/training/puzzle/trick-value?mode=unknown");
-  expect(badMode?.status()).toBe(404);
-  const ambiguous = await page.goto("/training/puzzle/trick-value?mode=blitz&level=2");
-  expect(ambiguous?.status()).toBe(404);
+  await expectNotFoundPage(page, "/training/puzzle/trick-value?level=3");
+  await expectNotFoundPage(page, "/training/puzzle/unknown-axis?level=1");
+  await expectNotFoundPage(page, "/training/puzzle/trick-value?mode=unknown");
+  await expectNotFoundPage(page, "/training/puzzle/trick-value?mode=blitz&level=2");
   const lockedChallenge = await page.goto("/training/puzzle/trick-value?mode=survival");
   expect(lockedChallenge?.status()).toBe(200);
   await expect(page.getByRole("heading", { name: "Mode verrouillé" })).toBeVisible();

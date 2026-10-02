@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../lib/preferences/playerPreferences";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 import { installMobileRoomFixture } from "./helpers/mobileRoomFixture";
-import { DESKTOP_VIEWPORTS, MOBILE_VIEWPORTS, expectInsideSafeViewport, expectNoPageHorizontalOverflow, setMobileViewport, simulateSafeAreas } from "./helpers/mobile";
+import { DESKTOP_VIEWPORTS, MOBILE_VIEWPORTS, expectInsideSafeViewport, expectNoPageHorizontalOverflow, scrollDocumentToEnd, setMobileViewport, simulateSafeAreas } from "./helpers/mobile";
 
 const routes = ["/", "/friends", "/training", "/multiplayer", "/solo", "/rules", "/login", "/progression", "/profile", "/history", "/leaderboard"];
 async function seedTheme(page: Page, theme: "dark" | "light") {
@@ -19,7 +19,7 @@ for (const theme of ["dark", "light"] as const) {
       await setMobileViewport(page, viewport);
       for (const path of routes) {
         await page.goto(path);
-        await expect(page.locator("main")).toBeVisible();
+        await expect(page.locator("main.coinche-app-page > div")).toBeVisible();
         await expect(page.locator(".coinche-global-header")).toHaveCSS("height", "56px");
         await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
         const background = theme === "dark" ? "rgb(6, 18, 13)" : "rgb(238, 234, 222)";
@@ -28,10 +28,15 @@ for (const theme of ["dark", "light"] as const) {
         await expectNoPageHorizontalOverflow(page);
         const pageShell = page.locator("main");
         expect(await pageShell.evaluate((el) => getComputedStyle(el).overflowY), `${path}: document owns normal scroll`).toBe("visible");
-        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
         const last = pageShell.locator(":scope > div").last();
-        const box = await last.boundingBox();
-        expect(box!.y + box!.height, `${path}: page end reachable`).toBeLessThanOrEqual(viewport.height + 1);
+        // The root environment gate mounts these pages after hydration. Fonts and
+        // page effects can still change their height after the first rendered frame.
+        // Scroll the actual document and wait for its final content to be reachable.
+        await expect.poll(async () => {
+          await scrollDocumentToEnd(page);
+          const box = await last.boundingBox();
+          return box ? box.y + box.height : Infinity;
+        }, { message: `${path}: page end reachable` }).toBeLessThanOrEqual(viewport.height + 1);
         await expect(page.locator(".coinche-global-header")).toBeInViewport();
         if (viewport.width <= 600) {
           for (const input of await page.locator('input.coinche-input:not([type="checkbox"]), select.coinche-input, textarea.coinche-input').all()) {
@@ -119,10 +124,14 @@ for (const theme of ["dark", "light"] as const) {
     expect(await page.locator(".coinche-scene-hand-card").allTextContents()).toEqual(hand);
     expect(await page.evaluate(() => performance.getEntriesByType("navigation").length)).toBe(1);
     await page.goto("/training");
+    // The root gate's neutral hydration shell can precede the actual page mount.
+    await expect(page.locator("main.coinche-app-page > div")).toBeVisible();
     await simulateSafeAreas(page, { top: 0, bottom: 34, left: 0, right: 44 });
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    const end = await page.locator("main > div").boundingBox();
-    expect(end!.y + end!.height).toBeLessThanOrEqual(390 - 34);
+    await expect.poll(async () => {
+      await scrollDocumentToEnd(page);
+      const end = await page.locator("main > div").boundingBox();
+      return end!.y + end!.height;
+    }).toBeLessThanOrEqual(390 - 34);
     errors.assertClean();
   });
 
@@ -159,6 +168,8 @@ for (const theme of ["dark", "light"] as const) {
       expect(table!.height, "lobby seats keep usable height even on small landscape").toBeGreaterThanOrEqual(150);
       await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
       await expect(page.getByRole("button", { name: "Quitter la place" })).toBeInViewport();
+      // Finish hydrated account projections before navigation; WebKit reports aborted CORS loads.
+      await page.waitForLoadState("networkidle");
     }
     // The lobby rules modal has a pinned footer CTA even on the smallest landscape.
     await setMobileViewport(page, MOBILE_VIEWPORTS[4]);
@@ -183,6 +194,7 @@ for (const theme of ["dark", "light"] as const) {
       }
       await expectNoPageHorizontalOverflow(page);
       expect(await page.evaluate(() => document.documentElement.scrollHeight - innerHeight)).toBeLessThanOrEqual(1);
+      await page.waitForLoadState("networkidle");
     }
     fixture.finishRound();
     await setMobileViewport(page, MOBILE_VIEWPORTS[4]);
@@ -192,6 +204,7 @@ for (const theme of ["dark", "light"] as const) {
     await expectInsideSafeViewport(page, result, landscapeAreas);
     await result.getByRole("button", { name: "Manche suivante" }).scrollIntoViewIfNeeded();
     await expectInsideSafeViewport(page, result.getByRole("button", { name: "Manche suivante" }), landscapeAreas);
+    await page.waitForLoadState("networkidle");
     errors.assertClean();
   });
 }

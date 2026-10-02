@@ -1,6 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { fourPlayerCredentials, loginAs } from "./helpers/auth";
 import { createRoomThroughUi, enableTechnicalRules, joinRoomThroughUi, setLocalPreferences } from "./helpers/multiplayerUi";
+import { scrollDocumentToEnd, setMobileViewport } from "./helpers/mobile";
 import { ratingSummary, waitForNoPending } from "./helpers/rating";
 import { bestEffortFinishRoom, expectRoom, monitorRoomPrivacy, roomView, sendIntent, sendTick, type E2ERoomView } from "./helpers/room";
 
@@ -420,35 +421,38 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
           await expect(card).toContainText("En attente de l’hôte");
         }
       }
-      await pages[1].setViewportSize({ width: 667, height: 375 });
+      await setMobileViewport(pages[1], { width: 667, height: 375 });
       const compactCard = pages[1].getByRole("region", { name: "Résultat de la partie" });
       await expect(compactCard).toBeVisible();
       await expect(compactCard.getByText("Partie terminée", { exact: true })).toBeVisible();
       await expect(compactCard.getByRole("heading", { level: 1 })).toHaveText(/^(Victoire|Défaite) par abandon$/);
+      await pages[1].evaluate(() => window.scrollTo(0, 0));
       const compactLayout = await pages[1].evaluate(() => {
-        const scroller = document.querySelector("main");
+        const scroller = document.documentElement;
+        const header = document.querySelector(".coinche-global-header");
         const card = document.querySelector('section[aria-label="Résultat de la partie"]');
         const heading = card?.querySelector("h1");
         const kicker = card?.querySelector(".coinche-ui-kicker");
-        if (!scroller || !card || !heading || !kicker) throw new Error("The finished result structure is missing.");
-        scroller.scrollTop = 0;
-        const viewport = scroller.getBoundingClientRect();
-        const top = {
+        if (!header || !card || !heading || !kicker) throw new Error("The finished result structure is missing.");
+        // Finished rooms use AppPage's natural document scroll since #118.
+        return {
           overflowsVertically: scroller.scrollHeight > scroller.clientHeight,
           card: card.getBoundingClientRect().top,
           kicker: kicker.getBoundingClientRect().top,
           headingBottom: heading.getBoundingClientRect().bottom,
-          viewportTop: viewport.top,
-          viewportBottom: viewport.bottom,
+          viewportTop: header.getBoundingClientRect().bottom,
+          viewportBottom: window.innerHeight,
         };
-        scroller.scrollTop = scroller.scrollHeight;
-        return { ...top, cardBottomAtEnd: card.getBoundingClientRect().bottom };
       });
       expect(compactLayout.overflowsVertically).toBe(true);
       expect(compactLayout.card).toBeGreaterThanOrEqual(compactLayout.viewportTop - 1);
       expect(compactLayout.kicker).toBeGreaterThanOrEqual(compactLayout.viewportTop - 1);
       expect(compactLayout.headingBottom).toBeLessThanOrEqual(compactLayout.viewportBottom + 1);
-      expect(compactLayout.cardBottomAtEnd).toBeLessThanOrEqual(compactLayout.viewportBottom + 1);
+      await expect.poll(async () => {
+        await scrollDocumentToEnd(pages[1]);
+        const box = await compactCard.boundingBox();
+        return box ? box.y + box.height : Infinity;
+      }, { message: "finished result end reachable by scrolling the document" }).toBeLessThanOrEqual(compactLayout.viewportBottom + 1);
       expect(await pages[1].evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await pages[1].reload();
       await expect(pages[1].getByRole("region", { name: "Résultat de la partie" })).toBeVisible();
@@ -473,8 +477,9 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       await hostPage.getByRole("button", { name: "Multijoueur", exact: true }).click();
       const latestHistory = hostPage.locator("li").first();
       await expect(latestHistory).toContainText("Multijoueur", { timeout: 15_000 });
-      await expect(latestHistory).toContainText("Fin: abandon");
-      await expect(latestHistory).toContainText(`Partenaire: ${partner.display_name}`);
+      await latestHistory.getByText("Voir les détails", { exact: true }).click();
+      await expect(latestHistory.getByText("Fin : abandon", { exact: true })).toBeVisible();
+      await expect(latestHistory).toContainText(`Partenaire : ${partner.display_name}`);
       for (const opponent of opponents) await expect(latestHistory).toContainText(opponent.display_name!);
 
       const seatsBeforeRematch = finished.players
@@ -486,7 +491,16 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
       const disconnectedIndex = 2;
       const disconnectedStorage = await contexts[disconnectedIndex].storageState();
       await contexts[disconnectedIndex].close();
+      // The click starts an async mutation. A concurrent GET can see the old
+      // room before its game reset finishes, so wait for the actual successful POST.
+      const completedRematch = hostPage.waitForResponse((response) => {
+        const request = response.request();
+        return response.status() === 200 && request.method() === "POST"
+          && new URL(response.url()).pathname === `/api/multiplayer/rooms/${roomId}`
+          && request.postDataJSON()?.intent?.type === "rematch";
+      });
       await hostPage.getByRole("button", { name: "Retour au lobby" }).click();
+      await completedRematch;
       const rematch = await expectRoom(
         hostPage,
         roomId,

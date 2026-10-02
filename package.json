@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "node scripts/buildPwaOffline.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -41,6 +42,7 @@
     "test:e2e:multiplayer": "playwright test --project=multiplayer --grep-invert @rating",
     "test:e2e:rating": "playwright test --project=multiplayer --grep @rating",
     "test:e2e:mobile": "playwright test --project=mobile --project=mobile-webkit",
+    "test:e2e:pwa": "playwright test --project=mobile --project=mobile-webkit --grep @pwa",
     "test:e2e:smoke": "playwright test --project=smoke",
     "test:e2e:training-duo": "playwright test --project=training-duo",
     "test:db:progression": "node scripts/testProgressionDb.mjs",

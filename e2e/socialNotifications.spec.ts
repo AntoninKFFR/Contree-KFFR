@@ -1,4 +1,4 @@
-import { expect, test, type BrowserContext, type Page, type Response } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page, type Request } from "@playwright/test";
 import { loginAs, twoPlayerCredentials } from "./helpers/auth";
 import { createRoomThroughUi } from "./helpers/multiplayerUi";
 import { bestEffortFinishRoom } from "./helpers/room";
@@ -24,9 +24,13 @@ async function socialApi<T>(page: Page, path: string, method = "GET", body?: unk
 function monitorSocialPrivacy(page: Page) {
   const checks: Promise<void>[] = [];
   let inspected = 0;
-  page.on("response", (response: Response) => {
-    if (!new URL(response.url()).pathname.startsWith("/api/social")) return;
-    checks.push(response.json().then((body: unknown) => {
+  // A response event only guarantees headers. Wait for the body to finish so a
+  // navigation-aborted request cannot leave an unreadable JSON promise pending.
+  page.on("requestfinished", (request: Request) => {
+    if (!new URL(request.url()).pathname.startsWith("/api/social")) return;
+    checks.push(request.response().then(async (response) => {
+      if (!response) throw new Error("A completed social request has no response.");
+      const body: unknown = await response.json();
       inspected += 1;
       const visit = (value: unknown): void => {
         if (!value || typeof value !== "object") return;

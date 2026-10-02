@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+.pwa-detecting { display: grid; place-items: center; color: var(--accent); font-weight: 900; }
+.pwa-screen { display: flex; align-items: center; justify-content: center; overflow-y: auto; }
+.pwa-card { display: grid; gap: 1.5rem; width: min(34rem, 100%); margin: auto; padding: 1.25rem; }
+.pwa-intro img { border-radius: 1.1rem; }
+.pwa-intro h1 { margin-top: 1rem; font-size: clamp(1.5rem, 5vw, 2rem); font-weight: 900; line-height: 1.15; }
+.pwa-card p { color: var(--text-secondary); font-size: .9375rem; line-height: 1.5; }
+.pwa-intro > p { margin-top: .75rem; }
+.pwa-instructions { border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); padding: 1rem; }
+.pwa-instructions ol { display: grid; gap: .6rem; padding-left: 1.4rem; list-style: decimal; font-size: .9375rem; line-height: 1.45; }
+.pwa-instructions .pwa-highlight { margin-bottom: .75rem; color: var(--accent); font-weight: 700; }
+.pwa-instructions button { margin-bottom: .75rem; min-height: 44px; }
+.pwa-reminder { margin-top: 1rem; }
+.pwa-instructions [role="status"]:empty { display: none; }
+.pwa-instructions [role="status"]:not(:empty) { margin-top: .75rem; color: var(--accent); font-weight: 700; }
+.pwa-callback-status { padding: .5rem calc(1rem + var(--safe-right)) .5rem calc(1rem + var(--safe-left)); background: var(--surface); }
+.pwa-offline { justify-items: start; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .pwa-card { width: min(54rem, 100%); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; padding: .5rem 1rem; }
+  .pwa-intro img { width: 48px; height: 48px; }
+  .pwa-intro h1 { margin-top: .5rem; font-size: 1.35rem; }
+  .pwa-card p, .pwa-instructions ol { font-size: .875rem; }
+  .pwa-instructions ol { gap: .35rem; }
+  .pwa-instructions { padding: .75rem; }
+  .pwa-reminder { margin-top: .5rem; }
+  .pwa-offline { grid-template-columns: 1fr; }
+}
+
 /* Viewport and safe-area inputs. Tests override the four inputs on :root only. */
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
