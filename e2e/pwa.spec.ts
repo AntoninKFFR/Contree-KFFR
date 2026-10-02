@@ -52,12 +52,13 @@ for (const theme of ["dark", "light"] as const) {
       await expect(page.getByRole("heading", { level: 1, name: gateTitle })).toBeVisible();
       await expect(page.locator(".coinche-global-header, .coinche-game-scene")).toHaveCount(0);
       await expect(page.locator("ol li")).toHaveText([
-        "Appuie sur le menu Safari (les 3 petites barres en bas de l’écran).",
-        "Fais défiler puis choisis « Sur l’écran d’accueil ».",
+        "Ouvre le menu de partage Safari : appuie sur les 3 petites barres en bas de l’écran puis sur « Partager », ou directement sur le bouton Partager s’il est visible.",
+        "Dans la feuille de partage, fais défiler puis choisis « Sur l’écran d’accueil ».",
         "Garde « Ouvrir comme app web » activé si iPhone le propose.",
         "Appuie sur « Ajouter ».",
         "Ouvre ensuite KFFR depuis son icône sur ton écran d’accueil.",
       ]);
+      await expect(page.locator(".pwa-reminder")).toHaveText("KFFR est peut-être déjà installé. Ouvre-le directement depuis ton écran d’accueil.");
       await expect(page.getByRole("button")).toHaveCount(0);
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       const background = theme === "dark" ? "rgb(6, 18, 13)" : "rgb(238, 234, 222)";
@@ -69,6 +70,8 @@ for (const theme of ["dark", "light"] as const) {
         const screen = page.locator(".pwa-screen");
         await screen.evaluate((el) => { el.scrollTop = 0; });
         await expectInsideSafeViewport(page, page.getByRole("heading", { name: gateTitle }), safe);
+        await page.locator("ol li").first().evaluate((el) => el.scrollIntoView({ block: "center" }));
+        await expectInsideSafeViewport(page, page.locator("ol li").first(), safe);
         await screen.evaluate((el) => { el.scrollTop = el.scrollHeight; });
         await expectInsideSafeViewport(page, page.locator("ol li").last(), safe);
         await expectInsideSafeViewport(page, page.locator(".pwa-reminder"), safe);

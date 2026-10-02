@@ -109,8 +109,8 @@ L’écran utilise les quatre variables safe-area et `coinche-fullscreen-safe` d
 
 Étapes affichées :
 
-1. Appuie sur le menu Safari (les 3 petites barres en bas de l’écran).
-2. Fais défiler puis choisis « Sur l’écran d’accueil ».
+1. Ouvre le menu de partage Safari : appuie sur les 3 petites barres en bas de l’écran puis sur « Partager », ou directement sur le bouton Partager s’il est visible.
+2. Dans la feuille de partage, fais défiler puis choisis « Sur l’écran d’accueil ».
 3. Garde « Ouvrir comme app web » activé si iPhone le propose.
 4. Appuie sur « Ajouter ».
 5. Ouvre ensuite KFFR depuis son icône sur ton écran d’accueil.
@@ -167,8 +167,8 @@ Note de validation des routes : le shell neutre peut permettre à Next.js de com
 
 1. Ouvrir l’URL KFFR dans Safari.
 2. Vérifier le gate « Installer KFFR pour continuer », sans bouton de bypass.
-3. Appuyer sur le menu Safari (les 3 petites barres en bas de l’écran).
-4. Faire défiler puis choisir « Sur l’écran d’accueil » ; laisser « Ouvrir comme app web » activé si proposé.
+3. Ouvrir le menu de partage Safari : appuyer sur les 3 petites barres en bas de l’écran puis sur « Partager », ou directement sur le bouton Partager s’il est visible.
+4. Dans la feuille de partage, faire défiler puis choisir « Sur l’écran d’accueil » ; laisser « Ouvrir comme app web » activé si proposé.
 5. Appuyer sur Ajouter ; vérifier l’icône et le nom KFFR.
 6. Fermer Safari.
 7. Ouvrir KFFR depuis l’icône d’écran d’accueil.

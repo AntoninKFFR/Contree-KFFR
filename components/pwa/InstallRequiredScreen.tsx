@@ -64,8 +64,8 @@ export function InstallRequiredScreen({ environment }: { environment: MobileEnvi
         {environment.platform === "ios" ? <>
           {!environment.safari ? <p className="pwa-highlight">Ouvre cette page dans Safari pour installer KFFR.</p> : null}
           <ol>
-            <li>Appuie sur le menu Safari (les 3 petites barres en bas de l’écran).</li>
-            <li>Fais défiler puis choisis « Sur l’écran d’accueil ».</li>
+            <li>Ouvre le menu de partage Safari : appuie sur les 3 petites barres en bas de l’écran puis sur « Partager », ou directement sur le bouton Partager s’il est visible.</li>
+            <li>Dans la feuille de partage, fais défiler puis choisis « Sur l’écran d’accueil ».</li>
             <li>Garde « Ouvrir comme app web » activé si iPhone le propose.</li>
             <li>Appuie sur « Ajouter ».</li>
             <li>Ouvre ensuite KFFR depuis son icône sur ton écran d’accueil.</li>
