@@ -33,7 +33,13 @@ export async function installMobileRoomFixture(page: Page, { seedSession = true 
       : path.endsWith("/get_my_progression") ? { total_xp: 0 }
       : path.endsWith("/get_my_rating_summary") ? { rating: 1000, rated_games: 0, wins: 0, losses: 0, forfeits: 0, peak_rating: 1000, is_ranked: false, pending_matches: 0 }
       : [];
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(data) });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(data), headers: {
+      // The browser fixture is cross-origin (app :3000, Supabase :54321).
+      // WebKit enforces CORS on these mocked responses as it would on Supabase.
+      "Access-Control-Allow-Origin": route.request().headers().origin ?? "*",
+      "Access-Control-Allow-Headers": route.request().headers()["access-control-request-headers"] ?? "authorization, apikey, x-client-info, content-type, prefer, x-supabase-api-version",
+      "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
+    } });
   });
   await page.route("**/api/social**", async (route) => route.fulfill({ status: 200, json: { data: { friends: [], received: [], sent: [], invitations: [], counts: { friends: 0, received: 0, sent: 0, receivedPending: 0, sentPending: 0 } } } }));
   await page.route("**/api/training/duo/invitations", async (route) => route.fulfill({ status: 200, json: { data: [] } }));

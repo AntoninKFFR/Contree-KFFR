@@ -168,6 +168,8 @@ for (const theme of ["dark", "light"] as const) {
       expect(table!.height, "lobby seats keep usable height even on small landscape").toBeGreaterThanOrEqual(150);
       await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
       await expect(page.getByRole("button", { name: "Quitter la place" })).toBeInViewport();
+      // Finish hydrated account projections before navigation; WebKit reports aborted CORS loads.
+      await page.waitForLoadState("networkidle");
     }
     // The lobby rules modal has a pinned footer CTA even on the smallest landscape.
     await setMobileViewport(page, MOBILE_VIEWPORTS[4]);
@@ -192,6 +194,7 @@ for (const theme of ["dark", "light"] as const) {
       }
       await expectNoPageHorizontalOverflow(page);
       expect(await page.evaluate(() => document.documentElement.scrollHeight - innerHeight)).toBeLessThanOrEqual(1);
+      await page.waitForLoadState("networkidle");
     }
     fixture.finishRound();
     await setMobileViewport(page, MOBILE_VIEWPORTS[4]);
@@ -201,6 +204,7 @@ for (const theme of ["dark", "light"] as const) {
     await expectInsideSafeViewport(page, result, landscapeAreas);
     await result.getByRole("button", { name: "Manche suivante" }).scrollIntoViewIfNeeded();
     await expectInsideSafeViewport(page, result.getByRole("button", { name: "Manche suivante" }), landscapeAreas);
+    await page.waitForLoadState("networkidle");
     errors.assertClean();
   });
 }
