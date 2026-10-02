@@ -129,7 +129,7 @@ export function AppTopNav({ variant = "default" }: { variant?: "default" | "comp
     const closeOnDesktop = () => {
       if (!desktop.matches) return;
       setMobileOpen(false);
-      requestAnimationFrame(() => rootRef.current?.querySelector<HTMLElement>('nav[aria-label="Navigation principale"] a')?.focus());
+      requestAnimationFrame(() => rootRef.current?.querySelector<HTMLElement>('nav[aria-label="Navigation principale"] a')?.focus({ preventScroll: true }));
     };
     desktop.addEventListener("change", closeOnDesktop);
     return () => {
@@ -166,7 +166,7 @@ export function AppTopNav({ variant = "default" }: { variant?: "default" | "comp
         <button aria-controls="mobile-navigation" aria-expanded={mobileOpen} aria-label="Ouvrir le menu" className="coinche-chrome-icon min-[1120px]:hidden" onClick={openMobileNavigation} ref={burgerRef} type="button">☰</button>
       </div>
     </div>
-    {mobileOpen ? <MobileNavigationDrawer activeHref={activeHref} authenticated={Boolean(session)} cosmetics={cosmetics} onClose={closeNavigation}
+    {mobileOpen ? <MobileNavigationDrawer activeHref={activeHref} currentHref={`${pathname}${navigationHash}`} authenticated={Boolean(session)} cosmetics={cosmetics} onClose={closeNavigation}
       onTrainingToggle={() => setTrainingOpen((value) => !value)} summary={summary} trainingActive={trainingActive} trainingOpen={trainingOpen} username={username} /> : null}
   </header>;
 }

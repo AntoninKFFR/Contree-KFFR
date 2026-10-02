@@ -27,9 +27,11 @@ export function AccessibleDialog({ children, backdropClassName = "", closeLabel,
       if (dialogStack.at(-1) !== panel) return;
       if (event.key === "Escape") { event.preventDefault(); onCloseRef.current(); return; }
       if (event.key !== "Tab" || !panelRef.current) return;
-      const focusable = [...panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
+      const focusable = [...panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)]
+        .filter((element) => element.tabIndex >= 0 && !element.matches(":disabled") && !element.closest("[hidden], [inert]"));
       if (focusable.length === 0) return;
-      const current = focusable.indexOf(document.activeElement as HTMLElement);
+      const index = focusable.indexOf(document.activeElement as HTMLElement);
+      const current = index >= 0 ? index : event.shiftKey ? 0 : -1;
       const next = (current + (event.shiftKey ? -1 : 1) + focusable.length) % focusable.length;
       event.preventDefault();
       focusable[next].focus({ preventScroll: true });

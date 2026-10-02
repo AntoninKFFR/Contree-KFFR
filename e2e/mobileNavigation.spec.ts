@@ -136,7 +136,11 @@ test("@mobile @navigation real routes, Training sections and hash navigation clo
     await expect(training).toHaveAttribute("aria-expanded", `${path.startsWith("/training")}`);
     await expect(nav(page).locator('[aria-current="page"]')).toHaveCount(1);
     await expect(nav(page).getByRole("link", { name: label, exact: label !== LONG_NAVIGATION_USERNAME })).toHaveAttribute("aria-current", "page");
-    await page.keyboard.press("Escape");
+    if (path.startsWith("/training/puzzle/trick-value")) {
+      await nav(page).getByRole("link", { name: "Calculer", exact: true }).click();
+      await expect(page).toHaveURL(/\/training#calculer$/); await expect(drawer(page)).toHaveCount(0);
+      await expect(page.locator("#calculer")).toBeInViewport();
+    } else await page.keyboard.press("Escape");
   }
   await page.goto("/"); await burger(page).click();
   await nav(page).getByRole("button", { name: "Entraînement", exact: true }).click();
@@ -182,6 +186,8 @@ test("@mobile @navigation locks real document scroll, traps keyboard and restore
   await burger(page).click(); await setMobileViewport(page, { width: 1120, height: 800 });
   await expect(drawer(page)).toHaveCount(0); await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
   await expect(page.getByRole("navigation", { name: "Navigation principale" }).getByRole("link", { name: "Accueil", exact: true })).toBeFocused();
+  // Width changes may adjust the native scroll anchor as the rules reflow.
+  expect(await page.evaluate(() => scrollY)).toBeGreaterThan(0);
 });
 
 test("@mobile @navigation audio, theme, notifications and game controls survive drawer use", async ({ page }) => {

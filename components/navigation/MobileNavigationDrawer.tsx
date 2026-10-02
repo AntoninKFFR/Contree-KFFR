@@ -12,6 +12,7 @@ import { appNavigationItems, type NavigationLink } from "@/lib/ui/appNavigation"
 
 type Props = {
   activeHref: string | null;
+  currentHref: string;
   authenticated: boolean;
   cosmetics: CosmeticsSnapshot | null | undefined;
   onClose: () => void;
@@ -22,10 +23,10 @@ type Props = {
   username: string | null;
 };
 
-export function MobileNavigationDrawer({ activeHref, authenticated, cosmetics, onClose, onTrainingToggle, summary, trainingOpen, trainingActive, username }: Props) {
+export function MobileNavigationDrawer({ activeHref, currentHref, authenticated, cosmetics, onClose, onTrainingToggle, summary, trainingOpen, trainingActive, username }: Props) {
   const link = (item: NavigationLink) => <Link aria-current={activeHref === item.href ? "page" : undefined}
     className={`coinche-topnav-link ${activeHref === item.href ? "coinche-topnav-link--active" : ""}`}
-    href={item.href} key={item.href} onClick={onClose} scroll={activeHref !== item.href}>{item.label}</Link>;
+    href={item.href} key={item.href} onClick={onClose} scroll={currentHref !== item.href}>{item.label}</Link>;
 
   return createPortal(<AccessibleDialog backdropClassName="coinche-navigation-backdrop" closeLabel="Fermer le menu" minimalHeader onClose={onClose} title="Navigation KFFR" width="navigation">
     <nav aria-label="Navigation mobile" className="coinche-mobile-nav" id="mobile-navigation">
@@ -42,7 +43,7 @@ export function MobileNavigationDrawer({ activeHref, authenticated, cosmetics, o
       </div>
       <section aria-label="Compte" className="progression-mobile-account">
         {authenticated ? <>
-          <Link aria-current={activeHref === "/profile" ? "page" : undefined} className={`coinche-topnav-link coinche-mobile-identity ${activeHref === "/profile" ? "coinche-topnav-link--active" : ""}`} href="/profile" onClick={onClose} scroll={activeHref !== "/profile"} title={username ?? "Profil"}>
+          <Link aria-current={activeHref === "/profile" ? "page" : undefined} className={`coinche-topnav-link coinche-mobile-identity ${activeHref === "/profile" ? "coinche-topnav-link--active" : ""}`} href="/profile" onClick={onClose} scroll={currentHref !== "/profile"} title={username ?? "Profil"}>
             <ProfileIdentity compact snapshot={cosmetics} name={<span className="coinche-mobile-username">{username ?? "Profil"}</span>} />
             <span className="coinche-mobile-profile-label">Profil <span aria-hidden="true">→</span></span>
           </Link>

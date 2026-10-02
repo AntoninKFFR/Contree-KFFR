@@ -124,7 +124,9 @@ for (const mode of ["ios", "media"] as const) {
     await setMobileViewport(page, { width: 932, height: 430 });
     await page.goto("/");
     await expect(page.locator(".coinche-global-header")).toBeVisible();
-    await expect(page.getByRole("link", { name: /Mobile fixture/ }).first()).toBeVisible();
+    await page.getByRole("button", { name: "Ouvrir le menu" }).click();
+    await expect(page.getByRole("navigation", { name: "Navigation mobile" }).getByRole("link", { name: /Mobile fixture/ })).toBeVisible();
+    await page.keyboard.press("Escape");
     await expect(page.getByRole("heading", { name: gateTitle })).toHaveCount(0);
     await page.getByRole("switch", { name: "Activer le thème clair" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");

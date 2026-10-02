@@ -251,7 +251,8 @@ test.describe("@smoke public production readiness", () => {
     await expect(training).toHaveAttribute("aria-current", "page");
     await expect(training).toHaveAttribute("aria-expanded", "false");
     await training.hover();
-    await expect(menu.getByRole("link", { name: "Vue d’ensemble" })).toHaveAttribute("aria-current", "page");
+    await expect(menu.getByRole("link", { name: "Calculer" })).toHaveAttribute("aria-current", "page");
+    await expect(menu.locator('[aria-current="page"]')).toHaveCount(1);
     for (const [label, id] of [["Mémoriser", "memoriser"], ["Déduire", "deduire"], ["Annoncer", "annoncer"]] as const) {
       await menu.getByRole("link", { name: label }).click();
       await expect(page).toHaveURL(new RegExp(`/training#${id}$`));

@@ -95,6 +95,17 @@ describe("mobile drawer lifecycle in StrictMode", () => {
     expect(document.activeElement).toBe(within(drawer()).getByRole("button", { name: "Fermer le menu" }));
     fireEvent.keyDown(document, { key: "Escape" }); expect(document.body.style.overflow).toBe("auto"); critical.unmount();
   });
+  it("skips controls disabled by their fieldset and elements excluded from keyboard navigation", () => {
+    render(<StrictMode><AccessibleDialog onClose={() => {}} title="Confirmation">
+      <fieldset disabled><button>Indisponible</button></fieldset>
+      <button hidden>Masqué</button><a href="/rules" tabIndex={-1}>Hors du parcours</a>
+      <button>Continuer</button>
+    </AccessibleDialog></StrictMode>);
+    const close = screen.getByRole("button", { name: "Fermer Confirmation" });
+    const next = screen.getByRole("button", { name: "Continuer" });
+    fireEvent.keyDown(close, { key: "Tab" }); expect(document.activeElement).toBe(next);
+    fireEvent.keyDown(next, { key: "Tab" }); expect(document.activeElement).toBe(close);
+  });
   it("exposes the future compact-game API without changing the default mode", () => {
     const view = render(<AppTopNav variant="compact-game" />);
     expect(view.container.querySelector("header")?.dataset.headerVariant).toBe("compact-game");
