@@ -124,7 +124,7 @@ describe("play with a friend", () => {
     expect(createRoom).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("button", { name: "Création…" })).toHaveProperty("disabled", true);
     expect((await friendRow("Bob")).getByRole("button", { name: "Jouer" })).toHaveProperty("disabled", true);
-    for (const remove of screen.getAllByRole("button", { name: "Supprimer" })) expect(remove).toHaveProperty("disabled", true);
+    for (const remove of screen.getAllByRole("button", { name: /Plus d.actions pour/ })) expect(remove).toHaveProperty("disabled", true);
     expect(invite).not.toHaveBeenCalled();
     resolveRoom({ room: { id: "new-room" } });
     await waitFor(() => expect(push).toHaveBeenCalledWith("/multiplayer/new-room"));
@@ -180,7 +180,7 @@ describe.each(["play", "training"] as const)("%s deferred friendGamePath regress
   async function start() {
     const view = render(React.createElement(FriendsPageClient));
     const row = await friendRow("Alice");
-    expect(row.getByRole("link", { name: "Voir le profil" })).toHaveProperty("href", expect.stringContaining("/friends/alice"));
+    expect(row.getByRole("link", { name: /Voir le profil de/ })).toHaveProperty("href", expect.stringContaining("/friends/alice"));
     fireEvent.click(row.getByRole("button", { name: flow === "play" ? "Jouer" : "S’entraîner" }));
     if (flow === "training") fireEvent.click(screen.getByRole("button", { name: "Créer le duo" }));
     return view;
@@ -191,8 +191,8 @@ describe.each(["play", "training"] as const)("%s deferred friendGamePath regress
   it("removes active profile links while pending and navigates exactly once on success", async () => {
     const result = delayCreation();
     await start();
-    expect(screen.queryAllByRole("link", { name: "Voir le profil" })).toHaveLength(0);
-    for (const button of screen.getAllByRole("button", { name: "Voir le profil" })) {
+    expect(screen.queryAllByRole("link", { name: /Voir le profil de/ })).toHaveLength(0);
+    for (const button of screen.getAllByRole("button", { name: /Voir le profil de/ })) {
       expect(button).toHaveProperty("disabled", true);
       expect(button.getAttribute("aria-disabled")).toBe("true");
       expect(button.hasAttribute("href")).toBe(false);
@@ -201,10 +201,18 @@ describe.each(["play", "training"] as const)("%s deferred friendGamePath regress
     fireEvent.click((await friendRow("Bob")).getByRole("button", { name: "Jouer" }));
     expect(createRoom.mock.calls.length + createDuo.mock.calls.length).toBe(1);
     expect(push).not.toHaveBeenCalled();
+    for (const username of ["Alice", "Bob"]) {
+      const row = await friendRow(username);
+      const train = row.queryByRole("button", { name: "S’entraîner" });
+      if (train) { expect(train).toHaveProperty("disabled", true); fireEvent.click(train); }
+      const more = row.getByRole("button", { name: `Plus d’actions pour ${username}` });
+      expect(more).toHaveProperty("disabled", true); fireEvent.click(more);
+    }
+    expect(screen.queryByRole("menuitem", { name: "Supprimer de mes amis" })).toBeNull();
     await act(async () => { result.resolve(resolved); await result.promise; });
     expect(push).toHaveBeenCalledExactlyOnceWith(path);
     // Keep the successful creation locked until router navigation unmounts Friends.
-    expect(screen.queryAllByRole("link", { name: "Voir le profil" })).toHaveLength(0);
+    expect(screen.queryAllByRole("link", { name: /Voir le profil de/ })).toHaveLength(0);
     fireEvent.click((await friendRow("Bob")).getByRole("button", { name: "Jouer" }));
     expect(createRoom.mock.calls.length + createDuo.mock.calls.length).toBe(1);
   });
@@ -218,7 +226,7 @@ describe.each(["play", "training"] as const)("%s deferred friendGamePath regress
     await friendRow("Alice");
     await act(async () => { result.resolve(resolved); await result.promise; });
     expect(push).not.toHaveBeenCalled();
-    expect((await friendRow("Alice")).getByRole("link", { name: "Voir le profil" })).toBeTruthy();
+    expect((await friendRow("Alice")).getByRole("link", { name: /Voir le profil de/ })).toBeTruthy();
   });
 
   it("releases the lock and restores profile links on a deferred error, allowing retry", async () => {
@@ -226,7 +234,7 @@ describe.each(["play", "training"] as const)("%s deferred friendGamePath regress
     await start();
     await act(async () => { result.reject(new Error("Création échouée.")); await result.promise.catch(() => undefined); });
     expect(push).not.toHaveBeenCalled();
-    expect(screen.getAllByRole("link", { name: "Voir le profil" })).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: /Voir le profil de/ })).toHaveLength(2);
     const row = await friendRow("Alice");
     const button = row.getByRole("button", { name: flow === "play" ? "Jouer" : "S’entraîner" });
     expect(button).toHaveProperty("disabled", false);
@@ -244,7 +252,7 @@ describe.each(["play", "training"] as const)("%s deferred friendGamePath regress
     await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
     await act(async () => { result.reject(new Error("Ancienne création échouée.")); await result.promise.catch(() => undefined); });
     expect(push).toHaveBeenCalledTimes(1);
-    expect(screen.queryAllByRole("link", { name: "Voir le profil" })).toHaveLength(0);
+    expect(screen.queryAllByRole("link", { name: /Voir le profil de/ })).toHaveLength(0);
     fresh.unmount();
   });
 });

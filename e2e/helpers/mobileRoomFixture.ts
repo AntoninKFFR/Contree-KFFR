@@ -48,15 +48,16 @@ export async function installMobileRoomFixture(page: Page, { seedSession = true 
   } }));
   let playing = false;
   let roundFinished = false;
+  let seated = true;
   const view = (): MultiplayerRoomView => ({
     room: { id: roomId, code: "MOBILE", status: playing ? "playing" : "lobby", scoring_mode: "ffb", target_score: 1000,
       ruleset_snapshot: state.settings.ruleset, game_phase: playing ? "bidding" : null, state_version: playing ? 2 : 1, turn_deadline_at: null,
       created_at: createdAt, updated_at: createdAt, started_at: null, finished_at: null },
-    gameId: null, isHost: true, canClaimHost: false, viewerSeatIndex: 0,
+    gameId: null, isHost: seated, canClaimHost: false, viewerSeatIndex: seated ? 0 : null,
     players: ([0, 1, 2, 3] as const).map((seat_index) => ({ seat_index, kind: "human", display_name: `Joueur ${seat_index + 1}`, is_ready: true,
       is_connected: true, bot_takeover: false, is_host: seat_index === 0, rating: null, rank: null, is_ranked: false })),
     game: playing ? toPlayerGameView(roundFinished ? { ...state, phase: "finished" } : state, 0) : null,
   });
   await page.route(`**/api/multiplayer/rooms/${roomId}**`, async (route) => route.fulfill({ status: 200, json: { data: view() } }));
-  return { path: `/multiplayer/${roomId}`, user, session: { access_token: token, refresh_token: "fixture", token_type: "bearer", expires_in: 3600, user }, start: () => { playing = true; }, finishRound: () => { roundFinished = true; } };
+  return { path: `/multiplayer/${roomId}`, user, session: { access_token: token, refresh_token: "fixture", token_type: "bearer", expires_in: 3600, user }, start: () => { playing = true; }, finishRound: () => { roundFinished = true; }, spectate: () => { seated = false; } };
 }

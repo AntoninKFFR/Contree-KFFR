@@ -298,3 +298,34 @@ Header, titre, Solo, Multijoueur, Entraînement, règles, niveau, barre XP et li
 À partir de 1120 px, le hero, grand titre, logo décoratif et cartes Progression gardent leur composition desktop. Les huit comparaisons avant/après (1120×800 et 1440×900, Chromium/WebKit, clair/sombre) donnent une géométrie identique et zéro pixel modifié. La page `/progression` conserve summary complet, descriptions et récompenses weekly, missions permanentes, collection et XP récents. Aucun changement de provider, formule XP, catalogue/reset weekly, requête, navigation, auth, PWA ou gameplay. Pas de dépendance, listener de resize ou JS responsive ajouté.
 
 `tests/progressionUI.test.tsx`, `tests/progressionWeekly.test.tsx` et branding couvrent les données, états, tri, liens et version complète. `e2e/homeMobileProgression.spec.ts` utilise les helpers standalone/auth existants : Chromium/WebKit, clair/sombre, anonyme/niveau 1/niveau élevé, huit tailles mobiles, tablette 768/1024, desktop 1120/1440, états weekly/chargement/erreur, routes, focus et texte long. Les mesures/captures comparatives restent dans `.playwright/home-progression/`, sans goldens dans Git. Les suites mobile/PWA, progression, smoke et services authentifiés en CI restent les validations de non-régression.
+
+## Amis et social mobile
+
+`/friends` conserve `AppPageHeader` (Espace social / Amis et description), les tokens de densité #121 et les groupes En ligne / Hors ligne. Une identité compacte réunit dot, pseudo, niveau et présence textuelle. Toute cette zone est un lien nommé « Voir le profil de Alice » vers le profil existant ; les trois actions sont ses voisines, jamais ses descendants. Les pseudos longs sont tronqués avec leur texte complet dans `title` et dans le nom accessible du lien.
+
+Jouer reste primaire et S’entraîner devient secondaire, tous deux immédiatement visibles. Le bouton … de 44×44 px ouvre « Supprimer de mes amis » dans le flux de la row : seule cette row grandit temporairement. Le menu reste dans le scroller, sans popover absolu coupé par son overflow. Un seul mécanisme parent gère le menu actif, Escape, clic extérieur et départ du focus ; flèches/Entrée permettent de l’utiliser au clavier. Escape, second tap et suppression rendent le focus au trigger ; une navigation vers un autre contrôle conserve son focus. Le menu ne déclenche aucune requête.
+
+La confirmation `window.confirm` reste obligatoire. La suppression affiche « Suppression… », conserve la row jusqu’à la réponse API, puis utilise le message et le refresh existants. Le verrou `pendingAction` / `pendingActionRef` reste global dans `FriendsPageClient`. Pendant la création Jouer ou Duo, les identités deviennent de vrais boutons disabled sans href et les actions concurrentes sont bloquées. `gameNavigationEpoch`, son invalidation synchrone au unmount et le maintien du verrou jusqu’à navigation sont conservés.
+
+Les demandes reçues gardent Accepter primaire et Refuser secondaire ; les demandes envoyées gardent Annuler. Les invitations conservent joueur, table, expiration, Rejoindre, Refuser et Annuler. Les classes Friends spécialisées réduisent leurs espacements sous 1120 px sans changer `.coinche-social-row` globalement. Le flux resolve → room avec invitation → acceptation après prise de place reste inchangé, comme les notifications Social/Duo.
+
+La recherche conserve le label Pseudo, les limites 3/40 caractères, le debounce de 350 ms et les états Recherche… / erreur / aucun résultat. Déjà ami, Demande envoyée, Répondre à la demande et Ajouter gardent leurs comportements. Les inputs/selects utilisent les primitives à 16 px sur mobile. Les résultats suivent le scroll naturel de page ; un viewport réduit à 390×380 permet d’atteindre la dernière action, puis de restaurer la hauteur sans perdre la saisie.
+
+Sous 640 px, identité et trois actions prennent deux lignes compactes ; à partir de 640 px elles partagent une ligne. Les cibles restent à 44 px minimum. Les groupes sticky et le scroll interne des 20 amis sont conservés. Desktop partage volontairement l’identité-lien et le menu secondaire, avec header et sections existants. `FriendPresenceList` offre un wrapper d’identité optionnel ; les dialogs d’invitation conservent sa composition par défaut.
+
+Le scroller garde `overscroll-behavior: contain`. Un listener de molette unique sur cette liste bloque uniquement les dépassements de ses bornes quand elle déborde : la régression WebKit montre sinon un scroll de page au bas de la liste. Les gestes internes restent natifs, de même que les événements de zoom. Aucun listener par ami ni calcul JS du viewport n’est ajouté. L’identité explicite `tabIndex={0}` pour être parcourable également dans WebKit, sans intercepter Tab ni modifier l’ordre natif du document. Les E2E vérifient réellement Tab depuis le dernier contrôle du header vers cette identité, puis les trois actions, ainsi que le parcours inverse avec Shift+Tab.
+
+Mesures à 390×844 standalone simulé (safe-top 47 px, safe-bottom 34 px), identiques sur Chromium/WebKit et clair/sombre :
+
+| Mesure | Avant #123 | Après |
+| --- | --- | --- |
+| AppPageHeader | 131,16 px | 131,16 px |
+| Row ami typique | 137,98 px | 101 px (−26,8 %) |
+| Bloc actions | 96 px | 44 px |
+| Rows entièrement visibles dans le conteneur | 3 | 4 |
+
+À 844×390, l’identité et les actions restent sur une ligne de 54,59 px, comme avant ; la largeur occupée par les actions diminue. À 1120×800 et 1440×900, la hauteur du header et celle de la row restent identiques. La différence visuelle desktop est volontaire : identité-lien, S’entraîner secondaire et Supprimer derrière …, sans changement des destinations ni callbacks.
+
+`TrainWithFriendDialog` conserve ses quatre niveaux et la création Duo. Un titre avec pseudo de 40 caractères peut se couper ; le contenu central peut scroller en petit paysage, tandis que le footer Créer le duo reste accessible. Ces ajustements ne concernent que ce dialogue.
+
+`tests/friendsMobile.test.tsx` couvre identité, présence/niveau, menu/focus, pending, confirmation et refresh. Les régressions de création différée et d’unmount #116 restent dans `tests/playWithFriend.test.ts`. `e2e/friendsMobile.spec.ts` (`@mobile @friends-mobile`) utilise les helpers standalone/auth existants, Chromium et WebKit, les deux thèmes, huit viewports téléphone, deux tablettes et deux desktops. Les fixtures UI 0/1/20 amis et les réponses retardées complètent les suites Social DB, profil ami et Duo réellement authentifiées en CI ; elles ne les remplacent pas. Les mesures et captures avant/après sont conservées dans `.playwright/friends-social/`.

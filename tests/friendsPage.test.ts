@@ -84,7 +84,9 @@ describe("friends page", () => {
     expect(markup).toContain("Accepter");
     expect(markup).toContain("Refuser");
     expect(markup).toContain("Annuler");
-    expect(markup).toContain("Supprimer");
+    expect(markup).toContain("Plus d’actions pour Alice");
+    expect(markup).toContain("Voir le profil de Alice");
+    expect(markup).not.toContain("Supprimer de mes amis");
     expect(markup).toContain("Déjà ami");
     expect(markup).toContain("Répondre à la demande");
     expect(markup).toContain("Demande envoyée");

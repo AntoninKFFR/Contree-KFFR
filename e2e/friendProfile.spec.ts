@@ -37,7 +37,7 @@ test("@social friend-only profile with real local Auth, stats and removal at 320
     }
     await loginAs(page,a);await page.goto("/friends");
     const row=page.locator(".friend-presence-row").filter({hasText:b.username});await expect(row).toContainText("Niv. 40");
-    await row.getByRole("link",{name:"Voir le profil"}).click();await expect(page.getByRole("heading",{name:b.username,exact:true})).toBeVisible();
+    await row.getByRole("link",{name:`Voir le profil de ${b.username}`,exact:true}).click();await expect(page.getByRole("heading",{name:b.username,exact:true})).toBeVisible();
     await expect(page.getByText("Maître des enchères",{exact:true})).toBeVisible();await expect(page.locator("main .profile-badge")).toHaveCount(1);await expect(page.locator("main .profile-frame--black-gold")).toHaveCount(1);
     const payload=await api(page,`/api/social/friends/${b.id}/profile`);expect(payload.status).toBe(200);
     expect(payload.body.data.solo).toEqual({games:10,wins:6,losses:4,winrate:60});expect(payload.body.data.multiplayer).toEqual({games:4,wins:2,losses:2,winrate:50});
