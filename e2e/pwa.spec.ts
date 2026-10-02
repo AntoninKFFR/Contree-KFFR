@@ -165,6 +165,8 @@ test("@pwa Android native prompt uses a user gesture; installed browser remains 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: gateTitle })).toBeVisible();
   await expect(page.getByText(/Dans le menu de ton navigateur/)).toBeVisible();
+  // The gate can paint before its install-prompt effect is registered in WebKit.
+  await page.waitForLoadState("networkidle");
   await page.evaluate(() => {
     Object.assign(window, { pwaPromptCalls: 0 });
     const event = new Event("beforeinstallprompt", { cancelable: true });
