@@ -804,7 +804,7 @@ test.describe("@smoke public production readiness", () => {
       await page.setViewportSize(viewport);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
       await expect(compactLogo).toBeVisible();
-      if (viewport.height <= 450) await expect(fullLogo).toBeHidden();
+      if (viewport.width < 480 || viewport.height <= 450 && viewport.width < 1120) await expect(fullLogo).toBeHidden();
       else await expect(fullLogo).toBeVisible();
     }
 

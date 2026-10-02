@@ -1650,6 +1650,53 @@ summary:focus-visible {
 .progression-level-badge { display: inline-flex; flex-shrink: 0; white-space: nowrap; border-radius: var(--radius-control); padding: .25rem .5rem; background: var(--accent-soft); color: var(--accent); font-size: .75rem; font-weight: 800; }
 .progression-card { min-width: 0; color: var(--text-primary); }
 .progression-card--compact { padding-block: 1rem; }
+/* Home presentation only: full progression, navigation and data stay unchanged. */
+.coinche-home-rules:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+@media (max-width: 1119px) {
+  .coinche-home-page { justify-content: flex-start; }
+  .coinche-home-page .coinche-home-hero { padding: var(--header-padding); }
+  .coinche-home-layout { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--section-gap); }
+  .coinche-home-copy { min-width: 0; }
+  .coinche-home-copy .coinche-home-title { font-size: clamp(1.75rem, 3.5vw, 2.5rem); line-height: 1.1; overflow-wrap: anywhere; }
+  .coinche-home-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); gap: .5rem; margin-top: .75rem; }
+  .coinche-home-actions > a { min-width: 0; }
+  .coinche-home-actions > a:first-child { grid-column: 1 / -1; }
+  .coinche-home-rules { margin-top: .5rem; }
+  .coinche-home-logo { min-height: 0; margin-top: 0; }
+  .coinche-home-logo .coinche-brand-logo { width: clamp(7rem, 15vw, 10rem); }
+  .home-progression { gap: var(--section-gap); align-items: start; }
+  .home-progression .progression-card--compact { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; padding: var(--surface-padding); }
+  .home-progression-heading, .home-progression-track { grid-column: 1 / -1; margin: 0; }
+  .home-progression-label { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; width: 100%; min-width: 0; }
+  .home-progression-label h2 { margin-top: 0; font-size: 1rem; line-height: 1.25; overflow-wrap: anywhere; }
+  .home-progression-heading > .progression-level-badge { display: none; }
+  .home-progression-xp { margin: 0; align-self: center; font-size: .875rem; overflow-wrap: anywhere; }
+  .home-progression .home-progression-link { margin: 0; padding: .25rem 0; max-width: 100%; border-color: transparent; background: transparent; color: var(--ui-link); font-size: .75rem; }
+  .home-progression .weekly-missions-card--compact > h2 { font-size: .875rem; }
+  .home-progression .weekly-missions-card--compact > p { margin-top: .375rem; font-size: .75rem; }
+  .home-progression .home-weekly-list { grid-template-columns: minmax(0, 1fr); gap: .5rem; margin-top: .5rem; }
+  .home-weekly-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; }
+  .home-weekly-heading h3 { min-width: 0; overflow-wrap: anywhere; }
+  .home-weekly-heading > span { white-space: nowrap; }
+  .home-weekly-track { margin-top: .25rem; }
+  .home-weekly-row .progression-bar--mini { height: 4px; }
+}
+@media (min-width: 640px) and (max-width: 1119px) {
+  .home-progression:has(.weekly-missions-card) { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+}
+@media (max-width: 479px) {
+  .coinche-home-layout { grid-template-columns: minmax(0, 1fr); }
+  .coinche-home-copy .coinche-home-title { font-size: clamp(1.75rem, 7.7vw, 2.125rem); }
+  .coinche-home-logo { display: none; }
+}
+@media (max-width: 1119px) and (max-height: 450px) and (orientation: landscape) {
+  .coinche-home-layout { display: block; }
+  .coinche-home-logo { display: none; }
+  .coinche-home-copy { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: .5rem 1rem; align-items: start; }
+  .coinche-home-title { grid-column: 1; grid-row: 1 / span 2; }
+  .coinche-home-actions { grid-column: 2; margin-top: 0; }
+  .coinche-home-rules { grid-column: 2; margin-top: 0; justify-self: start; }
+}
 .progression-account { width: 9rem; max-width: 9rem; padding-block: .3rem; }
 .progression-account-line { display: flex; align-items: center; gap: .4rem; min-width: 0; }
 .progression-account-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

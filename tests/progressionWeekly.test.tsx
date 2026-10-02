@@ -48,6 +48,32 @@ it("Home orders incomplete before complete and keeps progression CTA",()=>{
  expect(screen.getByRole("link").getAttribute("href")).toBe("/progression");expect(screen.getAllByRole("progressbar")).toHaveLength(4);
 });
 it("signed-out Home has no weekly markup",()=>{hook.mockReturnValue({status:"signed-out",userId:null});const {container}=render(<HomeProgressionCard/>);expect(container.innerHTML).toBe("");});
+it("Home retains three completed rows, their order, completion text and canonical bars",()=>{
+ const missions=fixture.missions.map(m=>({...m,progress:m.target,completed:true,completedAt:fixture.serverNow}));
+ hook.mockReturnValue({...hook(),weeklySnapshot:{...fixture,missions}});render(<HomeProgressionCard/>);
+ const list=screen.getByRole("list",{name:"Missions hebdomadaires"});
+ expect(within(list).getAllByRole("heading").map(h=>h.textContent)).toEqual(["En forme","Solo","À l'entraînement"]);
+ expect(within(list).getAllByText("✓ Terminé")).toHaveLength(3);
+ expect(within(list).getAllByRole("progressbar").map(bar=>bar.getAttribute("aria-valuenow"))).toEqual(["3","3","3"]);
+ expect(screen.queryByText("+300 XP")).toBeNull();
+ expect(screen.queryByText("Remporte 3 parties cette semaine.")).toBeNull();
+});
+it.each([true,false])("Home keeps XP visible when weekly is unavailable (error %s)",weeklyError=>{
+ hook.mockReturnValue({...hook(),weeklyError,weeklySnapshot:null});render(<HomeProgressionCard/>);
+ expect(screen.getByText("Les missions hebdomadaires sont momentanément indisponibles.")).toBeTruthy();
+ expect(screen.getByText("Niveau 2")).toBeTruthy();expect(screen.getByRole("progressbar")).toBeTruthy();
+ expect(screen.getByRole("link",{name:/Voir ma progression/})).toBeTruthy();
+});
+it("full progression retains weekly descriptions, rewards, permanent missions, collection and recent XP",()=>{
+ render(<ProgressionPage/>);
+ expect(screen.getByText("Remporte 3 parties cette semaine.")).toBeTruthy();
+ expect(screen.getByText("Termine 3 séries d'entraînement.")).toBeTruthy();
+ expect(screen.getByText("+300 XP")).toBeTruthy();
+ expect(screen.getByRole("heading",{name:"Missions de départ"})).toBeTruthy();
+ expect(screen.getByRole("heading",{name:"Collection"})).toBeTruthy();
+ expect(screen.getByRole("heading",{name:"XP récents"})).toBeTruthy();
+ expect(screen.getByText("125 XP avant le niveau 3")).toBeTruthy();
+});
 it("relative clock has no business date calculation and weekly label hides IDs",()=>{
  expect(resetRemainingLabel(fixture.nextResetAt,Date.parse(fixture.nextResetAt)-3.5*86400000)).toBe("Réinitialisation dans 3 j 12 h");
  expect(resetRemainingLabel(fixture.nextResetAt,Date.parse(fixture.nextResetAt))).toContain("en cours");expect(xpSourceLabel("weekly_mission")).toBe("Mission hebdomadaire");

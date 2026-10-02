@@ -10,19 +10,19 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <AppPage className="justify-center sm:min-h-0" width="wide">
+    <AppPage className="coinche-home-page justify-center sm:min-h-0" width="wide">
       <section className="coinche-home-hero relative overflow-hidden border px-5 py-8 sm:px-10 sm:py-10 lg:px-14 lg:py-12">
-        <div className="lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12">
-          <div className="relative">
-            <h1 className="max-w-2xl text-4xl font-black leading-[1.05] tracking-[-0.035em] text-[var(--text-primary)] sm:text-5xl lg:text-6xl">
+        <div className="coinche-home-layout lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12">
+          <div className="coinche-home-copy relative">
+            <h1 className="coinche-home-title max-w-2xl text-4xl font-black leading-[1.05] tracking-[-0.035em] text-[var(--text-primary)] sm:text-5xl lg:text-6xl">
               La contrée, en solo ou entre amis
             </h1>
-            <div className="mt-8 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap lg:flex-nowrap">
+            <div className="coinche-home-actions mt-8 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap lg:flex-nowrap">
               <Link className={`${appPrimaryActionClass} sm:min-w-36 sm:flex-1`} href="/solo">Jouer en solo</Link>
               <Link className={`${appSecondaryActionClass} sm:min-w-36 sm:flex-1`} href="/multiplayer">Multijoueur</Link>
               <Link className={`${appSecondaryActionClass} sm:min-w-36 sm:flex-1`} href="/training">Entraînement</Link>
             </div>
-            <Link className="coinche-ui-link mt-5 inline-flex text-sm font-bold transition" href="/rules">Voir les règles <span aria-hidden="true" className="coinche-ui-kicker ml-1.5">→</span></Link>
+            <Link className="coinche-home-rules coinche-ui-link mt-5 inline-flex text-sm font-bold transition" href="/rules">Voir les règles <span aria-hidden="true" className="coinche-ui-kicker ml-1.5">→</span></Link>
           </div>
 
           <div aria-hidden="true" className="coinche-home-logo relative mt-6 flex min-h-32 items-center justify-center sm:min-h-48 lg:mt-0 lg:min-h-80">

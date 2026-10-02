@@ -28,15 +28,15 @@ export function WeeklyMissionsCard({compact = false}: {compact?: boolean}) {
   const {status,weeklySnapshot,weeklyError} = useProgression();
   const missions = [...(weeklySnapshot?.missions ?? [])];
   if (compact) missions.sort((a,b) => Number(a.completed)-Number(b.completed));
-  return <AppSurface className="weekly-missions-card"><h2 className="font-black text-[var(--text-primary)]">Cette semaine</h2>
+  return <AppSurface className={`weekly-missions-card${compact ? " weekly-missions-card--compact" : ""}`}><h2 className="font-black text-[var(--text-primary)]">Cette semaine</h2>
     {status !== "ready" ? <p className="mt-3 text-sm text-[var(--text-secondary)]">Chargement des missions hebdomadaires…</p>
       : weeklyError || !weeklySnapshot ? <p className="mt-3 text-sm text-[var(--text-secondary)]">Les missions hebdomadaires sont momentanément indisponibles.</p>
-        : <><ResetLabel at={weeklySnapshot.nextResetAt} serverNow={weeklySnapshot.serverNow} /><ul aria-label="Missions hebdomadaires" className={compact ? "mt-3 grid gap-3 sm:grid-cols-3" : "mt-4 grid gap-4 md:grid-cols-3"}>
-          {missions.map(m => <li key={m.key} className={compact ? "min-w-0" : "min-w-0 rounded-2xl border border-[var(--border)] p-4"}>
-            <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-bold text-[var(--text-primary)]">{weeklyMissionCopy[m.key].title}</h3>
+        : <><ResetLabel at={weeklySnapshot.nextResetAt} serverNow={weeklySnapshot.serverNow} /><ul aria-label="Missions hebdomadaires" className={compact ? "home-weekly-list mt-3 grid gap-3 sm:grid-cols-3" : "mt-4 grid gap-4 md:grid-cols-3"}>
+          {missions.map(m => <li key={m.key} className={compact ? "home-weekly-row min-w-0" : "min-w-0 rounded-2xl border border-[var(--border)] p-4"}>
+            <div className={`${compact ? "home-weekly-heading " : ""}flex flex-wrap items-center justify-between gap-2`}><h3 className="text-sm font-bold text-[var(--text-primary)]">{weeklyMissionCopy[m.key].title}</h3>
               <span className={m.completed ? "text-xs font-bold text-[var(--accent)]" : "text-xs text-[var(--text-secondary)]"}>{m.completed && compact ? "✓ Terminé" : `${m.progress} / ${m.target}`}</span></div>
             {!compact ? <p className="mt-2 text-sm text-[var(--text-secondary)]">{weeklyMissionCopy[m.key].description.replace("{target}",String(m.target))}</p> : null}
-            <div className="mt-3"><WeeklyProgressBar mission={m} mini={compact} /></div>
+            <div className={`${compact ? "home-weekly-track " : ""}mt-3`}><WeeklyProgressBar mission={m} mini={compact} /></div>
             {!compact ? <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm font-bold"><span className="text-[var(--text-primary)]">+{formatXp(m.rewardXp)}</span>{m.completed ? <span className="text-[var(--accent)]">✓ Terminé</span> : null}</div> : null}
           </li>)}
         </ul></>}
