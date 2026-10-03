@@ -163,6 +163,7 @@ for (const theme of ["dark", "light"] as const) {
       await expect(page.getByRole("button", { name: "Notifications", exact: true })).toBeVisible();
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       await expect(page.locator(".coinche-lobby-table")).toBeVisible();
+      await expect(page.locator('.coinche-global-header')).toHaveAttribute('data-header-variant', 'default');
       await expectNoPageHorizontalOverflow(page);
       const table = await page.locator(".coinche-lobby-felt").boundingBox();
       expect(table!.height, "lobby seats keep usable height even on small landscape").toBeGreaterThanOrEqual(150);

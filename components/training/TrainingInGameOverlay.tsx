@@ -88,11 +88,11 @@ export function TrainingInGameOverlay({ question, grade, onGrade, onResume }: {
     }
   };
 
-  return <AccessibleDialog title={title} backdropClassName="coinche-training-game-backdrop" description={exercise.kind === "number" ? undefined : "La partie est en pause pendant cette question."}
+  return <AccessibleDialog title={title} backdropClassName={`coinche-training-game-backdrop${exercise.kind === "number" ? " coinche-training-number-backdrop" : ""}`} description={exercise.kind === "number" ? undefined : "La partie est en pause pendant cette question."}
     minimalHeader={exercise.kind === "number"} onClose={() => {}} showCloseButton={false} width="medium">
-    <div className={`min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-4 ${exercise.kind === "number" ? "py-3 sm:px-5" : "py-5 sm:px-6"}`}>
+    <div className={`coinche-training-question-content min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-4 ${exercise.kind === "number" ? "py-3 sm:px-5" : "py-5 sm:px-6"}`}>
       <p className="text-xs font-black uppercase tracking-widest text-[var(--ui-kicker)]">Entraînement en partie · Niveau {question.level}</p>
-      {exercise.kind === "number" ? <div className="mt-2 grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] sm:gap-4">
+      {exercise.kind === "number" ? <div className="coinche-training-number-layout mt-2 grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] sm:gap-4">
         <div className="min-w-0">
           <TrickValueBoard exercise={exercise.data} compact />
           {question.level === 1 ? <details className="mt-2 text-sm"><summary className="min-h-11 cursor-pointer py-2 font-bold">Aide des valeurs des cartes</summary><ValueGuide /></details> : null}

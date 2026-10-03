@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
+import { useGameChrome } from "@/components/GameChromeProvider";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
@@ -56,7 +57,7 @@ export function TrainingGameClient() {
     const savedProgress = readTrainingProgress();
     setProgress(savedProgress);
     setConfiguration(readInGameConfiguration(savedProgress));
-    const media = window.matchMedia("(max-width: 900px) and (orientation: landscape)");
+    const media = window.matchMedia("(max-width: 900px) and (orientation: landscape), (max-width: 1119px) and (max-height: 500px) and (orientation: landscape)");
     const portrait = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
     const update = () => { setMobileLandscape(media.matches); setMobilePortrait(portrait.matches); };
     update();
@@ -111,6 +112,8 @@ export function TrainingGameClient() {
     return explainIllegalCard({ hand: gameState.hands[0], trick: gameState.currentTrick, card,
       playerId: 0, mode: currentMode, rules: gameRules.cardPlay }) ?? "Cette carte n'est pas jouable.";
   };
+
+  useGameChrome(Boolean(screen === "game" && gameState && (gameState.phase !== "game-over" || question || pendingQuestion)));
 
   if (screen === "setup") {
     return <AppPage width="wide" className="training-game-setup">

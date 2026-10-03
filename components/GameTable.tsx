@@ -194,10 +194,10 @@ function TrickCenter({ cards, seats, animatedKeys, showDetails = false, nameFor 
 export function LastTrickTable({ trick, seats, nameFor, onClose }: {
   trick: CompletedTrick; seats: TableSeats; nameFor: (playerId: PlayerId) => string; onClose: () => void;
 }) {
-  return <div aria-label="Dernier pli" className="absolute inset-2 z-40 flex min-w-0 flex-col items-center justify-center overflow-hidden rounded-xl border border-white/60 bg-stone-950/95 p-2 text-white shadow-2xl">
+  return <div aria-label="Dernier pli" className="coinche-last-trick absolute inset-2 z-40 flex min-w-0 flex-col items-center justify-center overflow-hidden rounded-xl border border-white/60 bg-stone-950/95 p-2 text-white shadow-2xl">
     <p className="text-sm font-bold">Dernier pli</p>
-    <p className="text-xs text-white/75">{nameFor(trick.winnerId)} gagne · {trick.points} points</p>
-    <div className="relative my-1 h-48 w-56 max-w-full shrink-0"><TrickCenter animatedKeys={new Set()} cards={trick.cards} nameFor={nameFor} seats={seats} showDetails /></div>
+    <p className="coinche-last-trick-result text-xs text-white/75" title={`${nameFor(trick.winnerId)} gagne · ${trick.points} points`}>{nameFor(trick.winnerId)} gagne · {trick.points} points</p>
+    <div className="coinche-last-trick-cards relative my-1 h-48 w-56 max-w-full shrink-0"><TrickCenter animatedKeys={new Set()} cards={trick.cards} nameFor={nameFor} seats={seats} showDetails /></div>
     <button className="rounded-lg border border-white px-3 py-1 text-xs font-semibold" onClick={onClose} type="button">Fermer</button>
   </div>;
 }
@@ -309,7 +309,7 @@ function GameHud({
 
   return (
     <div className="coinche-table-hud pointer-events-none absolute left-2 top-2 z-10 rounded-xl border border-white/10 bg-[#07150f]/70 px-2.5 py-2 text-white shadow-lg backdrop-blur-md sm:left-4 sm:top-4 sm:px-3">
-      <div className="flex items-center gap-2 text-[10px] font-black sm:text-xs"><span>Nous {state.totalScore[us]}</span><span className="text-white/35">—</span><span>Eux {state.totalScore[them]}</span><span className="ml-1 max-w-28 truncate text-[8px] font-semibold uppercase tracking-[0.12em] text-[#e8d8ad]/75 sm:max-w-40 sm:text-[9px]">{contractText}</span></div>
+      <div className="flex items-center gap-2 text-[10px] font-black sm:text-xs"><span>Nous {state.totalScore[us]}</span><span className="text-white/35">—</span><span>Eux {state.totalScore[them]}</span><span title={contractText} className="coinche-hud-contract ml-1 max-w-28 truncate text-[8px] font-semibold uppercase tracking-[0.12em] text-[#e8d8ad]/75 sm:max-w-40 sm:text-[9px]">{contractText}</span></div>
       {inactiveMessage ? <p className="text-[9px] text-white/70">{inactiveMessage}</p> : null}
     </div>
   );
@@ -497,6 +497,8 @@ export function GameTable({
 
   return (
     <section
+      data-game-phase={state.phase}
+      data-game-state-key={`${state.phase}:${state.roundNumber}:${state.currentPlayerId}:${state.bids.length}:${state.completedTricks.length}:${state.currentTrick.cards.length}:${cardsFor(seats.bottom)}:${state.totalScore[0]}:${state.totalScore[1]}`}
       className={[
         "coinche-game-table coinche-game-scene relative isolate min-h-0 w-full max-w-full flex-1 overflow-hidden rounded-[1.4rem] border border-white/10 bg-cover bg-center text-stone-900 shadow-2xl",
         immersiveMobileLandscape ? "rounded-none border-0 shadow-none" : "",
@@ -517,8 +519,8 @@ export function GameTable({
         </div>;
       })}
       {showRoundHelp ? <RoundHelpOverlay showLiveScore={showLiveScore && preferences.assistance.showLivePoints} state={state} /> : null}
-      {animatedCompletedTrick && !effectiveTrickPresentationPolicy.autoCollect ? <button className="absolute bottom-2 left-1/2 z-40 -translate-x-1/2 rounded-xl border-2 border-white bg-emerald-950 px-5 py-2.5 text-xs font-bold text-white shadow-xl" onClick={dismissPresentedTrick} type="button"><span className="block">Ramasser le pli</span><span className="block text-[10px] font-normal text-white/80">{nameFor(animatedCompletedTrick.trick.winnerId)} gagne · {animatedCompletedTrick.trick.points} pts</span></button> : null}
-      {preferences.assistance.showLastTrick && lastTrick && !presentedTrick ? <button aria-expanded={showLastTrick} className="absolute bottom-2 left-2 z-20 rounded-md border border-white/40 bg-black/40 px-2 py-1 text-[10px] font-semibold text-white shadow" onClick={() => setShowLastTrick((visible) => !visible)} type="button">Dernier pli</button> : null}
+      {animatedCompletedTrick && !effectiveTrickPresentationPolicy.autoCollect ? <button className="coinche-collect-trick absolute bottom-2 left-1/2 z-40 -translate-x-1/2 rounded-xl border-2 border-white bg-emerald-950 px-5 py-2.5 text-xs font-bold text-white shadow-xl" onClick={dismissPresentedTrick} type="button"><span className="block">Ramasser le pli</span><span className="block text-[10px] font-normal text-white/80">{nameFor(animatedCompletedTrick.trick.winnerId)} gagne · {animatedCompletedTrick.trick.points} pts</span></button> : null}
+      {preferences.assistance.showLastTrick && lastTrick && !presentedTrick ? <button aria-expanded={showLastTrick} className="coinche-show-last-trick absolute bottom-2 left-2 z-20 rounded-md border border-white/40 bg-black/40 px-2 py-1 text-[10px] font-semibold text-white shadow" onClick={() => setShowLastTrick((visible) => !visible)} type="button">Dernier pli</button> : null}
       {showLastTrick && lastTrick && !presentedTrick ? <LastTrickTable nameFor={nameFor} onClose={() => setShowLastTrick(false)} seats={seats} trick={lastTrick} /> : null}
       <GameHud bottomPlayerId={seats.bottom} state={state} />
       {!immersiveMobileLandscape && inactiveMessage && !minimalHud ? (
@@ -529,7 +531,7 @@ export function GameTable({
       {state.phase === "bidding" && biddingControls ? <div className="coinche-scene-bidding absolute left-1/2 z-30 w-[min(700px,calc(100%-2rem))] -translate-x-1/2">{biddingControls}</div> : null}
       {hand ? <div className="coinche-scene-hand absolute inset-x-0 bottom-0 z-20 flex justify-center">{hand}</div> : null}
 
-      <div className="absolute left-1/2 top-2 -translate-x-1/2 sm:top-3">
+      <div className="coinche-top-seat absolute left-1/2 top-2 -translate-x-1/2 sm:top-3">
         {topAnnouncement ? (
           <AnnouncementBubble
             key={topAnnouncement.bubbleKey}
@@ -554,7 +556,7 @@ export function GameTable({
           turnSecondsRemaining={turnSecondsRemaining}
         />
       </div>
-      <div className="absolute left-1 top-1/2 -translate-y-1/2 sm:left-3">
+      <div className="coinche-left-seat absolute left-1 top-1/2 -translate-y-1/2 sm:left-3">
         {leftAnnouncement ? (
           <AnnouncementBubble
             key={leftAnnouncement.bubbleKey}
@@ -579,7 +581,7 @@ export function GameTable({
           turnSecondsRemaining={turnSecondsRemaining}
         />
       </div>
-      <div className="absolute right-1 top-1/2 -translate-y-1/2 sm:right-3">
+      <div className="coinche-right-seat absolute right-1 top-1/2 -translate-y-1/2 sm:right-3">
         {rightAnnouncement ? (
           <AnnouncementBubble
             key={rightAnnouncement.bubbleKey}

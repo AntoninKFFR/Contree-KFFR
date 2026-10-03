@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../lib/preferences/playerPreferences";
 import { TRAINING_PROGRESS_KEY } from "../components/training/progress";
+import { IPHONE_UA, simulatePwaEnvironment } from "./helpers/pwa";
+import { expectInsideSafeViewport, simulateSafeAreas } from "./helpers/mobile";
 
 async function openFirstQuestion(page: Page) {
   const preferences = clonePlayerPreferences();
@@ -14,11 +16,13 @@ async function openFirstQuestion(page: Page) {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto("/training/game");
   await expect(page.getByRole("heading", { name: "Entraînement en partie" })).toBeVisible();
+  await expect(page.locator('.coinche-global-header')).toHaveAttribute('data-header-variant', 'default');
   await expect(page.getByRole("checkbox", { name: "Valeur d’un pli" })).toBeChecked();
   await expect(page.getByLabel("Niveau", { exact: true }).first()).toHaveValue("1");
   await page.getByRole("button", { name: "Lancer la partie" }).click();
   const scene = page.locator(".coinche-game-scene");
   await expect(scene).toBeVisible();
+  await expect(page.locator('.coinche-global-header')).toHaveAttribute('data-header-variant', 'compact-game');
   await scene.getByRole("button", { name: "Valeur 160" }).click();
   await scene.getByRole("button", { name: "Annoncer" }).click();
   await page.evaluate(() => {
@@ -114,11 +118,16 @@ test("@smoke in-game practice pauses the real Solo loop, corrects and resumes wi
   expect(await page.evaluate((key) => localStorage.getItem(key), TRAINING_PROGRESS_KEY)).toBe(puzzleProgressBefore);
 });
 
-for (const viewport of [{ width: 667, height: 375 }, { width: 844, height: 390 }, { width: 1024, height: 576 }]) test(`@smoke trick-value question and correction fit ${viewport.width}×${viewport.height}`, async ({ page }) => {
+for (const viewport of [{ width: 568, height: 320 }, { width: 667, height: 375 }, { width: 844, height: 390 }, { width: 1024, height: 576 }]) test(`@smoke trick-value question and correction fit ${viewport.width}×${viewport.height}`, async ({ page }) => {
   test.setTimeout(90_000);
+  await simulatePwaEnvironment(page, {ua:IPHONE_UA, standalone:'ios'});
   const { dialog } = await openFirstQuestion(page);
   await page.setViewportSize(viewport);
+  const safe = {top:0, left:44, right:0, bottom:34};
+  await simulateSafeAreas(page, safe);
   await expectTrickValueDialogFits(page, dialog, "Valider");
+  await expectInsideSafeViewport(page, dialog.locator('.coinche-dialog'), safe);
+  await expectInsideSafeViewport(page, dialog.getByRole('button', {name:'Valider', exact:true}), safe);
   const heightBefore = await dialog.evaluate((element) => element.getBoundingClientRect().height);
   await dialog.getByRole("textbox", { name: "Ta réponse en points" }).fill("0");
   await dialog.getByRole("button", { name: "Valider", exact: true }).click();

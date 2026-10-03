@@ -68,6 +68,16 @@
   padding-right: calc(var(--shell-padding-x) + var(--safe-right));
 }
 .coinche-page-shell > div { min-height: calc(var(--content-height) - 2 * var(--bottom-spacing) - var(--safe-bottom)); }
+.coinche-app-chrome {
+  /* Recompute derived values here: inherited root calculations otherwise keep 56px. */
+  --header-shell-height: calc(var(--header-height) + var(--safe-top));
+  --content-height: max(0px, calc(var(--viewport-dynamic) - var(--header-shell-height)));
+}
+@media (max-width: 767px) and (orientation: portrait), (max-width: 1119px) and (max-height: 500px) and (orientation: landscape) {
+  .coinche-app-chrome[data-game-chrome="compact-game"] { --header-height: 44px; }
+  .coinche-app-chrome[data-game-chrome="compact-game"] .coinche-header-content { height: 44px; }
+  html:has(.coinche-app-chrome[data-game-chrome="compact-game"]) { scrollbar-gutter: auto; }
+}
 .coinche-header-content {
   --shell-padding-x: .75rem;
   height: calc(var(--header-height) - 1px);
@@ -816,22 +826,87 @@ summary:focus-visible {
 .coinche-game-scene .coinche-player-panel[aria-current="true"] { border-color: rgb(234 216 166 / 75%); box-shadow: 0 0 0 1px rgb(234 216 166 / 30%), 0 5px 18px rgb(0 0 0 / 17%); }
 @media (max-height: 500px) and (orientation: landscape) {
   .coinche-game-scene { min-height: 0; }
-  .coinche-scene-hand { padding-bottom: .5rem; }
-  .coinche-scene-hand-cards { padding-top: 0; }
-  .coinche-scene-hand-card { margin-left: -1.15rem; }
-  .coinche-scene-hand-card .coinche-card { height: 4.5rem; width: 3.1rem; }
-  .coinche-game-scene .coinche-bottom-seat { bottom: 5.3rem; }
-  .coinche-game-scene .coinche-bottom-seat .coinche-player-panel { min-height: 2rem; padding: .2rem .5rem; }
-  .coinche-scene-bidding { bottom: 8.8rem; max-height: calc(100% - 8.8rem); width: min(520px, calc(100% - 8rem)); }
-  .coinche-scene-bidding .coinche-bidding-panel { padding: .35rem .5rem; }
-  .coinche-scene-bidding .coinche-bidding-panel .mb-2 { margin-bottom: .25rem; }
-  .coinche-scene-bidding .coinche-bidding-choice { min-height: 1.75rem; min-width: 2rem; }
-  .coinche-scene-bidding .coinche-bidding-panel button { padding-top: .25rem; padding-bottom: .25rem; }
   .coinche-trick-area { top: 42%; transform: translate(-50%, -50%) scale(.7); }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  /* The shell owns insets once. Descendants use its safe content rectangle. */
+  .coinche-app-chrome .coinche-game-shell { --shell-padding-x: 0px; --shell-padding-y: 0px; padding-top: 0; padding-bottom: var(--safe-bottom); overflow: hidden; }
+  .coinche-game-scene { --hand-height: clamp(44px, calc(var(--content-height) - var(--safe-bottom) - 184px), 56px); --seat-rail: 72px; border-radius: 0; border: 0; box-shadow: none; }
+  .coinche-scene-hand { padding: 0 4px 4px; }
+  .coinche-scene-hand-inner { position: relative; }
+  .coinche-game-scene .coinche-scene-hand-cards { min-height: 0; overflow: visible; padding: 0; margin: 0; gap: 3px; }
+  .coinche-scene-hand-card { margin-left: 0; transform: none; }
+  .coinche-scene-hand-card:hover, .coinche-scene-hand-card:focus-within { transform: none; }
+  .coinche-scene-hand-card .coinche-card { height: var(--hand-height); width: 48px; padding: 4px; }
+  .coinche-scene-hand-card .coinche-card:hover { scale: 1; }
+  .coinche-hand-feedback { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); width: max-content; max-width: 100%; margin: 0; padding: 4px 8px; }
+  .coinche-game-scene .coinche-table-hud { left: 4px; top: 2px; max-width: calc(50% - 56px); padding: 2px 5px; }
+  .coinche-table-hud > div { gap: 4px; font-size: 10px; line-height: 12px; white-space: nowrap; }
+  .coinche-hud-contract { min-width: 0; font-size: 9px; letter-spacing: 0; }
+  .coinche-table-hud > p { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; line-height: 10px; }
+  .coinche-game-scene .coinche-player-panel { min-width: 0; min-height: 24px; max-width: 100%; padding: 2px 4px; border-radius: 7px; }
+  .coinche-game-scene .coinche-player-panel > div { display: grid; grid-template-columns: 14px minmax(0, 1fr) 10px; min-width: 0; gap: 2px; width: 100%; align-items: center; }
+  .coinche-game-scene .coinche-player-content { grid-column: 1 / -1; grid-row: 1; }
+  .coinche-game-scene .coinche-player-identity { display: flex; gap: 2px; }
+  .coinche-game-scene .coinche-player-host { padding: 0 1px; font-size: 7px; line-height: 10px; letter-spacing: 0; }
+  .coinche-game-scene .coinche-player-panel [role="timer"] { grid-column: 2; grid-row: 2; font-size: 9px; line-height: 14px; padding: 0; }
+  .coinche-game-scene .coinche-player-panel > div > span:not([role="timer"]) { grid-column: 3; grid-row: 2; padding: 0; font-size: 9px; line-height: 14px; }
+  .coinche-player-panel .coinche-player-name { min-width: 0; max-width: 58px; font-size: 11px; line-height: 14px; }
+  .coinche-player-panel > div > div { min-width: 0; max-width: 100%; }
+  .coinche-player-panel > div > div > div { min-width: 0; }
+  .coinche-player-panel [data-rank-family] { grid-column: 1; grid-row: 2; width: 14px; height: 18px; }
+  .coinche-game-scene .coinche-rank-emblem-image { width: 14px; height: 14px; }
+  .coinche-game-scene .coinche-rank-emblem span { min-width: 12px; padding: 0 1px; font-size: 7px; line-height: 8px; bottom: -4px; }
+  .coinche-scene-hand-card .coinche-card > span:first-child, .coinche-scene-hand-card .coinche-card > span:nth-child(3) { font-size: 14px; }
+  .coinche-scene-hand-card .coinche-card > span:nth-child(2) { font-size: 20px; }
+  .coinche-player-panel p { line-height: 12px; }
+  .coinche-player-panel p.hidden { display: block; font-size: 8px; }
+  .coinche-top-seat { top: 2px; left: auto; right: 4px; width: calc(var(--seat-rail) - 8px); max-width: 104px; transform: none; }
+  .coinche-left-seat, .coinche-right-seat { top: 30px; width: calc(var(--seat-rail) - 8px); transform: none; }
+  .coinche-left-seat { left: 4px; }
+  .coinche-right-seat { right: 4px; top: 100px; }
+  .coinche-game-scene .coinche-bottom-seat { bottom: calc(var(--hand-height) + 8px); left: 4px; width: calc(var(--seat-rail) - 8px); max-width: 104px; transform: none; }
+  .coinche-game-scene[data-game-phase="bidding"] .coinche-table-hud { left: var(--seat-rail); max-width: calc(100% - 2 * var(--seat-rail)); }
+  .coinche-scene-bidding { top: 22px; bottom: auto; width: calc(100% - 2 * var(--seat-rail)); max-height: none; }
+  .coinche-scene-bidding .coinche-bidding-panel { position: relative; padding: 2px; border-radius: 10px; }
+  .coinche-scene-bidding .coinche-bidding-header { min-width: 0; gap: 4px; margin-bottom: 2px; height: 14px; }
+  .coinche-scene-bidding .coinche-bidding-header > div { min-width: 0; display: flex; align-items: center; gap: 5px; }
+  .coinche-scene-bidding .coinche-bidding-header h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; line-height: 16px; }
+  .coinche-scene-bidding .coinche-bidding-header .coinche-ui-kicker { font-size: 8px; letter-spacing: 0; }
+  .coinche-scene-bidding .coinche-bidding-header .coinche-bidding-chip { min-width: 0; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 4px; }
+  .coinche-scene-bidding .coinche-bidding-layout { grid-template-columns: minmax(0, 5fr) minmax(0, 3fr); gap: 2px; }
+  .coinche-scene-bidding .coinche-bidding-values, .coinche-scene-bidding .coinche-bidding-modes { display: grid; gap: 2px; overflow: visible; padding: 0; }
+  .coinche-scene-bidding .coinche-bidding-values { grid-template-columns: repeat(5, minmax(44px, 1fr)); }
+  .coinche-scene-bidding .coinche-bidding-modes { grid-template-columns: repeat(3, minmax(44px, 1fr)); }
+  .coinche-scene-bidding .coinche-bidding-layout:has(.coinche-bidding-values:empty) { grid-template-columns: minmax(0, 1fr); }
+  .coinche-scene-bidding fieldset:has(.coinche-bidding-values:empty) { display: none; }
+  .coinche-scene-bidding .coinche-bidding-layout:has(.coinche-bidding-values:empty) .coinche-bidding-modes { grid-template-columns: repeat(6, minmax(44px, 1fr)); }
+  .coinche-scene-bidding .coinche-bidding-panel button { min-height: 44px; min-width: 44px; padding: 2px 4px; font-size: 12px; line-height: 16px; }
+  .coinche-scene-bidding .coinche-bidding-modes button { font-size: 18px; }
+  .coinche-scene-bidding .coinche-bidding-actions { grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 4px; }
+  .coinche-scene-bidding .coinche-bidding-empty { font-size: 11px; line-height: 14px; margin-bottom: 4px; padding: 3px 4px; }
+  .coinche-scene-bidding .coinche-bidding-confirmation { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; justify-content: center; margin: 0; padding: 8px; }
+  .coinche-scene-bidding .coinche-bidding-confirmation ~ .coinche-bidding-layout,
+  .coinche-scene-bidding .coinche-bidding-confirmation ~ .coinche-bidding-empty { visibility: hidden; }
+  .coinche-trick-area { top: calc((100% - var(--hand-height) - 44px) / 2 + 12px); transform: translate(-50%, -50%) scale(.65); }
+  .coinche-collect-trick, .coinche-show-last-trick { min-height: 44px; min-width: 44px; bottom: calc(var(--hand-height) + 8px); }
+  .coinche-collect-trick { left: auto; right: calc(var(--seat-rail) + 4px); width: 132px; max-width: 26%; transform: none; padding: 3px; }
+  .coinche-show-last-trick { left: calc(var(--seat-rail) + 4px); }
+  .coinche-collect-trick > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .coinche-last-trick { inset: 4px; padding: 4px; }
+  .coinche-last-trick-result { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .coinche-last-trick-cards { height: 130px; margin: 0; }
+  .coinche-last-trick-cards .coinche-trick-area { top: 50%; }
+  .coinche-last-trick button { min-height: 44px; min-width: 44px; }
   .coinche-game-scene .coinche-bubble-left,
-  .coinche-game-scene .coinche-bubble-right { left: 50%; right: auto; top: -1.9rem; bottom: auto; margin: 0; transform: translateX(-50%); }
-  .coinche-game-scene .coinche-bubble-top { left: calc(100% + .5rem); top: 50%; bottom: auto; margin: 0; transform: translateY(-50%); }
-  .coinche-game-scene .coinche-bubble-bottom { left: calc(100% + .5rem); top: 50%; bottom: auto; margin: 0; transform: translateY(-50%); }
+  .coinche-game-scene .coinche-bubble-right { left: 50%; right: auto; top: auto; bottom: calc(100% + 2px); margin: 0; width: 64px; min-height: 22px; padding: 2px; transform: translateX(-50%); }
+  .coinche-game-scene .coinche-bubble-top { left: calc(100% + 4px); top: 0; bottom: auto; margin: 0; width: 72px; min-height: 22px; padding: 2px; transform: none; }
+  .coinche-game-scene[data-game-phase="bidding"] .coinche-bubble-top { left: 0; top: calc(100% + 2px); width: 64px; }
+  .coinche-game-scene:not([data-game-phase="bidding"]) .coinche-bubble-left { left: calc(100% + 4px); top: 0; bottom: auto; transform: none; }
+  .coinche-game-scene:not([data-game-phase="bidding"]) .coinche-bubble-right { left: auto; right: calc(100% + 4px); top: 0; bottom: auto; transform: none; }
+  .coinche-game-scene:not([data-game-phase="bidding"]) .coinche-bubble-top { left: 0; top: calc(100% + 2px); width: 64px; }
+  .coinche-game-scene .coinche-bubble-bottom { left: calc(100% + 4px); top: 0; bottom: auto; margin: 0; width: 72px; min-height: 22px; padding: 2px; transform: none; }
+  .coinche-game-scene[data-game-phase="bidding"] .coinche-bubble-bottom { left: 50%; top: auto; bottom: calc(100% + 2px); width: 64px; transform: translateX(-50%); }
 }
 @media (prefers-reduced-motion: reduce) {
   .coinche-card-play-from-top, .coinche-card-play-from-right, .coinche-card-play-from-bottom, .coinche-card-play-from-left { animation: none; }
@@ -1178,6 +1253,19 @@ summary:focus-visible {
   backdrop-filter: blur(1px);
 }
 .coinche-training-game-backdrop .coinche-dialog { box-shadow: 0 18px 50px var(--shadow) !important; }
+@media (max-height: 500px) and (orientation: landscape) {
+  /* Preserve the numerical question and its keypad inside the game's safe rectangle. */
+  .coinche-training-number-backdrop .coinche-dialog-header { padding: 4px 12px; }
+  .coinche-training-number-backdrop .coinche-training-question-content { padding: 4px 8px; }
+  .coinche-training-number-backdrop .coinche-training-number-layout { grid-template-columns: minmax(0, 3fr) minmax(0, 4fr); gap: 8px; margin-top: 4px; }
+  .coinche-training-number-layout > div:last-child { padding-left: 0; border-left: 0; }
+  .coinche-training-number-layout .training-number-pad [aria-label="Pavé numérique"] { grid-template-columns: repeat(6, minmax(44px, 1fr)); gap: 2px; }
+  .coinche-training-number-layout .training-number-pad button { min-height: 44px; font-size: 12px; padding: 2px; }
+  .coinche-training-number-layout > div:first-child > p:first-child { font-size: 14px; line-height: 18px; }
+  .coinche-training-number-layout [aria-label="Cartes du pli"] li > p { font-size: 10px; line-height: 12px; white-space: nowrap; }
+  .coinche-training-number-layout details > summary { font-size: 12px; line-height: 16px; }
+  .coinche-training-number-layout [aria-label="Cartes du pli"] .coinche-card { max-width: 44px; }
+}
 
 .coinche-theme-toggle {
   display: inline-grid;

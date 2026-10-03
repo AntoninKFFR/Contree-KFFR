@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { AppTopNav } from "@/components/AppTopNav";
+import { GameChromeProvider } from "@/components/GameChromeProvider";
 import { PlayerPreferencesProvider } from "@/components/settings/PlayerPreferencesProvider";
 import { MusicProvider } from "@/components/settings/MusicProvider";
 import { SocialNotificationsProvider } from "@/components/social/SocialNotifications";
@@ -44,10 +44,9 @@ export default function RootLayout({
             <SocialNotificationsProvider>
               <ProgressionProvider>
                 <SocialPresenceHeartbeat />
-                <div className="coinche-viewport-dynamic">
-                  <AppTopNav />
+                <GameChromeProvider>
                   {children}
-                </div>
+                </GameChromeProvider>
               </ProgressionProvider>
             </SocialNotificationsProvider>
           </MusicProvider>

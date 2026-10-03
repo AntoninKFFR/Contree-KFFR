@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
+import { useGameChrome } from "@/components/GameChromeProvider";
 import { GameMenuPopover, type GameMenuAction } from "@/components/GameMenuPopover";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
@@ -275,7 +276,7 @@ export default function MultiplayerRoomPage() {
     }
 
     const portraitQuery = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
-    const landscapeQuery = window.matchMedia("(max-width: 900px) and (orientation: landscape)");
+    const landscapeQuery = window.matchMedia("(max-width: 900px) and (orientation: landscape), (max-width: 1119px) and (max-height: 500px) and (orientation: landscape)");
     const update = () => {
       setIsMobilePortrait(portraitQuery.matches);
       setIsMobileLandscape(landscapeQuery.matches);
@@ -302,6 +303,7 @@ export default function MultiplayerRoomPage() {
   const isLobbyLayout = displayedRoomStatus === "lobby" && pageState === "ready";
   const isFinishedLayout = displayedRoomStatus === "finished" && pageState === "ready";
   const shouldLockPortrait = isMobilePortrait && displayedRoomStatus === "playing";
+  useGameChrome(Boolean(isPlayingLayout && playerView));
   const gameMenuActions: GameMenuAction[] = [
     ...(isHost && hostTransferCandidates.length > 0 ? [{ label: "Transférer l’hôte", onSelect: () => { setHostTransferSeat(null); setIsHostTransferOpen(true); } }] : []),
     ...(displayedRoomStatus === "playing" ? [{ label: "Abandonner la partie", onSelect: () => setIsForfeitConfirmationOpen(true), tone: "danger" as const }] : []),
