@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
 import { RulesetSummary } from "@/components/rules/RulesetSummary";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
@@ -8,6 +12,33 @@ import type { GameRulesetSnapshot } from "@/engine/rulesets/types";
 import { scoringModeLabel } from "@/lib/productGame";
 import type { MultiplayerRoomView, RoomPlayerRow, RoomPlayerView } from "@/lib/roomTypes";
 import { RankEmblem } from "@/components/rating/RankEmblem";
+
+// Clipboard fallback is local UI only; restore the caller's focus even on failure.
+export async function copyRoomCode(code: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(code);
+      return true;
+    }
+  } catch { /* A denied Clipboard API can still allow an explicit copy command. */ }
+  const previous = document.activeElement;
+  const field = document.createElement("textarea");
+  field.value = code;
+  field.readOnly = true;
+  field.style.cssText = "position:fixed;top:0;left:0;opacity:0;font-size:16px;";
+  document.body.append(field);
+  try {
+    field.focus({ preventScroll: true });
+    field.select();
+    field.setSelectionRange(0, code.length);
+    return document.execCommand?.("copy") === true;
+  } catch {
+    return false;
+  } finally {
+    field.remove();
+    if (previous instanceof HTMLElement && previous.isConnected) previous.focus({ preventScroll: true });
+  }
+}
 
 function statusLabel(status: MultiplayerRoomView["room"]["status"]): string {
   if (status === "lobby") return "en attente";
@@ -94,24 +125,48 @@ export function LobbyHeader({
   status: MultiplayerRoomView["room"]["status"];
   targetScore: number;
 }) {
-  return <section className="coinche-app-surface shrink-0 border px-3 py-2.5 sm:px-4">
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState("");
+  const copying = useRef(false);
+  const startIsPrimary = isHost && canStartGame;
+  async function handleCopy() {
+    if (copying.current) return;
+    copying.current = true;
+    try { setCopyFeedback(await copyRoomCode(code) ? "Code copié" : "Copie indisponible"); }
+    finally { copying.current = false; }
+  }
+  function secondaryActions(inDialog: boolean) {
+    const invoke = (action: () => void) => () => { if (inDialog) setIsMoreOpen(false); action(); };
+    return <>
+      <button className={appSecondaryActionClass} onClick={invoke(onOpenPreferences)} type="button">Préférences</button>
+      <button className={appSecondaryActionClass} onClick={invoke(onOpenRules)} type="button">Règles</button>
+      <button className={appSecondaryActionClass} onClick={invoke(onRefresh)} type="button">Rafraîchir</button>
+      {isHost ? <button className={appSecondaryActionClass} disabled={!canTransferHost} onClick={invoke(onTransferHost)} type="button">Transférer l&apos;hôte</button> : null}
+    </>;
+  }
+  return <section className="coinche-app-surface coinche-lobby-header shrink-0 border px-3 py-2.5 sm:px-4">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <div>
+      <div className="coinche-lobby-identity">
+        <div>
         <h1 className="font-mono text-2xl font-bold leading-none tracking-wide">{code}</h1>
         <p className="mt-1 text-sm text-[color:var(--text-secondary)]">{statusLabel(status)} · {scoringModeLabel(scoringMode)} · {targetScore} pts</p>
+        </div>
+        <div className="coinche-lobby-code-actions">
+          <button className={appSecondaryActionClass} onClick={() => void handleCopy()} type="button">Copier le code</button>
+          <span className="coinche-lobby-copy-status" role="status">{copyFeedback}</span>
+        </div>
       </div>
       <div className="coinche-lobby-actions flex flex-wrap gap-1.5">
-        <button className={appSecondaryActionClass} onClick={onOpenPreferences} type="button">Préférences</button>
-        <button className={appSecondaryActionClass} onClick={onOpenRules} type="button">Règles</button>
-        <button className={appSecondaryActionClass} onClick={onRefresh} type="button">Rafraîchir</button>
+        <div className="coinche-lobby-secondary-inline">{secondaryActions(false)}</div>
         {canInviteFriends ? <button className={appSecondaryActionClass} onClick={onInviteFriends} type="button">Inviter des amis</button> : null}
-        <button className={appPrimaryActionClass} disabled={!currentSeat || isUpdatingReady} onClick={onReady} type="button">{currentSeat?.is_ready ? "Pas prêt" : "Prêt"}</button>
+        <button className={!currentSeat?.is_ready && !startIsPrimary ? appPrimaryActionClass : appSecondaryActionClass} disabled={!currentSeat || isUpdatingReady} onClick={onReady} type="button">{currentSeat?.is_ready ? "Pas prêt" : "Prêt"}</button>
         {isHost ? <>
-          <button className={appSecondaryActionClass} disabled={!canTransferHost} onClick={onTransferHost} type="button">Transférer l&apos;hôte</button>
-          <button className={appPrimaryActionClass} disabled={!canStartGame || isStartingGame} onClick={onStartGame} type="button">Lancer la partie</button>
+          <button className={startIsPrimary ? appPrimaryActionClass : appSecondaryActionClass} disabled={!canStartGame || isStartingGame} onClick={onStartGame} type="button">Lancer la partie</button>
         </> : null}
+        <button aria-expanded={isMoreOpen} aria-haspopup="dialog" aria-label="Plus d’actions pour la table" className={`${appSecondaryActionClass} coinche-lobby-more`} onClick={(event) => { event.currentTarget.focus({ preventScroll: true }); setIsMoreOpen(true); }} type="button">Plus</button>
       </div>
     </div>
+    {isMoreOpen ? createPortal(<AccessibleDialog backdropClassName="coinche-lobby-menu-backdrop" minimalHeader onClose={() => setIsMoreOpen(false)} title="Actions de la table" width="medium"><div className="coinche-lobby-secondary-menu">{secondaryActions(true)}</div></AccessibleDialog>, document.body) : null}
   </section>;
 }
 
@@ -136,7 +191,7 @@ export function LobbyTable({
           const position = LOBBY_SEAT_POSITIONS[player.seat_index];
 
           return (
-            <div className={`absolute ${position.className}`} key={player.seat_index}>
+            <div className={`coinche-lobby-seat-slot absolute ${position.className}`} data-seat-index={player.seat_index} key={player.seat_index}>
               <SeatCard
                 canJoin={canJoinSeat && player.kind === "empty"}
                 isCurrentUser={player.seat_index === currentSeatIndex}
@@ -174,11 +229,11 @@ export function WaitingArea({
   onLeaveSeat: () => void;
 }) {
   return (
-    <section className="coinche-app-surface shrink-0 border px-3 py-2">
+    <section className="coinche-app-surface coinche-lobby-waiting shrink-0 border px-3 py-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
           <span className="coinche-ui-kicker text-xs font-bold uppercase tracking-wide">En attente</span>
-          <span className="font-semibold text-[color:var(--text-primary)]">{currentSeat ? `${displayName} (toi)` : "Choisis une place pour rejoindre"}</span>
+          <span className="coinche-lobby-waiting-name font-semibold text-[color:var(--text-primary)]" title={currentSeat ? `${displayName} (toi)` : undefined}>{currentSeat ? `${displayName} (toi)` : "Choisis une place pour rejoindre"}</span>
           {!profileUsername ? <Link className="text-xs font-semibold underline" href="/profile">Choisir un pseudo</Link> : !currentSeat && !hasFreeSeat ? <span className="text-xs text-[color:var(--text-secondary)]">Table pleine</span> : null}
         </div>
 
@@ -229,7 +284,7 @@ function SeatCard({
   return (
     <button
       className={[
-        "coinche-lobby-seat flex min-h-20 w-36 flex-col items-center justify-center rounded-xl border px-3 py-1 text-center text-sm transition",
+        "coinche-lobby-seat relative flex min-h-20 w-36 flex-col items-center justify-center rounded-xl border px-3 py-1 text-center text-sm transition",
         player.is_ready
           ? "border-emerald-300/60 ring-2 ring-emerald-300/30"
           : "border-white/15",
@@ -237,17 +292,18 @@ function SeatCard({
       ].join(" ")}
       disabled={!canJoin}
       onClick={onJoin}
+      title={isEmpty ? `Place ${positionLabel} libre` : `${player.display_name}${isCurrentUser ? " (Toi)" : ""}`}
       type="button"
     >
       <span className="coinche-lobby-seat-position text-xs font-semibold uppercase tracking-wide text-stone-400">
         Place {positionLabel}
       </span>
-      <span className="mt-1 flex items-center justify-center gap-2">
+      <span className="coinche-lobby-seat-identity mt-1 flex min-w-0 w-full items-center justify-center gap-2">
         {player.kind === "human" && player.is_ranked && player.rating !== null ? <RankEmblem decorative rating={player.rating} size="sm" /> : null}
         <span className="min-w-0">
-          <span className="block truncate font-bold text-stone-50">
-            {isEmpty ? "Place libre" : player.display_name}
-            {isCurrentUser ? " (Toi)" : ""}
+          <span className="flex min-w-0 justify-center font-bold text-stone-50">
+            <span className="truncate">{isEmpty ? "Place libre" : player.display_name}</span>
+            {isCurrentUser ? <span className="shrink-0">&nbsp;(Toi)</span> : null}
           </span>
           {player.kind === "human" ? <span className="block text-xs font-semibold text-stone-300">{player.is_ranked ? player.rank : "Placement"}</span> : null}
         </span>
@@ -260,7 +316,7 @@ function SeatCard({
               aria-hidden="true"
               className={`h-1.5 w-1.5 rounded-full ${player.is_connected ? "bg-emerald-600" : "bg-stone-400"}`}
             />
-            {player.bot_takeover ? "Bot temporaire" : player.is_connected ? "En ligne" : "Hors ligne"}
+            <span>{player.bot_takeover ? "Bot temporaire" : player.is_connected ? "En ligne" : "Hors ligne"} · {player.is_ready ? "Prêt" : "Pas prêt"}</span>
           </span>
         ) : (
           <span className="mt-1 block text-xs font-semibold text-stone-300">{kindLabel}</span>
