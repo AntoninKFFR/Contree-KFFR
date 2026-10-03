@@ -1400,6 +1400,14 @@ summary:focus-visible {
   .coinche-lobby-copy-status { position: absolute; top: 100%; left: 0; width: 100%; min-height: .75rem; font-size: .625rem; line-height: .75rem; text-align: center; }
 }
 
+@media (min-width: 1120px) and (max-height: 500px) and (orientation: landscape) {
+  /* Keep desktop controls full-size and let the document own the scroll. */
+  .coinche-lobby-shell { height: auto; min-height: var(--content-height); overflow: visible; }
+  .coinche-lobby-shell > div { height: auto; min-height: calc(var(--content-height) - 1rem - var(--safe-bottom)); }
+  /* Absolute seats need room for rank emblems, the host badge and presence. */
+  .coinche-lobby-felt { min-height: 18rem; }
+}
+
 @media (max-width: 1119px) {
   .coinche-multiplayer-header .coinche-page-header-main { grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; align-items: start; }
   .coinche-multiplayer-header .coinche-page-header-actions { margin: 0; }

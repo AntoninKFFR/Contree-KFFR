@@ -1,6 +1,6 @@
 import { expect, test, type Page, type Locator } from "@playwright/test";
 import { installMultiplayerMobileFixture, LONG_MULTIPLAYER_NAME, type LobbyScenario } from "./helpers/multiplayerMobileFixture";
-import { MOBILE_VIEWPORTS, DESKTOP_VIEWPORTS, expectNoPageHorizontalOverflow, expectInsideSafeViewport, setMobileViewport, simulateSafeAreas, type SafeAreas } from "./helpers/mobile";
+import { MOBILE_VIEWPORTS, DESKTOP_VIEWPORTS, expectNoPageHorizontalOverflow, expectInsideSafeViewport, scrollDocumentToEnd, setMobileViewport, simulateSafeAreas, type SafeAreas } from "./helpers/mobile";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
 
 const sizes = [...MOBILE_VIEWPORTS, { width: 768, height: 900 }, { width: 1024, height: 900 }, ...DESKTOP_VIEWPORTS];
@@ -28,6 +28,50 @@ async function boardGeometry(page: Page) {
     expect(Math.min(overlapX, overlapY), `seats ${a}/${b} do not overlap`).toBeLessThanOrEqual(0);
   }
   for (const position of ["Bas", "Droite", "Haut", "Gauche"]) await expect(page.getByText(`Place ${position}`, { exact: true })).toBeVisible();
+}
+
+for (const viewport of [{ width: 1120, height: 390 }, { width: 1280, height: 400 }, { width: 1440, height: 450 }]) {
+  test(`@mobile @multiplayer-mobile wide short lobby document scroll ${viewport.width}×${viewport.height}`, async ({ page }, info) => {
+    const errors = monitorBrowserErrors(page);
+    const fixture = await installMultiplayerMobileFixture(page, { players: 4, ready: true, offline: true });
+    await setMobileViewport(page, viewport); await page.goto(fixture.path);
+    await expect(lobby(page)).toBeVisible();
+    await boardGeometry(page); await expectNoPageHorizontalOverflow(page);
+    const shell = page.locator(".coinche-lobby-shell"), felt = page.locator(".coinche-lobby-felt");
+    const seats = page.locator(".coinche-lobby-seat");
+    await expect(seats.first()).toHaveAttribute("title", `${LONG_MULTIPLAYER_NAME} (Toi)`);
+    for (const container of [shell, felt]) {
+      const bounds = (await container.boundingBox())!;
+      for (const seat of await seats.all()) {
+        const box = (await seat.boundingBox())!;
+        expect(box.y).toBeGreaterThanOrEqual(bounds.y);
+        expect(box.y + box.height).toBeLessThanOrEqual(bounds.y + bounds.height);
+      }
+    }
+    const scrollers = await shell.locator(":scope, *").evaluateAll((elements) => elements.filter((element) =>
+      /auto|scroll/.test(getComputedStyle(element).overflowY) && element.scrollHeight > element.clientHeight).length);
+    expect(scrollers).toBe(0);
+    expect(await shell.evaluate((element) => getComputedStyle(element).overflowY)).toBe("visible");
+    await touchTargets(lobby(page)); await touchTargets(seats); await touchTargets(page.locator(".coinche-lobby-waiting"));
+    const documentBefore = await page.evaluate(() => ({ height: document.documentElement.scrollHeight, viewport: document.documentElement.clientHeight }));
+    expect(documentBefore.height).toBeGreaterThan(documentBefore.viewport);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expectInsideSafeViewport(page, seats.nth(2));
+    expect((await felt.boundingBox())!.y).toBeGreaterThanOrEqual(0);
+    await scrollDocumentToEnd(page);
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    await expectInsideSafeViewport(page, seats.first());
+    await expectInsideSafeViewport(page, page.locator(".coinche-lobby-waiting"));
+    expect((await felt.boundingBox())!.y + (await felt.boundingBox())!.height).toBeLessThanOrEqual(viewport.height);
+    await expectNoPageHorizontalOverflow(page);
+    await info.attach("wide-short-scroll", { body: JSON.stringify({ viewport, documentBefore, scrollY: await page.evaluate(() => window.scrollY),
+      felt: await felt.boundingBox(), seats: await Promise.all((await seats.all()).map((seat) => seat.boundingBox())), scrollers }), contentType: "application/json" });
+    // Invite and free-seat targets are available only when the room has an empty place.
+    const partial = await installMultiplayerMobileFixture(page, { players: 3 }); await page.goto(partial.path);
+    await expect(lobby(page).getByRole("button", { name: "Inviter des amis" })).toBeVisible();
+    await boardGeometry(page); await touchTargets(shell);
+    errors.assertClean();
+  });
 }
 
 for (const theme of ["dark", "light"] as const) for (const viewport of sizes) {
@@ -70,7 +114,13 @@ for (const theme of ["dark", "light"] as const) for (const viewport of sizes) {
       await expectInsideSafeViewport(page, dialog.locator(".coinche-dialog"), safe); await touchTargets(dialog);
       expect(fixture.reads()).toBe(readsBeforeMenu); expect(fixture.intents).toHaveLength(0);
       await page.keyboard.press("Escape"); await expect(more(page)).toBeFocused();
-    } else { await expect(more(page)).toBeHidden(); await expect(lobby(page).getByRole("button", { name: "Règles", exact: true })).toBeVisible(); }
+    } else {
+      await expect(more(page)).toBeHidden(); await expect(lobby(page).getByRole("button", { name: "Règles", exact: true })).toBeVisible();
+      const shell = page.locator(".coinche-lobby-shell");
+      expect((await shell.boundingBox())!.height).toBe(viewport.height - 56);
+      expect(await shell.evaluate((element) => getComputedStyle(element).overflowY)).toBe("hidden");
+      expect(await page.locator(".coinche-lobby-felt").evaluate((element) => getComputedStyle(element).minHeight)).toBe("0px");
+    }
     errors.assertClean();
   });
 }
