@@ -78,6 +78,8 @@ Le scénario offline de production existant reste dans la matrice : fallback min
 
 Les scènes Solo/Multi partagent GameTable. Header `compact-game` : 44 px sur téléphone actif ; header normal : 56 px. La QA vérifie la sortie Solo → Home, Multi → Home et Training → Home : header `default`, sans état compact résiduel. Setup Solo/Training et lobby gardent le header normal ; desktop/tablette gardent 56 px.
 
+Ces hauteurs sont celles du contenu du header : le shell ajoute le safe-top. En portrait avec top 47, le retour Solo playing → Home doit donc mesurer 103 px, ce qui vérifie à la fois le cleanup et le maintien de l’inset.
+
 Les suites #126 conservent les contrôles de neuf valeurs, quatre suits, SA/TA, Coinche/Surcoinche, Capot/Générale, huit cartes réellement cliquables, main 8→1, pli 1→4, collecte manuelle, dernier pli et overlay. La suite finale recontrôle Capot et **Surcoinche sans valeur numérique** : layout hidden/inert, message vide masqué, Annuler/Confirmer sûrs, Escape et focus restauré.
 
 Les garanties serveur sont exécutées par les workflows authentifiés, sans mocks : Multiplayer/Rating couvre join, ready, start, bidding, play, CAS/privacy, Realtime, reconnexion, takeover, finish, history/rematch et Rating. Social, Training DB/Duo et Progression gardent leurs propres bases/comptes jetables.

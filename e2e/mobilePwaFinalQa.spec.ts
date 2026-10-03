@@ -314,7 +314,7 @@ for (const mode of ["solo", "multi"] as const) test(`@mobile @pwa-final-qa ${mod
 
 test("@mobile @pwa-final-qa light active Solo portrait notice stays isolated", async ({ page, qa }, info) => {
   await installMobileGameFixture(page, mobileGameState("playing")); await setMobileViewport(page, { width: 390, height: 844 }); await page.goto("/solo");
-  await simulateSafeAreas(page, qaSafeAreas(390, 844));
+  const safe = qaSafeAreas(390, 844); await simulateSafeAreas(page, safe);
   await page.getByRole("switch", { name: "Activer le thème clair" }).click();
   await expect(page.getByRole("heading", { name: "Tournez votre téléphone" })).toBeVisible();
   await expect(page.locator(".coinche-game-scene, .coinche-scene-hand-card button")).toHaveCount(0);
@@ -322,7 +322,7 @@ test("@mobile @pwa-final-qa light active Solo portrait notice stays isolated", a
   await captureQaSnapshot(page, info, "solo", "portrait-notice"); await qa.checkpoint("solo-portrait-light");
   await page.getByRole("link", { name: "Accueil — KFFR Contrée" }).click();
   await expect(page.locator(".coinche-global-header")).toHaveAttribute("data-header-variant", "default");
-  await expect(page.locator(".coinche-global-header")).toHaveCSS("height", "56px");
+  await expect(page.locator(".coinche-global-header")).toHaveCSS("height", `${56 + safe.top}px`);
   await qa.checkpoint("solo-playing-exit");
 });
 
