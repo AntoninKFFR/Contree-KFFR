@@ -1404,8 +1404,8 @@ summary:focus-visible {
   /* Keep desktop controls full-size and let the document own the scroll. */
   .coinche-lobby-shell { height: auto; min-height: var(--content-height); overflow: visible; }
   .coinche-lobby-shell > div { height: auto; min-height: calc(var(--content-height) - 1rem - var(--safe-bottom)); }
-  /* Absolute seats need room for rank emblems, the host badge and presence. */
-  .coinche-lobby-felt { min-height: 18rem; }
+  /* Absolute seats need room for rank emblems, the host badge and wrapped presence. */
+  .coinche-lobby-felt { min-height: 20rem; }
 }
 
 @media (max-width: 1119px) {

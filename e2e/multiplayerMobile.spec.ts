@@ -6,6 +6,7 @@ import { monitorBrowserErrors } from "./helpers/browserErrors";
 const sizes = [...MOBILE_VIEWPORTS, { width: 768, height: 900 }, { width: 1024, height: 900 }, ...DESKTOP_VIEWPORTS];
 const more = (page: Page) => page.getByRole("button", { name: "Plus d’actions pour la table" });
 const lobby = (page: Page) => page.locator(".coinche-lobby-header");
+const seatsPresence = (page: Page) => page.locator(".coinche-lobby-seat-presence > span:not([aria-hidden])").first();
 async function touchTargets(root: Locator) {
   for (const button of await root.locator("button, a").all()) {
     if (!await button.isVisible()) continue;
@@ -30,12 +31,17 @@ async function boardGeometry(page: Page) {
   for (const position of ["Bas", "Droite", "Haut", "Gauche"]) await expect(page.getByText(`Place ${position}`, { exact: true })).toBeVisible();
 }
 
-for (const viewport of [{ width: 1120, height: 390 }, { width: 1280, height: 400 }, { width: 1440, height: 450 }]) {
-  test(`@mobile @multiplayer-mobile wide short lobby document scroll ${viewport.width}×${viewport.height}`, async ({ page }, info) => {
+for (const ready of [true, false]) for (const viewport of [{ width: 1120, height: 390 }, { width: 1280, height: 400 }, { width: 1440, height: 450 }]) {
+  test(`@mobile @multiplayer-mobile wide short lobby document scroll ${viewport.width}×${viewport.height} ready=${ready}`, async ({ page }, info) => {
     const errors = monitorBrowserErrors(page);
-    const fixture = await installMultiplayerMobileFixture(page, { players: 4, ready: true, offline: true });
+    const fixture = await installMultiplayerMobileFixture(page, { players: 4, ready, offline: true });
     await setMobileViewport(page, viewport); await page.goto(fixture.path);
     await expect(lobby(page)).toBeVisible();
+    if (!ready) {
+      // Reproduce Linux's wrapped desktop presence on narrower Windows fonts too.
+      await page.addStyleTag({ content: ".coinche-lobby-seat-presence { font-family: monospace; }" });
+      expect((await seatsPresence(page).boundingBox())!.height).toBeGreaterThanOrEqual(28);
+    }
     await boardGeometry(page); await expectNoPageHorizontalOverflow(page);
     const shell = page.locator(".coinche-lobby-shell"), felt = page.locator(".coinche-lobby-felt");
     const seats = page.locator(".coinche-lobby-seat");
@@ -64,11 +70,12 @@ for (const viewport of [{ width: 1120, height: 390 }, { width: 1280, height: 400
     await expectInsideSafeViewport(page, page.locator(".coinche-lobby-waiting"));
     expect((await felt.boundingBox())!.y + (await felt.boundingBox())!.height).toBeLessThanOrEqual(viewport.height);
     await expectNoPageHorizontalOverflow(page);
-    await info.attach("wide-short-scroll", { body: JSON.stringify({ viewport, documentBefore, scrollY: await page.evaluate(() => window.scrollY),
+    await info.attach("wide-short-scroll", { body: JSON.stringify({ viewport, ready, documentBefore, scrollY: await page.evaluate(() => window.scrollY),
       felt: await felt.boundingBox(), seats: await Promise.all((await seats.all()).map((seat) => seat.boundingBox())), scrollers }), contentType: "application/json" });
     // Invite and free-seat targets are available only when the room has an empty place.
     const partial = await installMultiplayerMobileFixture(page, { players: 3 }); await page.goto(partial.path);
     await expect(lobby(page).getByRole("button", { name: "Inviter des amis" })).toBeVisible();
+    await page.addStyleTag({ content: ".coinche-lobby-seat-presence { font-family: monospace; }" });
     await boardGeometry(page); await touchTargets(shell);
     errors.assertClean();
   });
