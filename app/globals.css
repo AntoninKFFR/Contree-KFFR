@@ -1260,6 +1260,9 @@ summary:focus-visible {
   .coinche-training-number-layout > div:last-child { padding-left: 0; border-left: 0; }
   .coinche-training-number-layout .training-number-pad [aria-label="Pavé numérique"] { grid-template-columns: repeat(6, minmax(44px, 1fr)); gap: 2px; }
   .coinche-training-number-layout .training-number-pad button { min-height: 44px; font-size: 12px; padding: 2px; }
+  .coinche-training-number-layout > div:first-child > p:first-child { font-size: 14px; line-height: 18px; }
+  .coinche-training-number-layout [aria-label="Cartes du pli"] li > p { font-size: 10px; line-height: 12px; white-space: nowrap; }
+  .coinche-training-number-layout details > summary { font-size: 12px; line-height: 16px; }
   .coinche-training-number-layout [aria-label="Cartes du pli"] .coinche-card { max-width: 44px; }
 }
 
