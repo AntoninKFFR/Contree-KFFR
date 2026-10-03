@@ -54,10 +54,20 @@ for (const theme of themes) for (const records of ["guest", "empty", "multiple",
       await setMobileViewport(page, viewport); await simulateSafeAreas(page, safe);
       await expectNoPageHorizontalOverflow(page);
       if (viewport.width === 390 && records === "multiple") {
-        // Baseline: header 131 px, section 131 px and multi-record card 411 px.
-        expect((await page.locator(".coinche-page-header").boundingBox())!.height).toBeLessThan(126);
-        expect((await page.locator("#calculer").boundingBox())!.height).toBeLessThan(105);
-        expect((await card(page, "Valeur d’un pli").boundingBox())!.height).toBeLessThan(360);
+        // Compare the scoped density with the existing base styles in the same
+        // browser: platform fonts can change wrapping and absolute heights.
+        await page.evaluate(() => document.fonts.ready);
+        const header = page.locator(".coinche-page-header");
+        const section = page.locator("#calculer");
+        const trickCard = card(page, "Valeur d’un pli");
+        const compact = { header: (await header.boundingBox())!.height, section: (await section.boundingBox())!.height, card: (await trickCard.boundingBox())!.height };
+        const trainingPage = page.locator(".training-page");
+        await trainingPage.evaluate((element) => element.classList.remove("training-page"));
+        const base = { header: (await header.boundingBox())!.height, section: (await section.boundingBox())!.height, card: (await trickCard.boundingBox())!.height };
+        await page.locator(".coinche-app-page").evaluate((element) => element.classList.add("training-page"));
+        expect(compact.header).toBeLessThan(base.header);
+        expect(compact.section).toBeLessThan(base.section * .85);
+        expect(compact.card).toBeLessThan(base.card * .9);
         expect((await card(page, "Valeur d’un pli").locator(".training-level-track").boundingBox())!.height).toBe(44);
       }
       await touchTargets(page.locator(".training-card-action, .training-level-available"));
