@@ -886,7 +886,8 @@ summary:focus-visible {
   .coinche-scene-bidding .coinche-bidding-actions { grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 4px; }
   .coinche-scene-bidding .coinche-bidding-empty { font-size: 11px; line-height: 14px; margin-bottom: 4px; padding: 3px 4px; }
   .coinche-scene-bidding .coinche-bidding-confirmation { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; justify-content: center; margin: 0; padding: 8px; }
-  .coinche-scene-bidding .coinche-bidding-confirmation + .coinche-bidding-layout { visibility: hidden; }
+  .coinche-scene-bidding .coinche-bidding-confirmation ~ .coinche-bidding-layout,
+  .coinche-scene-bidding .coinche-bidding-confirmation ~ .coinche-bidding-empty { visibility: hidden; }
   .coinche-trick-area { top: calc((100% - var(--hand-height) - 44px) / 2 + 12px); transform: translate(-50%, -50%) scale(.65); }
   .coinche-collect-trick, .coinche-show-last-trick { min-height: 44px; min-width: 44px; bottom: calc(var(--hand-height) + 8px); }
   .coinche-collect-trick { left: auto; right: calc(var(--seat-rail) + 4px); width: 132px; max-width: 26%; transform: none; padding: 3px; }

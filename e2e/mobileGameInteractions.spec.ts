@@ -64,8 +64,11 @@ for(const action of ['Capot','Générale','Contrer','Surcontrer'] as const) test
   const fixture=await installMobileGameFixture(page,state);await page.goto('/solo');await simulateSafeAreas(page,safe);
   const trigger=page.getByRole('button',{name:action,exact:true}); await target(page,trigger);
   await trigger.click(); const dialog=page.getByRole('alertdialog'); await expectInsideSafeViewport(page,dialog,safe);
+  await expect(page.locator('.coinche-bidding-layout')).toBeHidden();
+  if (action === 'Surcontrer') await expect(page.locator('.coinche-bidding-empty')).toBeHidden();
   for(const name of ['Confirmer','Annuler']) await target(page,dialog.getByRole('button',{name}));
   await page.keyboard.press('Escape');await expect(dialog).toHaveCount(0);await expect(trigger).toBeFocused();
+  await expect(page.locator('.coinche-bidding-layout')).toBeVisible();
   await trigger.click();await dialog.getByRole('button',{name:'Annuler'}).click();await expect(trigger).toBeFocused();
   await trigger.click();await dialog.getByRole('button',{name:'Confirmer'}).click();
   await expect.poll(()=>fixture.intents.length).toBe(1);
