@@ -1682,7 +1682,8 @@ summary:focus-visible {
   .training-exercise .training-pile-start { margin-top: 1rem; }
   .training-solo-result { padding: 1rem; }
   .training-solo-result h1 { margin-top: .375rem; font-size: 1.5rem; }
-  .training-solo-result :is(.training-result-score, .training-custom-result-score) { margin-top: .625rem; font-size: 3.5rem; line-height: 1; }
+  .training-solo-result .training-result-score { margin-top: .625rem; font-size: 3.5rem; line-height: 1; }
+  .training-solo-result .training-custom-result-score { margin-top: .625rem; font-size: 3rem; line-height: 1; }
   .training-solo-result .training-result-best { margin-top: .625rem; }
   .training-solo-result .training-unlocked { margin-top: .625rem; padding: .5rem; }
   .training-solo-result :is(.training-result-actions, .training-custom-result-actions) { margin-top: 1rem; gap: .5rem; }
