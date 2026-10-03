@@ -113,7 +113,7 @@ export function TrainingGameClient() {
   };
 
   if (screen === "setup") {
-    return <AppPage width="wide">
+    return <AppPage width="wide" className="training-game-setup">
       <Link className="coinche-ui-link text-sm font-bold" href="/training">← Retour à l’entraînement</Link>
       <header className="mt-4"><AppEyebrow>Une vraie partie, des questions au bon moment</AppEyebrow>
         <h1 className="mt-2 text-3xl font-black">Entraînement en partie</h1>

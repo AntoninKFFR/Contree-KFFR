@@ -28,7 +28,7 @@ export function NumberPad({ value, onChange, onSubmit, disabled = false, label =
     if (!disabled) onChange(sanitize(event.target.value));
   };
 
-  return <div className={`mx-auto w-full ${compact ? "max-w-sm" : "max-w-xs"}`}>
+  return <div className={`training-number-pad mx-auto w-full ${compact ? "max-w-sm" : "max-w-xs"}`}>
     <label className="block text-sm font-bold" htmlFor="training-answer">{label}</label>
     <input
       aria-label={label}

@@ -112,10 +112,10 @@ export function TrainingMemoryPuzzleClient({ axisId, level }: { axisId: MemoryAx
       <Link className={appSecondaryActionClass} href="/training">Retour à l’entraînement</Link>
   </TrainingResultSummary></AppPage>;
 
-  return <AppPage width="wide">
+  return <AppPage width="wide" className="training-exercise">
     <AppSurface className="mx-auto w-full min-w-0">
       <TrainingSessionHeader title={MEMORY_LABELS[axisId]} level={level} index={index + 1} total={MEMORY_SERIES_LENGTH} score={score} />
-      <div className="mt-5 min-w-0">
+      <div className="training-exercise-body mt-5 min-w-0">
         {studying ? <MemoryStudyPhase exercise={exercise} onAnswer={() => setStudying(false)} /> : <section aria-label="Question mémoire">
           <h2 className="text-lg font-black">{exercise.question}</h2>
           {exercise.axisId === "master-in-hand" ? <p className="mt-1 text-sm text-[var(--text-secondary)]">Sélectionne parmi les cartes de ta main.</p> : null}

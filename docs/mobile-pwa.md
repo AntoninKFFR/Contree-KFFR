@@ -329,3 +329,48 @@ Mesures à 390×844 standalone simulé (safe-top 47 px, safe-bottom 34 px), iden
 `TrainWithFriendDialog` conserve ses quatre niveaux et la création Duo. Un titre avec pseudo de 40 caractères peut se couper ; le contenu central peut scroller en petit paysage, tandis que le footer Créer le duo reste accessible. Ces ajustements ne concernent que ce dialogue.
 
 `tests/friendsMobile.test.tsx` couvre identité, présence/niveau, menu/focus, pending, confirmation et refresh. Les régressions de création différée et d’unmount #116 restent dans `tests/playWithFriend.test.ts`. `e2e/friendsMobile.spec.ts` (`@mobile @friends-mobile`) utilise les helpers standalone/auth existants, Chromium et WebKit, les deux thèmes, huit viewports téléphone, deux tablettes et deux desktops. Les fixtures UI 0/1/20 amis et les réponses retardées complètent les suites Social DB, profil ami et Duo réellement authentifiées en CI ; elles ne les remplacent pas. Les mesures et captures avant/après sont conservées dans `.playwright/friends-social/`.
+
+## Entraînement mobile
+
+Le hub conserve `AppPageHeader` et les primitives de densité. Sous 1120 px, son padding reprend `--surface-padding`, le catalogue passe à 1,25 rem entre familles et les section headers réduisent padding, titre et marges. Les quatre descriptions pédagogiques restent entières. Défis et Compter son tas conservent leurs h3, leurs modes et les messages de déblocage, avec moins d’espace avant les groupes.
+
+Les `TrainingModeCard` utilisent un padding de 0,875 rem et un gap de 0,5 rem. Les descriptions gardent tout leur texte, avec un line-height de 1,4. Niveaux, records locaux et records compte restent des informations distinctes ; les records longs peuvent se couper naturellement. Les liens Jouer à deux et Voir les conventions partagent une ligne lorsque la place le permet. Le CTA principal et la classe featured sont conservés.
+
+Les niveaux gardent leurs hitboxes 44×44 px et deviennent des pills sous 1120 px. Le niveau courant conserve `aria-current="step"`, les noms complets restent dans les labels et les niveaux verrouillés restent des spans sans href. La règle de disponibilité et le seuil 8/10 ne changent pas.
+
+Les cinq familles d’exercices solo et Pile Count optent pour `.training-exercise`. Le session header garde retour, kicker, titre, nom du niveau, score, exercice X/Y, pourcentage et progressbar. Sa composition utilise une colonne de titre souple et une colonne de score qui ne crée pas de ligne supplémentaire à 390 px. Le contenu commence à 0,75 rem du header. Les cartes d’exercice gardent leurs dimensions ; seuls le chrome, les gaps et le pavé numérique sont densifiés. Le pavé reste à trois colonnes en portrait, passe à six à partir de 640 px et conserve les contrôles de 44 px et un input de 20 px.
+
+Les résultats solo partagent `.training-solo-result` : padding de 1 rem, score fort de 3,5 rem et actions qui peuvent wrap. Les messages de record et de déblocage restent visibles. Pile Count et les défis gardent leurs résultats spécifiques, leur score de 3 rem et leurs timers. Le test manuel Pile Count existant vérifie aussi le vrai résultat terminé à 320×568 et 844×390, ses records/temps et ses actions au-dessus du safe-bottom. Le setup d’entraînement en partie ajuste seulement son header ; la table ne change pas. Les styles sont opt-in : le lobby et la session Duo gardent leur présentation et leur fonctionnement réseau.
+
+Les quatre ancres utilisent `scroll-margin-top: .75rem` uniquement pour l’espace visuel supplémentaire. Le `scroll-padding-top` global réserve déjà `--header-shell-height`, safe-top compris : les cibles ne recomptent pas le header. Le hub se monte après le gate PWA ; une fois ses données initiales prêtes, il aligne une seule fois la cible du fragment connu via `scrollIntoView({ block: "start" })`, sans modifier le focus, location ou l’historique. Le navigateur applique les offsets CSS à la cible désormais présente. Aucun scrollTo, timeout ou calcul d’offset en JS n’est ajouté. Les tests bornent le gap entre le h2 et le bas du header à 0–56 px, padding et kicker de section compris, et vérifient le titre entièrement visible. Chaque chargement direct part d’une page neuve ; le drawer est également couvert à 390×844 et 844×390 avec safe-top 47 px, dans Chromium/WebKit. Le drawer reste inchangé. Un test retarde les records puis vérifie que Calculer et Mémoriser conservent le focus du burger et l’historique après l’alignement. Le setup `/training/game` ajoute sous 1120 px un espace final `var(--bottom-spacing)` et son CTA une `scroll-margin-bottom: var(--safe-bottom)` ; AppPage fournit toujours seul le padding safe-bottom, sans inset supplémentaire et sans changement desktop. Les exercices et résultats utilisent le scroll naturel d’`AppPage` et sa primitive `coinche-safe-bottom`, sans valeur iOS dupliquée. Un viewport réduit de 390×844 à 390×380 conserve le focus et la valeur du vrai input numérique ; validation et prochain exercice restent atteignables par scroll.
+
+La suite `e2e/trainingMobile.spec.ts` (`@mobile @training-mobile`) vérifie Chromium/WebKit, clair/sombre, les douze tailles téléphone/tablette/desktop, invité, compte vide, records multiples, erreur de lecture, niveaux verrouillés/débloqués, textes longs, ancres directes, navigation drawer, feedback, résultats et safe-bottom simulé. Calculer, Mémoriser, Déduire, Faire son annonce et Lire les enchères passent par les écrans réels, sans nouvelle route de test. Les fixtures progressent avec les fonctions existantes ; les tests DB et Duo authentifiés restent les preuves de persistance et de réseau. `tests/trainingUI.test.tsx` couvre les contrats sémantiques des quatre composants partagés. Les captures et mesures comparatives restent dans `.playwright/training-mobile/`, hors Git.
+
+À partir de 1120 px, la densification est désactivée. La composition hub/exercice/résultat et l’impact du score desktop sont conservés. Les enchères gardent leurs connecteurs et leur orientation existante (colonne sous 640 px, ligne ensuite). Pas de dépendance, animation nécessaire au layout, listener de resize, modification de règle, génération, progression, record, XP, Supabase, RPC, PWA ou navigation globale.
+
+Mesures avant/après depuis le main `e216aa6`, standalone simulé, fixture avec tous les niveaux débloqués et plusieurs records compte. Les deux builds attendent le même message de synchronisation impossible avant les captures de résultat. Les hauteurs clair/sombre sont identiques ; les différences d’arrondi entre moteurs restent inférieures à 0,2 px sur le hub.
+
+| 390×844 | Avant | Après |
+| --- | --- | --- |
+| Header de page | 131,16 px | 120,34 px |
+| Début Calculer | 211,16 px | 200,34 px |
+| Section header Calculer | ≈130,6 px | ≈99 px |
+| Valeur d’un pli, quatre records | ≈411,1 px | ≈347,1 px (−15,6 %) |
+| Level track | 44 px | 44 px |
+| Gap catalogue | 32 px | 20 px (−37,5 %) |
+| Header de session | 148,14 px | ≈115,5 px (−22 %) |
+| Résultat avec message de sync, Chromium / WebKit | 481,58 / 481,58 px | 360,39 / 412,39 px |
+
+Deux cards commencent avant le premier fold dans les deux versions ; la card complète de Calculer finit désormais environ 112 px plus haut et une bien plus grande partie de Survie est visible. À 320×568, la card avec quatre records passe de 452 / 431 px à environ 365 px (Chromium / WebKit) et le résultat de 482 à 412 px. Ses actions restent scrollables avec safe-bottom 34 px, comme le vérifient les E2E.
+
+| 844×390 | Avant | Après |
+| --- | --- | --- |
+| Header de page | ≈118,6 px | ≈84,9 px |
+| Section header Calculer | ≈101 px | ≈55,8 px |
+| Card Valeur d’un pli avec plusieurs records | ≈370,5 px | ≈309,8 px |
+| Header de session | 149,66 px | ≈115,5 px |
+| Résultat avec message de sync | 356,78 px | 316,39 px |
+
+En paysage entre 640 et 1119 px, kicker/titre et description des headers du hub occupent deux colonnes ; à 844×390, les niveaux de la première card sont maintenant visibles dès le haut du hub. Les grilles utilisent un minimum de 15 rem par card, sans compresser les vraies cartes de jeu.
+
+Les huit comparaisons desktop (1120×800 et 1440×900, deux thèmes et deux moteurs) conservent exactement les dimensions du header, du heading Calculer, de la card, du level track, du session header et du résultat. Les pixels Training sous le header global sont identiques pour hub/exercice/résultat. Une capture du header global diffère pendant le chargement de la cosmétique de compte de la fixture ; aucun code de navigation ou de cosmétique n’est modifié. Les JSON et les PNG avant/après sont dans `.playwright/training-mobile/before`, `after` et `comparison.json`.

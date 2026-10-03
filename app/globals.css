@@ -1594,13 +1594,14 @@ summary:focus-visible {
 .training-kicker { color: var(--accent); font-size: .7rem; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
 .training-catalogue { display: grid; gap: clamp(2rem, 3vw, 2.75rem); }
 .training-pile-section { border-top: 1px solid var(--border); padding-top: 1.25rem; }
-.training-section-heading { margin-bottom: 1rem; border-top: 1px solid var(--border); padding-top: 1.25rem; scroll-margin-top: 4.5rem; }
+.training-section-heading { margin-bottom: 1rem; border-top: 1px solid var(--border); padding-top: 1.25rem; scroll-margin-top: .75rem; }
 .training-section-heading h2 { margin-top: .15rem; font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 900; letter-spacing: -.025em; }
 .training-section-heading p { max-width: 48rem; margin-top: .25rem; color: var(--text-secondary); font-size: .9rem; }
 .training-card-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
 .training-mode-card { display: flex; min-width: 0; flex-direction: column; gap: .85rem; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface-raised); padding: 1.25rem; transition: transform .16s ease, border-color .16s ease, background .16s ease; }
 .training-mode-card:hover { transform: translateY(-1px); border-color: var(--border-strong); }
 .training-mode-card h3 { font-size: 1.2rem; line-height: 1.2; font-weight: 900; }
+.training-secondary-links { display: contents; }
 .training-card-description { margin-top: .35rem; color: var(--text-secondary); font-size: .875rem; line-height: 1.5; }
 .training-card-level { font-size: .875rem; font-weight: 800; }
 .training-card-bottom { display: grid; gap: .6rem; margin-top: auto; }
@@ -1637,6 +1638,71 @@ summary:focus-visible {
 .training-unlocked { margin-top: 1rem; border: 1px solid var(--accent); border-radius: .85rem; background: var(--accent-soft); padding: .75rem; color: var(--text-primary); font-weight: 900; }
 .training-result-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; margin-top: 1.5rem; }
 .training-result-back { display: inline-block; margin-top: 1rem; font-size: .85rem; font-weight: 800; }
+/* Solo training density stops before the desktop layout. Duo retains its existing chrome. */
+@media (max-width: 1119px) {
+  .training-page .coinche-page-header--hero { padding: var(--surface-padding); }
+  .training-page .coinche-page-header-description { line-height: 1.4; }
+  .training-page .training-catalogue { gap: 1.25rem; }
+  .training-page .training-section-heading { padding-top: .75rem; margin-bottom: .625rem; }
+  .training-page .training-section-heading .training-kicker { display: block; font-size: .65rem; line-height: 1.35; letter-spacing: .12em; }
+  .training-page .training-section-heading h2 { font-size: 1.375rem; line-height: 1.2; }
+  .training-page .training-section-heading p { margin-top: .25rem; font-size: .875rem; line-height: 1.4; }
+  .training-page .training-card-grid { gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); }
+  .training-page .training-mode-card { gap: .5rem; padding: .875rem; }
+  .training-page .training-mode-card h3 { font-size: 1.0625rem; }
+  .training-page .training-card-description { margin-top: .25rem; line-height: 1.4; }
+  .training-page :is(.training-card-record, .training-lock-note) { line-height: 1.35; overflow-wrap: anywhere; }
+  .training-page .training-card-bottom { gap: .5rem; }
+  .training-page .training-levels { gap: .25rem; }
+  .training-page .training-level-track { gap: .25rem; }
+  .training-page .training-level { flex-shrink: 0; border-radius: .75rem; }
+  .training-page .training-subheading { margin-top: 1rem; margin-bottom: .5rem; }
+  .training-page .training-pile-section { margin-top: 1rem; padding-top: .75rem; }
+  .training-page .training-pile-section > h3 { font-size: 1.125rem; }
+  .training-page .training-pile-section > .training-card-grid { margin-top: .75rem; }
+  .training-page .training-secondary-links { display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
+  .training-page .training-mode-card > *, .training-exercise :is(h1, h2, p), .training-solo-result > * { min-width: 0; overflow-wrap: anywhere; }
+  .training-exercise .training-session-header { gap: .375rem; }
+  .training-exercise .training-back-link { line-height: 1.35; }
+  .training-exercise .training-session-title { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .5rem; }
+  .training-exercise .training-session-title h1 { font-size: 1.375rem; }
+  .training-exercise .training-session-title p { font-size: .8125rem; line-height: 1.35; }
+  .training-exercise .training-score { white-space: nowrap; }
+  .training-exercise .training-score strong { font-size: 1.125rem; }
+  .training-exercise .training-kicker { display: block; font-size: .65rem; line-height: 1.35; letter-spacing: .12em; }
+  .training-exercise .training-progress-copy { line-height: 1.35; }
+  .training-exercise .training-exercise-body { margin-top: .75rem; gap: 1rem; }
+  .training-exercise .training-value-guide { margin-top: .75rem; padding: .625rem; }
+  .training-exercise .training-number-pad input { height: 2.75rem; margin-top: .375rem; font-size: 1.25rem; }
+  .training-exercise .training-number-pad [aria-label="Pavé numérique"] { margin-top: .5rem; gap: .375rem; }
+  .training-exercise .training-number-pad button { min-height: 2.75rem; }
+  .training-exercise .training-feedback { padding: .75rem; }
+  .training-exercise .training-feedback > button { margin-top: .75rem; }
+  .training-exercise .training-pile-briefing { margin-top: .75rem; }
+  .training-exercise .training-pile-start { margin-top: 1rem; }
+  .training-solo-result { padding: 1rem; }
+  .training-solo-result h1 { margin-top: .375rem; font-size: 1.5rem; }
+  .training-solo-result .training-result-score { margin-top: .625rem; font-size: 3.5rem; line-height: 1; }
+  .training-solo-result .training-custom-result-score { margin-top: .625rem; font-size: 3rem; line-height: 1; }
+  .training-solo-result .training-result-best { margin-top: .625rem; }
+  .training-solo-result .training-unlocked { margin-top: .625rem; padding: .5rem; }
+  .training-solo-result :is(.training-result-actions, .training-custom-result-actions) { margin-top: 1rem; gap: .5rem; }
+  .training-solo-result .training-result-actions > [role="status"] { flex-basis: 100%; margin-top: 0; }
+  /* Keep a trailing layout gap; AppPage remains the sole safe-bottom inset. */
+  .training-game-setup { padding-bottom: var(--bottom-spacing); }
+  .training-game-setup > .coinche-app-surface > button { scroll-margin-bottom: var(--safe-bottom); }
+  .training-game-setup > header { margin-top: .5rem; }
+  .training-game-setup > header h1 { font-size: 1.5rem; margin-top: .375rem; }
+  .training-game-setup > header p { margin-top: .375rem; font-size: .875rem; line-height: 1.4; }
+}
+@media (min-width: 640px) and (max-width: 1119px) {
+  .training-exercise .training-number-pad [aria-label="Pavé numérique"] { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+@media (min-width: 640px) and (max-width: 1119px) and (orientation: landscape) {
+  .training-page :is(.coinche-page-header-copy, .training-section-heading) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); column-gap: 1rem; align-items: center; }
+  .training-page .coinche-page-header-copy > :is(.coinche-app-eyebrow, h1), .training-page .training-section-heading > :is(.training-kicker, h2) { grid-column: 1; }
+  .training-page .coinche-page-header-description, .training-page .training-section-heading > p { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+}
 .training-feedback { animation: training-appear .16s ease-out; }
 .training-auction { border: 1px solid var(--border); border-radius: 1.25rem; background: var(--surface-muted); padding: 1rem; }
 .training-auction-list { display: flex; flex-wrap: wrap; gap: 1.4rem 2rem; margin-top: 1rem; padding-right: 1.25rem; }

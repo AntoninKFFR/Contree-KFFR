@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import Link from "next/link";
 import type { ReactNode, RefObject } from "react";
 import { appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
@@ -63,7 +64,7 @@ export function TrainingSessionHeader({ title, level, levelName, index, total, s
 export function TrainingResultSummary({ title, level, levelName, score, total, best, unlocked, children }: {
   title: string; level?: number; levelName?: string; score: number; total: number; best?: string; unlocked?: string; children: ReactNode;
 }) {
-  return <section className="training-result" aria-label="Résultat de la série">
+  return <section className="training-result training-solo-result" aria-label="Résultat de la série">
     <span className="training-kicker">Série terminée{level ? ` · Niveau ${level}` : ""}{levelName ? ` · ${levelName}` : ""}</span>
     <h1>Résultat</h1><p className="training-result-score">{score} <span>/ {total}</span></p>
     <p className="training-result-message">{Math.round(score / total * 100)} % de bonnes réponses</p>

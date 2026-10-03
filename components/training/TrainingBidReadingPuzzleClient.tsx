@@ -90,11 +90,11 @@ export function TrainingBidReadingPuzzleClient({ level }: { level: BidReadingLev
     </TrainingResultSummary></AppPage>;
 
   const targetName = exercise.playerNames[exercise.targetPlayerId];
-  return <AppPage width="wide">
+  return <AppPage width="wide" className="training-exercise">
     <AppSurface className="mx-auto w-full min-w-0">
       <TrainingSessionHeader title="Lire les enchères" level={level} levelName={BID_READING_LEVEL_NAMES[level]} index={index + 1} total={BID_READING_SERIES_LENGTH} score={score} />
-      <div className="mt-4"><BidReadingPublicAuction exercise={exercise} /></div>
-      <div className="mt-4 min-w-0">
+      <div className="training-exercise-body mt-4"><BidReadingPublicAuction exercise={exercise} /></div>
+      <div className="training-exercise-body mt-4 min-w-0">
         <p className="mb-3 font-semibold">Que peux-tu affirmer sur l’enchère de {targetName} ({TRAINING_BID_ROLES[exercise.targetPlayerId]}) ?</p>
         {!grade ? <BidReadingForm key={index} assertionChoices={exercise.assertionChoices} onAnswer={submit} />
           : <section aria-live="polite" aria-label="Correction de la lecture" className="training-feedback rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">

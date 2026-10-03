@@ -4,6 +4,7 @@ import { expectNotFoundPage } from "./helpers/notFound";
 import { SUIT_LABELS } from "@/engine/cards";
 import { generatePileCountSeries, pileGeneratorVersion, type PileCountMode } from "@/engine/training/pileCount";
 import { emptyTrainingProgress, pileCountSeriesSeed, recordPileCountSeries } from "@/components/training/progress";
+import { expectInsideSafeViewport, expectNoPageHorizontalOverflow, setMobileViewport, simulateSafeAreas } from "./helpers/mobile";
 
 const PROGRESS_KEY = "coinche:training-progress:v1";
 const SPEED_KEY = "coinche:training-pile-speed:v1";
@@ -164,6 +165,18 @@ test("@smoke pile-count manual mode: arrows and keyboard, timed piles and a 10/1
   const stored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null"), PROGRESS_KEY);
   expect(stored.axes["pile-count"].modes.manual.completedSeries).toBe(1);
   expect(stored.axes["pile-count"].modes.manual.bestTimeMs).toBeGreaterThan(0);
+  // Reuse the real completed manual series to verify its custom result layout.
+  const resultSafeAreas = { top: 47, bottom: 34, left: 0, right: 0 };
+  for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+    await setMobileViewport(page, viewport); await simulateSafeAreas(page, resultSafeAreas);
+    await expect(page.locator(".training-custom-result-score")).toHaveCSS("font-size", "48px");
+    for (const action of await page.locator(".training-custom-result-actions").locator("button, a").all()) {
+      await action.evaluate((element) => element.scrollIntoView({ block: "center" }));
+      await expectInsideSafeViewport(page, action, resultSafeAreas);
+      expect((await action.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    }
+    await expectNoPageHorizontalOverflow(page);
+  }
   await page.getByRole("link", { name: "Retour à l’entraînement" }).click();
   await expect(page.getByText(/^Record : /)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
