@@ -104,6 +104,8 @@ Aucune dépendance runtime ni fonctionnalité ajoutée. Les images/PWA/audio et 
 
 Le workflow **Mobile responsive** reste unique : suite historique + QA finale, un worker CI, timeout 45 min, retry global existant (1). Pas de sharding ou de neuvième workflow.
 
+Les filtres de chemins des six workflows spécialisés incluent la suite finale, son helper et le collector : une PR de QA seule déclenche ainsi aussi Progression, Social, Training et Rating authentifiés. Leurs jobs, comptes jetables et assertions restent ceux des workflows existants.
+
 - `mobile-responsive-report` : résultats spécialisés et `playwright-report/` HTML, upload `always()` aussi en cas d’échec.
 - `mobile-pwa-final-qa` : **18 captures sélectionnées**, neuf vues × deux moteurs, et rapport JSON agrégé avec erreurs, checkpoints, cibles, retries et assets. Une nouvelle tentative conserve sa trace JSON et la dernière capture de la vue ; elle ne multiplie pas l’ensemble final.
 - Convention : `qa-<route>-<state>-<theme>-<width>x<height>-<engine>.png`.

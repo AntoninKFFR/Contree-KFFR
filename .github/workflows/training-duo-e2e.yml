@@ -3,6 +3,10 @@ name: Training duo E2E
 on:
   pull_request:
     paths:
+      # Final Mobile/PWA QA must retain the real server guarantees.
+      - "e2e/mobilePwaFinalQa.spec.ts"
+      - "e2e/helpers/mobilePwaFinalQa.ts"
+      - "scripts/collectMobilePwaQa.mjs"
       - "app/training/duo/**"
       - "app/api/training/duo/**"
       - "components/training/**"
@@ -27,6 +31,9 @@ on:
   push:
     branches: [main]
     paths:
+      - "e2e/mobilePwaFinalQa.spec.ts"
+      - "e2e/helpers/mobilePwaFinalQa.ts"
+      - "scripts/collectMobilePwaQa.mjs"
       - "app/training/duo/**"
       - "app/api/training/duo/**"
       - "components/training/**"

@@ -3,6 +3,10 @@ name: Training DB security
 on:
   pull_request:
     paths:
+      # Final Mobile/PWA QA must retain the real server guarantees.
+      - "e2e/mobilePwaFinalQa.spec.ts"
+      - "e2e/helpers/mobilePwaFinalQa.ts"
+      - "scripts/collectMobilePwaQa.mjs"
       # The shared header is mounted in these authenticated flows.
       - "components/AppTopNav.tsx"
       - "components/navigation/**"
@@ -21,6 +25,9 @@ on:
   push:
     branches: [main]
     paths:
+      - "e2e/mobilePwaFinalQa.spec.ts"
+      - "e2e/helpers/mobilePwaFinalQa.ts"
+      - "scripts/collectMobilePwaQa.mjs"
       - "components/AppTopNav.tsx"
       - "components/navigation/**"
       - "components/ui/AccessibleDialog.tsx"
