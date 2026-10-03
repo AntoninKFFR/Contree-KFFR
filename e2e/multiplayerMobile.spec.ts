@@ -80,6 +80,9 @@ test("@mobile @multiplayer-mobile first viewport and rotation preserve the loade
   await setMobileViewport(page, { width: 390, height: 844 }); await page.goto(fixture.path);
   await expect(lobby(page)).toBeVisible(); await page.waitForLoadState("networkidle");
   const seat = page.locator(".coinche-lobby-seat").first(); const originalSeat = await seat.elementHandle();
+  const originalPlayers = await page.locator(".coinche-lobby-seat").allTextContents();
+  const originalFreeSeats = await page.getByText("Place libre", { exact: true }).count();
+  expect(originalFreeSeats).toBe(0); // Four occupied places, not merely four permanent slots.
   const reads = fixture.reads();
   for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 390, height: 844 }]) {
     await setMobileViewport(page, viewport);
@@ -88,6 +91,8 @@ test("@mobile @multiplayer-mobile first viewport and rotation preserve the loade
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(fixture.view().room.code);
     await expect(lobby(page).getByRole("button", { name: "Pas prêt" })).toBeVisible();
     await expect(page.locator(".coinche-lobby-seat")).toHaveCount(4); await expect(seat).toContainText("(Toi)");
+    expect(await page.locator(".coinche-lobby-seat").allTextContents()).toEqual(originalPlayers);
+    expect(await page.getByText("Place libre", { exact: true }).count()).toBe(originalFreeSeats);
     expect(await originalSeat!.evaluate((element) => element.isConnected)).toBe(true);
     await boardGeometry(page);
     const header = (await page.locator(".coinche-global-header").boundingBox())!, head = (await lobby(page).boundingBox())!, table = (await page.locator(".coinche-lobby-table").boundingBox())!;
