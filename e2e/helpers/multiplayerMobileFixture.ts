@@ -34,8 +34,8 @@ export function mobileLobbyView({ role = "host", players = 1, ready = false, off
 // Social suites remain the independent evidence for server behavior.
 export async function installMultiplayerMobileFixture(page: Page, options: LobbyScenario & {
   theme?: "dark" | "light"; authenticated?: boolean; missingUsername?: boolean; invitations?: boolean; loading?: boolean;
-} = {}) {
-  const fixture = await installMobileNavigationFixture(page, { theme: options.theme, authenticated: options.authenticated,
+} = {}, navigation?: Awaited<ReturnType<typeof installMobileNavigationFixture>>) {
+  const fixture = navigation ?? await installMobileNavigationFixture(page, { theme: options.theme, authenticated: options.authenticated,
     username: LONG_MULTIPLAYER_NAME, notifications: false });
   let view = mobileLobbyView(options);
   const intents: RoomIntent[] = [];

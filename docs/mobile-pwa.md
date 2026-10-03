@@ -422,6 +422,8 @@ L’ancien landscape montrait déjà quatre rectangles de places, mais masquait 
 
 ## Table de jeu mobile
 
+La [QA release Mobile/PWA](mobile-pwa-qa.md) réunit la matrice Chromium/WebKit, les parcours transverses, les artefacts CI, les limites de l’automatisation et la checklist de release sur iPhone réel.
+
 `GameChromeProvider` entoure le header et les pages. `useGameChrome` enregistre explicitement une partie affichée, avec cleanup dans un layout effect au démontage ou à la fin de partie. Le Solo avant démarrage, le lobby Multi et le setup Training ne s’enregistrent pas. La notice portrait d’une partie active conserve l’enregistrement. La navigation vers Accueil restaure `default` avant le prochain paint ; aucun pathname, événement global, observer ou changement direct du body n’active ce mode.
 
 Le wrapper possède `--header-height` et recalcule ses deux valeurs dérivées `--header-shell-height` et `--content-height`. `compact-game` passe à 44 px en portrait téléphone et en paysage court sous 1120 px. Desktop et tablette de hauteur normale gardent 56 px. Logo, navigation, notifications, audio, thème et Menu Partie restent accessibles ; les actions du header gardent 44×44 px. Le gutter de scrollbar est libéré uniquement dans cette présentation de partie sur téléphone.

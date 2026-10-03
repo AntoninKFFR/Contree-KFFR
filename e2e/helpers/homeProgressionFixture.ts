@@ -5,7 +5,7 @@ import { installMobileNavigationFixture } from "./mobileNavigationFixture";
 export type HomeProgressionState = "ready" | "loading" | "error" | "weekly-unavailable" | "weekly-empty" | "weekly-complete";
 
 // UI-only network fixtures use the existing auth and standalone simulation.
-export async function installHomeProgressionFixture(page: Page, options: { theme?: "dark" | "light"; authenticated?: boolean; xp?: number; state?: HomeProgressionState; standalone?: boolean } = {}) {
+export async function installHomeProgressionFixture(page: Page, options: { theme?: "dark" | "light"; authenticated?: boolean; xp?: number; state?: HomeProgressionState; standalone?: boolean; preservePreferencesOnReload?: boolean } = {}) {
   const base = await installMobileNavigationFixture(page, { ...options, xp: options.xp ?? 5, notifications: false });
   let state = options.state ?? "ready";
   const snapshot: WeeklySnapshot = {
