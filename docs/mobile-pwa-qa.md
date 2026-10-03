@@ -96,7 +96,7 @@ Le test de reprise émet blur/focus et visibilitychange hidden/visible sur une p
 
 ## Performance / assets
 
-`collectMobilePwaQa.mjs` produit une observation reproductible après le build : nombre/octets des chunks `.next/static/chunks`, union des chunks initiaux `/layout` + `/page`, tailles brutes/gzip, dix plus gros chunks et assets `public/`. Ces chiffres figurent dans `mobile-pwa-qa-report.json`, avec le SHA GitHub du run. Ils ne constituent pas un seuil arbitraire de performance.
+`collectMobilePwaQa.mjs` produit une observation reproductible après le build : nombre/octets des chunks `.next/static/chunks`, union des chunks initiaux `/layout` + `/page`, tailles brutes/gzip, dix plus gros chunks et assets `public/`. Ces chiffres figurent dans `mobile-pwa-qa-report.json`, avec le SHA source de la PR (`commit`) et le commit de merge testé par GitHub (`testedCommit`). Ils ne constituent pas un seuil arbitraire de performance.
 
 Référence du build de #126, dont les sources runtime sont identiques au merge `88c00bb` : **83 chunks / 1 877 460 octets** ; `public/` : **23 fichiers / 35 380 847 octets**. Les principaux assets existants sont les pistes MP3 (environ 2,5–3,5 Mo) et `TapisKFFR.png` (3 019 270 octets). Aucun PNG de QA, vidéo, archive ou rapport n’est ajouté dans public. Ce total statique n’est pas le volume transféré au démarrage ; le sous-ensemble initial Home est rapporté séparément.
 

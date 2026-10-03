@@ -37,7 +37,8 @@ const initialSizes = await Promise.all(initialHome.map(async path => {
   return { path, bytes: data.length, gzipBytes: gzipSync(data).length };
 }));
 const report = {
-  commit: process.env.GITHUB_SHA ?? process.env.QA_COMMIT ?? null,
+  commit: process.env.QA_COMMIT ?? process.env.GITHUB_SHA ?? null,
+  testedCommit: process.env.GITHUB_SHA ?? process.env.QA_COMMIT ?? null,
   generatedAt: new Date().toISOString(),
   total: reports.length,
   uniqueScenarios: finalScenarios.length,
