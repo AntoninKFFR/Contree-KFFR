@@ -51,7 +51,8 @@ export default defineConfig({
     },
     {
       name: "multiplayer",
-      grep: /@multiplayer/,
+      // Match the authenticated tag, excluding the separate @multiplayer-mobile UI fixtures.
+      grep: /@multiplayer(?:\s|$)/,
       // Auth actions can contain passwords. Never put those action arguments in a trace.
       use: { ...devices["Desktop Chrome"], trace: "off" },
     },

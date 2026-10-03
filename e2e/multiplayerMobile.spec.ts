@@ -158,6 +158,13 @@ for (const scenario of [
 ] satisfies LobbyScenario[]) test(`@mobile @multiplayer-mobile roles ${JSON.stringify(scenario)}`, async ({ page }) => {
   const fixture = await installMultiplayerMobileFixture(page, scenario); await setMobileViewport(page, { width: 320, height: 568 }); await page.goto(fixture.path);
   await expect(lobby(page)).toBeVisible(); await boardGeometry(page); await touchTargets(page.locator(".coinche-lobby-table"));
+  if (scenario.players === 4 && scenario.role === "spectator") {
+    // Reproduce Linux's wrapped presence even on a narrower Windows system font.
+    await page.addStyleTag({ content: ".coinche-lobby-seat-presence { font-family: monospace; }" });
+    const presence = page.locator(".coinche-lobby-seat-presence > span:not([aria-hidden])").first();
+    expect((await presence.boundingBox())!.height).toBeGreaterThanOrEqual(28);
+    await boardGeometry(page);
+  }
   await expect(lobby(page).getByRole("button", { name: "Inviter des amis" })).toHaveCount(scenario.players < 4 && scenario.role !== "spectator" ? 1 : 0);
   if (scenario.role) await expect(lobby(page).getByRole("button", { name: "Lancer la partie" })).toHaveCount(0);
   if ("takeover" in scenario) await expect(page.locator(".coinche-lobby-seat").nth(2)).toContainText("Bot temporaire");
