@@ -1594,7 +1594,7 @@ summary:focus-visible {
 .training-kicker { color: var(--accent); font-size: .7rem; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
 .training-catalogue { display: grid; gap: clamp(2rem, 3vw, 2.75rem); }
 .training-pile-section { border-top: 1px solid var(--border); padding-top: 1.25rem; }
-.training-section-heading { margin-bottom: 1rem; border-top: 1px solid var(--border); padding-top: 1.25rem; scroll-margin-top: calc(var(--header-shell-height) + .75rem); }
+.training-section-heading { margin-bottom: 1rem; border-top: 1px solid var(--border); padding-top: 1.25rem; scroll-margin-top: .75rem; }
 .training-section-heading h2 { margin-top: .15rem; font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 900; letter-spacing: -.025em; }
 .training-section-heading p { max-width: 48rem; margin-top: .25rem; color: var(--text-secondary); font-size: .9rem; }
 .training-card-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }

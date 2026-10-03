@@ -53,6 +53,17 @@ export function TrainingHubClient() {
   const refreshGeneration = useRef(0);
   const [authEpoch, setAuthEpoch] = useState(0);
   const [account, setAccount] = useState<{ signedIn: boolean; records: AccountTrainingRecord[]; failed: boolean } | null>(null);
+  const initialFragmentHandled = useRef(false);
+  useEffect(() => {
+    // The gate mounts the hub after the browser's initial fragment lookup.
+    // Wait for initial layout data, then replay native navigation once. CSS
+    // owns the offset; later record refreshes must not move the reader.
+    if (!progress || !account || initialFragmentHandled.current) return;
+    initialFragmentHandled.current = true;
+    if (["#calculer", "#memoriser", "#deduire", "#annoncer"].includes(window.location.hash)) {
+      window.location.replace(window.location.hash);
+    }
+  }, [progress, account]);
   useEffect(() => {
     let active = true;
     const refresh = () => {

@@ -22,8 +22,17 @@ async function reachable(page: Page, action: Locator) {
 }
 async function anchorBelowHeader(page: Page, id: string) {
   const heading = page.locator(`#${id} h2`);
-  await expect(heading).toBeInViewport();
-  await expect.poll(async () => (await heading.boundingBox())!.y - ((await page.locator(".coinche-global-header").boundingBox())!.y + (await page.locator(".coinche-global-header").boundingBox())!.height)).toBeGreaterThanOrEqual(2);
+  await expect(heading).toBeInViewport({ ratio: 1 });
+  // The h2 follows the section padding and kicker, in addition to the 12 px
+  // visual scroll margin. 56 px allows that chrome, but not a second header.
+  await expect(async () => {
+    const gap = await heading.evaluate((element) => element.getBoundingClientRect().top
+      - document.querySelector(".coinche-global-header")!.getBoundingClientRect().bottom);
+    expect(gap, `${id}: heading gap below header`).toBeGreaterThanOrEqual(0);
+    expect(gap, `${id}: heading gap below header`).toBeLessThanOrEqual(56);
+  }).toPass({ timeout: 5000 });
+  await expect(page.locator(`#${id}`)).toHaveCSS("scroll-margin-top", "12px");
+  await expect(page.locator("html")).toHaveCSS("scroll-padding-top", "103px"); // 56 px header + 47 px safe-top.
 }
 
 for (const theme of themes) for (const records of ["guest", "empty", "multiple", "error"] as const) {
@@ -82,17 +91,30 @@ for (const theme of themes) for (const records of ["guest", "empty", "multiple",
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
   test(`@mobile @training-mobile fresh anchors and real drawer ${viewport.width}`, async ({ page }) => {
-    await installTrainingMobileFixture(page);
-    await page.addInitScript(() => document.addEventListener("DOMContentLoaded", () => { document.documentElement.style.setProperty("--safe-top", "47px"); }));
-    await setMobileViewport(page, viewport);
+    const prepare = async (target: Page) => {
+      await installTrainingMobileFixture(target);
+      await target.addInitScript(() => document.addEventListener("DOMContentLoaded", () => { document.documentElement.style.setProperty("--safe-top", "47px"); }));
+      await setMobileViewport(target, viewport);
+    };
     for (const id of ["calculer", "memoriser", "deduire", "annoncer"]) {
-      await page.goto(`/training#${id}`); await anchorBelowHeader(page, id); await expectNoPageHorizontalOverflow(page);
+      const directPage = await page.context().newPage();
+      let documentRequests = 0;
+      directPage.on("request", (request) => { if (request.isNavigationRequest() && request.frame() === directPage.mainFrame()) documentRequests++; });
+      try {
+        await prepare(directPage);
+        await directPage.goto(`/training#${id}`);
+        await expect(directPage.getByText("Connecte-toi pour synchroniser tes records. Les annonces restent locales.")).toBeVisible();
+        await anchorBelowHeader(directPage, id); await expectNoPageHorizontalOverflow(directPage);
+        expect(documentRequests).toBe(1); // Native fragment replay must not reload the document.
+      } finally { await directPage.close(); }
     }
+    await prepare(page);
     await page.goto("/"); await page.getByRole("button", { name: "Ouvrir le menu" }).click();
     const navigation = page.getByRole("navigation", { name: "Navigation mobile" });
     await navigation.getByRole("button", { name: "Entraînement", exact: true }).click();
     await navigation.getByRole("link", { name: "Mémoriser", exact: true }).click();
     await expect(page).toHaveURL(/\/training#memoriser$/); await expect(page.getByRole("dialog", { name: "Navigation KFFR" })).toHaveCount(0);
+    await expect(page.getByText("Connecte-toi pour synchroniser tes records. Les annonces restent locales.")).toBeVisible();
     await anchorBelowHeader(page, "memoriser");
   });
 }
