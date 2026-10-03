@@ -198,4 +198,6 @@ Les huit workflows et Vercel doivent réussir sur **le SHA final**, avec revue d
 
 Une attente fragile existante du smoke `manual collection leaves the next trick live and mounted` a été corrigée : après 160, un bot peut contrer et rendre le tour d’enchères à l’humain. Le test passe quand le vrai bouton Passer est disponible et attend une carte légalement jouable, au lieu d’attendre à tort le jeu pendant des enchères non terminées. Aucun sleep fixe, timeout métier ou moteur n’est modifié.
 
+La matrice lobby rejoint désormais la table avec le vrai bouton Créer, sans rechargement forcé du document. Un premier run CI avait nécessité un retry WebKit à 375×667 : le rechargement annulait des lectures RPC encore en cours, remontées en erreurs de contrôle d’accès. La navigation client conserve les providers et corrige cette course ; les erreurs console/page restent fatales.
+
 Les résultats, retries, déploiement et SHA sont identifiés par les checks et artefacts de la PR associée à l’issue #127. Le guide ne fige pas un SHA de travail provisoire. #127 et #117 restent ouverts jusqu’au merge humain ; cette QA ne merge rien.
