@@ -45,10 +45,10 @@ export function PlayerPanel({
     >
       <div className="flex items-center justify-center gap-1.5 sm:gap-2">
         {isRanked && rating !== null ? <RankEmblem decorative rating={rating} size="xs" /> : null}
-        <div className="min-w-0">
-          <div className="flex items-center justify-center gap-1">
-            <p className="max-w-[58px] truncate text-[11px] font-bold sm:max-w-24 sm:text-sm">{name}</p>
-            {isHost ? <span className="rounded-full border border-[#d8c48f]/35 bg-[#d8c48f]/10 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wide text-[#f0dfb1] sm:text-[8px]">Hôte</span> : null}
+        <div className="coinche-player-content min-w-0">
+          <div className="coinche-player-identity flex items-center justify-center gap-1">
+            <p title={name} className="coinche-player-name max-w-[58px] truncate text-[11px] font-bold sm:max-w-24 sm:text-sm">{name}</p>
+            {isHost ? <span className="coinche-player-host rounded-full border border-[#d8c48f]/35 bg-[#d8c48f]/10 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wide text-[#f0dfb1] sm:text-[8px]">Hôte</span> : null}
           </div>
           {isConnected !== undefined ? (
             <p className="flex items-center justify-center gap-1 text-[8px] font-semibold text-white/55 sm:text-[9px]">

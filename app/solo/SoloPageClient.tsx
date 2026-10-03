@@ -6,6 +6,7 @@ import { BiddingPanel } from "@/components/BiddingPanel";
 import { BotReviewHistory, BotReviewPanel } from "@/components/BotReviewPanel";
 import { SoloBotHandsPanel } from "@/components/BotHandAnalysis";
 import { GameTable } from "@/components/GameTable";
+import { useGameChrome } from "@/components/GameChromeProvider";
 import { GameMenuPopover } from "@/components/GameMenuPopover";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
@@ -119,7 +120,7 @@ export default function SoloPage() {
     }
 
     const portraitQuery = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
-    const landscapeQuery = window.matchMedia("(max-width: 900px) and (orientation: landscape)");
+    const landscapeQuery = window.matchMedia("(max-width: 900px) and (orientation: landscape), (max-width: 1119px) and (max-height: 500px) and (orientation: landscape)");
     const update = () => {
       setIsMobilePortrait(portraitQuery.matches);
       setIsMobileLandscape(landscapeQuery.matches);
@@ -216,6 +217,7 @@ export default function SoloPage() {
   ];
 
   const synchronizationNotice = connectionError ? <div role="alert" className="p-3 text-sm">{connectionError} <button type="button" disabled={isBusy} onClick={retrySynchronization}>Réessayer</button></div> : null;
+  useGameChrome(Boolean(gameState && gameState.phase !== "game-over"));
 
   if (!gameState) {
     return (
@@ -238,6 +240,7 @@ export default function SoloPage() {
   return (
     <><GameMenuPopover focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" /><main
       aria-label={`Partie Solo, objectif ${gameState.settings.targetScore} points`}
+      data-game-id={sessionId ?? gameIdRef.current}
       className={soloMainClassName(analysisDesktop, isMobileLandscape)}
     >
       {synchronizationNotice}<div className={soloContentClassName(analysisDesktop)}>

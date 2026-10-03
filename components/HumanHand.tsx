@@ -57,7 +57,7 @@ export function HumanHand({
       >
         <h2 className="coinche-panel-kicker text-xs font-bold uppercase tracking-[0.14em]">Ta main</h2>
       </div> : null}
-      {feedback ? <p aria-live="polite" className={`mb-2 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm ${embedded ? "border-amber-200/60 bg-stone-950/80 text-white" : "border-amber-300 bg-amber-50 text-amber-950"}`} role="status">{feedback}</p> : null}
+      {feedback ? <p aria-live="polite" className={`coinche-hand-feedback mb-2 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm ${embedded || inScene ? "border-amber-200/60 bg-stone-950/80 text-white" : "border-amber-300 bg-amber-50 text-amber-950"}`} role="status">{feedback}</p> : null}
       <div
         className={[
           "-mx-1 flex min-h-28 justify-center gap-1 overflow-x-auto px-2 pb-1 sm:mx-0 sm:min-h-32 sm:flex-nowrap sm:items-end sm:justify-center sm:gap-0 sm:overflow-visible sm:px-0 sm:pb-0",
