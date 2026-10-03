@@ -103,7 +103,7 @@ export function TrainingHubClient() {
             {[1, 2].map((level) => <AccountRecord key={level} record={accountRecord("trick-value", level)} />)}
           </TrainingModeCard>
         </div>
-        <h3 className="mb-3 mt-7 text-lg font-black">Défis</h3>
+        <h3 className="training-subheading mb-3 mt-7 text-lg font-black">Défis</h3>
         <div className="training-card-grid">
           {(["survival", "blitz"] as const).map((mode) => <TrainingModeCard key={mode} title={mode === "survival" ? "Survie" : "Blitz"}
             description={mode === "survival" ? "3 vies. Le temps diminue à mesure que tu progresses." : "60 secondes. Les erreurs consécutives peuvent détruire ta run."}
@@ -143,8 +143,10 @@ export function TrainingHubClient() {
             href={`/training/puzzle/bid-reading?level=${bidReadingLevel}`} action="Jouer en solo" featured>
             <TrainingLevelTrack title="Lire les enchères" current={bidReadingLevel} total={BID_READING_LEVELS} href={(level) => `/training/puzzle/bid-reading?level=${level}`} names={BID_READING_LEVEL_NAMES} />
             <p className="text-sm text-[var(--text-secondary)]">Même série, deux réponses indépendantes.</p>
-            <Link className="coinche-ui-link text-sm font-bold" href="/training/duo">Jouer à deux</Link>
-            <Link className="coinche-ui-link text-sm font-bold" href="/training/conventions/bidding">Voir les conventions</Link>
+            <div className="training-secondary-links">
+              <Link className="coinche-ui-link text-sm font-bold" href="/training/duo">Jouer à deux</Link>
+              <Link className="coinche-ui-link text-sm font-bold" href="/training/conventions/bidding">Voir les conventions</Link>
+            </div>
           </TrainingModeCard>
         </div>
       </section>

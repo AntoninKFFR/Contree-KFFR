@@ -95,11 +95,11 @@ export function TrainingBiddingPuzzleClient({ level }: { level: BiddingLevel }) 
 
   const contract = exercise.currentContract;
   const rules = CONTREE_KFFR_RULESET.bidding;
-  return <AppPage width="wide">
+  return <AppPage width="wide" className="training-exercise">
     <AppSurface className="mx-auto w-full min-w-0">
       <TrainingSessionHeader title="Faire son annonce" level={level} levelName={BIDDING_LEVEL_NAMES[level]} index={index + 1} total={BIDDING_SERIES_LENGTH} score={score} />
-      <div className="mt-4"><BiddingExerciseBoard exercise={exercise} /></div>
-      <div className="mt-4 min-w-0">
+      <div className="training-exercise-body mt-4"><BiddingExerciseBoard exercise={exercise} /></div>
+      <div className="training-exercise-body mt-4 min-w-0">
         {!grade ? <BiddingPanel key={index} exerciseMode compact bids={exercise.publicBids} playerId={0} canBid
           canCoinche={canCoinche(0, contract, rules)} canSurcoinche={canSurcoinche(0, contract, rules)}
           currentContract={contract} biddingRules={rules}

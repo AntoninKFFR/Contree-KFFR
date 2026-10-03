@@ -111,10 +111,10 @@ export function TrainingOpponentVoidsClient({ level }: { level: number }) {
   </TrainingResultSummary></AppPage>;
 
   const players = exercise.players.map((id) => ({ id, name: exercise.playerNames[id] }));
-  return <AppPage width="wide">
+  return <AppPage width="wide" className="training-exercise">
     <AppSurface className="mx-auto w-full min-w-0">
       <TrainingSessionHeader title="Jeu des autres" level={level} index={index + 1} total={OPPONENT_VOIDS_SERIES_LENGTH} score={score} />
-      <div className="mt-5 min-w-0">
+      <div className="training-exercise-body mt-5 min-w-0">
         {studying ? <TrainingStudyPhase observation={exercise.observation} trump={exercise.trump} playerNames={exercise.playerNames}
           instruction="Observe les plis joués : une carte hors de la couleur demandée peut prouver une coupure." onAnswer={() => setStudying(false)} /> :
           <section aria-label="Question de déduction">

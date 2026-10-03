@@ -25,7 +25,7 @@ export function ValueGuide() {
     { label: "À l’atout", suit: "hearts" as const, ranks: TRUMP_RANKS },
     { label: "Hors atout", suit: "clubs" as const, ranks: SIDE_RANKS },
   ];
-  return <aside aria-label="Aide des valeurs des cartes" className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3">
+  return <aside aria-label="Aide des valeurs des cartes" className="training-value-guide mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3">
     <p className="text-xs font-black uppercase tracking-widest text-[var(--ui-kicker)]">Aide · Valeur des cartes</p>
     <div className="mt-2 grid gap-3 sm:grid-cols-2 sm:gap-4">
       {groups.map(({ label, suit, ranks }) => <div key={label}>
@@ -168,10 +168,10 @@ export function TrainingPuzzleClient({ level }: { level: TrickValueLevel }) {
     </AppPage>;
   }
 
-  return <AppPage width="wide">
+  return <AppPage width="wide" className="training-exercise">
     <AppSurface className="mx-auto w-full">
       <TrainingSessionHeader title="Valeur d’un pli" level={level} levelName={levelName} index={index + 1} total={TRICK_VALUE_SERIES_LENGTH} score={score} backLabel="Changer de niveau" />
-      <div className="mt-4 grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] md:gap-8">
+      <div className="training-exercise-body mt-4 grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] md:gap-8">
         <div className="min-w-0">
           <TrickValueBoard exercise={exercise} />
           {level === 1 ? <ValueGuide /> : null}

@@ -303,10 +303,10 @@ export function PileCountClient({ mode }: { mode: PileCountMode }) {
     const modes = progress.axes["pile-count"].modes;
     const totalTimeMs = pileTimes.reduce((sum, time) => sum + time, 0);
     return <AppPage width="medium">
-      <AppSurface className="training-result mx-auto w-full max-w-xl py-8 text-center sm:py-12">
+      <AppSurface className="training-result training-solo-result mx-auto w-full max-w-xl py-8 text-center sm:py-12">
         <AppEyebrow>Série terminée · {PILE_COUNT_TITLE} · {copy.name}</AppEyebrow>
         <h1 className="mt-3 text-3xl font-black">Résultat</h1>
-        <p className="mt-5 text-5xl font-black text-[var(--accent)]">{score} / {PILE_COUNT_SERIES_LENGTH}</p>
+        <p className="training-custom-result-score mt-5 text-5xl font-black text-[var(--accent)]">{score} / {PILE_COUNT_SERIES_LENGTH}</p>
         <p className="mt-2 text-lg font-semibold">{score * 10} % de bonnes réponses</p>
         {isManual ? <>
           <p className="mt-4 text-2xl font-black tabular-nums">Temps total : {formatDuration(totalTimeMs)}</p>
@@ -320,7 +320,7 @@ export function PileCountClient({ mode }: { mode: PileCountMode }) {
           ? <p className="mt-4 text-sm text-[var(--text-secondary)]">Mode libre : ce score n’est pas enregistré comme record.</p>
           : <p className="mt-4 text-sm text-[var(--text-secondary)]">Meilleur score en {copy.name} : {modes[mode].bestScore} / {PILE_COUNT_SERIES_LENGTH}</p>}
         {justUnlocked ? <p className="mt-3 font-bold text-[var(--success)]" role="status">Mode Normal débloqué !</p> : null}
-        <div className="mt-7 flex flex-col justify-center gap-2 sm:flex-row sm:flex-wrap">
+        <div className="training-custom-result-actions mt-7 flex flex-col justify-center gap-2 sm:flex-row sm:flex-wrap">
           <button className={appPrimaryActionClass} onClick={() => restart(progress)} type="button">Rejouer en {copy.name}</button>
           {justUnlocked ? <Link className={appSecondaryActionClass} href="/training/puzzle/pile-count?mode=normal">Passer en Normal</Link> : null}
           <Link className={appSecondaryActionClass} href="/training">Retour à l’entraînement</Link>
@@ -334,12 +334,12 @@ export function PileCountClient({ mode }: { mode: PileCountMode }) {
     <div className="h-full bg-[var(--accent)] transition-all" style={{ width: `${((shown + 1) / cardTotal) * 100}%` }} />
   </div>;
 
-  return <AppPage width="wide">
+  return <AppPage width="wide" className="training-exercise">
     <AppSurface className="mx-auto w-full">
       <TrainingSessionHeader title={PILE_COUNT_TITLE} levelName={`Mode ${copy.name}`} index={index + 1} total={PILE_COUNT_SERIES_LENGTH} score={score} backLabel="Changer d’exercice" />
       <span aria-label={`Tas ${index + 1} sur ${PILE_COUNT_SERIES_LENGTH}`} className="sr-only">Tas {index + 1} sur {PILE_COUNT_SERIES_LENGTH}</span>
 
-      {phase === "briefing" ? <div className="mt-5">
+      {phase === "briefing" ? <div className="training-pile-briefing mt-5">
         <p className="text-lg font-black">Voici le tas de plis de ton équipe : {exercise.trickCount} pli{exercise.trickCount > 1 ? "s" : ""}, soit {cardTotal} cartes.</p>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
           {isManual
@@ -361,7 +361,7 @@ export function PileCountClient({ mode }: { mode: PileCountMode }) {
           />
           <p className="mt-1 flex justify-between text-xs text-[var(--text-secondary)]"><span>Rapide</span><span>Lent</span></p>
         </div> : null}
-        <button className={`${appPrimaryActionClass} mt-6 w-full sm:w-auto`} onClick={startScrolling} type="button">
+        <button className={`${appPrimaryActionClass} training-pile-start mt-6 w-full sm:w-auto`} onClick={startScrolling} type="button">
           {isManual ? "Commencer à compter" : "Lancer le défilement"}
         </button>
       </div> : null}
@@ -386,7 +386,7 @@ export function PileCountClient({ mode }: { mode: PileCountMode }) {
         {mode === "beginner" ? <ValueGuide /> : null}
       </div> : null}
 
-      {phase === "answer" || phase === "feedback" ? <div className="mt-5 grid gap-6 md:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] md:gap-8">
+      {phase === "answer" || phase === "feedback" ? <div className="training-exercise-body mt-5 grid gap-6 md:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] md:gap-8">
         <div className="min-w-0">
           <p className="text-lg font-black">Combien de points ton équipe a-t-elle faits sur cette donne ?</p>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">Cartes du tas, plus le 10 de der et la belote si ton équipe les a.</p>

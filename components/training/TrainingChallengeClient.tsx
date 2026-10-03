@@ -203,16 +203,16 @@ export function TrainingChallengeClient({ mode }: { mode: TrickValueChallengeMod
 
   if (run.finished) {
     const record = progress.axes["trick-value"].challenges[mode];
-    return <AppPage width="medium"><AppSurface className="mx-auto w-full max-w-xl py-8 text-center sm:py-12">
+    return <AppPage width="medium"><AppSurface className="training-solo-result mx-auto w-full max-w-xl py-8 text-center sm:py-12">
       <AppEyebrow>{label} · Run terminée</AppEyebrow>
       <h1 className="mt-3 text-3xl font-black">Résultat {label}</h1>
-      <p className="mt-5 text-5xl font-black text-[var(--accent)]">{run.correctAnswers} {mode === "survival" ? run.correctAnswers === 1 ? "pli" : "plis" : run.correctAnswers === 1 ? "bonne réponse" : "bonnes réponses"}</p>
+      <p className="training-custom-result-score mt-5 text-5xl font-black text-[var(--accent)]">{run.correctAnswers} {mode === "survival" ? run.correctAnswers === 1 ? "pli" : "plis" : run.correctAnswers === 1 ? "bonne réponse" : "bonnes réponses"}</p>
       {mode === "survival"
         ? <p className="mt-3 font-semibold">Palier atteint : {survivalTier(run.correctAnswers)}</p>
         : <p className="mt-3 font-semibold">Meilleure série de la run : {run.bestStreak}</p>}
       <p className="mt-4 text-sm text-[var(--text-secondary)]">Record personnel : {record.bestScore} {mode === "survival" ? record.bestScore === 1 ? "pli" : "plis" : record.bestScore === 1 ? "bonne réponse" : "bonnes réponses"}</p>
       {newRecord ? <p className="mt-3 font-bold text-[var(--success)]" role="status">Nouveau record !</p> : null}
-      <div className="mt-7 flex flex-col justify-center gap-2 sm:flex-row">
+      <div className="training-custom-result-actions mt-7 flex flex-col justify-center gap-2 sm:flex-row">
         <button className={appPrimaryActionClass} onClick={() => startRun(progress)} type="button">Rejouer</button>
         <Link className={appSecondaryActionClass} href="/training">Retour entraînement</Link>
       </div>
@@ -226,14 +226,14 @@ export function TrainingChallengeClient({ mode }: { mode: TrickValueChallengeMod
   const tension = mode === "blitz" && remainingMs < 20_000;
   const tone = urgent || danger ? "text-[var(--danger)]" : tension ? "text-[var(--accent)]" : "text-[var(--text-primary)]";
 
-  return <AppPage width="wide">
+  return <AppPage width="wide" className="training-exercise">
     <Link className="coinche-ui-link w-fit text-sm font-bold" href="/training">← Retour entraînement</Link>
     <AppSurface className="mx-auto w-full">
       <header className="training-session-title">
         <div><span className="training-kicker">Défi · Valeur d’un pli</span><h1>{label}</h1></div>
         <p className="text-sm font-bold">Pli {run.exerciseIndex + 1}</p>
       </header>
-      <div className="mt-4 grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] md:gap-8">
+      <div className="training-exercise-body mt-4 grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] md:gap-8">
         <div className="min-w-0">
           <TrickValueBoard exercise={exercise} />
         </div>
