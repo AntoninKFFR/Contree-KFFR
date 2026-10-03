@@ -200,8 +200,8 @@ export default function MultiplayerPage() {
   const canSubmit = pageState === "ready" && Boolean(username) && !isSubmitting;
 
   return (
-    <AppPage width="wide">
-        <AppPageHeader actions={<button className={appSecondaryActionClass} type="button" onClick={() => setIsSettingsOpen(true)}>Préférences</button>}
+    <AppPage className="coinche-multiplayer-landing" width="wide">
+        <AppPageHeader className="coinche-multiplayer-header" actions={<button className={appSecondaryActionClass} type="button" onClick={() => setIsSettingsOpen(true)}>Préférences</button>}
           description="Crée la partie ou saisis un code." eyebrow="Multijoueur" title="Une table, quatre places" />
 
         {pageState === "unavailable" ? (
@@ -231,8 +231,8 @@ export default function MultiplayerPage() {
         ) : null}
 
         {pageState === "ready" ? (
-          <div className="grid gap-4 lg:grid-cols-2">
-            <AppSurface className="flex h-full flex-col lg:p-6">
+          <div className="coinche-multiplayer-choices grid gap-4 lg:grid-cols-2">
+            <AppSurface className="coinche-multiplayer-create flex h-full flex-col lg:p-6">
               <div><AppEyebrow>Nouvelle partie</AppEyebrow><h2 className="mt-1 text-xl font-black text-[#f4ead0]">Créer une table</h2></div>
               <form className="mt-5 flex flex-1 flex-col gap-3" onSubmit={handleCreateRoom}>
                 <p className="text-sm text-stone-300">Tu joues en tant que <strong>{username}</strong>.</p>
@@ -249,7 +249,7 @@ export default function MultiplayerPage() {
               </form>
             </AppSurface>
 
-            <AppSurface className="flex h-full flex-col lg:p-6">
+            <AppSurface className="coinche-multiplayer-join flex h-full flex-col lg:p-6">
               <div><AppEyebrow>Invitation</AppEyebrow><h2 className="mt-1 text-xl font-black text-[#f4ead0]">Rejoindre une table</h2></div>
               <form className="mt-5 flex flex-1 flex-col gap-3" onSubmit={handleJoinRoom}>
 

@@ -175,6 +175,7 @@ for (const theme of ["dark", "light"] as const) {
     await setMobileViewport(page, MOBILE_VIEWPORTS[4]);
     const landscapeAreas = { top: 0, bottom: 34, left: 44, right: 0 };
     await simulateSafeAreas(page, landscapeAreas);
+    await page.getByRole("button", { name: "Plus d’actions pour la table" }).click();
     await page.getByRole("button", { name: "Règles", exact: true }).click();
     const rules = page.getByRole("dialog", { name: "Règles de la table" });
     await expectInsideSafeViewport(page, rules.locator(".coinche-dialog"), landscapeAreas);

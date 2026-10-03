@@ -31,6 +31,16 @@ function header(isHost: boolean) {
 }
 
 describe("compact multiplayer lobby and finish", () => {
+  for (const count of [1, 2, 3, 4]) it(`preserves ${count} humans, long accessible names and textual seat states`, () => {
+    const longName = "Joueur".repeat(6) + "Long";
+    const seats = players.map((player, index): RoomPlayerView => index < count ? { ...player, kind: "human", display_name: longName,
+      is_ready: index % 2 === 0, is_connected: index !== 1, bot_takeover: index === 2 } : player);
+    const markup = renderToStaticMarkup(React.createElement(LobbyTable, { canJoinSeat: true, currentSeatIndex: 0, onJoinSeat: () => undefined, players: seats }));
+    expect(markup).toContain(`title="${longName} (Toi)"`); expect(markup).toContain("Prêt"); expect(markup).toContain("Hôte");
+    if (count > 1) expect(markup).toContain("Hors ligne · Pas prêt");
+    if (count > 2) expect(markup).toContain("Bot temporaire · Prêt");
+    expect((markup.match(/title="Place .*? libre"/g) ?? []).length).toBe(4 - count);
+  });
   it("shows an emblem for a ranked human, Placement for an unranked human and no bot rating", () => {
     const seats: RoomPlayerView[] = [
       { ...players[0], is_ranked: true, rating: 1450, rank: "Sait jouer II" },

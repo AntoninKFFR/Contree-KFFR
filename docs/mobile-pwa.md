@@ -374,3 +374,48 @@ Deux cards commencent avant le premier fold dans les deux versions ; la card com
 En paysage entre 640 et 1119 px, kicker/titre et description des headers du hub occupent deux colonnes ; à 844×390, les niveaux de la première card sont maintenant visibles dès le haut du hub. Les grilles utilisent un minimum de 15 rem par card, sans compresser les vraies cartes de jeu.
 
 Les huit comparaisons desktop (1120×800 et 1440×900, deux thèmes et deux moteurs) conservent exactement les dimensions du header, du heading Calculer, de la card, du level track, du session header et du résultat. Les pixels Training sous le header global sont identiques pour hub/exercice/résultat. Une capture du header global diffère pendant le chargement de la cosmétique de compte de la fixture ; aucun code de navigation ou de cosmétique n’est modifié. Les JSON et les PNG avant/après sont dans `.playwright/training-mobile/before`, `after` et `comparison.json`.
+
+## Multijoueur mobile
+
+`/multiplayer` conserve `AppPageHeader`, son titre, sa description et Préférences. Sous 1120 px, son texte et son action partagent deux colonnes compactes. Les surfaces Créer/Rejoindre utilisent les tokens `--surface-padding` et `--section-gap` ; les marges des formulaires diminuent et Créer partage une rangée avec Modifier les règles. En paysage court, et sur tablette à partir de 700 px, les deux surfaces sont côte à côte. Les états chargement, connexion absente, Supabase indisponible, pseudo manquant, notice et invitations restent ceux des composants existants.
+
+Le champ Code de table conserve uppercase, mono, tracking, `maxLength=12`, required et le callback `findMultiplayerRoom`. Sa police mobile fait 16 px et sa hauteur au moins 44 px. La simulation du clavier 390×844 → 390×380 conserve focus et saisie ; Rejoindre reste atteignable par scroll naturel, au-dessus du safe-bottom. Aucun listener de viewport n’est ajouté.
+
+Dans le lobby, le code h1 et les métadonnées restent en tête. Prêt est primaire avant confirmation ; Pas prêt reste toujours disponible. Pour l’hôte, Lancer la partie devient primaire lorsque le `canStartGame` existant l’autorise. Les gardes `isUpdatingReady` et `isStartingGame` restent natives et inchangées. Inviter des amis reste directement visible lorsque `canInviteFriendsFromRoom` l’autorise. Préférences, Règles, Rafraîchir et le transfert hôte passent dans Plus sous 1120 px ; desktop les conserve dans la toolbar.
+
+Plus annonce « Plus d’actions pour la table », `aria-haspopup="dialog"` et `aria-expanded`. Il ouvre un petit `AccessibleDialog` dans un portal sous body, au-dessus des surfaces à overflow. Tab/Shift+Tab, Escape, verrou du body et restauration du focus réutilisent ce composant. Le trigger reçoit explicitement le focus à l’activation, également dans WebKit, qui ne focalise pas toujours les boutons au clic. Une action ferme Plus avant d’ouvrir le dialog existant. Les configurateurs, permissions, listes de candidats, rafraîchissements et callbacks métier ne changent pas. Les dialogs d’invitation gardent `FriendPresenceList` et son scroller ; le transfert reçoit seulement une classe de présentation en lobby pour les noms longs et les cibles tactiles.
+
+Copier le code utilise `navigator.clipboard.writeText`, puis un textarea temporaire avec commande DOM de copie si l’API est absente ou refusée. Le textarea est supprimé et le focus restauré dans tous les cas. Un verrou local évite une seconde copie pendant la première. La live region réservée annonce Code copié ou Copie indisponible ; le feedback reste affiché, sans timer ni requête. Pas de partage natif ajouté.
+
+Le plateau conserve Bas/Droite/Haut/Gauche, ses quatre cartes et la prise directe d’une place libre. La largeur des slots est bornée selon la largeur du felt. Le pseudo tronqué conserve son texte complet dans `title` ; Toi reste séparé du texte tronqué. Hôte, rang/Placement, présence et Prêt/Pas prêt restent textuels. Les emblèmes sont compacts sur mobile, sans changement de rating ni emblème pour bot. Le felt utilise une grille CSS : quatre colonnes/trois rangées en portrait, trois colonnes/deux rangées en paysage court. Ses bases flex sont 18,75 rem et 11,5 rem ; le minimum intrinsèque réserve la hauteur réelle des cartes et de leurs métadonnées lorsqu’elles passent sur plusieurs lignes. Un test reproduit cette variation de police à 320 px pour un spectateur devant une table pleine. Le lobby occupe l’espace restant en hauteur, puis grandit avec le document lorsque nécessaire. Aucun scroller interne de page, breakpoint JS ou nouveau listener ; la rotation conserve les mêmes cartes DOM, code, place et readiness. WaitingArea utilise une identité tronquée et une action secondaire compacte. Toutes les actions critiques restent au moins 44×44 px, y compris en paysage.
+
+`e2e/multiplayerMobile.spec.ts` utilise les vrais écrans et types avec interception UI des endpoints, dans Chromium/WebKit, clair/sombre : douze tailles, safe-top/bottom et côtés, quatre cartes sans collision, rôles, 1–4 joueurs, états pending, copie clavier/clic/fallback, dialogs, clavier réduit et rotation. À 844×390 avec safe-bottom 34 px et safe-left 44 px, le test borne le header lobby à 90 px, le top du plateau à 155 px et exige les quatre cartes entièrement visibles dans la zone sûre. En portrait 390×844 avec safe-top 47 px, le plateau commence avant 260 px. L’ouverture de Plus n’ajoute pas de lecture de room. Les fixtures UI ne remplacent aucune suite authentifiée Multiplayer/Rating ou Social. Le matcher du projet authentifié exige le tag entier `@multiplayer`, pour distinguer ces quatre vrais E2E du tag `@multiplayer-mobile` ; les deux projets mobile continuent de couvrir toutes les fixtures. Le test foundations existant ouvre désormais Règles via Plus, puis conserve toutes ses assertions de transition lobby → partie, safe areas et résultats.
+
+Les mesures et les 13 captures avant/après par moteur sont dans `.playwright/mobile-multiplayer/baseline` et `current`, hors Git. `e2e/multiplayerMobileCapture.spec.ts` est un outil opt-in (`MULTIPLAYER_CAPTURE=current`), distinct des assertions fonctionnelles. La référence est main `2991d6f`. Les comparaisons ci-dessous utilisent les mêmes fixtures à noms de 40 caractères, sans insets simulés ; les assertions fonctionnelles ajoutent les insets indiqués ci-dessus.
+
+| 390×844 | Avant Chromium / WebKit | Après |
+| --- | --- | --- |
+| Header landing | 166,16 / 195,31 px | 127,5 px |
+| Card Créer | 246 px | 172,5 px |
+| Card Rejoindre | 216 px | 202,5 px |
+| Top du champ code | 613,16 / 642,31 px | 483,5 px |
+
+| Lobby host seul, 390×844 | Avant Chromium / WebKit | Après |
+| --- | --- | --- |
+| LobbyHeader | 202 px | 130 px (−35,6 %) |
+| Zone actions | 120 px | 44 px |
+| Top du plateau | 278 px | 206 px (−72 px) |
+| Hauteur du plateau | 352 px | 568 px, utilise l’espace restant |
+| WaitingArea | 116 / 136 px | 58 px |
+| Top de la première place, Haut | 328 px | 238 px |
+
+| Lobby host seul, 844×390 | Avant | Après |
+| --- | --- | --- |
+| LobbyHeader | 120,125 px | 82 px (−31,7 %) |
+| Top du plateau | 184,125 px | 146 px |
+| Hauteur / bottom du plateau | 224 / 408,125 px | 230 / 376 px |
+| Quatre positions nommées dans le premier viewport | Non, labels masqués | Oui, quatre cartes complètes |
+
+L’ancien landscape montrait déjà quatre rectangles de places, mais masquait les positions et la présence ; le test exige désormais les quatre cartes et leurs positions textuelles, également avec safe-bottom simulé. Le gain vient du regroupement des actions et de la disposition des cartes, sans réduire les hitboxes à 30 px.
+
+À 1440×900, le header lobby reste à 70 px, le plateau commence à 142 px et garde sa hauteur de 680 px. Les actions passent de 36 à 44 px ; la copie et le readiness textuel sont les changements de présentation partagés avec desktop. Les surfaces landing gardent leur composition desktop. Aucune modification de protocole room, API/RPC/DB, heartbeat/Realtime, intents, invitations, transfert hôte métier, rating, gameplay, portrait lock en partie ou PWA gate.
