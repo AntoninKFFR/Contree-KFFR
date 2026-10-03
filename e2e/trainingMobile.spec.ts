@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { writeFile } from "node:fs/promises";
 import { installTrainingMobileFixture, TRAINING_VIEWPORTS } from "./helpers/trainingMobileFixture";
 import { expectInsideSafeViewport, expectNoPageHorizontalOverflow, setMobileViewport, simulateSafeAreas } from "./helpers/mobile";
 import { monitorBrowserErrors } from "./helpers/browserErrors";
@@ -105,7 +106,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
         await directPage.goto(`/training#${id}`);
         await expect(directPage.getByText("Connecte-toi pour synchroniser tes records. Les annonces restent locales.")).toBeVisible();
         await anchorBelowHeader(directPage, id); await expectNoPageHorizontalOverflow(directPage);
-        expect(documentRequests).toBe(1); // Native fragment replay must not reload the document.
+        expect(documentRequests).toBe(1); // Native target alignment must not reload the document.
       } finally { await directPage.close(); }
     }
     await prepare(page);
@@ -116,6 +117,39 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
     await expect(page).toHaveURL(/\/training#memoriser$/); await expect(page.getByRole("dialog", { name: "Navigation KFFR" })).toHaveCount(0);
     await expect(page.getByText("Connecte-toi pour synchroniser tes records. Les annonces restent locales.")).toBeVisible();
     await anchorBelowHeader(page, "memoriser");
+  });
+
+  test(`@mobile @training-mobile delayed drawer anchors preserve focus and history ${viewport.width}`, async ({ page }) => {
+    await installTrainingMobileFixture(page, { records: "empty" });
+    await page.addInitScript(() => document.addEventListener("DOMContentLoaded", () => { document.documentElement.style.setProperty("--safe-top", "47px"); }));
+    await setMobileViewport(page, viewport);
+    let releaseRecords = () => {};
+    let recordsReady: Promise<void>;
+    await page.route("**/rest/v1/training_records?**", async (route) => {
+      if (route.request().method() !== "OPTIONS") await recordsReady;
+      await route.fallback();
+    });
+    for (const [id, label] of [["calculer", "Calculer"], ["memoriser", "Mémoriser"]]) {
+      recordsReady = new Promise<void>((resolve) => { releaseRecords = resolve; });
+      await page.goto("/");
+      const trigger = page.getByRole("button", { name: "Ouvrir le menu" });
+      await trigger.click();
+      const navigation = page.getByRole("navigation", { name: "Navigation mobile" });
+      await navigation.getByRole("button", { name: "Entraînement", exact: true }).click();
+      await navigation.getByRole("link", { name: label, exact: true }).click();
+      await expect(page).toHaveURL(new RegExp(`/training#${id}$`));
+      await expect(page.getByRole("dialog", { name: "Navigation KFFR" })).toHaveCount(0);
+      await expect(trigger).toBeFocused();
+      await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
+      const navigationState = await page.evaluate(() => ({ href: location.href, historyLength: history.length }));
+      const recordsResponse = page.waitForResponse((response) => response.url().includes("/rest/v1/training_records?") && response.request().method() === "GET");
+      releaseRecords();
+      await recordsResponse;
+      await anchorBelowHeader(page, id);
+      await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+      await expect(trigger).toBeFocused();
+      expect(await page.evaluate(() => ({ href: location.href, historyLength: history.length }))).toEqual(navigationState);
+    }
   });
 }
 
@@ -196,7 +230,7 @@ test("@mobile @training-mobile numeric input keeps focus when the keyboard reduc
   await reachable(page, page.getByRole("button", { name: "Exercice suivant" })); await expectNoPageHorizontalOverflow(page);
 });
 
-for (const theme of themes) test(`@mobile @training-mobile pile briefing, game setup and reduced motion ${theme}`, async ({ page }) => {
+for (const theme of themes) test(`@mobile @training-mobile pile briefing, game setup and reduced motion ${theme}`, async ({ page }, info) => {
   await installTrainingMobileFixture(page, { theme, unlocked: true }); await page.emulateMedia({ reducedMotion: "reduce" });
   for (const viewport of TRAINING_VIEWPORTS) {
     await setMobileViewport(page, viewport); await page.goto("/training/puzzle/pile-count?mode=manual"); await simulateSafeAreas(page, safe);
@@ -204,6 +238,13 @@ for (const theme of themes) test(`@mobile @training-mobile pile briefing, game s
     await page.goto("/training/game"); await simulateSafeAreas(page, safe);
     await expect(page.getByRole("heading", { name: "Entraînement en partie", exact: true })).toBeVisible();
     await reachable(page, page.getByRole("button", { name: "Lancer la partie" })); await expectNoPageHorizontalOverflow(page);
+    if (viewport.width === 768) {
+      const cta = (await page.getByRole("button", { name: "Lancer la partie" }).boundingBox())!;
+      expect(cta.y + cta.height).toBeLessThanOrEqual(viewport.height - safe.bottom);
+      const geometryPath = info.outputPath(`training-game-cta-${theme}-768.json`);
+      await writeFile(geometryPath, JSON.stringify({ viewport, safe, cta, bottom: cta.y + cta.height, safeBottomLimit: viewport.height - safe.bottom }));
+      await info.attach(`training-game-cta-${theme}-768`, { path: geometryPath, contentType: "application/json" });
+    }
   }
   await page.goto("/training/puzzle/trick-value?level=1"); await page.getByRole("textbox", { name: "Ta réponse en points" }).fill("0");
   await page.getByRole("button", { name: "Valider", exact: true }).click();

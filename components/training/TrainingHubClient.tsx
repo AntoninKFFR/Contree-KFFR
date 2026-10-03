@@ -56,12 +56,12 @@ export function TrainingHubClient() {
   const initialFragmentHandled = useRef(false);
   useEffect(() => {
     // The gate mounts the hub after the browser's initial fragment lookup.
-    // Wait for initial layout data, then replay native navigation once. CSS
+    // Wait for initial layout data, then align the target once. CSS
     // owns the offset; later record refreshes must not move the reader.
     if (!progress || !account || initialFragmentHandled.current) return;
     initialFragmentHandled.current = true;
     if (["#calculer", "#memoriser", "#deduire", "#annoncer"].includes(window.location.hash)) {
-      window.location.replace(window.location.hash);
+      document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ block: "start" });
     }
   }, [progress, account]);
   useEffect(() => {

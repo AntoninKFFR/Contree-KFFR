@@ -1688,6 +1688,9 @@ summary:focus-visible {
   .training-solo-result .training-unlocked { margin-top: .625rem; padding: .5rem; }
   .training-solo-result :is(.training-result-actions, .training-custom-result-actions) { margin-top: 1rem; gap: .5rem; }
   .training-solo-result .training-result-actions > [role="status"] { flex-basis: 100%; margin-top: 0; }
+  /* Keep a trailing layout gap; AppPage remains the sole safe-bottom inset. */
+  .training-game-setup { padding-bottom: var(--bottom-spacing); }
+  .training-game-setup > .coinche-app-surface > button { scroll-margin-bottom: var(--safe-bottom); }
   .training-game-setup > header { margin-top: .5rem; }
   .training-game-setup > header h1 { font-size: 1.5rem; margin-top: .375rem; }
   .training-game-setup > header p { margin-top: .375rem; font-size: .875rem; line-height: 1.4; }
