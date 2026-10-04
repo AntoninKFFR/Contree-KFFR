@@ -47,6 +47,8 @@ Sur 1024×768, 1120×800, 1440×900 et 1280×450 : **écart géométrique mesur�
 - Vitest complet : **191 fichiers, 1948 tests passés**.
 - Lint et TypeScript : passés.
 - Suite ciblée Chromium finale sur production : **66 tests passés** (nouvelle suite de 17 tests comprise, dont un contrôle du dernier pli Training après une vraie question).
+- Suite ciblée WebKit finale sur production : **65 tests passés**, sans crash.
+- Suite smoke complète sur production : **89 tests passés**. Les attentes suivent le thème dans le menu mobile et la nouvelle surface sombre des enchères ; les assertions desktop sont conservées.
 - Comparaisons avant / après : 8 scénarios par version, les quatre paysages et quatre références desktop/tablette.
 - Build production isolé : passé.
 - Suite mobile Chromium complète en production : 362 scénarios passés au premier run ; le dernier test a été corrigé pour attendre le chargement de la partie avant de changer le thème. Ce scénario repasse dans la suite finale **66/66**, avec le nouveau test du dernier pli Training. Aucun échec local Chromium restant ; les workflows du SHA final sont détaillés dans la PR.

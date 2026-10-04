@@ -486,7 +486,7 @@ test.describe("@smoke public production readiness", () => {
     await expect.poll(() => audio.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(0.4);
   });
 
-  test("@smoke neutral accents and bidding panel follow both themes", async ({ page }) => {
+  test("@smoke neutral accents and responsive bidding surfaces retain contrast in both themes", async ({ page }) => {
     test.setTimeout(90_000);
     for (const viewport of [{ width: 1366, height: 768 }, { width: 844, height: 390 }]) {
       await page.setViewportSize(viewport);
@@ -515,9 +515,10 @@ test.describe("@smoke public production readiness", () => {
         await startSoloGame(page);
         const bidding = page.locator(".coinche-bidding-panel");
         await expect(bidding).toBeVisible();
-        await expect(bidding).toHaveCSS("background-color", theme === "dark" ? "rgb(9, 24, 17)" : "rgb(255, 253, 247)");
+        const immersive = viewport.width < 1120 && viewport.height <= 500 && viewport.width > viewport.height;
+        await expect(bidding).toHaveCSS("background-color", immersive ? "rgba(12, 32, 27, 0.96)" : theme === "dark" ? "rgb(9, 24, 17)" : "rgb(255, 253, 247)");
         await expect(bidding.getByRole("button", { name: "Annoncer" })).toHaveCSS("background-color", theme === "dark" ? "rgb(234, 216, 166)" : "rgb(36, 55, 45)");
-        await expect(bidding.getByRole("button", { name: "Passer" })).toHaveCSS("color", theme === "dark" ? "rgb(245, 241, 231)" : "rgb(23, 32, 26)");
+        await expect(bidding.getByRole("button", { name: "Passer" })).toHaveCSS("color", immersive || theme === "dark" ? "rgb(245, 241, 231)" : "rgb(23, 32, 26)");
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
         await page.screenshot({ path: `test-results/theme-${theme}-${viewport.width}.png`, fullPage: true });
       }
