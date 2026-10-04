@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
 import { appPrimaryActionClass, appSecondaryActionClass } from "@/components/ui/AppShell";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { AudioPopover } from "@/components/ui/AudioPopover";
 
 export type GameMenuAction = {
   label: string;
@@ -47,6 +48,7 @@ export function GameMenuPanel({
     </> : null}
 
     <div className="coinche-game-theme flex min-h-11 items-center justify-between gap-4 px-1"><span className="text-sm font-semibold">Thème</span><ThemeToggle /></div>
+    <div className="coinche-game-audio"><AudioPopover inline /></div>
 
     <p className={`coinche-nav-section-label mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.18em] ${showFocusMode ? "mt-4" : ""}`}>Partie</p>
     <div className="grid gap-2">
@@ -107,7 +109,8 @@ export function GameMenuPopover({
   };
 
   return createPortal(<><div className="coinche-game-menu-root relative" ref={rootRef}>
-    <button aria-controls="game-menu-panel" aria-expanded={isOpen} aria-label="Menu Partie" className="coinche-account-link whitespace-nowrap" onClick={() => setIsOpen((value) => !value)} ref={buttonRef} type="button">
+    <button aria-controls="game-menu-panel" aria-expanded={isOpen} aria-label="Ouvrir le menu" className="coinche-game-burger coinche-chrome-icon" onClick={(event) => { buttonRef.current = event.currentTarget; setIsOpen((value) => !value); }} type="button">☰</button>
+    <button aria-controls="game-menu-panel" aria-expanded={isOpen} aria-label="Menu Partie" className="coinche-account-link whitespace-nowrap" onClick={(event) => { buttonRef.current = event.currentTarget; setIsOpen((value) => !value); }} type="button">
       <span className="hidden sm:inline">Partie <span aria-hidden="true">▾</span></span>
       <span aria-hidden="true" className="sm:hidden">•••</span>
       <span aria-hidden="true" className="coinche-game-edge-arrow">{isOpen ? "›" : "‹"}</span>

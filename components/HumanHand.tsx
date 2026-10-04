@@ -69,7 +69,7 @@ export function HumanHand({
           const isPlayable = legalCards.some((legalCard) => sameCard(legalCard, card));
 
           return (
-            <span className="coinche-scene-hand-card" key={`${card.rank}-${card.suit}`} style={inScene ? { "--hand-index": index, "--hand-rotation": `${(index - (displayedCards.length - 1) / 2) * 1.8}deg`, "--hand-offset": `${Math.abs(index - (displayedCards.length - 1) / 2) * 2}px` } as CSSProperties : undefined}>
+            <span className="coinche-scene-hand-card" data-can-play={canPlay ? "true" : "false"} key={`${card.rank}-${card.suit}`} style={inScene ? { "--hand-index": index, "--hand-rotation": `${(index - (displayedCards.length - 1) / 2) * 1.8}deg`, "--hand-offset": `${Math.abs(index - (displayedCards.length - 1) / 2) * 2}px` } as CSSProperties : undefined}>
             <CardView
               card={card}
               allowIllegalClick={!preferences.assistance.disableIllegalCardClicks}
