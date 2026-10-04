@@ -114,6 +114,8 @@ export function BiddingPanel({
   const canMakeCapot = canBid && canBidCapot(currentContract, biddingRules);
   const canMakeGenerale = Boolean(canBid && biddingRules && canBidGenerale(currentContract, biddingRules) && canBidGeneraleMode(contractMode, biddingRules));
   const canChooseMode = canMakeBid || canMakeCapot || canMakeGenerale;
+  // Presentation only: permissions and callbacks still come from the existing rules.
+  const actionOnly = canBid && !canChooseMode;
   const exerciseTapHeight = exerciseMode ? "min-h-11" : "";
   const choiceHeight = exerciseMode ? "min-h-11" : "min-h-9";
   const turnKey = biddingTurnKey(canBid, playerId, bids.length);
@@ -168,6 +170,7 @@ export function BiddingPanel({
 
   return (
     <section
+      data-action-only={actionOnly || undefined}
       className={`coinche-bidding-panel shrink-0 rounded-2xl border ${compact ? "p-2" : "px-3 py-2.5 sm:px-4"}`}
     >
       <div className="coinche-bidding-header mb-2 flex items-center justify-between gap-3">

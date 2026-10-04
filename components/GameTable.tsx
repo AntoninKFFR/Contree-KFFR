@@ -180,7 +180,7 @@ function TrickCenter({ cards, seats, animatedKeys, showDetails = false, nameFor 
   cards: PlayedCard[]; seats: TableSeats; animatedKeys: ReadonlySet<string>; showDetails?: boolean; nameFor?: (playerId: PlayerId) => string;
 }) {
   return (
-    <div aria-label={showDetails ? "Cartes du dernier pli" : "Cartes du pli"} className="coinche-trick-area absolute left-1/2 top-[43%] -translate-x-1/2 -translate-y-1/2">
+    <div data-card-count={cards.length} aria-label={showDetails ? "Cartes du dernier pli" : "Cartes du pli"} className="coinche-trick-area absolute left-1/2 top-[43%] -translate-x-1/2 -translate-y-1/2">
       {cards.map((played, index) => {
         const position = (Object.keys(seats) as (keyof TableSeats)[]).find((seat) => seats[seat] === played.playerId)!;
         const key = playedCardKey(played);

@@ -222,7 +222,7 @@ export default function SoloPage() {
   if (!gameState) {
     return (
       <>
-        <GameMenuPopover focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" showFocusMode={false} />
+        <GameMenuPopover exitDescription={gameState ? "Tu quittes l’écran de la table. Une partie non connectée ne sera pas conservée." : undefined} focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" showFocusMode={false} />
         {synchronizationNotice}<AppPage className="min-h-0 justify-center" width="wide">
           <AppPageHeader eyebrow="Contrée Solo" title="Prêt à lancer une partie ?" description={rulesetDisplayName(buildCustomRuleset(rulesInput))}
             actions={<button className={`${appPrimaryActionClass} min-w-56`} disabled={!hasLoadedRules || isBusy} onClick={() => startSoloGame()} type="button">Commencer la partie</button>} />
@@ -234,11 +234,11 @@ export default function SoloPage() {
   }
 
   if (isMobilePortrait) {
-    return <><GameMenuPopover focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" /><MobileLandscapeNotice />{rulesDialog}{isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}</>;
+    return <><GameMenuPopover exitDescription={gameState ? "Tu quittes l’écran de la table. Une partie non connectée ne sera pas conservée." : undefined} focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" /><MobileLandscapeNotice />{rulesDialog}{isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}</>;
   }
 
   return (
-    <><GameMenuPopover focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" /><main
+    <><GameMenuPopover exitDescription={gameState ? "Tu quittes l’écran de la table. Une partie non connectée ne sera pas conservée." : undefined} focusMode={isFocusMode} menuActions={soloMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} preferencesLabel="Paramètres" /><main
       aria-label={`Partie Solo, objectif ${gameState.settings.targetScore} points`}
       data-game-id={sessionId ?? gameIdRef.current}
       className={soloMainClassName(analysisDesktop, isMobileLandscape)}
