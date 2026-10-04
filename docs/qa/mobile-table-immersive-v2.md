@@ -2,6 +2,19 @@
 
 Base : `f3242de` (dernier `main`, PR #138). Branche : `codex/mobile-table-immersive-v2`.
 
+## Géométrie cardinale après fusion de #139
+
+Ce suivi repart de `8946ecf`, après fusion de #139, sur la même branche. Un seul fichier applicatif change : `app/globals.css`, exclusivement dans le breakpoint mobile paysage existant. Les sections suivantes décrivent les passes précédentes.
+
+- Nord est centré en haut ; Ouest et Est partagent l’axe horizontal médian ; Moi reste en bas à gauche. Pendant les enchères, Nord utilise le rail supérieur et les joueurs latéraux restent hors du panneau. Les informations, P inline et contrôles flottants sont conservés.
+- Main de jeu : hauteurs nominales 76 / 90 / 94 / 102 px au lieu de 89 / 107 / 111 / 122 px, aux quatre tailles avec safe areas haut 8, gauche 44, bas 34. Éventail sobre de −9,45° à +9,45° avec huit cartes, obtenu à partir des variables de présentation déjà présentes. Le bas dépasse de 18 px le bord inférieur utile de la table (8 px pendant les enchères), puis est coupé par son overflow existant. Le focus et le survol soulèvent la carte ; la surface tactile visible est vérifiée par hit-testing, y compris sous les chevauchements.
+- Pli : taille indépendante de la main (89 / 107 / 111 / 116 px), ancrages fixes par siège, centre séparé de Nord et de la main. Aucune clé, animation, logique de présentation ou valeur de z-index n’est modifiée. L’arrivée des cartes 1→4 conserve les nœuds et les coordonnées des cartes déjà posées, sans relancer leurs animations.
+- Portrait : invitation existante à tourner le téléphone, rotation sans remise à zéro. Tablette 1024×768 et desktop 1440×900 : header 56 px, éventail original et main entièrement visible. Aucun moteur, backend, score, flux de jeu ou fichier PWA modifié.
+
+Les tests existants de main sont adaptés à la coupe volontaire : ils contrôlent une surface visible et non obstruée d’au moins 44×44 px, plutôt que l’inclusion de toute la carte dans le viewport. Captures et mesures locales : `.playwright/validation/cardinal/` et `.playwright/validation/immersive-polish/`.
+
+Validation finale : 72 contrôles Playwright ciblés + 2 scènes Training après une vraie question, tous passés sur Chromium et WebKit, sans retries. Build production, TypeScript, lint ciblé et `git diff --check` passés. Paysages 568×320, 667×375, 844×390, 932×430 ; rotations vers 390×844 et 430×932 ; safe areas et viewport réduit ; tablette 1024×768 et desktop 1440×900. Pas de nouvelle suite globale locale ni de validation sur téléphone physique.
+
 ## Affinement après la V2 initiale
 
 Le suivi repart de `d3690a0`, dans la même PR. Quatre fichiers applicatifs sont ajustés : `BiddingPanel`, `GameTable`, `PlayerPanel` et les styles. Les mesures et captures des sections suivantes documentent la V2 initiale ; ce suivi réduit légèrement sa main et stabilise les ancrages du pli.

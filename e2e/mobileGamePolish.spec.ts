@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { installMobileGameFixture, mobileGameState } from "./helpers/mobileGameFixture";
-import { expectInsideSafeViewport, expectNoPageHorizontalOverflow, simulateSafeAreas } from "./helpers/mobile";
+import { expectHandTouchTarget, expectInsideSafeViewport, expectNoPageHorizontalOverflow, simulateSafeAreas } from "./helpers/mobile";
 import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../lib/preferences/playerPreferences";
 import { installTrainingMobileFixture } from "./helpers/trainingMobileFixture";
 
@@ -70,9 +71,9 @@ for (const viewport of sizes) for (const mode of ["solo", "multi"] as const) {
     expect(n.width).toBeGreaterThanOrEqual(12);
     expect(p.x).toBeGreaterThanOrEqual(n.x + n.width);
     expect(Math.abs(p.y + p.height / 2 - n.y - n.height / 2)).toBeLessThan(1);
-    const card = page.locator(".coinche-scene-hand-card button").first(); await target(page, card);
+    const card = page.locator(".coinche-scene-hand-card button").first(); await expectHandTouchTarget(page, card, safe);
     const handCard = (await card.boundingBox())!, trickCard = (await page.locator(".coinche-trick-card button").boundingBox())!;
-    expect(handCard.height).toBeGreaterThanOrEqual(84); expect(handCard.height).toBeLessThan(124);
+    expect(handCard.height).toBeGreaterThanOrEqual(76); expect(handCard.height).toBeLessThan(116);
     expect(handCard.height / trickCard.height).toBeLessThan(1.15);
     await page.screenshot({ path: `.playwright/validation/immersive-polish/${info.project.name}-${mode}-${viewport.width}-playing.png` });
     for (const portrait of [{ width: 390, height: 844 }, { width: 430, height: 932 }]) {
@@ -119,6 +120,35 @@ for (const viewport of sizes) test(`@mobile @immersive-polish stable seats and o
   const layer = page.locator('[data-trick-layer="current"]');
   expect(Number(await layer.evaluate(element => getComputedStyle(element).zIndex))).toBeGreaterThan(Number(await page.locator(".coinche-scene-hand").evaluate(element => getComputedStyle(element).zIndex)));
   for (const card of await layer.locator(".coinche-trick-card button").all()) await expectInsideSafeViewport(page, card, safe);
+  const scene = (await page.locator(".coinche-game-scene").boundingBox())!;
+  const north = (await page.locator(".coinche-top-seat").boundingBox())!;
+  const south = (await page.locator(".coinche-bottom-seat").boundingBox())!;
+  const west = (await page.locator(".coinche-left-seat").boundingBox())!;
+  const east = (await page.locator(".coinche-right-seat").boundingBox())!;
+  expect(Math.abs(north.x + north.width / 2 - scene.x - scene.width / 2)).toBeLessThan(1);
+  expect(north.y + north.height).toBeLessThan(west.y);
+  expect(Math.abs(west.y + west.height / 2 - east.y - east.height / 2)).toBeLessThan(1);
+  expect(south.x - scene.x).toBeLessThanOrEqual(8);
+  expect(south.y).toBeGreaterThan(west.y + west.height);
+  expect(west.x - scene.x).toBeLessThanOrEqual(8);
+  expect(scene.x + scene.width - east.x - east.width).toBeLessThanOrEqual(8);
+  const topCard = (await layer.locator('.coinche-trick-card--top').boundingBox())!;
+  expect(topCard.y - north.y - north.height).toBeGreaterThanOrEqual(8);
+  const cards = page.locator('.coinche-scene-hand-card button');
+  for (const card of await cards.all()) await expectHandTouchTarget(page, card, safe);
+  const fan = await page.locator('.coinche-scene-hand-card').evaluateAll(elements => elements.map(element => ({
+    angle: Math.atan2(new DOMMatrix(getComputedStyle(element).transform).b, new DOMMatrix(getComputedStyle(element).transform).a) * 180 / Math.PI,
+    top: element.getBoundingClientRect().top, bottom: element.getBoundingClientRect().bottom,
+  })));
+  expect(fan[0].angle).toBeLessThan(-8); expect(fan.at(-1)!.angle).toBeGreaterThan(8);
+  expect(fan[0].top).toBeGreaterThan(fan[3].top + 4);
+  for (const card of fan) expect(card.bottom).toBeGreaterThan(scene.y + scene.height + 8);
+  const folder = '.playwright/validation/cardinal'; mkdirSync(folder, { recursive: true });
+  writeFileSync(`${folder}/${info.project.name}-${viewport.width}.json`, JSON.stringify({
+    scene, north, south, west, east, fan,
+    handHeight: await cards.first().evaluate(element => (element as HTMLElement).offsetHeight),
+    trickHeight: await layer.locator('button').first().evaluate(element => (element as HTMLElement).offsetHeight),
+  }, null, 2));
   await page.screenshot({ path: `.playwright/validation/immersive-polish/${info.project.name}-${viewport.width}-stable-trick4.png` });
 });
 
@@ -150,6 +180,16 @@ for (const viewport of [{ width: 1024, height: 768 }, { width: 1440, height: 900
   const capot = (await page.getByRole("button", { name: "Capot", exact: true }).boundingBox())!;
   expect(Math.abs(capot.y - value.y)).toBeLessThan(1); expect(capot.x).toBeGreaterThanOrEqual(value.x + value.width);
   await expect(page.locator(".coinche-global-header")).toHaveCSS("height", "56px");
+  const scene = (await page.locator('.coinche-game-scene').boundingBox())!;
+  for (const card of await page.locator('.coinche-scene-hand-card button').all()) {
+    const box = (await card.boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(scene.y + scene.height);
+  }
+  const angle = await page.locator('.coinche-scene-hand-card').first().evaluate(element => {
+    const matrix = new DOMMatrix(getComputedStyle(element).transform);
+    return Math.atan2(matrix.b, matrix.a) * 180 / Math.PI;
+  });
+  expect(angle).toBeCloseTo(-6.3, 1);
 });
 
 for (const viewport of sizes) test(`@mobile @immersive-polish Training shares bidding, live score and help ${viewport.width}`, async ({ page }) => {

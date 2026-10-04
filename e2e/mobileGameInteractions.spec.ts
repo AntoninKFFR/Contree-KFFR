@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { installMobileGameFixture, mobileGameState } from "./helpers/mobileGameFixture";
-import { expectInsideSafeViewport, simulateSafeAreas, setMobileViewport } from "./helpers/mobile";
+import { expectHandTouchTarget, expectInsideSafeViewport, simulateSafeAreas, setMobileViewport } from "./helpers/mobile";
 import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../lib/preferences/playerPreferences";
 
 const safe={top:0,left:44,right:0,bottom:34};
@@ -43,15 +43,17 @@ for(const position of [0,3,7]) test(`@mobile @game-mobile actual hand click ${po
   const initial=mobileGameState('playing'); const fixture=await installMobileGameFixture(page,initial);
   await page.goto('/solo');await simulateSafeAreas(page,safe);
   const buttons=page.locator('.coinche-scene-hand-card button');await expect(buttons).toHaveCount(8);
-  await target(page,buttons.nth(position)); await buttons.nth(position).click();
+  await expectHandTouchTarget(page,buttons.nth(position),safe);
+  await buttons.nth(position).focus(); await expectHandTouchTarget(page,buttons.nth(position),safe);
+  await buttons.nth(position).click();
   await expect(buttons).toHaveCount(7);
   expect(fixture.intents.some(intent=>(intent as {type:string}).type==='play-card')).toBe(true);
   for(let count=7;count>=1;count--) {
     const state=mobileGameState('playing');state.hands[0]=state.hands[0].slice(0,count);fixture.setState(state);
     await page.reload();await simulateSafeAreas(page,safe); await expect(buttons).toHaveCount(count);
-    for(const button of await buttons.all()) await target(page,button);
+    for(const button of await buttons.all()) await expectHandTouchTarget(page,button,safe);
     const bounds=await page.locator('.coinche-scene-hand-cards').boundingBox();
-    expect(Math.abs(bounds!.x+bounds!.width/2-(44+(568-44)/2))).toBeLessThanOrEqual(1);
+    expect(Math.abs(bounds!.x+bounds!.width/2-(44+(568-44)/2+10))).toBeLessThanOrEqual(1);
   }
 });
 

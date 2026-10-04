@@ -2,7 +2,7 @@ import { expect, test, type Page, type Locator } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { installMobileGameFixture, mobileGameState } from "./helpers/mobileGameFixture";
 import { gameGeometry } from "./helpers/gameGeometry";
-import { expectInsideSafeViewport, expectNoPageHorizontalOverflow, simulateSafeAreas } from "./helpers/mobile";
+import { expectHandTouchTarget, expectInsideSafeViewport, expectNoPageHorizontalOverflow, simulateSafeAreas } from "./helpers/mobile";
 import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../lib/preferences/playerPreferences";
 import { installTrainingMobileFixture } from "./helpers/trainingMobileFixture";
 import { openFirstTrainingQuestion } from "./helpers/trainingGame";
@@ -34,7 +34,7 @@ for (const mode of ['solo','multi'] as const) for (const viewport of sizes) test
     const state=mobileGameState('playing'); state.hands[0]=state.hands[0].slice(0,count);
     fixture.setState(state); await page.reload(); await expect(page.locator('.coinche-scene-hand-card')).toHaveCount(count); await simulateSafeAreas(page,safe);
     const cards=page.locator('.coinche-scene-hand-card button');
-    for(const card of await cards.all()) { await target(page,card); expect((await card.boundingBox())!.height).toBeGreaterThanOrEqual(84); }
+    for(const card of await cards.all()) { await expectHandTouchTarget(page,card,safe); expect((await card.boundingBox())!.height).toBeGreaterThanOrEqual(76); }
     await snapshot(page,`${mode}-${viewport.width}-hand${count}`,info.project.name);
   }
   for(const count of [1,2,3,4]) {
@@ -85,6 +85,12 @@ test('@mobile @immersive-v2 Training last trick stays clear of the contract afte
   await dialog.getByRole('textbox',{name:'Ta réponse en points'}).fill('0');
   await dialog.getByRole('button',{name:'Valider',exact:true}).click();
   await dialog.getByRole('button',{name:'Reprendre la partie'}).click();
+  for (const card of await page.locator('.coinche-scene-hand-card button').all()) await expectHandTouchTarget(page,card,safe);
+  const scene = (await page.locator('.coinche-game-scene').boundingBox())!;
+  const north = (await page.locator('.coinche-top-seat').boundingBox())!;
+  const south = (await page.locator('.coinche-bottom-seat').boundingBox())!;
+  expect(Math.abs(north.x + north.width / 2 - scene.x - scene.width / 2)).toBeLessThan(1);
+  expect(south.x - scene.x).toBeLessThanOrEqual(8);
   const last=page.getByRole('button',{name:'Dernier pli',exact:true});await target(page,last);
   const button=(await last.boundingBox())!;
   const contract=(await page.locator('.coinche-bubble-bottom').boundingBox())!;

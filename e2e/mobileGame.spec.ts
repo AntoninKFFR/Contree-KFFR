@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../lib/preferences/playerPreferences";
 import { installMobileGameFixture, mobileGameState } from "./helpers/mobileGameFixture";
 import { gameGeometry } from "./helpers/gameGeometry";
-import { expectInsideSafeViewport, expectNoPageHorizontalOverflow, simulateSafeAreas, type SafeAreas } from "./helpers/mobile";
+import { expectHandTouchTarget, expectInsideSafeViewport, expectNoPageHorizontalOverflow, simulateSafeAreas, type SafeAreas } from "./helpers/mobile";
 
 const viewports = [{width:568,height:320},{width:667,height:375},{width:844,height:390},{width:932,height:430}];
 async function theme(page: Page, value: "dark" | "light") {
@@ -16,6 +16,7 @@ async function fits(page: Page, safe: SafeAreas) {
   expect(await page.evaluate(()=>document.documentElement.scrollHeight-innerHeight)).toBeLessThanOrEqual(2);
   for (const selector of ['.coinche-player-panel','.coinche-table-hud','.coinche-scene-hand-card button','.coinche-bidding-panel button']) {
     for (const control of await page.locator(selector).all()) {
+      if (selector.includes('hand-card')) { await expectHandTouchTarget(page,control,safe); continue; }
       await expectInsideSafeViewport(page,control,safe);
       if (selector.includes('button')) { const box=(await control.boundingBox())!; expect(box.width).toBeGreaterThanOrEqual(44); expect(box.height).toBeGreaterThanOrEqual(44); }
     }

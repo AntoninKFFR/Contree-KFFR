@@ -2013,20 +2013,25 @@ summary:focus-visible {
   .coinche-round-completion summary { min-height: 44px; display: flex; align-items: center; justify-content: center; }
 }
 @media (max-width: 1119px) and (max-height: 500px) and (orientation: landscape) {
-  .coinche-game-scene { --hand-height: clamp(84px, calc((var(--content-height) - var(--safe-bottom)) * .32), 122px); --hand-card-width: calc(var(--hand-height) * .68); }
+  .coinche-game-scene { --hand-height: clamp(76px, calc((var(--content-height) - var(--safe-bottom)) * .27), 102px); --hand-card-width: max(56px, calc(var(--hand-height) * .68)); }
   .coinche-game-scene[data-game-phase="bidding"] { --hand-height: clamp(64px, calc(var(--content-height) - var(--safe-bottom) - 212px), 96px); --hand-card-width: clamp(56px, calc(var(--hand-height) * .7), 72px); }
-  .coinche-game-scene .coinche-scene-hand { padding: 0 52px 6px; }
+  /* Clip the lower 18px at the safe table edge; keep ranks and touch areas visible. */
+  .coinche-game-scene .coinche-scene-hand { bottom: -18px; padding: 0 52px 0 72px; }
+  .coinche-game-scene[data-game-phase="bidding"] .coinche-scene-hand { bottom: -8px; }
   .coinche-game-scene .coinche-scene-hand-cards { gap: 0; }
-  .coinche-game-scene .coinche-scene-hand-card { margin-left: min(0px, calc(clamp(44px, (100vw - var(--safe-left) - var(--safe-right) - 144px - var(--hand-card-width)) / 7, 76px) - var(--hand-card-width))); }
+  .coinche-game-scene .coinche-scene-hand-card { margin-left: min(0px, calc(clamp(48px, (100vw - var(--safe-left) - var(--safe-right) - 164px - var(--hand-card-width)) / 7, 64px) - var(--hand-card-width))); transform: translateY(calc(var(--hand-offset) * 1.4)) rotate(calc(var(--hand-rotation) * 1.5)); }
+  .coinche-game-scene .coinche-scene-hand-card:hover,
+  .coinche-game-scene .coinche-scene-hand-card:focus-within { transform: translateY(-8px) rotate(0deg); }
   .coinche-game-scene .coinche-scene-hand-card:first-child { margin-left: 0; }
   .coinche-game-scene .coinche-scene-hand-card .coinche-card { width: var(--hand-card-width); height: var(--hand-height); padding: 5px; }
   .coinche-game-scene .coinche-scene-hand-card .coinche-card > span:first-child,
   .coinche-game-scene .coinche-scene-hand-card .coinche-card > span:nth-child(3) { font-size: clamp(16px, calc(var(--hand-height) * .2), 24px); }
   .coinche-game-scene .coinche-scene-hand-card .coinche-card > span:nth-child(2) { font-size: clamp(26px, calc(var(--hand-height) * .32), 44px); }
   .coinche-game-scene .coinche-table-hud,
-  .coinche-game-scene[data-game-phase="bidding"] .coinche-table-hud { top: 5px; left: var(--seat-rail); max-width: calc(100% - var(--seat-rail) - 256px); padding: 5px 8px; border-color: rgb(234 216 166 / 22%); background: #07150fdb; }
+  .coinche-game-scene[data-game-phase="bidding"] .coinche-table-hud { top: 5px; left: 56px; max-width: calc(50% - 96px); padding: 5px 8px; border-color: rgb(234 216 166 / 22%); background: #07150fdb; }
   .coinche-live-score { top: 5px; right: 100px; white-space: nowrap; }
-  .coinche-game-scene .coinche-top-seat { top: 56px; }
+  .coinche-game-scene .coinche-top-seat { top: 38px; left: 50%; right: auto; transform: translateX(-50%); }
+  .coinche-game-scene[data-game-phase="bidding"] .coinche-top-seat { top: 4px; }
   .coinche-game-scene .coinche-top-seat, .coinche-game-scene .coinche-left-seat, .coinche-game-scene .coinche-right-seat, .coinche-game-scene .coinche-bottom-seat { width: 60px; }
   .coinche-game-scene .coinche-player-lead { font-size: 8px; line-height: 14px; padding: 0 1px; }
   .coinche-game-scene .coinche-player-host { font-size: 6px; padding: 0; }
@@ -2035,14 +2040,20 @@ summary:focus-visible {
   .coinche-game-scene .coinche-player-panel [data-rank-family] { position: absolute; grid-area: auto; top: 16px; left: 0; }
   .coinche-game-scene .coinche-player-panel:has([data-rank-family]) .coinche-player-content > p { padding-left: 14px; }
   .coinche-game-scene .coinche-player-content > p { font-size: 7px; line-height: 10px; white-space: nowrap; gap: 2px; }
-  .coinche-game-scene .coinche-left-seat { top: 56px; }
-  .coinche-game-scene .coinche-right-seat { top: 156px; }
+  .coinche-game-scene .coinche-left-seat,
+  .coinche-game-scene .coinche-right-seat { top: 50%; transform: translateY(-50%); }
+  .coinche-game-scene .coinche-left-seat { left: 4px; }
+  .coinche-game-scene .coinche-right-seat { right: 4px; }
+  .coinche-game-scene[data-game-phase="bidding"] .coinche-left-seat,
+  .coinche-game-scene[data-game-phase="bidding"] .coinche-right-seat { top: 56px; transform: none; }
   .coinche-game-scene .coinche-bottom-seat { bottom: 8px; }
   main[aria-label="Partie d’entraînement"] .coinche-game-scene .coinche-bottom-seat { bottom: 56px; }
   .coinche-game-scene .coinche-bubble-left { top: calc(100% + 2px); bottom: auto; left: 0; transform: none; }
   .coinche-game-scene:not([data-game-phase="bidding"]) .coinche-bubble-bottom { top: auto; bottom: calc(100% + 2px); left: 0; width: 64px; transform: none; }
   .coinche-game-scene .coinche-bubble-right { left: 0; right: auto; top: auto; bottom: calc(100% + 2px); transform: none; }
-  .coinche-scene-bidding { top: calc(52px + (100% - var(--hand-height) - 204px) / 2); width: min(560px, calc(100% - 128px)); }
+  .coinche-game-scene .coinche-bubble-top { left: calc(100% + 4px); top: 0; bottom: auto; width: 64px; transform: none; }
+  .coinche-game-scene[data-game-phase="bidding"] .coinche-bubble-top { top: 24px; }
+  .coinche-scene-bidding { top: calc(52px + (100% - var(--hand-height) - 196px) / 2); width: min(560px, calc(100% - 128px)); }
   .coinche-scene-bidding .coinche-bidding-panel { padding: 3px; border-radius: 16px; border-color: #ead8a659; background: #0c201bf5; color: #f5f1e7; box-shadow: 0 12px 32px #0006; }
   .coinche-scene-bidding .coinche-bidding-header { position: absolute; top: -18px; left: 8px; right: 32px; height: 14px; margin: 0; }
   .coinche-scene-bidding .coinche-bidding-choice,
@@ -2057,12 +2068,12 @@ summary:focus-visible {
   .coinche-scene-bidding .coinche-bidding-special-modes { display: grid; gap: 4px; }
   .coinche-scene-bidding .coinche-bidding-values:not(:has([aria-label^="Valeur "])) { grid-template-columns: 1fr; }
   .coinche-scene-bidding .coinche-bidding-actions { gap: 4px; }
-  .coinche-game-scene .coinche-trick-area { --trick-height: calc(var(--hand-height) * .94); width: 180px; height: 160px; top: calc(48px + (100% - var(--hand-height) - 60px) / 2); transform: translate(-50%, -50%); }
+  .coinche-game-scene .coinche-trick-area { --trick-height: clamp(88px, calc((var(--content-height) - var(--safe-bottom)) * .32), 116px); width: 180px; height: 160px; top: calc((100% - var(--hand-height) + 106px) / 2); transform: translate(-50%, -50%); }
   .coinche-game-scene .coinche-trick-card .coinche-card { height: var(--trick-height); width: calc(var(--trick-height) * .68); }
-  .coinche-game-scene .coinche-trick-card--top { margin-top: calc(var(--trick-height) * -.24); margin-left: -5px; }
-  .coinche-game-scene .coinche-trick-card--bottom { margin-top: calc(var(--trick-height) * .24); margin-left: 5px; }
-  .coinche-game-scene .coinche-trick-card--left { margin-left: calc(var(--trick-height) * -.4); margin-top: 0; }
-  .coinche-game-scene .coinche-trick-card--right { margin-left: calc(var(--trick-height) * .4); margin-top: 0; }
+  .coinche-game-scene .coinche-trick-card--top { margin-top: calc(var(--trick-height) * -.22); margin-left: -5px; }
+  .coinche-game-scene .coinche-trick-card--bottom { margin-top: calc(var(--trick-height) * .22); margin-left: 5px; }
+  .coinche-game-scene .coinche-trick-card--left { margin-left: calc(var(--trick-height) * -.44); margin-top: 0; }
+  .coinche-game-scene .coinche-trick-card--right { margin-left: calc(var(--trick-height) * .44); margin-top: 0; }
   .coinche-game-scene .coinche-trick-card .coinche-card > span:first-child,
   .coinche-game-scene .coinche-trick-card .coinche-card > span:nth-child(3) { font-size: clamp(16px, calc(var(--trick-height) * .2), 24px); }
   .coinche-game-scene .coinche-trick-card .coinche-card > span:nth-child(2) { font-size: clamp(26px, calc(var(--trick-height) * .32), 40px); }
