@@ -1,6 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 
-export type BrowserErrorMonitor = { assertClean: () => void };
+export type BrowserErrorMonitor = { assertClean: () => void; snapshot: () => string[] };
 
 export function monitorBrowserErrors(page: Page, options: { allowDuoHttp409?: boolean } = {}): BrowserErrorMonitor {
   const errors: string[] = [];
@@ -21,6 +21,7 @@ export function monitorBrowserErrors(page: Page, options: { allowDuoHttp409?: bo
     errors.push(`console: ${message.text()}`);
   });
   return {
+    snapshot: () => [...errors],
     assertClean() {
       expect(errors, "browser errors (credentials and request bodies are never collected)").toEqual([]);
       if (options.allowDuoHttp409) expect(matchingConsole409, "console 409s must correspond to duo API conflicts")

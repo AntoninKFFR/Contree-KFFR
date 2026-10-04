@@ -98,7 +98,11 @@ for (const theme of ["dark", "light"] as const) for (const viewport of sizes) {
       expect(Math.abs(create.y - join.y)).toBeLessThanOrEqual(1); expect(create.x + create.width).toBeLessThan(join.x);
     }
     if (viewport.width === 390) expect((await input.boundingBox())!.y).toBeLessThan(620);
-    await page.goto(fixture.path); await expect(page.getByRole("heading", { level: 1 })).toHaveText("ABCDEFGHIJKL");
+    // Keep the shared providers mounted: a forced document reload can cancel
+    // their pending RPC reads and produce WebKit access-control pageerrors.
+    await page.getByRole("button", { name: "Créer la table", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(fixture.path + "$"));
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("ABCDEFGHIJKL");
     await simulateSafeAreas(page, safe); await expectNoPageHorizontalOverflow(page); await boardGeometry(page);
     if (landscape && viewport.width < 1120) {
       await simulateSafeAreas(page, { ...safe, left: 0, right: 44 }); await expectNoPageHorizontalOverflow(page); await boardGeometry(page);

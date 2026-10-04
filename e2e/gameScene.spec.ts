@@ -114,7 +114,13 @@ test("@smoke manual collection leaves the next trick live and mounted", async ({
   await scene.getByRole("button", { name: "Valeur 160" }).click();
   await scene.getByRole("button", { name: "Annoncer" }).click();
   const playable = scene.locator(".coinche-scene-hand-card button[data-playable='true']:not([disabled])");
-  await expect(playable.first()).toBeVisible({ timeout: 15_000 });
+  // A bot can coinche 160 before play starts. Finish the real auction rather
+  // than waiting for a playable card while the human still has to pass.
+  await expect.poll(async () => {
+    const pass = scene.getByRole("button", { name: "Passer", exact: true });
+    if (await pass.isVisible().catch(() => false) && await pass.isEnabled()) await pass.click();
+    return playable.first().isVisible().catch(() => false);
+  }, { timeout: 15_000 }).toBe(true);
   await playable.first().click();
   const completed = scene.locator('[data-trick-layer="completed"]');
   const current = scene.locator('[data-trick-layer="current"]');

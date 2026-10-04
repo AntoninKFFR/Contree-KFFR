@@ -9,8 +9,8 @@ type Operation = "play" | "training" | "remove" | "search" | "resolve" | "reques
 
 // Presentation fixtures layer only the exercised Social endpoints over the existing
 // authenticated/standalone helpers. The real authenticated suites remain unchanged.
-export async function installFriendsMobileFixture(page: Page, options: { theme?: "dark" | "light"; count?: 0 | 1 | 20; sections?: boolean; search?: "ready" | "empty" | "error" } = {}) {
-  const base = await installMobileNavigationFixture(page, { theme: options.theme, username: "Mon pseudo", notifications: false, xp: 5 });
+export async function installFriendsMobileFixture(page: Page, options: { theme?: "dark" | "light"; count?: 0 | 1 | 20; sections?: boolean; search?: "ready" | "empty" | "error" } = {}, navigation?: Awaited<ReturnType<typeof installMobileNavigationFixture>>) {
+  const base = navigation ?? await installMobileNavigationFixture(page, { theme: options.theme, username: "Mon pseudo", notifications: false, xp: 5 });
   const createdAt = new Date().toISOString();
   const friends = Array.from({length: options.count ?? 20}, (_, index) => ({userId:id(index+1), username:index === 0 ? "Alice" : index === 1 ? LONG_FRIEND_USERNAME : `Ami ${String(index+1).padStart(2,"0")}`, level:index === 0 ? 1 : 311, createdAt}));
   const snapshot: SocialSnapshot = {friends, received:options.sections ? [{id:id(201),userId:id(101),username:"Reçue".padEnd(40,"R"),createdAt}] : [], sent:options.sections ? [{id:id(202),userId:id(102),username:"Envoyée".padEnd(40,"E"),createdAt}] : [], counts:{friends:friends.length,received:options.sections ? 1 : 0,sent:options.sections ? 1 : 0}};
