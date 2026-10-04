@@ -67,7 +67,7 @@ for (const viewport of sizes) for (const mode of ["solo", "multi"] as const) {
     await expectInsideSafeViewport(page, live, safe);
     const liveBox = (await live.boundingBox())!;
     expect(liveBox.x + liveBox.width / 2).toBeGreaterThan(scene.x + scene.width / 2);
-    const lead = page.locator(".coinche-player-lead:not(.coinche-player-lead-placeholder)"); const name = lead.locator("..").locator(".coinche-player-name");
+    const lead = page.locator(".coinche-player-lead"); const name = lead.locator("..").locator(".coinche-player-name");
     const p = (await lead.boundingBox())!, n = (await name.boundingBox())!;
     expect(n.width).toBeGreaterThanOrEqual(12);
     expect(p.x).toBeGreaterThanOrEqual(n.x + n.width);
@@ -100,6 +100,8 @@ for (const viewport of sizes) test(`@mobile @immersive-polish fixed cardinal sea
   }));
   const before = await boxes(), scene = (await page.locator('.coinche-game-scene').boundingBox())!;
   expect(before).toHaveLength(4);
+  for (const box of before) expect(box.height).toBeLessThanOrEqual(42);
+  await expect(seats.getByText('P', { exact: true })).toHaveCount(1);
   for (const side of ['left', 'right']) {
     const box = (await page.locator(`.coinche-${side}-seat`).boundingBox())!;
     expect(Math.abs(box.y + box.height / 2 - scene.y - scene.height / 2)).toBeLessThan(1);
@@ -141,6 +143,7 @@ for (const viewport of sizes) test(`@mobile @immersive-polish fixed cardinal sea
   for (const playerId of [0, 1, 2, 3] as const) {
     const playing = mobileGameState('playing');
     playing.contract!.playerId = playerId; playing.currentPlayerId = playerId;
+    playing.currentTrick.leaderId = playerId;
     playing.contract!.status = playerId === 1 ? 'coinched' : playerId === 2 ? 'surcoinched' : 'normal';
     fixture.setState(playing);
     await expect.poll(async () => {
@@ -150,6 +153,16 @@ for (const viewport of sizes) test(`@mobile @immersive-polish fixed cardinal sea
     }).toBe(true);
     expect(await boxes()).toEqual(before);
     expect(await namePositions()).toEqual(beforeNames);
+    await expect(seats.getByText('P', { exact: true })).toHaveCount(1);
+    await expect(page.locator(`.coinche-player-panel[data-player-id="${playerId}"]`).getByText('P', { exact: true })).toHaveCount(1);
+    const timer = page.getByRole('timer');
+    // The fixture's West player is taken over by a bot, which has no human countdown.
+    if (playerId === 3) await expect(timer).toHaveCount(0);
+    else {
+      await expectInsideSafeViewport(page, timer, safe);
+      await expect(timer).toHaveCSS('position', 'absolute');
+      await expect(timer).toHaveAttribute('aria-label', /secondes restantes/);
+    }
     await announcementsAligned();
   }
   expect(fixture.intents).toEqual([]);
@@ -188,8 +201,26 @@ for (const viewport of sizes) test(`@mobile @immersive-polish stable seats and o
   const centers = placed.map(({ box }) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 }));
   expect(centers[0].y).toBeLessThan(centers[3].y); expect(centers[1].x).toBeGreaterThan(centers[2].x);
   const layer = page.locator('[data-trick-layer="current"]');
+  const trickHeight = await layer.locator('button').first().evaluate(element => (element as HTMLElement).offsetHeight);
+  const previousHeight = await page.evaluate(() => {
+    const scene = document.querySelector('.coinche-game-scene')!;
+    return Math.max(84, Math.min(110, scene.getBoundingClientRect().height * .30));
+  });
+  expect(trickHeight / previousHeight).toBeGreaterThanOrEqual(.90);
+  expect(trickHeight / previousHeight).toBeLessThanOrEqual(.92);
   expect(Number(await layer.evaluate(element => getComputedStyle(element).zIndex))).toBeGreaterThan(Number(await page.locator(".coinche-scene-hand").evaluate(element => getComputedStyle(element).zIndex)));
-  for (const card of await layer.locator(".coinche-trick-card button").all()) await expectInsideSafeViewport(page, card, safe);
+  const handBounds = (await page.locator('.coinche-scene-hand-cards').boundingBox())!;
+  const seatBounds = await Promise.all((await page.locator('.coinche-player-panel').all()).map(panel => panel.boundingBox()));
+  for (const card of await layer.locator(".coinche-trick-card button").all()) {
+    await expectInsideSafeViewport(page, card, safe);
+    const box = (await card.boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(handBounds.y);
+    for (const seat of seatBounds) expect(
+      Math.min(box.x + box.width, seat!.x + seat!.width) - Math.max(box.x, seat!.x) <= .5
+      || Math.min(box.y + box.height, seat!.y + seat!.height) - Math.max(box.y, seat!.y) <= .5,
+      'trick stays clear of every compact player cell',
+    ).toBe(true);
+  }
   const scene = (await page.locator(".coinche-game-scene").boundingBox())!;
   const north = (await page.locator(".coinche-top-seat").boundingBox())!;
   const south = (await page.locator(".coinche-bottom-seat").boundingBox())!;
@@ -312,13 +343,21 @@ for (const mode of ['solo', 'multi'] as const) test(`@mobile @immersive-polish $
 for (const viewport of sizes) test(`@mobile @immersive-polish compact last trick and clean numbered cards ${viewport.width}`, async ({ page }) => {
   await preferences(page); await page.setViewportSize(viewport);
   const state = mobileGameState("playing");
+  state.contract!.playerId = 1; state.contract!.status = 'surcoinched';
   state.completedTricks = [{ leaderId: 2, winnerId: 0, points: 24, cards: ([2, 1, 3, 0] as const).map(playerId => ({ playerId, card: state.hands[playerId][0] })) }];
-  await installMobileGameFixture(page, state); await page.goto("/solo"); await simulateSafeAreas(page, safe);
+  const fixture = await installMobileGameFixture(page, state); await page.goto(fixture.path); await simulateSafeAreas(page, safe);
   const last = page.getByRole("button", { name: "Dernier pli", exact: true }); await target(page, last);
   const badge = (await last.locator("span").boundingBox())!;
   expect(badge.height).toBeLessThanOrEqual(28); expect(badge.width).toBeLessThanOrEqual(84);
-  const south = (await page.locator(".coinche-bottom-seat").boundingBox())!;
-  expect(badge.y + badge.height).toBeLessThanOrEqual(south.y - 4);
+  const scene = (await page.locator('.coinche-game-scene').boundingBox())!;
+  const edge = (await page.getByRole('button', { name: 'Menu Partie', exact: true }).boundingBox())!;
+  const hitbox = (await last.boundingBox())!;
+  expect(scene.x + scene.width - hitbox.x - hitbox.width).toBeLessThanOrEqual(5);
+  expect(Math.abs(hitbox.x + hitbox.width - edge.x - edge.width)).toBeLessThanOrEqual(1);
+  expect(edge.y - hitbox.y - hitbox.height).toBeGreaterThanOrEqual(4);
+  expect(edge.y - hitbox.y - hitbox.height).toBeLessThanOrEqual(12);
+  const announcement = (await page.locator('.coinche-bubble-right').boundingBox())!;
+  expect(badge.y).toBeGreaterThanOrEqual(announcement.y + announcement.height);
   await last.click(); const cards = page.getByLabel("Cartes du dernier pli", { exact: true });
   await expect(cards.locator(".coinche-trick-card")).toHaveCount(4);
   for (let order = 1; order <= 4; order++) {
