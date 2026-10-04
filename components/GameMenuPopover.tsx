@@ -109,7 +109,7 @@ export function GameMenuPopover({
   };
 
   return createPortal(<><div className="coinche-game-menu-root relative" ref={rootRef}>
-    <button aria-controls="game-menu-panel" aria-expanded={isOpen} aria-label="Ouvrir le menu" className="coinche-game-burger coinche-chrome-icon" onClick={(event) => { buttonRef.current = event.currentTarget; setIsOpen((value) => !value); }} type="button">☰</button>
+    <button aria-controls="game-menu-panel" aria-expanded={isOpen} aria-label="Ouvrir le menu de partie" className="coinche-game-burger coinche-chrome-icon" onClick={(event) => { buttonRef.current = event.currentTarget; setIsOpen((value) => !value); }} type="button">☰</button>
     <button aria-controls="game-menu-panel" aria-expanded={isOpen} aria-label="Menu Partie" className="coinche-account-link whitespace-nowrap" onClick={(event) => { buttonRef.current = event.currentTarget; setIsOpen((value) => !value); }} type="button">
       <span className="hidden sm:inline">Partie <span aria-hidden="true">▾</span></span>
       <span aria-hidden="true" className="sm:hidden">•••</span>

@@ -35,6 +35,7 @@ async function fits(page: Page, safe: SafeAreas) {
   const cards=geometry.cards.filter(box=>box!==null);
   for(let i=1;i<cards.length;i++) expect(cards[i]!.x-cards[i-1]!.x).toBeGreaterThanOrEqual(44);
   if(geometry.bidding && geometry.hand) expect(geometry.bidding.y+geometry.bidding.height).toBeLessThanOrEqual(geometry.hand.y+1);
+  return Math.min(...cards.slice(1).map((card, i) => card!.x - cards[i]!.x));
 }
 for (const value of ["dark","light"] as const) for(const viewport of viewports) for(const mode of ["solo","multi"] as const) {
   test(`@mobile @game-mobile ${value} ${mode} ${viewport.width} bidding and playing`,async({page},info)=>{
@@ -50,9 +51,10 @@ for (const value of ["dark","light"] as const) for(const viewport of viewports) 
       await expect(page.locator('.coinche-player-panel [data-rank-family]')).toHaveCount(4);
     }
     await expect(page.locator('header[data-header-variant="compact-game"]')).toHaveCSS('height','0px');
+    let minimumCardGap = Infinity;
     for(const left of [44,0]) for (const bottom of [21,34]) {
       const safe={top:0,left,right:left?0:44,bottom};
-      await simulateSafeAreas(page,safe); await fits(page,safe);
+      await simulateSafeAreas(page,safe); minimumCardGap = Math.min(minimumCardGap, await fits(page,safe));
     }
     const folder='.playwright/validation/game'; mkdirSync(folder,{recursive:true});
     await simulateSafeAreas(page,{top:0,left:44,right:0,bottom:34});
@@ -60,7 +62,8 @@ for (const value of ["dark","light"] as const) for(const viewport of viewports) 
     await page.screenshot({path:`${folder}/${info.project.name}-${mode}-${value}-${viewport.width}-bidding.png`});
     fixture.setState(mobileGameState('playing'));
     await page.reload(); await expect(page.locator('.coinche-game-scene')).toHaveAttribute('data-game-phase','playing');
-    await simulateSafeAreas(page,{top:0,left:44,right:0,bottom:34}); await fits(page,{top:0,left:44,right:0,bottom:34});
+    await simulateSafeAreas(page,{top:0,left:44,right:0,bottom:34}); minimumCardGap = Math.min(minimumCardGap, await fits(page,{top:0,left:44,right:0,bottom:34}));
+    writeFileSync(`${folder}/fan-spacing-${info.project.name}-${mode}-${value}-${viewport.width}.json`,JSON.stringify({ minimumCardGap }));
     await page.screenshot({path:`${folder}/${info.project.name}-${mode}-${value}-${viewport.width}-playing.png`});
   });
 }

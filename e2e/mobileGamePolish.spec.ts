@@ -274,7 +274,8 @@ for (const viewport of sizes) test(`@mobile @immersive-polish compact clipped fa
         const { x, y, width, height } = element.getBoundingClientRect(); return { x, y, width, height };
       }));
       const start = Math.min(...fan.map(box => box.x)), end = Math.max(...fan.map(box => box.x + box.width));
-      expect(end - start).toBeLessThanOrEqual(415);
+      // The rotation allowance adds one pixel across each of the seven gaps.
+      expect(end - start).toBeLessThanOrEqual(422);
       expect(Math.abs((start + end) / 2 - scene.x - scene.width / 2 - 10)).toBeLessThanOrEqual(2);
       for (const box of fan) {
         expect(box.x).toBeGreaterThanOrEqual(insets.left);
@@ -325,7 +326,7 @@ for (const mode of ['solo', 'multi'] as const) test(`@mobile @immersive-polish $
   await page.goto(mode === 'solo' ? '/solo' : fixture.path); await expect(page.locator('.coinche-game-scene')).toBeVisible(); await simulateSafeAreas(page, safe);
   await expect(page.locator('.coinche-header-audio')).toBeHidden();
   await expect(page.locator('.coinche-game-burger')).toBeVisible();
-  const burger = page.getByRole('button', { name: 'Ouvrir le menu', exact: true }); await target(page, burger);
+  const burger = page.getByRole('button', { name: 'Ouvrir le menu de partie', exact: true }); await target(page, burger);
   await burger.focus(); await page.keyboard.press('Enter');
   const menu = page.getByRole('complementary', { name: 'Menu de partie' }); await expectInsideSafeViewport(page, menu, safe);
   const audio = menu.getByRole('button', { name: 'Contrôles audio' }); await audio.focus(); await page.keyboard.press('Enter');

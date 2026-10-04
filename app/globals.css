@@ -1989,7 +1989,8 @@ summary:focus-visible {
 
 /* V2: mobile game controls float over the shared safe table rectangle. */
 .coinche-game-audio, .coinche-game-burger { display: none; }
-@media (max-width: 767px) and (orientation: portrait), (max-width: 1119px) and (max-height: 500px) and (orientation: landscape) {
+/* The portrait rotation notice keeps the usual global navigation controls. */
+@media (max-width: 1119px) and (max-height: 500px) and (orientation: landscape) {
   .coinche-app-chrome[data-game-chrome="compact-game"] { --header-height: 0px; background: linear-gradient(120deg, #403124, #251c16); }
   .coinche-app-chrome[data-game-chrome="compact-game"] .coinche-global-header {
     position: fixed; inset: 0 0 auto; height: 0; padding: 0; border: 0; background: transparent; box-shadow: none; backdrop-filter: none; pointer-events: none;
@@ -2031,7 +2032,7 @@ summary:focus-visible {
   .coinche-game-scene .coinche-scene-hand { bottom: -24px; padding: 0 52px 0 72px; }
   .coinche-game-scene[data-game-phase="bidding"] .coinche-scene-hand { bottom: -22px; }
   .coinche-game-scene .coinche-scene-hand-cards { gap: 0; }
-  .coinche-game-scene .coinche-scene-hand-card { margin-left: calc(44px - var(--hand-card-width)); transform: translateY(calc(var(--hand-offset) * .85)) rotate(calc(var(--hand-rotation) * 1.8)); }
+  .coinche-game-scene .coinche-scene-hand-card { margin-left: calc(45px - var(--hand-card-width)); transform: translateY(calc(var(--hand-offset) * .85)) rotate(calc(var(--hand-rotation) * 1.8)); }
   @media (hover: hover) {
     .coinche-game-scene .coinche-scene-hand-card[data-can-play="true"]:hover { transform: translateY(-8px) rotate(0deg); }
   }
@@ -2101,6 +2102,10 @@ summary:focus-visible {
   .coinche-game-scene .coinche-collect-trick { right: calc(var(--seat-rail) + 4px); bottom: calc(var(--hand-height) + 10px); max-width: 24%; width: 112px; }
   .coinche-game-scene .coinche-show-last-trick { left: auto; right: 4px; bottom: 60px; width: 80px; display: flex; align-items: flex-end; justify-content: center; padding: 0; border: 0; background: transparent; box-shadow: none; }
   .coinche-game-scene .coinche-show-last-trick > span { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 5px; border: 1px solid #ead8a64d; border-radius: 7px; background: #07150fdb; }
+  @media (max-height: 340px) {
+    /* Leave room below a wrapped East announcement; the button retains its 44px hitbox. */
+    .coinche-game-scene .coinche-show-last-trick > span { min-height: 18px; padding-block: 1px; font-size: 9px; line-height: 12px; }
+  }
   .coinche-game-scene .coinche-last-trick-cards .coinche-trick-area { top: 50%; --trick-height: 72px; }
   .coinche-game-scene [class*="coinche-bubble-"] { border-radius: 8px; box-shadow: 0 3px 8px #0003; }
   .coinche-round-completion { width: min(620px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 16px; align-items: center; padding: 16px; }
