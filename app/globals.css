@@ -2049,8 +2049,6 @@ summary:focus-visible {
   .coinche-game-scene .coinche-right-seat { top: 50%; transform: translateY(-50%); }
   .coinche-game-scene .coinche-left-seat { left: 4px; }
   .coinche-game-scene .coinche-right-seat { right: 4px; }
-  .coinche-game-scene[data-game-phase="bidding"] .coinche-left-seat,
-  .coinche-game-scene[data-game-phase="bidding"] .coinche-right-seat { top: 56px; transform: none; }
   .coinche-game-scene .coinche-bottom-seat { bottom: 8px; }
   main[aria-label="Partie d’entraînement"] .coinche-game-scene .coinche-bottom-seat { bottom: 56px; }
   .coinche-game-scene .coinche-bubble-left { top: calc(100% + 2px); bottom: auto; left: 0; transform: none; }

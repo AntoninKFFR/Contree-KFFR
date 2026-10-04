@@ -85,6 +85,48 @@ for (const viewport of sizes) for (const mode of ["solo", "multi"] as const) {
   });
 }
 
+for (const viewport of [sizes[0], sizes[2]]) test(`@mobile @immersive-polish fixed side seats across bidding ${viewport.width}`, async ({ page }, info) => {
+  await preferences(page); await page.setViewportSize(viewport);
+  const fixture = await installMobileGameFixture(page, mobileGameState("playing"));
+  await page.goto(fixture.path); await expect(page.locator('.coinche-game-scene')).toHaveAttribute('data-game-phase', 'playing');
+  await simulateSafeAreas(page, safe);
+  // Wait for the viewport observer to apply the simulated insets before recording positions.
+  await expect.poll(async () => (await page.locator('.coinche-game-scene').boundingBox())!.height).toBe(viewport.height - safe.top - safe.bottom);
+  const seats = page.locator('.coinche-left-seat .coinche-player-panel, .coinche-right-seat .coinche-player-panel');
+  const boxes = () => seats.evaluateAll(elements => elements.map(element => {
+    const { x, y, width, height } = element.getBoundingClientRect();
+    return { x, y, width, height };
+  }));
+  const before = await boxes(), scene = (await page.locator('.coinche-game-scene').boundingBox())!;
+  expect(before).toHaveLength(2);
+  for (const box of before) expect(Math.abs(box.y + box.height / 2 - scene.y - scene.height / 2)).toBeLessThan(1);
+  const bidding = mobileGameState();
+  for (const announcements of [false, true]) {
+    if (announcements) bidding.bids = [
+      { playerId: 0, action: 'bid', value: 80, trump: 'hearts' }, { playerId: 1, action: 'pass' },
+      { playerId: 2, action: 'bid', value: 90, trump: 'clubs' }, { playerId: 3, action: 'pass' },
+    ];
+    fixture.setState({ ...bidding });
+    await expect.poll(async () => {
+      await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      return await page.locator('.coinche-game-scene').getAttribute('data-game-phase') === 'bidding'
+        && await page.locator('[class*="coinche-bubble-"]').count() === (announcements ? 4 : 0);
+    }).toBe(true);
+    expect(await boxes()).toEqual(before);
+    await expect(page.locator('.coinche-bidding-panel')).toBeVisible();
+    for (const bubble of await page.locator('[class*="coinche-bubble-"]').all()) await expectInsideSafeViewport(page, bubble, safe);
+    for (const button of await page.locator('.coinche-bidding-panel button:visible').all()) await target(page, button);
+  }
+  await page.screenshot({ path: `.playwright/validation/immersive-polish/${info.project.name}-${viewport.width}-fixed-bidding-seats.png` });
+  fixture.setState(mobileGameState('playing'));
+  await expect.poll(async () => {
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    return page.locator('.coinche-game-scene').getAttribute('data-game-phase');
+  }).toBe('playing');
+  expect(await boxes()).toEqual(before);
+  expect(fixture.intents).toEqual([]);
+});
+
 for (const viewport of sizes) test(`@mobile @immersive-polish stable seats and only new cards animate ${viewport.width}`, async ({ page }, info) => {
   await preferences(page, false); await page.setViewportSize(viewport);
   const state = mobileGameState("playing");
