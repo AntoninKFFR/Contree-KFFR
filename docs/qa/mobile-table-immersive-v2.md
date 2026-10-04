@@ -2,6 +2,20 @@
 
 Base : `f3242de` (dernier `main`, PR #138). Branche : `codex/mobile-table-immersive-v2`.
 
+## Affinement après la V2 initiale
+
+Le suivi repart de `d3690a0`, dans la même PR. Quatre fichiers applicatifs sont ajustés : `BiddingPanel`, `GameTable`, `PlayerPanel` et les styles. Les mesures et captures des sections suivantes documentent la V2 initiale ; ce suivi réduit légèrement sa main et stabilise les ancrages du pli.
+
+- Enchères centrées dans l’espace entre les contrôles et la main. Capot suit 160 dans la grille des valeurs, sur mobile et desktop. Les quatre couleurs occupent une grille 2×2 ; SA/TA gardent une colonne séparée. Espacement de 4 px entre choix, 8 px entre valeurs et modes, cibles ≥44×44 px.
+- Main de jeu réduite d’environ 11–15 % : hauteurs nominales 89 / 107 / 111 / 122 px sur les quatre paysages avec les insets comparables. Le pli utilise 94 % de cette hauteur et une typographie proportionnelle : le passage de la main à la table garde des proportions proches.
+- Ancrages fixes Nord/Est/Ouest/Sud, y compris avec une seule carte : suppression de l’exception qui recentrait la première carte. Les clés et animations existantes sont conservées ; le calque du pli est placé au-dessus de la main, sous les actions et overlays. Test sans rechargement de 1→4 cartes : mêmes nœuds, mêmes coordonnées à 0,1 px près, aucune animation relancée sur une carte déjà posée.
+- Ouest/Sud restent à gauche, Nord/Est à droite. Blocs compacts de 60 px ; P directement à droite du nom, hauteur de ligne réservée indépendamment de sa présence. Les emblèmes restent dans le bloc, les noms longs conservent une zone visible.
+- Dernier pli : badge visuel de 24 px dans une cible de 44 px, espacé du joueur du bas. Les mini-cartes affichent uniquement leur ordre 1–4 ; le gagnant et les points restent dans le résumé.
+- Score live « Direct — Nous/Eux » en haut à droite, alimenté par `getPublicRoundPoints` et orienté selon l’équipe du spectateur ; préférence existante conservée. Le score cumulé et le contrat gardent leur HUD.
+- Flèche de sortie, poignée bois, aide Training, confirmations et focus conservés. Aucun changement moteur, backend, auth ou PWA.
+
+Validation du suivi : 69 tests Vitest ciblés, build production, lint et TypeScript passés. Playwright sur production : 168 tests de scènes de jeu, 6 tests d’accessibilité/viewport réduit, 4 tests Training enchères (Chromium + WebKit), et 9 smoke ciblés passés. Le statut CI du SHA est consigné dans la PR. Captures locales de revue : `.playwright/validation/immersive-polish/`.
+
 Ce chantier est limité à la présentation de la table partagée Solo / Multiplayer / Training. Aucun fichier moteur, bot, transport, API, RPC, schéma, migration, scoring, présence, matchmaking ou PWA n’est modifié. Les screenshots de référence évoqués dans le brief n’étaient pas joints : les proportions et affordances décrites ont guidé le travail, avec les composants et le tapis KFFR existants.
 
 ## Choix UX

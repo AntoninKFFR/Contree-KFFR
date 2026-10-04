@@ -34,7 +34,7 @@ for (const mode of ['solo','multi'] as const) for (const viewport of sizes) test
     const state=mobileGameState('playing'); state.hands[0]=state.hands[0].slice(0,count);
     fixture.setState(state); await page.reload(); await expect(page.locator('.coinche-scene-hand-card')).toHaveCount(count); await simulateSafeAreas(page,safe);
     const cards=page.locator('.coinche-scene-hand-card button');
-    for(const card of await cards.all()) { await target(page,card); expect((await card.boundingBox())!.height).toBeGreaterThanOrEqual(96); }
+    for(const card of await cards.all()) { await target(page,card); expect((await card.boundingBox())!.height).toBeGreaterThanOrEqual(84); }
     await snapshot(page,`${mode}-${viewport.width}-hand${count}`,info.project.name);
   }
   for(const count of [1,2,3,4]) {

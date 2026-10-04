@@ -176,6 +176,21 @@ describe("premium gameplay shell", () => {
     expect(markup).toContain("Joueur 3 gagne · 24 points");
     expect(markup).toContain("Fermer");
     expect(markup).not.toContain("coinche-card-play-from-");
+    const cardsMarkup = markup.slice(markup.indexOf('aria-label="Cartes du dernier pli"'), markup.indexOf('>Fermer<'));
+    expect(cardsMarkup).not.toContain("Joueur");
+  });
+
+  it("shows the existing public round points in the compact mobile scoreboard", () => {
+    const state = createInitialGame(() => 0.1);
+    state.trickPoints = { 0: 67, 1: 35 };
+    const markup = withPreferences(React.createElement(GameTable, { state, immersiveMobileLandscape: true, showLiveScore: true }));
+    expect(markup).toContain('aria-label="Points en direct"');
+    expect(markup).toMatch(/Nous 67/);
+    expect(markup).toMatch(/Eux 35/);
+    const opponentView = withPreferences(React.createElement(GameTable, { state: toPlayerGameView(state, 1), immersiveMobileLandscape: true, showLiveScore: true }));
+    expect(opponentView).toMatch(/Nous 35/);
+    expect(opponentView).toMatch(/Eux 67/);
+    expect(withPreferences(React.createElement(GameTable, { state, immersiveMobileLandscape: true, showLiveScore: false }))).not.toContain('aria-label="Points en direct"');
   });
 
   it("keeps only the contract-progress title and primary value", () => {

@@ -48,6 +48,7 @@ export function PlayerPanel({
         <div className="coinche-player-content min-w-0">
           <div className="coinche-player-identity flex items-center justify-center gap-1">
             <p title={name} className="coinche-player-name max-w-[58px] truncate text-[11px] font-bold sm:max-w-24 sm:text-sm">{name}</p>
+            {hasLead ? <span className="coinche-player-lead shrink-0 rounded border border-[#d8c48f]/50 px-1 text-[10px] font-bold text-[#f0dfb1]">P</span> : null}
             {isHost ? <span className="coinche-player-host rounded-full border border-[#d8c48f]/35 bg-[#d8c48f]/10 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wide text-[#f0dfb1] sm:text-[8px]">Hôte</span> : null}
           </div>
           {isConnected !== undefined ? (
@@ -62,11 +63,6 @@ export function PlayerPanel({
           {isConnected !== undefined && isRanked && rank?.trim() ? <p className="hidden max-w-24 truncate text-[8px] font-bold text-[#f0dfb1]/80 sm:block">{rank}</p> : null}
         </div>
         {isCurrent && turnSecondsRemaining !== null ? <span aria-label={`${turnSecondsRemaining} secondes restantes avant le coup automatique`} aria-live="off" className={`whitespace-nowrap rounded border px-1 py-0.5 text-[10px] font-bold ${turnSecondsRemaining <= 10 ? "border-amber-300/70 text-amber-200" : "border-white/30 text-white"}`} role="timer">⏱ {turnSecondsRemaining} s</span> : null}
-        {hasLead ? (
-          <span className="rounded border border-[#d8c48f]/50 px-1 py-0 text-[10px] font-bold text-[#f0dfb1]">
-            P
-          </span>
-        ) : null}
       </div>
     </div>
   );

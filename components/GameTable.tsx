@@ -162,22 +162,21 @@ function trickCollectionOffset(winnerId: PlayerId, seats: TableSeats): { x: stri
   return { x: "0px", y: "32vh" };
 }
 
-function TrickCard({ played, position, animate, order, playerName: name, showDetails = false }: {
-  played: PlayedCard; position: keyof TableSeats; animate: boolean; order: number; playerName?: string; showDetails?: boolean;
+function TrickCard({ played, position, animate, order, showDetails = false }: {
+  played: PlayedCard; position: keyof TableSeats; animate: boolean; order: number; showDetails?: boolean;
 }) {
   return (
     <div className={`coinche-trick-card coinche-trick-card--${position}`} data-player-id={played.playerId} data-play-order={order} style={{ zIndex: order }}>
       <CardView card={played.card} className={animate ? `coinche-card-play-from-${position}` : ""} disabled muted={false} size="compact" />
       {showDetails ? <>
         <span aria-label={`Carte ${order}`} className="absolute -right-2 -top-2 flex size-5 items-center justify-center rounded-full border border-white/70 bg-emerald-950 text-[10px] font-black text-white">{order}</span>
-        <span className="absolute -bottom-3 left-1/2 max-w-20 -translate-x-1/2 truncate rounded bg-black/75 px-1 text-[8px] font-semibold text-white">{name}</span>
       </> : null}
     </div>
   );
 }
 
-function TrickCenter({ cards, seats, animatedKeys, showDetails = false, nameFor }: {
-  cards: PlayedCard[]; seats: TableSeats; animatedKeys: ReadonlySet<string>; showDetails?: boolean; nameFor?: (playerId: PlayerId) => string;
+function TrickCenter({ cards, seats, animatedKeys, showDetails = false }: {
+  cards: PlayedCard[]; seats: TableSeats; animatedKeys: ReadonlySet<string>; showDetails?: boolean;
 }) {
   return (
     <div data-card-count={cards.length} aria-label={showDetails ? "Cartes du dernier pli" : "Cartes du pli"} className="coinche-trick-area absolute left-1/2 top-[43%] -translate-x-1/2 -translate-y-1/2">
@@ -185,7 +184,7 @@ function TrickCenter({ cards, seats, animatedKeys, showDetails = false, nameFor 
         const position = (Object.keys(seats) as (keyof TableSeats)[]).find((seat) => seats[seat] === played.playerId)!;
         const key = playedCardKey(played);
         return <TrickCard animate={animatedKeys.has(key)} key={key} order={index + 1} played={played} position={position}
-          playerName={nameFor?.(played.playerId)} showDetails={showDetails} />;
+          showDetails={showDetails} />;
       })}
     </div>
   );
@@ -197,7 +196,7 @@ export function LastTrickTable({ trick, seats, nameFor, onClose }: {
   return <div aria-label="Dernier pli" className="coinche-last-trick absolute inset-2 z-40 flex min-w-0 flex-col items-center justify-center overflow-hidden rounded-xl border border-white/60 bg-stone-950/95 p-2 text-white shadow-2xl">
     <p className="text-sm font-bold">Dernier pli</p>
     <p className="coinche-last-trick-result text-xs text-white/75" title={`${nameFor(trick.winnerId)} gagne · ${trick.points} points`}>{nameFor(trick.winnerId)} gagne · {trick.points} points</p>
-    <div className="coinche-last-trick-cards relative my-1 h-48 w-56 max-w-full shrink-0"><TrickCenter animatedKeys={new Set()} cards={trick.cards} nameFor={nameFor} seats={seats} showDetails /></div>
+    <div className="coinche-last-trick-cards relative my-1 h-48 w-56 max-w-full shrink-0"><TrickCenter animatedKeys={new Set()} cards={trick.cards} seats={seats} showDetails /></div>
     <button className="rounded-lg border border-white px-3 py-1 text-xs font-semibold" onClick={onClose} type="button">Fermer</button>
   </div>;
 }
@@ -296,9 +295,11 @@ function RoundHelpOverlay({ state, showLiveScore }: { state: GameTableState; sho
 function GameHud({
   bottomPlayerId,
   state,
+  showLiveScore = false,
 }: {
   state: GameTableState;
   bottomPlayerId: PlayerId;
+  showLiveScore?: boolean;
 }) {
   const contractText = state.contract
     ? `${formatContractLabel(state.contract)}${state.contract.status === "coinched" ? " · Coinché" : state.contract.status === "surcoinched" ? " · Surcoinché" : ""}`
@@ -306,12 +307,13 @@ function GameHud({
   const inactiveMessage = inactivePlayerMessage(state);
   const us = playerTeam(bottomPlayerId);
   const them = us === 0 ? 1 : 0;
+  const livePoints = showLiveScore ? getPublicRoundPoints(state) : null;
 
   return (
-    <div className="coinche-table-hud pointer-events-none absolute left-2 top-2 z-10 rounded-xl border border-white/10 bg-[#07150f]/70 px-2.5 py-2 text-white shadow-lg backdrop-blur-md sm:left-4 sm:top-4 sm:px-3">
+    <><div className="coinche-table-hud pointer-events-none absolute left-2 top-2 z-10 rounded-xl border border-white/10 bg-[#07150f]/70 px-2.5 py-2 text-white shadow-lg backdrop-blur-md sm:left-4 sm:top-4 sm:px-3">
       <div className="flex items-center gap-2 text-[10px] font-black sm:text-xs"><span>Nous {state.totalScore[us]}</span><span className="text-white/35">—</span><span>Eux {state.totalScore[them]}</span><span title={contractText} className="coinche-hud-contract ml-1 max-w-28 truncate text-[8px] font-semibold uppercase tracking-[0.12em] text-[#e8d8ad]/75 sm:max-w-40 sm:text-[9px]">{contractText}</span></div>
       {inactiveMessage ? <p className="text-[9px] text-white/70">{inactiveMessage}</p> : null}
-    </div>
+    </div>{livePoints ? <div aria-label="Points en direct" className="coinche-live-score pointer-events-none absolute z-10 flex items-center gap-2 rounded-xl border border-white/20 bg-[#07150f]/85 px-2 py-1 text-[10px] font-bold text-white"><span className="text-[8px] uppercase text-[#e8d8ad]/75">Direct</span><span>Nous {livePoints[us]}</span><span>Eux {livePoints[them]}</span></div> : null}</>
   );
 }
 
@@ -509,7 +511,7 @@ export function GameTable({
         const offset = collecting ? trickCollectionOffset(animatedCompletedTrick.trick.winnerId, seats) : null;
         return <div className={`pointer-events-none absolute inset-0 ${collecting && isPreferenceAnimationEnabled(preferences, "trick", effectiveReducedMotion) ? "coinche-trick-collect" : ""}`}
           data-trick-key={layer.key} data-trick-layer={layer.kind} key={layer.key}
-          style={{ zIndex: 20 + layerIndex, ...(offset ? {
+          style={{ zIndex: 25 + layerIndex, ...(offset ? {
             "--coinche-trick-collect-x": offset.x,
             "--coinche-trick-collect-y": offset.y,
             animationDelay: cardPlayEnabled ? `${Math.min(240, effectiveTrickPresentationPolicy.delayMs)}ms` : undefined,
@@ -520,9 +522,9 @@ export function GameTable({
       })}
       {showRoundHelp ? <RoundHelpOverlay showLiveScore={showLiveScore && preferences.assistance.showLivePoints} state={state} /> : null}
       {animatedCompletedTrick && !effectiveTrickPresentationPolicy.autoCollect ? <button className="coinche-collect-trick absolute bottom-2 left-1/2 z-40 -translate-x-1/2 rounded-xl border-2 border-white bg-emerald-950 px-5 py-2.5 text-xs font-bold text-white shadow-xl" onClick={dismissPresentedTrick} type="button"><span className="block">Ramasser le pli</span><span className="block text-[10px] font-normal text-white/80">{nameFor(animatedCompletedTrick.trick.winnerId)} gagne · {animatedCompletedTrick.trick.points} pts</span></button> : null}
-      {preferences.assistance.showLastTrick && lastTrick && !presentedTrick ? <button aria-expanded={showLastTrick} className="coinche-show-last-trick absolute bottom-2 left-2 z-20 rounded-md border border-white/40 bg-black/40 px-2 py-1 text-[10px] font-semibold text-white shadow" onClick={() => setShowLastTrick((visible) => !visible)} type="button">Dernier pli</button> : null}
+      {preferences.assistance.showLastTrick && lastTrick && !presentedTrick ? <button aria-expanded={showLastTrick} className="coinche-show-last-trick absolute bottom-2 left-2 z-20 rounded-md border border-white/40 bg-black/40 px-2 py-1 text-[10px] font-semibold text-white shadow" onClick={() => setShowLastTrick((visible) => !visible)} type="button"><span>Dernier pli</span></button> : null}
       {showLastTrick && lastTrick && !presentedTrick ? <LastTrickTable nameFor={nameFor} onClose={() => setShowLastTrick(false)} seats={seats} trick={lastTrick} /> : null}
-      <GameHud bottomPlayerId={seats.bottom} state={state} />
+      <GameHud bottomPlayerId={seats.bottom} state={state} showLiveScore={immersiveMobileLandscape && !minimalHud && showLiveScore && preferences.assistance.showLivePoints} />
       {!immersiveMobileLandscape && inactiveMessage && !minimalHud ? (
         <div className="pointer-events-none absolute left-2 top-2 z-10 rounded-md border border-white/20 bg-black/25 px-2 py-1 text-[9px] font-medium text-white/80 shadow-sm backdrop-blur-sm sm:left-3 sm:top-3">
           {inactiveMessage}
