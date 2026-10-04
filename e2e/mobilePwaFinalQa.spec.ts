@@ -322,6 +322,7 @@ for (const mode of ["solo", "multi"] as const) test(`@mobile @pwa-final-qa ${mod
 
 test("@mobile @pwa-final-qa light active Solo portrait notice stays isolated", async ({ page, qa }, info) => {
   await installMobileGameFixture(page, mobileGameState("playing")); await setMobileViewport(page, { width: 390, height: 844 }); await page.goto("/solo");
+  await expect(page.locator(".coinche-global-header")).toHaveAttribute("data-header-variant", "compact-game");
   const safe = qaSafeAreas(390, 844); await simulateSafeAreas(page, safe);
   await setTheme(page, "light");
   await expect(page.getByRole("heading", { name: "Tournez votre téléphone" })).toBeVisible();

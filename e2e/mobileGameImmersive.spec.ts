@@ -5,6 +5,7 @@ import { gameGeometry } from "./helpers/gameGeometry";
 import { expectInsideSafeViewport, expectNoPageHorizontalOverflow, simulateSafeAreas } from "./helpers/mobile";
 import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../lib/preferences/playerPreferences";
 import { installTrainingMobileFixture } from "./helpers/trainingMobileFixture";
+import { openFirstTrainingQuestion } from "./helpers/trainingGame";
 
 const sizes = [{width:568,height:320},{width:667,height:375},{width:844,height:390},{width:932,height:430}];
 const safe = {top:8,left:44,right:0,bottom:34};
@@ -74,4 +75,22 @@ for (const viewport of sizes) test(`@mobile @immersive-v2 round result and detai
   const result=page.getByLabel('Résultat de la manche',{exact:true});await expectInsideSafeViewport(page,result,safe);
   await target(page,result.getByRole('button',{name:'Manche suivante'}));await target(page,result.locator('summary'));await result.locator('summary').click();await expect(result.getByText('Points de plis : 110 — 52')).toBeVisible();
   await expectNoPageHorizontalOverflow(page);await snapshot(page,`result-${viewport.width}`,info.project.name);
+});
+
+test('@mobile @immersive-v2 Training last trick stays clear of the contract after a real question',async({page})=>{
+  test.setTimeout(90_000);
+  await installTrainingMobileFixture(page);
+  const {dialog}=await openFirstTrainingQuestion(page);
+  await page.setViewportSize(sizes[0]);await simulateSafeAreas(page,safe);
+  await dialog.getByRole('textbox',{name:'Ta réponse en points'}).fill('0');
+  await dialog.getByRole('button',{name:'Valider',exact:true}).click();
+  await dialog.getByRole('button',{name:'Reprendre la partie'}).click();
+  const last=page.getByRole('button',{name:'Dernier pli',exact:true});await target(page,last);
+  const button=(await last.boundingBox())!;
+  const contract=(await page.locator('.coinche-bubble-bottom').boundingBox())!;
+  expect(Math.min(button.x+button.width,contract.x+contract.width)-Math.max(button.x,contract.x)<=0
+    || Math.min(button.y+button.height,contract.y+contract.height)-Math.max(button.y,contract.y)<=0).toBe(true);
+  await last.click();await expect(page.getByLabel('Dernier pli',{exact:true})).toBeVisible();
+  await page.getByLabel('Dernier pli',{exact:true}).getByRole('button',{name:'Fermer'}).click();
+  await expect(last).toBeVisible();
 });

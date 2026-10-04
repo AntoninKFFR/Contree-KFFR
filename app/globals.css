@@ -2053,6 +2053,7 @@ summary:focus-visible {
   .coinche-game-scene .coinche-trick-card .coinche-card > span:nth-child(2) { font-size: 28px; }
   .coinche-game-scene .coinche-collect-trick { right: calc(var(--seat-rail) + 4px); bottom: calc(var(--hand-height) + 10px); max-width: 24%; width: 112px; }
   .coinche-game-scene .coinche-show-last-trick { left: 4px; bottom: calc(var(--hand-height) + 46px); }
+  main[aria-label="Partie d’entraînement"] .coinche-game-scene .coinche-show-last-trick { left: calc(var(--seat-rail) + 4px); }
   .coinche-game-scene .coinche-last-trick-cards .coinche-trick-area { top: 50%; --trick-height: 72px; }
   .coinche-game-scene [class*="coinche-bubble-"] { border-radius: 8px; box-shadow: 0 3px 8px #0003; }
   .coinche-round-completion { width: min(620px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 16px; align-items: center; padding: 16px; }

@@ -46,9 +46,10 @@ Sur 1024×768, 1120×800, 1440×900 et 1280×450 : **écart géométrique mesur�
 
 - Vitest complet : **191 fichiers, 1948 tests passés**.
 - Lint et TypeScript : passés.
-- Suite ciblée Chromium : **64 tests passés** (nouvelle suite de 16 tests comprise).
+- Suite ciblée Chromium finale sur production : **66 tests passés** (nouvelle suite de 17 tests comprise, dont un contrôle du dernier pli Training après une vraie question).
 - Comparaisons avant / après : 8 scénarios par version, les quatre paysages et quatre références desktop/tablette.
-- Les suites mobile complètes, le build production et les workflows du SHA final sont détaillés dans la PR : leurs statuts ne sont pas figés dans ce document.
+- Build production isolé : passé.
+- Suite mobile Chromium complète en production : 362 scénarios passés au premier run ; le dernier test a été corrigé pour attendre le chargement de la partie avant de changer le thème. Ce scénario repasse dans la suite finale **66/66**, avec le nouveau test du dernier pli Training. Aucun échec local Chromium restant ; les workflows du SHA final sont détaillés dans la PR.
 
 La matrice inclut les quatre paysages demandés, portraits 390×844 / 430×932, rotation, safe areas des deux côtés et réduction du viewport dynamique, thèmes clair/sombre, texte agrandi, contraste renforcé, mouvement réduit, focus, enchères extrêmes, confirmations, mains 8→1, plis 1→4, ramassage, dernier pli, Training et résultats avec détails.
 
