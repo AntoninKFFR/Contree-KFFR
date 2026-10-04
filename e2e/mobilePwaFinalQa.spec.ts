@@ -332,7 +332,9 @@ test("@mobile @pwa-final-qa light active Solo portrait notice stays isolated", a
   await expect(page.locator(".coinche-game-scene, .coinche-scene-hand-card button")).toHaveCount(0);
   await expect(page.locator(".coinche-global-header")).toHaveAttribute("data-header-variant", "compact-game");
   await captureQaSnapshot(page, info, "solo", "portrait-notice"); await qa.checkpoint("solo-portrait-light");
-  await page.getByRole("button", { name: "Quitter la table et revenir à l’accueil" }).click();
+  await expect(page.getByRole("button", { name: "Ouvrir le menu", exact: true })).toBeVisible();
+  const exit = page.getByRole("button", { name: "Quitter la table et revenir à l’accueil" });
+  await qa.control(exit, safe); await exit.click();
   await page.getByRole("button", { name: "Revenir à l’accueil", exact: true }).click();
   await expect(page.locator(".coinche-global-header")).toHaveAttribute("data-header-variant", "default");
   await expect(page.locator(".coinche-global-header")).toHaveCSS("height", `${56 + safe.top}px`);

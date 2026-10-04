@@ -1990,6 +1990,9 @@ summary:focus-visible {
 /* V2: mobile game controls float over the shared safe table rectangle. */
 .coinche-game-audio, .coinche-game-burger { display: none; }
 /* The portrait rotation notice keeps the usual global navigation controls. */
+@media (max-width: 767px) and (orientation: portrait) {
+  .coinche-app-chrome[data-game-chrome="compact-game"] .coinche-game-exit { display: flex; pointer-events: auto; position: fixed; top: calc(var(--header-shell-height) + 8px); left: calc(var(--safe-left) + 8px); }
+}
 @media (max-width: 1119px) and (max-height: 500px) and (orientation: landscape) {
   .coinche-app-chrome[data-game-chrome="compact-game"] { --header-height: 0px; background: linear-gradient(120deg, #403124, #251c16); }
   .coinche-app-chrome[data-game-chrome="compact-game"] .coinche-global-header {
