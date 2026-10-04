@@ -1,0 +1,194 @@
+[
+  {
+    "width": 568,
+    "headerBefore": 52,
+    "headerAfter": 0,
+    "tableBefore": 234,
+    "tableAfter": 278,
+    "handBefore": {
+      "width": 48,
+      "height": 50
+    },
+    "handAfter": {
+      "width": 68.046875,
+      "height": 100.078125
+    },
+    "trickBefore": {
+      "width": 29.3216552734375,
+      "height": 42.092803955078125
+    },
+    "trickAfter": {
+      "width": 52.333251953125,
+      "height": 75.92605590820312
+    },
+    "desktopMaxDelta": null
+  },
+  {
+    "width": 667,
+    "headerBefore": 52,
+    "headerAfter": 0,
+    "tableBefore": 289,
+    "tableAfter": 333,
+    "handBefore": {
+      "width": 48,
+      "height": 56
+    },
+    "handAfter": {
+      "width": 81.515625,
+      "height": 119.875
+    },
+    "trickBefore": {
+      "width": 42.68267822265625,
+      "height": 63.11651611328125
+    },
+    "trickAfter": {
+      "width": 62.68475341796875,
+      "height": 90.9593276977539
+    },
+    "desktopMaxDelta": null
+  },
+  {
+    "width": 844,
+    "headerBefore": 52,
+    "headerAfter": 0,
+    "tableBefore": 304,
+    "tableAfter": 348,
+    "handBefore": {
+      "width": 48,
+      "height": 56
+    },
+    "handAfter": {
+      "width": 85.1875,
+      "height": 125.265625
+    },
+    "trickBefore": {
+      "width": 42.68267822265625,
+      "height": 63.11651611328125
+    },
+    "trickAfter": {
+      "width": 65.5206298828125,
+      "height": 95.05386352539062
+    },
+    "desktopMaxDelta": null
+  },
+  {
+    "width": 932,
+    "headerBefore": 52,
+    "headerAfter": 0,
+    "tableBefore": 344,
+    "tableAfter": 388,
+    "handBefore": {
+      "width": 48,
+      "height": 56
+    },
+    "handAfter": {
+      "width": 94.96875,
+      "height": 139.671875
+    },
+    "trickBefore": {
+      "width": 42.682647705078125,
+      "height": 63.11651611328125
+    },
+    "trickAfter": {
+      "width": 68.3251953125,
+      "height": 99.1478271484375
+    },
+    "desktopMaxDelta": null
+  },
+  {
+    "width": 1024,
+    "headerBefore": 56,
+    "headerAfter": 56,
+    "tableBefore": 696,
+    "tableAfter": 696,
+    "handBefore": {
+      "width": 74.14801025390625,
+      "height": 102.4432373046875
+    },
+    "handAfter": {
+      "width": 74.14801025390625,
+      "height": 102.4432373046875
+    },
+    "trickBefore": {
+      "width": 65.6656494140625,
+      "height": 97.102294921875
+    },
+    "trickAfter": {
+      "width": 65.6656494140625,
+      "height": 97.102294921875
+    },
+    "desktopMaxDelta": 0
+  },
+  {
+    "width": 1120,
+    "headerBefore": 56,
+    "headerAfter": 56,
+    "tableBefore": 728,
+    "tableAfter": 728,
+    "handBefore": {
+      "width": 74.14801025390625,
+      "height": 102.4432373046875
+    },
+    "handAfter": {
+      "width": 74.14801025390625,
+      "height": 102.4432373046875
+    },
+    "trickBefore": {
+      "width": 65.6656494140625,
+      "height": 97.102294921875
+    },
+    "trickAfter": {
+      "width": 65.6656494140625,
+      "height": 97.102294921875
+    },
+    "desktopMaxDelta": 0
+  },
+  {
+    "width": 1440,
+    "headerBefore": 56,
+    "headerAfter": 56,
+    "tableBefore": 828,
+    "tableAfter": 828,
+    "handBefore": {
+      "width": 74.14801025390625,
+      "height": 102.4432373046875
+    },
+    "handAfter": {
+      "width": 74.14801025390625,
+      "height": 102.4432373046875
+    },
+    "trickBefore": {
+      "width": 65.6656494140625,
+      "height": 97.102294921875
+    },
+    "trickAfter": {
+      "width": 65.6656494140625,
+      "height": 97.102294921875
+    },
+    "desktopMaxDelta": 0
+  },
+  {
+    "width": 1280,
+    "headerBefore": 56,
+    "headerAfter": 56,
+    "tableBefore": 394,
+    "tableAfter": 394,
+    "handBefore": {
+      "width": 48,
+      "height": 56
+    },
+    "handAfter": {
+      "width": 48,
+      "height": 56
+    },
+    "trickBefore": {
+      "width": 42.68267822265625,
+      "height": 63.11651611328125
+    },
+    "trickAfter": {
+      "width": 42.68267822265625,
+      "height": 63.11651611328125
+    },
+    "desktopMaxDelta": 0
+  }
+]

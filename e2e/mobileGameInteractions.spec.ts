@@ -32,7 +32,8 @@ for(const mode of ['solo','multi'] as const) {
       expect(fixture.intents).toEqual([]);
       await expect(page.locator('.coinche-global-header')).toHaveAttribute('data-header-variant','compact-game');
     }
-    await page.getByRole('link',{name:'Accueil — KFFR Contrée'}).click();
+    await page.getByRole('button',{name:'Quitter la table et revenir à l’accueil'}).click();
+    await page.getByRole('button',{name:'Revenir à l’accueil',exact:true}).click();
     await expect(page.locator('.coinche-global-header')).toHaveAttribute('data-header-variant','default');
     await expect(page.locator('.coinche-global-header')).toHaveCSS('height','56px');
   });

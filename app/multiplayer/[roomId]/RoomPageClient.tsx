@@ -310,11 +310,11 @@ export default function MultiplayerRoomPage() {
   ];
 
   if (shouldLockPortrait) {
-    return <><GameMenuPopover focusMode={isFocusMode} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} /><MobileLandscapeNotice />{isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost, tablePreferences, isSavingTablePreferences: isUpdatingTablePreferences, onTablePreferencesChange: handleUpdateTablePreferences }} onClose={() => setIsSettingsOpen(false)} /> : null}</>;
+    return <><GameMenuPopover exitDescription={isPlayingLayout ? "Les autres joueurs continuent et le remplacement temporaire existant reste actif. Revenir à l’accueil ne déclare pas de forfait." : undefined} focusMode={isFocusMode} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} /><MobileLandscapeNotice />{isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost, tablePreferences, isSavingTablePreferences: isUpdatingTablePreferences, onTablePreferencesChange: handleUpdateTablePreferences }} onClose={() => setIsSettingsOpen(false)} /> : null}</>;
   }
 
   return (
-    <><GameMenuPopover focusMode={isFocusMode} menuActions={gameMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} showFocusMode={isPlayingLayout} /><main
+    <><GameMenuPopover exitDescription={isPlayingLayout ? "Les autres joueurs continuent et le remplacement temporaire existant reste actif. Revenir à l’accueil ne déclare pas de forfait." : undefined} focusMode={isFocusMode} menuActions={gameMenuActions} onOpenPreferences={() => setIsSettingsOpen(true)} onToggleFocusMode={() => setIsFocusMode((current) => !current)} showFocusMode={isPlayingLayout} /><main
       className={
         isPlayingLayout
           ? `coinche-game-shell h-[var(--content-height)] min-h-0 overflow-x-hidden overflow-y-auto [--shell-padding-x:0.5rem] py-2 sm:[--shell-padding-x:0.75rem] lg:overflow-hidden${isMobileLandscape ? " overflow-hidden [--shell-padding-x:0px] [--shell-padding-y:0px] py-0 sm:[--shell-padding-x:0.75rem]" : ""}`

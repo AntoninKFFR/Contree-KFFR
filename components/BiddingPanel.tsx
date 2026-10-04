@@ -114,6 +114,8 @@ export function BiddingPanel({
   const canMakeCapot = canBid && canBidCapot(currentContract, biddingRules);
   const canMakeGenerale = Boolean(canBid && biddingRules && canBidGenerale(currentContract, biddingRules) && canBidGeneraleMode(contractMode, biddingRules));
   const canChooseMode = canMakeBid || canMakeCapot || canMakeGenerale;
+  // Presentation only: permissions and callbacks still come from the existing rules.
+  const actionOnly = canBid && !canChooseMode;
   const exerciseTapHeight = exerciseMode ? "min-h-11" : "";
   const choiceHeight = exerciseMode ? "min-h-11" : "min-h-9";
   const turnKey = biddingTurnKey(canBid, playerId, bids.length);
@@ -168,6 +170,7 @@ export function BiddingPanel({
 
   return (
     <section
+      data-action-only={actionOnly || undefined}
       className={`coinche-bidding-panel shrink-0 rounded-2xl border ${compact ? "p-2" : "px-3 py-2.5 sm:px-4"}`}
     >
       <div className="coinche-bidding-header mb-2 flex items-center justify-between gap-3">
@@ -191,8 +194,10 @@ export function BiddingPanel({
       ) : null}
 
       <div inert={pendingConfirmation ? true : undefined} className={`coinche-bidding-layout grid gap-2 ${compact ? "grid-cols-[minmax(0,1fr)_auto]" : "lg:grid-cols-[1.15fr_1fr_1.35fr]"}`}>
-        <fieldset><legend className="sr-only">Valeur</legend><div className="coinche-bidding-values flex gap-1 overflow-x-auto pb-0.5">{availableValues.map((bidValue) => <button aria-label={`Valeur ${bidValue}`} aria-pressed={value === bidValue} className={`coinche-bidding-choice ${choiceHeight} min-w-11 rounded-lg px-2 text-xs font-black transition`} disabled={!canMakeBid} key={bidValue} onClick={() => setValue(bidValue)} type="button">{bidValue}</button>)}</div></fieldset>
-        <fieldset><legend className="sr-only">Atout</legend><div className="coinche-bidding-modes flex gap-1 overflow-x-auto pb-0.5">{SUITS.map((suit) => <button aria-label={`Atout ${SUIT_LABELS[suit]}`} aria-pressed={modeValue === suit} className={`coinche-bidding-choice ${choiceHeight} min-w-10 rounded-lg text-lg transition`} disabled={!canChooseMode} key={suit} onClick={() => setModeValue(suit)} type="button">{SUIT_SYMBOLS[suit]}</button>)}{biddingRules?.allowNoTrump ? <button aria-label="Atout Sans Atout" aria-pressed={modeValue === "no-trump"} className={`coinche-bidding-choice ${choiceHeight} min-w-10 rounded-lg px-2 text-[10px] font-black`} disabled={!canChooseMode} onClick={() => setModeValue("no-trump")} type="button">SA</button> : null}{biddingRules?.allowAllTrump ? <button aria-label="Atout Tout Atout" aria-pressed={modeValue === "all-trump"} className={`coinche-bidding-choice ${choiceHeight} min-w-10 rounded-lg px-2 text-[10px] font-black`} disabled={!canChooseMode} onClick={() => setModeValue("all-trump")} type="button">TA</button> : null}</div></fieldset>
+        <fieldset><legend className="sr-only">Valeur</legend><div className="coinche-bidding-values grid grid-cols-5 gap-1 pb-0.5">{availableValues.map((bidValue) => <button aria-label={`Valeur ${bidValue}`} aria-pressed={value === bidValue} className={`coinche-bidding-choice ${choiceHeight} min-w-11 rounded-lg px-2 text-xs font-black transition`} disabled={!canMakeBid} key={bidValue} onClick={() => setValue(bidValue)} type="button">{bidValue}</button>)}
+          <button className={`coinche-bidding-capot ${choiceHeight} min-w-11 rounded-lg px-2 text-xs font-bold`} disabled={!canMakeCapot} onClick={(event) => confirmed(bidConfirmationMessage("capot", currentContract, contractMode), shouldConfirmBidAction("capot", preferences), () => onCapot(contractMode), event.currentTarget)} type="button">Capot</button>
+        </div></fieldset>
+        <fieldset><legend className="sr-only">Atout</legend><div className="coinche-bidding-modes flex gap-1 overflow-x-auto pb-0.5"><div className="coinche-bidding-suits">{SUITS.map((suit) => <button aria-label={`Atout ${SUIT_LABELS[suit]}`} aria-pressed={modeValue === suit} className={`coinche-bidding-choice ${choiceHeight} min-w-10 rounded-lg text-lg transition`} disabled={!canChooseMode} key={suit} onClick={() => setModeValue(suit)} type="button">{SUIT_SYMBOLS[suit]}</button>)}</div>{biddingRules?.allowNoTrump || biddingRules?.allowAllTrump ? <div className="coinche-bidding-special-modes">{biddingRules?.allowNoTrump ? <button aria-label="Atout Sans Atout" aria-pressed={modeValue === "no-trump"} className={`coinche-bidding-choice ${choiceHeight} min-w-10 rounded-lg px-2 text-[10px] font-black`} disabled={!canChooseMode} onClick={() => setModeValue("no-trump")} type="button">SA</button> : null}{biddingRules?.allowAllTrump ? <button aria-label="Atout Tout Atout" aria-pressed={modeValue === "all-trump"} className={`coinche-bidding-choice ${choiceHeight} min-w-10 rounded-lg px-2 text-[10px] font-black`} disabled={!canChooseMode} onClick={() => setModeValue("all-trump")} type="button">TA</button> : null}</div> : null}</div></fieldset>
         <div className={`coinche-bidding-actions ${compact ? "col-span-2" : ""}`}>
           <button
             className={`coinche-bidding-primary rounded-lg px-2 py-2 text-xs font-black shadow ${exerciseTapHeight}`}
@@ -209,14 +214,6 @@ export function BiddingPanel({
             type="button"
           >
             Passer
-          </button>
-          <button
-            className={`coinche-bidding-capot rounded-lg px-2 py-2 text-xs font-bold ${exerciseTapHeight}`}
-            disabled={!canMakeCapot}
-            onClick={(event) => confirmed(bidConfirmationMessage("capot", currentContract, contractMode), shouldConfirmBidAction("capot", preferences), () => onCapot(contractMode), event.currentTarget)}
-            type="button"
-          >
-            Capot
           </button>
           {biddingRules?.allowGenerale ? <button
             className={`coinche-bidding-secondary rounded-lg px-2 py-2 text-xs font-bold ${exerciseTapHeight}`}

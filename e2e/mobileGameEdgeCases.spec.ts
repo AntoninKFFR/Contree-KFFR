@@ -30,7 +30,7 @@ test('@mobile @game-mobile Capot, Coinche, Surcoinche and Passe bubbles preserve
   for (const bubble of await bubbles.all()) {
     await expectInsideSafeViewport(page, bubble, safe);
     const box = (await bubble.boundingBox())!;
-    for (const button of await page.locator('.coinche-bidding-panel button').all()) {
+    for (const button of await page.locator('.coinche-bidding-panel button:visible').all()) {
       const control = (await button.boundingBox())!;
       expect(Math.min(box.x+box.width,control.x+control.width)-Math.max(box.x,control.x)<=.5 || Math.min(box.y+box.height,control.y+control.height)-Math.max(box.y,control.y)<=.5).toBe(true);
     }
@@ -49,10 +49,10 @@ for (const kind of ['max', 'capot', 'generale', 'coinched'] as const) {
     await page.setViewportSize({width:568, height:320}); await page.goto('/solo');
     await simulateSafeAreas(page, safe);
     await expect(page.getByRole('button', {name:/Valeur /})).toHaveCount(0);
-    await expect(page.getByRole('button', {name:'Annoncer', exact:true})).toBeDisabled();
+    await expect(page.locator('.coinche-bidding-primary').last()).toBeDisabled();
     const pass = page.getByRole('button', {name:'Passer', exact:true});
     await expect(pass).toBeEnabled(); await expectInsideSafeViewport(page, pass, safe);
-    for (const control of await page.locator('.coinche-bidding-panel button').all()) {
+    for (const control of await page.locator('.coinche-bidding-panel button:visible').all()) {
       await expectInsideSafeViewport(page, control, safe);
       expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     }

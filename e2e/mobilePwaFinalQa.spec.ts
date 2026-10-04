@@ -33,9 +33,16 @@ async function navigateRoute(page: Page, path: string) {
   await nav.locator(`a[href="${path}"]`).click();
   await expect(page).toHaveURL(new RegExp(path === "/" ? "/$" : path + "$"));
 }
+async function setTheme(page: Page, theme: "light" | "dark") {
+  const toggle = page.getByRole("switch", { name: theme === "light" ? "Activer le thème clair" : "Activer le thème sombre" });
+  const immersive = await page.locator('.coinche-global-header[data-header-variant="compact-game"]').count() && page.viewportSize()!.width < 1120;
+  if (immersive) await page.getByRole('button', {name:'Menu Partie'}).click();
+  await toggle.click();
+  if (immersive) await page.keyboard.press('Escape');
+}
 async function cycleTheme(page: Page, checkpoint?: (theme: "light" | "dark") => Promise<void>) {
   for (const theme of ["light", "dark"] as const) {
-    await page.getByRole("switch", { name: theme === "light" ? "Activer le thème clair" : "Activer le thème sombre" }).click();
+    await setTheme(page, theme);
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
     await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key)!).visual.theme, PLAYER_PREFERENCES_STORAGE_KEY)).toBe(theme);
     await checkpoint?.(theme);
@@ -306,7 +313,8 @@ for (const mode of ["solo", "multi"] as const) test(`@mobile @pwa-final-qa ${mod
     expect(JSON.stringify(fixture.snapshot())).toBe(before); expect(fixture.intents).toEqual([]);
     await qa.checkpoint(`${mode}-rotation`);
   }
-  await page.getByRole("link", { name: "Accueil — KFFR Contrée" }).click();
+  await page.getByRole("button", { name: "Quitter la table et revenir à l’accueil" }).click();
+  await page.getByRole("button", { name: "Revenir à l’accueil", exact: true }).click();
   await expect(page.locator(".coinche-global-header")).toHaveAttribute("data-header-variant", "default");
   await expect(page.locator(".coinche-global-header")).toHaveCSS("height", "56px");
   await qa.checkpoint(`${mode}-exit`);
@@ -314,13 +322,15 @@ for (const mode of ["solo", "multi"] as const) test(`@mobile @pwa-final-qa ${mod
 
 test("@mobile @pwa-final-qa light active Solo portrait notice stays isolated", async ({ page, qa }, info) => {
   await installMobileGameFixture(page, mobileGameState("playing")); await setMobileViewport(page, { width: 390, height: 844 }); await page.goto("/solo");
+  await expect(page.locator(".coinche-global-header")).toHaveAttribute("data-header-variant", "compact-game");
   const safe = qaSafeAreas(390, 844); await simulateSafeAreas(page, safe);
-  await page.getByRole("switch", { name: "Activer le thème clair" }).click();
+  await setTheme(page, "light");
   await expect(page.getByRole("heading", { name: "Tournez votre téléphone" })).toBeVisible();
   await expect(page.locator(".coinche-game-scene, .coinche-scene-hand-card button")).toHaveCount(0);
   await expect(page.locator(".coinche-global-header")).toHaveAttribute("data-header-variant", "compact-game");
   await captureQaSnapshot(page, info, "solo", "portrait-notice"); await qa.checkpoint("solo-portrait-light");
-  await page.getByRole("link", { name: "Accueil — KFFR Contrée" }).click();
+  await page.getByRole("button", { name: "Quitter la table et revenir à l’accueil" }).click();
+  await page.getByRole("button", { name: "Revenir à l’accueil", exact: true }).click();
   await expect(page.locator(".coinche-global-header")).toHaveAttribute("data-header-variant", "default");
   await expect(page.locator(".coinche-global-header")).toHaveCSS("height", `${56 + safe.top}px`);
   await qa.checkpoint("solo-playing-exit");
@@ -371,7 +381,8 @@ test("@mobile @pwa-final-qa real Training question, resume and exit restore chro
   await qa.control(dialog.getByRole("button", { name: "Reprendre la partie" }), safe);
   await dialog.getByRole("button", { name: "Reprendre la partie" }).click(); await expect(dialog).toHaveCount(0);
   await expect(page.locator(".coinche-global-header")).toHaveAttribute("data-header-variant", "compact-game");
-  await page.getByRole("link", { name: "Accueil — KFFR Contrée" }).click();
+  await page.getByRole("button", { name: "Quitter la table et revenir à l’accueil" }).click();
+  await page.getByRole("button", { name: "Revenir à l’accueil", exact: true }).click();
   await expect(page.locator(".coinche-global-header")).toHaveAttribute("data-header-variant", "default");
   await qa.checkpoint("training-exit");
 });

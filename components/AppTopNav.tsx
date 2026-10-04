@@ -153,9 +153,9 @@ export function AppTopNav({ variant = "default" }: { variant?: "default" | "comp
       </nav>
       <div className="coinche-header-controls col-start-3 flex shrink-0 items-center gap-1.5 justify-self-end">
         <div id="app-topnav-game-actions" />
-        <SocialNotificationTrigger />
+        <div className="coinche-game-secondary-control"><SocialNotificationTrigger /></div>
         <AudioPopover />
-        <ThemeToggle />
+        <div className="coinche-game-secondary-control"><ThemeToggle /></div>
         <div className="hidden min-[1120px]:block">
           {session ? <Link className="coinche-account-link progression-account" href="/profile" title={username ?? "Profil"}>
             <span className="progression-account-line"><ProfileIdentity compact snapshot={cosmetics} name={<span className="progression-account-name">{username ?? "Profil"}</span>}/>

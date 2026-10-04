@@ -48,7 +48,7 @@ for (const value of ["dark","light"] as const) for(const viewport of viewports) 
       await expect(page.getByText('Bot temporaire', {exact:true})).toBeVisible();
       await expect(page.locator('.coinche-player-panel [data-rank-family]')).toHaveCount(4);
     }
-    await expect(page.locator('header[data-header-variant="compact-game"]')).toHaveCSS('height','44px');
+    await expect(page.locator('header[data-header-variant="compact-game"]')).toHaveCSS('height','0px');
     for(const left of [44,0]) for (const bottom of [21,34]) {
       const safe={top:0,left,right:left?0:44,bottom};
       await simulateSafeAreas(page,safe); await fits(page,safe);

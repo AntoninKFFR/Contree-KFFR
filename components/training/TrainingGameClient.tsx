@@ -5,6 +5,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BiddingPanel } from "@/components/BiddingPanel";
 import { GameTable } from "@/components/GameTable";
 import { useGameChrome } from "@/components/GameChromeProvider";
+import { GameMenuPopover } from "@/components/GameMenuPopover";
+import { PlayerSettingsDialog } from "@/components/settings/PlayerSettingsPanel";
+import { AccessibleDialog } from "@/components/ui/AccessibleDialog";
+import { ValueGuide } from "@/components/training/TrainingPuzzleClient";
 import { HumanHand } from "@/components/HumanHand";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
@@ -42,6 +46,8 @@ export function TrainingGameClient() {
   const [summary, setSummary] = useState<InGameSummary>({});
   const [mobileLandscape, setMobileLandscape] = useState(false);
   const [mobilePortrait, setMobilePortrait] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const previousGameStateRef = useRef<GameState | null>(null);
   const schedulerRef = useRef(emptyInGameSchedulerState());
   const sessionSeedRef = useRef(0);
@@ -190,11 +196,12 @@ export function TrainingGameClient() {
     coinche: () => dispatchGameAction({ type: "coinche", playerId: 0 }),
     surcoinche: () => dispatchGameAction({ type: "surcoinche", playerId: 0 }),
   };
-  return <main aria-label="Partie d’entraînement"
+  return <><GameMenuPopover focusMode={false} showFocusMode={false} exitDescription="La séance et son bilan en cours seront fermés." onOpenPreferences={() => setSettingsOpen(true)} onToggleFocusMode={() => {}} menuActions={[{ label: "Aide de l’entraînement", onSelect: () => setHelpOpen(true) }]} /><main aria-label="Partie d’entraînement"
     data-training-question-pending={pendingQuestion !== null}
     data-game-state-key={`${gameState.phase}:${gameState.roundNumber}:${gameState.completedTricks.length}:${gameState.currentPlayerId}:${gameState.currentTrick.cards.length}:${gameState.bids.length}`}
     className={`coinche-game-shell h-[var(--content-height)] min-h-0 overflow-x-hidden overflow-y-auto [--shell-padding-x:0.5rem] py-2 sm:[--shell-padding-x:0.75rem] lg:overflow-hidden ${mobileLandscape ? "overflow-hidden [--shell-padding-x:0px] [--shell-padding-y:0px] py-0 sm:[--shell-padding-x:1rem]" : ""}`}>
     {mobilePortrait ? <MobileLandscapeNotice /> : <div className="mx-auto flex h-full w-full max-w-none flex-col gap-2">
+      <button aria-label="Aide de l’entraînement" className="coinche-training-help coinche-table-control" onClick={(event) => { event.currentTarget.focus(); setHelpOpen(true); }} type="button"><span aria-hidden="true">?</span></button>
       <div className="relative grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] gap-2">
         <GameTable state={gameState} immersiveMobileLandscape={mobileLandscape}
           showLiveScore={preferences.assistance.showLivePoints} onAutoCollectComplete={onAutoCollectComplete}
@@ -213,5 +220,7 @@ export function TrainingGameClient() {
     {pendingQuestion ? <p className="pointer-events-none fixed bottom-20 left-1/2 z-40 -translate-x-1/2 rounded-full border border-[var(--border)] bg-[var(--surface-raised)]/90 px-4 py-2 text-sm font-bold shadow-lg" role="status">Observe la table…</p> : null}
     {question ? <TrainingInGameOverlay key={question.eventKey} question={question} grade={grade} onGrade={handleGrade}
       onResume={() => { if (grade) { setQuestion(null); setGrade(null); } }} /> : null}
-  </main>;
+    {settingsOpen ? <PlayerSettingsDialog onClose={() => setSettingsOpen(false)} /> : null}
+    {helpOpen ? <AccessibleDialog title="Aide de l’entraînement" width="medium" onClose={() => setHelpOpen(false)} description="La partie propose des questions sur les axes choisis pour cette séance."><div className="min-h-0 overflow-y-auto overscroll-contain p-4"><p className="text-sm">Observe les cartes et les plis. Lorsqu’une question apparaît, réponds puis consulte la correction avant de reprendre la partie.</p><ul className="mt-3 space-y-1 text-sm">{configuration.axes.filter((axis) => axis.enabled).map((axis) => <li key={axis.id}>{inGameAxisLabel(axis.id)} · Niveau {axis.level}</li>)}</ul><ValueGuide /></div></AccessibleDialog> : null}
+  </main></>;
 }

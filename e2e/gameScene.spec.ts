@@ -81,7 +81,9 @@ test("@smoke Solo keeps the hand and played cards inside the scene", async ({ pa
   await page.screenshot({ path: "test-results/scene-playing-dark-1366.png" });
   await page.setViewportSize({ width: 844, height: 390 });
   await page.screenshot({ path: "test-results/scene-playing-dark-844.png" });
+  await page.getByRole("button", { name: "Menu Partie", exact: true }).click();
   await page.getByRole("switch", { name: "Activer le thème clair" }).click();
+  await page.keyboard.press("Escape");
   await page.screenshot({ path: "test-results/scene-playing-light-844.png" });
   const lastTrickButton = scene.getByRole("button", { name: "Dernier pli" });
   await expect(lastTrickButton).toBeVisible({ timeout: 20_000 });
