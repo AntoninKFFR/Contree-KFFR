@@ -19,15 +19,17 @@ function PlaybackIcon({ playing }: { playing: boolean }) {
     : <svg aria-hidden="true" className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5.5 3.6a.8.8 0 0 1 1.2-.7l9 6.4a.8.8 0 0 1 0 1.4l-9 6.4a.8.8 0 0 1-1.2-.7z" /></svg>;
 }
 
-export function AudioPopover() {
+export function AudioPopover({ inline = false }: { inline?: boolean }) {
   const { playing, track, volume, setVolume, previous, next, togglePlay } = useMusic();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelId = inline ? "game-audio-panel" : "audio-popover";
 
   useEffect(() => {
     if (!open) return;
     const close = (event: KeyboardEvent | PointerEvent) => {
-      if (event instanceof KeyboardEvent && event.key === "Escape") setOpen(false);
+      if (event instanceof KeyboardEvent && event.key === "Escape") { setOpen(false); buttonRef.current?.focus(); }
       if (event instanceof PointerEvent && !rootRef.current?.contains(event.target as Node)) setOpen(false);
     };
     document.addEventListener("keydown", close);
@@ -39,8 +41,8 @@ export function AudioPopover() {
   }, [open]);
 
   return <div className="relative" ref={rootRef}>
-    <button aria-controls="audio-popover" aria-expanded={open} aria-label="Contrôles audio" className="coinche-chrome-icon" onClick={() => setOpen((value) => !value)} type="button"><SpeakerIcon /></button>
-    {open ? <div aria-label="Lecteur audio" className="coinche-popover coinche-audio-popover z-[70] overflow-y-auto overscroll-contain rounded-2xl border p-4 shadow-2xl" id="audio-popover" role="dialog">
+    <button aria-controls={panelId} aria-expanded={open} aria-label="Contrôles audio" className={inline ? "coinche-drawer-action flex w-full items-center justify-between gap-3" : "coinche-chrome-icon"} onClick={() => setOpen((value) => !value)} ref={buttonRef} type="button">{inline ? <span>Son</span> : null}<SpeakerIcon /></button>
+    {open ? <div aria-label="Lecteur audio" className={inline ? "rounded-xl border border-[var(--border)] p-2" : "coinche-popover coinche-audio-popover z-[70] overflow-y-auto overscroll-contain rounded-2xl border p-4 shadow-2xl"} id={panelId} role={inline ? "region" : "dialog"}>
       <p className="truncate text-sm font-bold text-[var(--text-primary)]">{track.title}</p>
       <p className="truncate text-xs text-[var(--text-secondary)]">{track.artist}</p>
       <div className="mt-4 flex items-center justify-center gap-5">

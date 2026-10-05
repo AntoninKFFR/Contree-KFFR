@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { installMobileGameFixture, mobileGameState } from "./helpers/mobileGameFixture";
-import { expectInsideSafeViewport, simulateSafeAreas, setMobileViewport } from "./helpers/mobile";
+import { expectHandTouchTarget, expectInsideSafeViewport, simulateSafeAreas, setMobileViewport } from "./helpers/mobile";
 import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../lib/preferences/playerPreferences";
 
 const safe={top:0,left:44,right:0,bottom:34};
@@ -43,15 +43,17 @@ for(const position of [0,3,7]) test(`@mobile @game-mobile actual hand click ${po
   const initial=mobileGameState('playing'); const fixture=await installMobileGameFixture(page,initial);
   await page.goto('/solo');await simulateSafeAreas(page,safe);
   const buttons=page.locator('.coinche-scene-hand-card button');await expect(buttons).toHaveCount(8);
-  await target(page,buttons.nth(position)); await buttons.nth(position).click();
+  await expectHandTouchTarget(page,buttons.nth(position),safe);
+  await buttons.nth(position).focus(); await expectHandTouchTarget(page,buttons.nth(position),safe);
+  await buttons.nth(position).click();
   await expect(buttons).toHaveCount(7);
   expect(fixture.intents.some(intent=>(intent as {type:string}).type==='play-card')).toBe(true);
   for(let count=7;count>=1;count--) {
     const state=mobileGameState('playing');state.hands[0]=state.hands[0].slice(0,count);fixture.setState(state);
     await page.reload();await simulateSafeAreas(page,safe); await expect(buttons).toHaveCount(count);
-    for(const button of await buttons.all()) await target(page,button);
+    for(const button of await buttons.all()) await expectHandTouchTarget(page,button,safe);
     const bounds=await page.locator('.coinche-scene-hand-cards').boundingBox();
-    expect(Math.abs(bounds!.x+bounds!.width/2-(44+(568-44)/2))).toBeLessThanOrEqual(1);
+    expect(Math.abs(bounds!.x+bounds!.width/2-(44+(568-44)/2+10))).toBeLessThanOrEqual(1);
   }
 });
 
@@ -75,7 +77,7 @@ for(const action of ['Capot','Générale','Contrer','Surcontrer'] as const) test
   await expect.poll(()=>fixture.intents.length).toBe(1);
 });
 
-for (const viewport of [{width:568,height:320}, {width:667,height:375}, {width:844,height:390}]) test(`@mobile @game-mobile trick cards 1 to 4, manual collect and last-trick overlay ${viewport.width}`,async({page},info)=>{
+for (const viewport of [{width:568,height:320}, {width:667,height:375}, {width:844,height:390}, {width:932,height:430}]) test(`@mobile @game-mobile trick cards 1 to 4, manual collect and last-trick overlay ${viewport.width}`,async({page},info)=>{
   await page.setViewportSize(viewport);
   const state=mobileGameState('playing'); const fixture=await installMobileGameFixture(page,state);
   await page.goto(fixture.path); await expect(page.locator('.coinche-game-scene')).toBeVisible(); await simulateSafeAreas(page,safe);
@@ -83,6 +85,22 @@ for (const viewport of [{width:568,height:320}, {width:667,height:375}, {width:8
     const next=mobileGameState('playing'); next.currentTrick.cards=([0,1,2,3] as const).slice(0,count).map(playerId=>({playerId,card:next.hands[playerId][0]}));
     fixture.setState(next);await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
     await expect(page.locator('[data-trick-layer="current"] .coinche-trick-card')).toHaveCount(count);
+    const overlaps = await page.evaluate(async () => {
+      const cards = [...document.querySelectorAll('[data-trick-layer="current"] .coinche-trick-card button')];
+      const panels = [...document.querySelectorAll('.coinche-player-panel')];
+      const collisions: string[] = [];
+      do {
+        for (const card of cards) for (const panel of panels) {
+          const a = card.getBoundingClientRect(), b = panel.getBoundingClientRect();
+          if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > .5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > .5) {
+            collisions.push(`${card.closest('.coinche-trick-card')!.getAttribute('data-player-id')} / ${panel.closest('[class*="-seat"]')!.className}`);
+          }
+        }
+        await new Promise(resolve => requestAnimationFrame(resolve));
+      } while (cards.some(card => card.getAnimations().some(animation => animation.playState === 'running')));
+      return collisions;
+    });
+    expect(overlaps, 'trick entry paths clear of every seat throughout the animation').toEqual([]);
     for(const card of await page.locator('[data-trick-layer="current"] .coinche-trick-card button').all()) {
       await expectInsideSafeViewport(page,card,safe);
       const hand=(await page.locator('.coinche-scene-hand-cards').boundingBox())!;

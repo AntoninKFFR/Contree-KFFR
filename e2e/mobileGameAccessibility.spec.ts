@@ -3,7 +3,7 @@ import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../lib/p
 import { installMobileGameFixture, mobileGameState } from "./helpers/mobileGameFixture";
 import { installMobileRoomFixture } from "./helpers/mobileRoomFixture";
 import { IPHONE_UA, simulatePwaEnvironment } from "./helpers/pwa";
-import { expectInsideSafeViewport, simulateSafeAreas } from "./helpers/mobile";
+import { expectHandTouchTarget, expectInsideSafeViewport, simulateSafeAreas } from "./helpers/mobile";
 import { gameGeometry } from "./helpers/gameGeometry";
 
 const safe={top:0,left:44,right:0,bottom:34};
@@ -47,6 +47,7 @@ test('@mobile @game-mobile reduced Safari geometry, resize, both notches and fou
     await page.evaluate(()=>document.documentElement.style.setProperty('--viewport-dynamic','calc(100dvh - 20px)'));
     for(const bubble of await page.locator('[class*="coinche-bubble-"]').all()) await expectInsideSafeViewport(page,bubble,insets);
     for(const button of await page.locator('.coinche-bidding-panel button,.coinche-scene-hand-card button').all()) {
+      if (await button.evaluate(element => Boolean(element.closest('.coinche-scene-hand-card')))) { await expectHandTouchTarget(page,button,insets); continue; }
       await expectInsideSafeViewport(page,button,insets);const box=(await button.boundingBox())!;expect(box.height).toBeGreaterThanOrEqual(44);
     }
     const geometry=await gameGeometry(page);expect(geometry.bidding!.y+geometry.bidding!.height).toBeLessThanOrEqual(geometry.hand!.y+1);

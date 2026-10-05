@@ -154,7 +154,7 @@ export function AppTopNav({ variant = "default" }: { variant?: "default" | "comp
       <div className="coinche-header-controls col-start-3 flex shrink-0 items-center gap-1.5 justify-self-end">
         <div id="app-topnav-game-actions" />
         <div className="coinche-game-secondary-control"><SocialNotificationTrigger /></div>
-        <AudioPopover />
+        <div className="coinche-header-audio"><AudioPopover /></div>
         <div className="coinche-game-secondary-control"><ThemeToggle /></div>
         <div className="hidden min-[1120px]:block">
           {session ? <Link className="coinche-account-link progression-account" href="/profile" title={username ?? "Profil"}>
@@ -163,7 +163,7 @@ export function AppTopNav({ variant = "default" }: { variant?: "default" | "comp
             <span className="progression-account-desktop progression-account-track">{summary ? <ProgressionBar mini summary={summary} /> : null}</span>
           </Link> : <Link className="coinche-account-link" href="/login">Se connecter</Link>}
         </div>
-        <button aria-controls="mobile-navigation" aria-expanded={mobileOpen} aria-label="Ouvrir le menu" className="coinche-chrome-icon min-[1120px]:hidden" onClick={openMobileNavigation} ref={burgerRef} type="button">☰</button>
+        <button aria-controls="mobile-navigation" aria-expanded={mobileOpen} aria-label="Ouvrir le menu" className="coinche-navigation-burger coinche-chrome-icon min-[1120px]:hidden" onClick={openMobileNavigation} ref={burgerRef} type="button">☰</button>
       </div>
     </div>
     {mobileOpen ? <MobileNavigationDrawer activeHref={activeHref} currentHref={`${pathname}${navigationHash}`} authenticated={Boolean(session)} cosmetics={cosmetics} onClose={closeNavigation}

@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { installMobileGameFixture, mobileGameState } from "./helpers/mobileGameFixture";
-import { expectInsideSafeViewport, expectNoPageHorizontalOverflow, simulateSafeAreas } from "./helpers/mobile";
+import { expectHandTouchTarget, expectInsideSafeViewport, expectNoPageHorizontalOverflow, simulateSafeAreas } from "./helpers/mobile";
 import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../lib/preferences/playerPreferences";
 import { installTrainingMobileFixture } from "./helpers/trainingMobileFixture";
 
@@ -10,7 +11,7 @@ async function preferences(page: Page, reducedMotion = true) {
   const value = clonePlayerPreferences();
   value.visual.reducedMotion = reducedMotion;
   value.gameplay.autoCollectTricks = false;
-  await page.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), { key: PLAYER_PREFERENCES_STORAGE_KEY, value });
+  await page.addInitScript(({ key, value }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(value)); }, { key: PLAYER_PREFERENCES_STORAGE_KEY, value });
 }
 async function target(page: Page, locator: Locator) {
   await expectInsideSafeViewport(page, locator, safe);
@@ -53,9 +54,10 @@ for (const viewport of sizes) for (const mode of ["solo", "multi"] as const) {
     const scene = (await page.locator(".coinche-game-scene").boundingBox())!;
     const hand = (await page.locator(".coinche-scene-hand-cards").boundingBox())!;
     expect(Math.abs(panel.x + panel.width / 2 - scene.x - scene.width / 2)).toBeLessThan(1);
-    expect(Math.abs(panel.y + panel.height / 2 - (scene.y + 52 + hand.y) / 2)).toBeLessThanOrEqual(8);
+    const north = (await page.locator('.coinche-top-seat').boundingBox())!;
+    expect(panel.y).toBeGreaterThanOrEqual(north.y + north.height + 14);
     expect(panel.y + panel.height).toBeLessThanOrEqual(hand.y + 1);
-    await page.screenshot({ path: `.playwright/validation/immersive-polish/${info.project.name}-${mode}-${viewport.width}-bidding.png` });
+    if (mode === 'solo' && [568, 844].includes(viewport.width)) await page.screenshot({ path: `.playwright/validation/immersive-polish/${info.project.name}-${mode}-${viewport.width}-bidding.png` });
     const playing = mobileGameState("playing"); playing.trickPoints = { 0: 67, 1: 35 };
     playing.currentTrick.cards = [{ playerId: 2, card: playing.hands[2][0] }];
     fixture.setState(playing); await page.reload(); await expect(page.locator(".coinche-trick-card")).toHaveCount(1);
@@ -70,11 +72,11 @@ for (const viewport of sizes) for (const mode of ["solo", "multi"] as const) {
     expect(n.width).toBeGreaterThanOrEqual(12);
     expect(p.x).toBeGreaterThanOrEqual(n.x + n.width);
     expect(Math.abs(p.y + p.height / 2 - n.y - n.height / 2)).toBeLessThan(1);
-    const card = page.locator(".coinche-scene-hand-card button").first(); await target(page, card);
+    const card = page.locator(".coinche-scene-hand-card button").first(); await expectHandTouchTarget(page, card, safe);
     const handCard = (await card.boundingBox())!, trickCard = (await page.locator(".coinche-trick-card button").boundingBox())!;
-    expect(handCard.height).toBeGreaterThanOrEqual(84); expect(handCard.height).toBeLessThan(124);
+    expect(handCard.height).toBeGreaterThanOrEqual(74); expect(handCard.height).toBeLessThan(110);
     expect(handCard.height / trickCard.height).toBeLessThan(1.15);
-    await page.screenshot({ path: `.playwright/validation/immersive-polish/${info.project.name}-${mode}-${viewport.width}-playing.png` });
+    if (mode === 'solo' && viewport.width === 568) await page.screenshot({ path: `.playwright/validation/immersive-polish/${info.project.name}-${mode}-${viewport.width}-playing.png` });
     for (const portrait of [{ width: 390, height: 844 }, { width: 430, height: 932 }]) {
       await page.setViewportSize(portrait); await expect(page.getByRole("heading", { name: "Tournez votre téléphone" })).toBeVisible();
       await page.setViewportSize(viewport); await expect(page.locator(".coinche-trick-card")).toHaveCount(1);
@@ -83,6 +85,88 @@ for (const viewport of sizes) for (const mode of ["solo", "multi"] as const) {
     expect(fixture.intents).toEqual([]);
   });
 }
+
+for (const viewport of sizes) test(`@mobile @immersive-polish fixed cardinal seats and aligned announcements ${viewport.width}`, async ({ page }) => {
+  await preferences(page); await page.setViewportSize(viewport);
+  const fixture = await installMobileGameFixture(page, mobileGameState("playing"));
+  await page.goto(fixture.path); await expect(page.locator('.coinche-game-scene')).toHaveAttribute('data-game-phase', 'playing');
+  await simulateSafeAreas(page, safe);
+  // Wait for the viewport observer to apply the simulated insets before recording positions.
+  await expect.poll(async () => (await page.locator('.coinche-game-scene').boundingBox())!.height).toBe(viewport.height - safe.top - safe.bottom);
+  const seats = page.locator('.coinche-player-panel');
+  const boxes = () => seats.evaluateAll(elements => elements.map(element => {
+    const { x, y, width, height } = element.getBoundingClientRect();
+    return { x, y, width, height };
+  }));
+  const before = await boxes(), scene = (await page.locator('.coinche-game-scene').boundingBox())!;
+  expect(before).toHaveLength(4);
+  for (const box of before) expect(box.height).toBeLessThanOrEqual(42);
+  await expect(seats.getByText('P', { exact: true })).toHaveCount(1);
+  for (const side of ['left', 'right']) {
+    const box = (await page.locator(`.coinche-${side}-seat`).boundingBox())!;
+    expect(Math.abs(box.y + box.height / 2 - scene.y - scene.height / 2)).toBeLessThan(1);
+  }
+  const namePositions = () => page.locator('.coinche-player-name').evaluateAll(elements => elements.map(element => {
+    const { x, y } = element.getBoundingClientRect(); return { x, y };
+  }));
+  const beforeNames = await namePositions();
+  const announcementsAligned = async () => {
+    for (const side of ['top', 'left', 'right', 'bottom']) {
+      const bubble = page.locator(`.coinche-bubble-${side}`);
+      if (!await bubble.count()) continue;
+      await expectInsideSafeViewport(page, bubble, safe);
+      const box = (await bubble.boundingBox())!, seat = (await page.locator(`.coinche-${side}-seat .coinche-player-panel`).boundingBox())!;
+      expect(Math.abs(box.x - seat.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.width - seat.width)).toBeLessThanOrEqual(1);
+      if (side === 'bottom') expect(box.y + box.height).toBeLessThanOrEqual(seat.y - 1);
+      else expect(box.y).toBeGreaterThanOrEqual(seat.y + seat.height + 1);
+    }
+  };
+  const bidding = mobileGameState();
+  for (const announcements of [false, true]) {
+    if (announcements) bidding.bids = [
+      { playerId: 0, action: 'bid', value: 80, trump: 'hearts' }, { playerId: 1, action: 'pass' },
+      { playerId: 2, action: 'bid', value: 90, trump: 'clubs' }, { playerId: 3, action: 'pass' },
+    ];
+    fixture.setState({ ...bidding });
+    await expect.poll(async () => {
+      await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      return await page.locator('.coinche-game-scene').getAttribute('data-game-phase') === 'bidding'
+        && await page.locator('[class*="coinche-bubble-"]').count() === (announcements ? 4 : 0);
+    }).toBe(true);
+    expect(await boxes()).toEqual(before);
+    expect(await namePositions()).toEqual(beforeNames);
+    await expect(page.locator('.coinche-bidding-panel')).toBeVisible();
+    await announcementsAligned();
+    for (const button of await page.locator('.coinche-bidding-panel button:visible').all()) await target(page, button);
+  }
+  for (const playerId of [0, 1, 2, 3] as const) {
+    const playing = mobileGameState('playing');
+    playing.contract!.playerId = playerId; playing.currentPlayerId = playerId;
+    playing.currentTrick.leaderId = playerId;
+    playing.contract!.status = playerId === 1 ? 'coinched' : playerId === 2 ? 'surcoinched' : 'normal';
+    fixture.setState(playing);
+    await expect.poll(async () => {
+      await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      return await page.locator('.coinche-game-scene').getAttribute('data-game-phase') === 'playing'
+        && await page.locator(`.coinche-player-panel[data-player-id="${playerId}"]`).getAttribute('aria-current') === 'true';
+    }).toBe(true);
+    expect(await boxes()).toEqual(before);
+    expect(await namePositions()).toEqual(beforeNames);
+    await expect(seats.getByText('P', { exact: true })).toHaveCount(1);
+    await expect(page.locator(`.coinche-player-panel[data-player-id="${playerId}"]`).getByText('P', { exact: true })).toHaveCount(1);
+    const timer = page.getByRole('timer');
+    // The fixture's West player is taken over by a bot, which has no human countdown.
+    if (playerId === 3) await expect(timer).toHaveCount(0);
+    else {
+      await expectInsideSafeViewport(page, timer, safe);
+      await expect(timer).toHaveCSS('position', 'absolute');
+      await expect(timer).toHaveAttribute('aria-label', /secondes restantes/);
+    }
+    await announcementsAligned();
+  }
+  expect(fixture.intents).toEqual([]);
+});
 
 for (const viewport of sizes) test(`@mobile @immersive-polish stable seats and only new cards animate ${viewport.width}`, async ({ page }, info) => {
   await preferences(page, false); await page.setViewportSize(viewport);
@@ -117,21 +201,164 @@ for (const viewport of sizes) test(`@mobile @immersive-polish stable seats and o
   const centers = placed.map(({ box }) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 }));
   expect(centers[0].y).toBeLessThan(centers[3].y); expect(centers[1].x).toBeGreaterThan(centers[2].x);
   const layer = page.locator('[data-trick-layer="current"]');
+  const trickHeight = await layer.locator('button').first().evaluate(element => (element as HTMLElement).offsetHeight);
+  const previousHeight = await page.evaluate(() => {
+    const scene = document.querySelector('.coinche-game-scene')!;
+    return Math.max(84, Math.min(110, scene.getBoundingClientRect().height * .30));
+  });
+  expect(trickHeight / previousHeight).toBeGreaterThanOrEqual(.90);
+  expect(trickHeight / previousHeight).toBeLessThanOrEqual(.92);
   expect(Number(await layer.evaluate(element => getComputedStyle(element).zIndex))).toBeGreaterThan(Number(await page.locator(".coinche-scene-hand").evaluate(element => getComputedStyle(element).zIndex)));
-  for (const card of await layer.locator(".coinche-trick-card button").all()) await expectInsideSafeViewport(page, card, safe);
-  await page.screenshot({ path: `.playwright/validation/immersive-polish/${info.project.name}-${viewport.width}-stable-trick4.png` });
+  const handBounds = (await page.locator('.coinche-scene-hand-cards').boundingBox())!;
+  const seatBounds = await Promise.all((await page.locator('.coinche-player-panel').all()).map(panel => panel.boundingBox()));
+  for (const card of await layer.locator(".coinche-trick-card button").all()) {
+    await expectInsideSafeViewport(page, card, safe);
+    const box = (await card.boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(handBounds.y);
+    for (const seat of seatBounds) expect(
+      Math.min(box.x + box.width, seat!.x + seat!.width) - Math.max(box.x, seat!.x) <= .5
+      || Math.min(box.y + box.height, seat!.y + seat!.height) - Math.max(box.y, seat!.y) <= .5,
+      'trick stays clear of every compact player cell',
+    ).toBe(true);
+  }
+  const scene = (await page.locator(".coinche-game-scene").boundingBox())!;
+  const north = (await page.locator(".coinche-top-seat").boundingBox())!;
+  const south = (await page.locator(".coinche-bottom-seat").boundingBox())!;
+  const west = (await page.locator(".coinche-left-seat").boundingBox())!;
+  const east = (await page.locator(".coinche-right-seat").boundingBox())!;
+  expect(Math.abs(north.x + north.width / 2 - scene.x - scene.width / 2)).toBeLessThan(1);
+  expect(north.y + north.height).toBeLessThan(west.y);
+  expect(Math.abs(west.y + west.height / 2 - east.y - east.height / 2)).toBeLessThan(1);
+  expect(south.x - scene.x).toBeLessThanOrEqual(8);
+  expect(south.y).toBeGreaterThan(west.y + west.height);
+  expect(west.x - scene.x).toBeLessThanOrEqual(8);
+  expect(scene.x + scene.width - east.x - east.width).toBeLessThanOrEqual(8);
+  const topCard = (await layer.locator('.coinche-trick-card--top').boundingBox())!;
+  expect(topCard.y - north.y - north.height).toBeGreaterThanOrEqual(8);
+  const cards = page.locator('.coinche-scene-hand-card button');
+  for (const card of await cards.all()) await expectHandTouchTarget(page, card, safe);
+  const fan = await page.locator('.coinche-scene-hand-card').evaluateAll(elements => elements.map(element => ({
+    angle: Math.atan2(new DOMMatrix(getComputedStyle(element).transform).b, new DOMMatrix(getComputedStyle(element).transform).a) * 180 / Math.PI,
+    top: element.getBoundingClientRect().top, bottom: element.getBoundingClientRect().bottom,
+  })));
+  expect(fan[0].angle).toBeLessThan(-8); expect(fan.at(-1)!.angle).toBeGreaterThan(8);
+  expect(fan[0].top).toBeGreaterThan(fan[3].top + 1);
+  for (const card of fan) expect(card.bottom).toBeGreaterThan(scene.y + scene.height + 8);
+  const folder = '.playwright/validation/cardinal'; mkdirSync(folder, { recursive: true });
+  writeFileSync(`${folder}/${info.project.name}-${viewport.width}.json`, JSON.stringify({
+    scene, north, south, west, east, fan,
+    handHeight: await cards.first().evaluate(element => (element as HTMLElement).offsetHeight),
+    trickHeight: await layer.locator('button').first().evaluate(element => (element as HTMLElement).offsetHeight),
+  }, null, 2));
+  if (viewport.width === 844) await page.screenshot({ path: `.playwright/validation/immersive-polish/${info.project.name}-${viewport.width}-stable-trick4.png` });
 });
 
-for (const viewport of sizes) test(`@mobile @immersive-polish compact last trick and clean numbered cards ${viewport.width}`, async ({ page }, info) => {
+for (const viewport of sizes) test(`@mobile @immersive-polish compact clipped fan 8 to 1 and both notches ${viewport.width}`, async ({ page }, info) => {
+  await preferences(page); await page.setViewportSize(viewport);
+  const fixture = await installMobileGameFixture(page, mobileGameState('playing'));
+  await page.goto(fixture.path); await expect(page.locator('.coinche-game-scene')).toBeVisible();
+  for (const left of [44, 0]) {
+    const insets = { ...safe, left, right: left ? 0 : 44 };
+    await simulateSafeAreas(page, insets);
+    await expect.poll(async () => (await page.locator('.coinche-game-scene').boundingBox())!.x).toBe(left);
+    for (let count = 8; count >= 1; count--) {
+      const state = mobileGameState('playing'); state.hands[0] = state.hands[0].slice(0, count); fixture.setState(state);
+      await expect.poll(async () => {
+        await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+        return page.locator('.coinche-scene-hand-card').count();
+      }).toBe(count);
+      const cards = page.locator('.coinche-scene-hand-card button');
+      for (const card of await cards.all()) await expectHandTouchTarget(page, card, insets);
+      const scene = (await page.locator('.coinche-game-scene').boundingBox())!;
+      const fan = await cards.evaluateAll(elements => elements.map(element => {
+        const { x, y, width, height } = element.getBoundingClientRect(); return { x, y, width, height };
+      }));
+      const start = Math.min(...fan.map(box => box.x)), end = Math.max(...fan.map(box => box.x + box.width));
+      // The rotation allowance adds one pixel across each of the seven gaps.
+      expect(end - start).toBeLessThanOrEqual(422);
+      expect(Math.abs((start + end) / 2 - scene.x - scene.width / 2 - 10)).toBeLessThanOrEqual(2);
+      for (const box of fan) {
+        expect(box.x).toBeGreaterThanOrEqual(insets.left);
+        expect(box.x + box.width).toBeLessThanOrEqual(viewport.width - insets.right);
+        expect(box.y + box.height).toBeGreaterThanOrEqual(scene.y + scene.height + 20);
+      }
+      if (viewport.width === 844 && left === 44 && count === 8) await page.screenshot({ path: `.playwright/validation/immersive-polish/${info.project.name}-844-playing-compact-fan.png` });
+    }
+  }
+  expect(fixture.intents).toEqual([]);
+});
+
+test.describe('mobile touch presentation', () => {
+  test.use({ hasTouch: true });
+  for (const viewport of [sizes[0], sizes[2]]) for (const mode of ['solo', 'multi'] as const) test(`@mobile @immersive-polish ${mode} out-of-turn taps keep the fan still ${viewport.width}`, async ({ page }) => {
+    await preferences(page, false); await page.setViewportSize(viewport);
+    const state = mobileGameState('playing'); state.currentPlayerId = 1;
+    const fixture = await installMobileGameFixture(page, state);
+    await page.goto(mode === 'solo' ? '/solo' : fixture.path); await simulateSafeAreas(page, safe);
+    const cards = page.locator('.coinche-scene-hand-card button'); await expect(cards).toHaveCount(8);
+    await cards.evaluateAll(elements => Promise.all(elements.flatMap(element => element.getAnimations().map(animation => animation.finished))));
+    const presentation = () => cards.evaluateAll(elements => elements.map(element => {
+      const box = element.getBoundingClientRect(), parent = element.parentElement!;
+      return { x: box.x, y: box.y, transform: getComputedStyle(parent).transform, translate: getComputedStyle(element).translate, scale: getComputedStyle(element).scale };
+    }));
+    const initial = await presentation();
+    for (const position of [0, 3, 7]) {
+      await expectHandTouchTarget(page, cards.nth(position), safe);
+      const point = await cards.nth(position).evaluate(element => {
+        const box = element.getBoundingClientRect(), table = element.closest('.coinche-game-scene')!.getBoundingClientRect();
+        for (let y = box.top + 3; y < Math.min(box.bottom, table.bottom); y += 4) for (let x = box.left + 3; x < box.right; x += 4) {
+          if (element.contains(document.elementFromPoint(x, y))) return { x, y };
+        }
+        throw new Error('No visible hit point');
+      });
+      await page.touchscreen.tap(point.x, point.y);
+      expect(await presentation()).toEqual(initial);
+    }
+    await page.waitForTimeout(350);
+    expect(await presentation()).toEqual(initial);
+    expect(fixture.intents).toEqual([]);
+  });
+});
+
+for (const mode of ['solo', 'multi'] as const) test(`@mobile @immersive-polish ${mode} audio inside burger persists and restores keyboard focus`, async ({ page }) => {
+  await preferences(page); await page.setViewportSize(sizes[0]);
+  const fixture = await installMobileGameFixture(page);
+  await page.goto(mode === 'solo' ? '/solo' : fixture.path); await expect(page.locator('.coinche-game-scene')).toBeVisible(); await simulateSafeAreas(page, safe);
+  await expect(page.locator('.coinche-header-audio')).toBeHidden();
+  await expect(page.locator('.coinche-game-burger')).toBeVisible();
+  const burger = page.getByRole('button', { name: 'Ouvrir le menu de partie', exact: true }); await target(page, burger);
+  await burger.focus(); await page.keyboard.press('Enter');
+  const menu = page.getByRole('complementary', { name: 'Menu de partie' }); await expectInsideSafeViewport(page, menu, safe);
+  const audio = menu.getByRole('button', { name: 'Contrôles audio' }); await audio.focus(); await page.keyboard.press('Enter');
+  const player = menu.getByRole('region', { name: 'Lecteur audio' }); await expect(player).toBeVisible();
+  for (const button of await player.getByRole('button').all()) { await button.scrollIntoViewIfNeeded(); await target(page, button); }
+  const volume = player.getByRole('slider', { name: 'Volume musique' });
+  await volume.focus(); await volume.press('Home'); await volume.press('ArrowRight'); await expect(volume).toHaveValue('1');
+  await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key)!).audio.musicVolume, PLAYER_PREFERENCES_STORAGE_KEY)).toBe(.01);
+  await page.keyboard.press('Escape'); await expect(menu).toHaveCount(0); await expect(burger).toBeFocused();
+  await page.reload(); await expect(page.locator('.coinche-game-scene')).toBeVisible(); await simulateSafeAreas(page, safe); await burger.click(); await audio.click(); await expect(volume).toHaveValue('1');
+  await player.getByRole('button', { name: 'Lire la musique' }).click();
+  await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key)!).audio.musicEnabled, PLAYER_PREFERENCES_STORAGE_KEY)).toBe(true);
+});
+
+for (const viewport of sizes) test(`@mobile @immersive-polish compact last trick and clean numbered cards ${viewport.width}`, async ({ page }) => {
   await preferences(page); await page.setViewportSize(viewport);
   const state = mobileGameState("playing");
+  state.contract!.playerId = 1; state.contract!.status = 'surcoinched';
   state.completedTricks = [{ leaderId: 2, winnerId: 0, points: 24, cards: ([2, 1, 3, 0] as const).map(playerId => ({ playerId, card: state.hands[playerId][0] })) }];
-  await installMobileGameFixture(page, state); await page.goto("/solo"); await simulateSafeAreas(page, safe);
+  const fixture = await installMobileGameFixture(page, state); await page.goto(fixture.path); await simulateSafeAreas(page, safe);
   const last = page.getByRole("button", { name: "Dernier pli", exact: true }); await target(page, last);
   const badge = (await last.locator("span").boundingBox())!;
   expect(badge.height).toBeLessThanOrEqual(28); expect(badge.width).toBeLessThanOrEqual(84);
-  const south = (await page.locator(".coinche-bottom-seat").boundingBox())!;
-  expect(badge.y + badge.height).toBeLessThanOrEqual(south.y - 4);
+  const scene = (await page.locator('.coinche-game-scene').boundingBox())!;
+  const edge = (await page.getByRole('button', { name: 'Menu Partie', exact: true }).boundingBox())!;
+  const hitbox = (await last.boundingBox())!;
+  expect(scene.x + scene.width - hitbox.x - hitbox.width).toBeLessThanOrEqual(5);
+  expect(Math.abs(hitbox.x + hitbox.width - edge.x - edge.width)).toBeLessThanOrEqual(1);
+  expect(edge.y - hitbox.y - hitbox.height).toBeGreaterThanOrEqual(4);
+  expect(edge.y - hitbox.y - hitbox.height).toBeLessThanOrEqual(12);
+  const announcement = (await page.locator('.coinche-bubble-right').boundingBox())!;
+  expect(badge.y).toBeGreaterThanOrEqual(announcement.y + announcement.height);
   await last.click(); const cards = page.getByLabel("Cartes du dernier pli", { exact: true });
   await expect(cards.locator(".coinche-trick-card")).toHaveCount(4);
   for (let order = 1; order <= 4; order++) {
@@ -140,7 +367,6 @@ for (const viewport of sizes) test(`@mobile @immersive-polish compact last trick
     await expect(card.getByLabel(`Carte ${order}`)).toBeVisible();
   }
   await target(page, page.getByRole("button", { name: "Fermer", exact: true }));
-  await page.screenshot({ path: `.playwright/validation/immersive-polish/${info.project.name}-${viewport.width}-last-trick.png` });
 });
 
 for (const viewport of [{ width: 1024, height: 768 }, { width: 1440, height: 900 }]) test(`@mobile @immersive-polish desktop Capot follows 160 ${viewport.width}`, async ({ page }) => {
@@ -150,6 +376,16 @@ for (const viewport of [{ width: 1024, height: 768 }, { width: 1440, height: 900
   const capot = (await page.getByRole("button", { name: "Capot", exact: true }).boundingBox())!;
   expect(Math.abs(capot.y - value.y)).toBeLessThan(1); expect(capot.x).toBeGreaterThanOrEqual(value.x + value.width);
   await expect(page.locator(".coinche-global-header")).toHaveCSS("height", "56px");
+  const scene = (await page.locator('.coinche-game-scene').boundingBox())!;
+  for (const card of await page.locator('.coinche-scene-hand-card button').all()) {
+    const box = (await card.boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(scene.y + scene.height);
+  }
+  const angle = await page.locator('.coinche-scene-hand-card').first().evaluate(element => {
+    const matrix = new DOMMatrix(getComputedStyle(element).transform);
+    return Math.atan2(matrix.b, matrix.a) * 180 / Math.PI;
+  });
+  expect(angle).toBeCloseTo(-6.3, 1);
 });
 
 for (const viewport of sizes) test(`@mobile @immersive-polish Training shares bidding, live score and help ${viewport.width}`, async ({ page }) => {

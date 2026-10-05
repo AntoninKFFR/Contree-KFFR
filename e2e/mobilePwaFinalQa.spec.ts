@@ -1,6 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { test, installFinalQaFixture, qaSafeAreas, captureQaSnapshot, expectMinTouchTarget } from "./helpers/mobilePwaFinalQa";
-import { MOBILE_VIEWPORTS, DESKTOP_VIEWPORTS, simulateSafeAreas, setMobileViewport, expectInsideSafeViewport } from "./helpers/mobile";
+import { MOBILE_VIEWPORTS, DESKTOP_VIEWPORTS, simulateSafeAreas, setMobileViewport, expectInsideSafeViewport, expectHandTouchTarget } from "./helpers/mobile";
 import { installHomeProgressionFixture } from "./helpers/homeProgressionFixture";
 import { installFriendsMobileFixture } from "./helpers/friendsMobileFixture";
 import { installMultiplayerMobileFixture } from "./helpers/multiplayerMobileFixture";
@@ -281,7 +281,10 @@ for (const mode of ["solo", "multi"] as const) test(`@mobile @pwa-final-qa ${mod
   await expect(page.locator(".coinche-scene-hand-card button")).toHaveCount(8);
   const before = JSON.stringify(fixture.snapshot());
   const hand = await page.locator(".coinche-scene-hand-card button").allTextContents();
-  for (const position of [0, 3, 7]) await qa.control(page.locator(".coinche-scene-hand-card button").nth(position), safe);
+  for (const position of [0, 3, 7]) {
+    const card = page.locator(".coinche-scene-hand-card button").nth(position);
+    await card.focus(); await expectHandTouchTarget(page, card, safe);
+  }
   if (mode === "solo") {
     await expect(page.getByRole("button", { name: /^Valeur / })).toHaveCount(9);
     await expect(page.getByRole("button", { name: /^Atout / })).toHaveCount(6);
@@ -329,7 +332,9 @@ test("@mobile @pwa-final-qa light active Solo portrait notice stays isolated", a
   await expect(page.locator(".coinche-game-scene, .coinche-scene-hand-card button")).toHaveCount(0);
   await expect(page.locator(".coinche-global-header")).toHaveAttribute("data-header-variant", "compact-game");
   await captureQaSnapshot(page, info, "solo", "portrait-notice"); await qa.checkpoint("solo-portrait-light");
-  await page.getByRole("button", { name: "Quitter la table et revenir à l’accueil" }).click();
+  await expect(page.getByRole("button", { name: "Ouvrir le menu", exact: true })).toBeVisible();
+  const exit = page.getByRole("button", { name: "Quitter la table et revenir à l’accueil" });
+  await qa.control(exit, safe); await exit.click();
   await page.getByRole("button", { name: "Revenir à l’accueil", exact: true }).click();
   await expect(page.locator(".coinche-global-header")).toHaveAttribute("data-header-variant", "default");
   await expect(page.locator(".coinche-global-header")).toHaveCSS("height", `${56 + safe.top}px`);

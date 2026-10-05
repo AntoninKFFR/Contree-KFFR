@@ -54,3 +54,22 @@ export async function expectInsideSafeViewport(page: Page, locator: Locator, are
   expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width - areas.right + 1);
   expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height - areas.bottom + 1);
 }
+
+/** The fan deliberately extends below the safe table; verify its visible hit area. */
+export async function expectHandTouchTarget(page: Page, card: Locator, areas: SafeAreas = NO_SAFE_AREAS) {
+  await expect(card).toBeVisible();
+  await expect.poll(() => card.evaluate((button, safe) => {
+    const box = button.getBoundingClientRect();
+    const table = button.closest(".coinche-game-scene")!.getBoundingClientRect();
+    const left = Math.max(box.left, table.left, safe.left);
+    const right = Math.min(box.right, table.right, innerWidth - safe.right);
+    const top = Math.max(box.top, table.top, safe.top);
+    const bottom = Math.min(box.bottom, table.bottom, innerHeight - safe.bottom);
+    let hits = 0;
+    for (let y = top + 2; y < bottom; y += 4) for (let x = left + 2; x < right; x += 4) {
+      const hit = document.elementFromPoint(x, y);
+      if (hit && button.contains(hit)) hits++;
+    }
+    return right - left >= 44 && bottom - top >= 44 && hits * 16 >= 44 * 44;
+  }, areas), { message: "each hand card retains at least 44 × 44px of visible, unobstructed touch area" }).toBe(true);
+}
