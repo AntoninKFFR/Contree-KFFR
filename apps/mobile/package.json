@@ -1,0 +1,39 @@
+{
+  "name": "kffr-contree-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "tunnel": "expo start --tunnel",
+    "ios": "expo start --ios",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0",
+    "check": "npm run typecheck && npm run lint",
+    "doctor": "npx expo-doctor",
+    "export:ios": "expo export --platform ios"
+  },
+  "engines": {
+    "node": ">=20.19.4"
+  },
+  "dependencies": {
+    "expo": "~54.0.0",
+    "expo-router": "~6.0.0",
+    "expo-status-bar": "~3.0.0",
+    "expo-constants": "~18.0.0",
+    "expo-linking": "~8.0.0",
+    "react": "19.1.0",
+    "react-native": "0.81.4",
+    "react-native-screens": "~4.16.0",
+    "react-native-safe-area-context": "~5.6.0",
+    "@supabase/supabase-js": "^2.57.0",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "react-native-url-polyfill": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "typescript": "~5.9.2",
+    "eslint": "^9.25.0",
+    "eslint-config-expo": "~10.0.0"
+  }
+}
