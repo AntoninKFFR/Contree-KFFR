@@ -44,6 +44,19 @@ jobs:
       - run: npm run lint
       - name: Test account lifecycle, native navigation and network handling
         run: npm test
+      - name: Install browser for landscape component geometry checks
+        run: npx playwright install --with-deps chromium
+      - name: Verify landscape geometry and capture test screens
+        run: npm run test:geometry
+      - name: Upload landscape geometry evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: expo-landscape-geometry
+          path: |
+            apps/mobile/geometry-results
+            apps/mobile/geometry-report
+          if-no-files-found: warn
       - name: Check Expo Go SDK 57 package compatibility
         run: npx expo install --check
       - name: Run Expo Doctor

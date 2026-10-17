@@ -5,11 +5,11 @@ const config: ExpoConfig = {
   slug: "kffr-contree",
   version: "0.1.0",
   scheme: "kffrcontree",
-  orientation: "default",
+  orientation: "landscape",
   userInterfaceStyle: "dark",
   platforms: ["ios"],
   ios: { supportsTablet: false },
-  plugins: ["expo-router"],
+  plugins: ["expo-router", ["expo-screen-orientation", { initialOrientation: "LANDSCAPE" }]],
   experiments: { typedRoutes: true },
 };
 

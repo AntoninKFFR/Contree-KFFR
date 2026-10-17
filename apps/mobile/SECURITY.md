@@ -1,8 +1,10 @@
 # Sécurité du prototype iOS
 
-État du 17 octobre 2026. Le socle SDK 57 peut être revu et testé avec Expo Go ;
+État du 18 octobre 2026. Le socle SDK 57 peut être revu et testé avec Expo Go ;
 la validation fonctionnelle sur iPhone ne vaut pas autorisation de distribution
 publique. Aucune modification Supabase ou de production n'accompagne ce lot.
+La révision paysage conserve le contrôleur, le stockage et le client Auth.
+Les fixtures du banc visuel restent dans `tests/visual`, hors entrée Metro iOS.
 
 ## Session et données
 

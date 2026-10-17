@@ -1,13 +1,11 @@
 import { Tabs, useNavigation } from "expo-router";
 import { useEffect, useRef } from "react";
-import { Text } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { GameNavigation } from "@/components/GameNavigation";
 import { useAccount } from "@/auth/AccountProvider";
 import { tokens } from "@/theme/tokens";
 
 export default function ConnectedLayout() {
   const { navigationIdentity } = useAccount();
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const previousIdentity = useRef(navigationIdentity);
   useEffect(() => {
@@ -17,18 +15,19 @@ export default function ConnectedLayout() {
     }
   }, [navigationIdentity, navigation]);
   return (
-    <Tabs initialRouteName="index" backBehavior="initialRoute" screenOptions={{
+    <Tabs initialRouteName="index" backBehavior="initialRoute" tabBar={({ state, navigation: tabs }) => (
+      <GameNavigation active={state.routes[state.index].name} onSelect={(name) => {
+        const route = state.routes.find((item) => item.name === name);
+        if (!route) return;
+        const event = tabs.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+        if (!event.defaultPrevented) tabs.navigate(name);
+      }} />
+    )} screenOptions={{
       headerShown: false, tabBarActiveTintColor: tokens.colors.accent, tabBarInactiveTintColor: tokens.colors.muted,
-      tabBarStyle: { backgroundColor: tokens.colors.surface, borderTopColor: tokens.colors.border,
-        height: 64 + insets.bottom, paddingTop: 6, paddingBottom: insets.bottom },
-      tabBarItemStyle: { minHeight: 50, paddingVertical: 4 },
-      tabBarLabelStyle: { fontSize: 13, fontWeight: "700" },
       sceneStyle: { backgroundColor: tokens.colors.background },
     }}>
-      <Tabs.Screen name="index" options={{ title: "Accueil", tabBarAccessibilityLabel: "Onglet Accueil",
-        tabBarIcon: ({ color }) => <Text accessible={false} style={{ color, fontSize: 24 }}>♠</Text> }} />
-      <Tabs.Screen name="profile" options={{ title: "Profil", tabBarAccessibilityLabel: "Onglet Profil",
-        tabBarIcon: ({ color }) => <Text accessible={false} style={{ color, fontSize: 24 }}>♙</Text> }} />
+      <Tabs.Screen name="index" options={{ title: "Accueil" }} />
+      <Tabs.Screen name="profile" options={{ title: "Profil" }} />
     </Tabs>
   );
 }

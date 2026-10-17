@@ -5,6 +5,65 @@ Profil, connexion aux comptes existants, vrai pseudo, reprise de session et
 déconnexion. Solo, Multijoueur et Entraînement sont explicitement indisponibles
 sur iPhone : aucune carte ne lance une partie.
 
+## Table de jeu en paysage — révision QA de la PR #145
+
+- Connexion, Accueil, Profil et modales ciblent les deux orientations paysage.
+  Configuration Expo + Stack Router + demande `expo-screen-orientation` au montage
+  et au retour actif. Ce module SDK 57 (~57.0.3) est inclus dans Expo Go.
+- Le verrouillage n'est **pas garanti** : Expo Go utilise son propre binaire et
+  les options du plugin ne modifient pas ce binaire. Sur iOS 27, une fenêtre
+  redimensionnable peut refuser le verrouillage ; `getOrientationAsync` peut aussi
+  annoncer portrait malgré une fenêtre paysage. Le repli regarde donc largeur /
+  hauteur réelles : « Tourne ton iPhone », sans démonter le navigateur ni le compte.
+  Sources : [module SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/screen-orientation/),
+  [limites iOS 27](https://docs.expo.dev/versions/latest/sdk/screen-orientation/#orientation-locks-on-ios-27-and-later).
+- `Screen` est un layout flex fixe, sans ScrollView et sans masquage des débordements.
+  Trois modes en rangée au centre d'une table verte ; profil en deux panneaux.
+  Le header commun fait 44 points, avec logo centré dans une boîte 80×34.
+- Navigation : bande de 48 points, cibles de 46 points, inset inférieur ajouté une
+  seule fois. Les écrans connectés gèrent haut / gauche / droite ; la barre gère
+  son bas. Connexion et modales prennent les quatre bords.
+- Clavier : « Se connecter » ouvre un formulaire dans une modale native distincte,
+  avec KeyboardAvoidingView et défilement interne. Fermer efface le mot de passe.
+  Pseudos longs ou très larges et erreurs détaillées en grande police sont lisibles
+  intégralement dans une modale ; aucune ellipse ni identité inventée.
+- Grande police : disposition et libellés courts adaptés, noms accessibles complets.
+  Les symboles décoratifs disparaissent quand la place doit revenir au texte.
+- Inspiration d'ambiance seulement : [Eryod Soft](https://www.eryodsoft.com/fr/jeux/coinche).
+  Aucun asset, logo, jeu de cartes ou code tiers repris ; les enseignes sont du texte.
+
+### Captures et géométrie automatisées
+
+~~~powershell
+npx playwright install chromium
+npm run test:geometry
+~~~
+
+Le banc `tests/visual` rend les **vrais composants** via React Native Web pour
+mesurer leur géométrie et produire les captures dans `geometry-results/`, puis
+un rapport dans `geometry-report/`. Il est isolé de l'entrée Expo et n'est jamais
+importé par l'app iOS. Routeur, insets, état de compte et agrandissement typographique
+sont des adaptateurs de test. Les données fictives n'entrent pas dans le bundle iOS.
+
+37 scénarios couvrent 568×320, 667×375, 844×390 et 932×430, insets latéraux 47/47
+et 59/0 ou 0/59, header / barre / cibles >=44, aucun scroll principal ou débordement,
+limites des panneaux, contraste du texte >=4,5, noms longs, grande police (×1,6),
+chargement / réseau / déconnexion / configuration, portrait et modale à hauteur réduite.
+Les captures du compte utilisent une identité **de test** ; elles ne prouvent pas
+une connexion Supabase. Les tests Jest utilisent séparément le vrai routeur Expo,
+le contrôleur partagé et les événements de session, dont verrouillage refusé.
+
+Dépendances nouvelles justifiées : expo-screen-orientation en exécution ; React
+Native Web (+ types), Vite et Playwright en développement pour ces mesures et
+captures sous Windows / CI. Elles ne transforment pas l'app iOS en WebView.
+La CI Expo exécute ces tests sans retry et conserve captures / traces / rapport.
+
+**Limite : ce rendu navigateur ne remplace ni le moteur de layout iOS, ni VoiceOver,
+ni le clavier logiciel, ni un essai réel du verrouillage. La refonte paysage n'est
+pas validée physiquement à ce stade.** Tester sur iPhone réel, renseigner modèle,
+iOS et version Expo Go ; vérifier rotations dans les deux sens, connexion / clavier,
+Accueil / Profil sans scroll, grande police, suspension, réseau et déconnexion.
+
 ## Navigation et session partagée
 
 - Expo Router sépare `login` de `(connected)` (Accueil et Profil). Les routes
@@ -162,8 +221,9 @@ dans le compte rendu.
 
 ## Validation physique iPhone à réaliser
 
-- **L'accueil, les onglets et le profil de cette phase ne sont pas encore validés
-  sur iPhone réel.** La validation humaine ci-dessus concerne seulement la fondation.
+- La version initiale de l'accueil / profil a fait l'objet de la revue visuelle
+  iPhone rapportée dans le commentaire QA de #145. **Cette refonte fixe en paysage
+  reste à valider physiquement**, sans déduire son résultat de l'essai précédent.
 - Après connexion : vérifier les trois modes désactivés et leur mention « Bientôt
   disponible », ouvrir Profil via l'onglet et « Voir mon profil », revenir à Accueil.
 - Tester petit écran, portrait/paysage, grande taille de texte et VoiceOver :
