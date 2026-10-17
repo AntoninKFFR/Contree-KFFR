@@ -1,0 +1,52 @@
+name: Expo iOS foundation
+
+on:
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/expo-mobile.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/expo-mobile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  expo-ios:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/mobile
+    env:
+      CI: "1"
+      # Export checks compilation only; it never connects to production Supabase.
+      EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - name: Install locked Expo SDK 57 dependencies
+        run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - name: Test account lifecycle and network handling
+        run: npm test
+      - name: Check Expo Go SDK 57 package compatibility
+        run: npx expo install --check
+      - name: Run Expo Doctor
+        run: npx expo-doctor
+      - name: Export the iOS bundle
+        run: npm run export:ios
