@@ -54,7 +54,7 @@ une connexion Supabase. Les tests Jest utilisent séparément le vrai routeur Ex
 le contrôleur partagé et les événements de session, dont verrouillage refusé.
 
 Dépendances nouvelles justifiées : expo-screen-orientation en exécution ; React
-Native Web (+ types), Vite et Playwright en développement pour ces mesures et
+Native Web, types RN Web / React DOM, Vite et Playwright en développement pour ces mesures et
 captures sous Windows / CI. Elles ne transforment pas l'app iOS en WebView.
 La CI Expo exécute ces tests sans retry et conserve captures / traces / rapport.
 
