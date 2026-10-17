@@ -7,7 +7,12 @@
       "@/*": [
         "./src/*"
       ]
-    }
+    },
+    "types": [
+      "node",
+      "react",
+      "react-native"
+    ]
   },
   "include": [
     "**/*.ts",

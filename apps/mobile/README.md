@@ -5,17 +5,20 @@ KFFR existants, lecture du vrai pseudo, reprise de session et déconnexion.
 
 ## Versions et méthode
 
-Expo SDK **54** (React Native 0.81.5, React 19.1.0, Expo Router 6, TypeScript 5.9).
+Expo SDK **57** (Expo 57.0.30, React Native 0.86.3, React 19.2.3,
+Expo Router 57.0.28, TypeScript 6.0.3).
 La [documentation officielle Expo](https://docs.expo.dev/get-started/create-a-project/)
-consultée le 17 octobre 2026 recommande SDK 54 pour Expo Go sur appareil physique
-pendant la transition SDK 57. Aucun compte Apple Developer requis pour ce test.
+consultée le 17 octobre 2026 recommande SDK 57 pour Expo Go sur appareil physique
+pendant la transition SDK 58. Aucun compte Apple Developer requis pour ce test.
 La disponibilité du store évolue : revérifier cette page si Expo Go refuse le SDK.
 
 [BeThatGirl](https://github.com/ilonaplsr/BeThatGirl) sert de référence pour
 Expo Router (src/app), TypeScript strict, alias @/* vers src/*, lint et commandes
-de validation. Ses dépendances SDK 57 / React Native 0.86 / React 19.2 ne sont
-pas reprises. React DOM est explicitement aligné sur React 19.1 pour les peers
-d'Expo Router, même si ce prototype cible uniquement iOS.
+de validation. Les versions SDK 57 ont été alignées sur le modèle officiel Expo
+et validées dans la copie locale iPhone avant leur intégration ici. React DOM
+est explicitement aligné sur React 19.2.3 pour les peers d'Expo Router, même si
+ce prototype cible uniquement iOS. Les types Node, React et React Native sont
+explicitement déclarés pour que TypeScript 6 contrôle aussi les tests Node.
 
 Utiliser **Node.js 22 LTS** (22.13 minimum), npm et PowerShell sous Windows.
 Les deux projets ont leur propre package.json, package-lock.json, node_modules,
@@ -46,8 +49,8 @@ ne dépend pas d'Expo. Les alias des deux projets restent indépendants.
    npx expo start --clear
    ~~~
 
-4. Installer Expo Go sur l'iPhone. Si Expo demande une connexion, utiliser le
-   même compte Expo dans Expo Go et sur l'ordinateur (npx expo login). Le compte
+4. Installer Expo Go sur l'iPhone et utiliser le même compte Expo dans Expo Go
+   et sur l'ordinateur (npx expo login). Le compte
    Expo sert au développement ; le compte KFFR sert à la connexion dans l'app.
 
 5. Placer Windows et l'iPhone sur le même réseau Wi-Fi. Scanner le QR code avec
@@ -116,24 +119,37 @@ npm run export:ios
 ~~~
 
 Le lockfile mobile est versionné : npm ci fonctionne indépendamment de la racine.
-Pour une mise à jour volontaire des dépendances SDK 54, utiliser npx expo install
+Pour une mise à jour volontaire des dépendances SDK 57, utiliser npx expo install
 --fix, puis relancer les contrôles et committer package.json et package-lock.json.
 Expo Doctor est aussi épinglé en devDependency. La CI Expo iOS foundation exécute
 ces contrôles dans apps/mobile, avec des paramètres factices sans accès aux données.
 L'export produit dist/ (ignoré) : c'est un bundle JavaScript/assets, pas un .ipa.
 
-L'audit npm du 17 octobre 2026 signale encore 40 vulnérabilités transitives
-(16 modérées, 24 élevées), notamment dans l'outillage Expo/Metro/React Native.
-Une tentative de correction npm sans changement majeur ne les élimine pas.
-Les correctifs proposés imposent notamment d'autres versions majeures Expo/RN ;
-ne pas lancer npm audit fix --force au détriment du SDK 54 requis par Expo Go.
-Cette dette doit être réévaluée avec le SDK avant une distribution publique.
+L'audit npm reste non vierge après migration : **28 paquets signalés**
+(10 modérés, 18 élevés), contre 40 dans le socle SDK 54. Voir le
+[suivi de sécurité](SECURITY.md) pour les avis, leur portée, les limites
+des correctifs disponibles et les conditions avant distribution publique.
+Les contrôles CI de compilation ne constituent pas un audit sécurité réussi.
+
+## Validation physique iPhone confirmée
+
+Le 17 octobre 2026, Antonin a confirmé sur iPhone réel, avec la copie locale
+SDK 57 dont les sources applicatives et les tests sont identiques à cette PR :
+
+- Connexion au même projet Supabase avec un compte KFFR existant.
+- Récupération et affichage du vrai pseudo.
+- Persistance de session après fermeture et réouverture de l'application.
+
+Ces résultats sont rapportés par le testeur humain ; le modèle d'iPhone et la
+version d'iOS n'ont pas été renseignés. Aucun identifiant ni jeton n'est conservé
+dans le compte rendu.
 
 ## Validation physique iPhone à réaliser
 
 - Ouverture depuis QR, rendu, safe areas, clavier et bouton de connexion accessibles.
 - Mauvais identifiants, champs vides, puis connexion valide et pseudo identique au web.
-- Fermeture forcée et réouverture : session persistée et pseudo vérifié avec réseau.
+- Régression de la persistance déjà confirmée : fermeture forcée d’Expo Go,
+  réouverture et pseudo vérifié avec réseau.
 - Arrière-plan prolongé, expiration/renouvellement du jeton, retour au premier plan.
 - Mode avion au démarrage, à la connexion, au chargement du profil et à la
   déconnexion ; reprise réseau et boutons de nouvelle tentative.
@@ -145,7 +161,7 @@ Les tests automatisés couvrent les courses asynchrones et erreurs avec un clien
 simulé, ainsi qu'un cycle connexion/persistance/restauration/profil/déconnexion
 avec le véritable SDK Supabase et un transport/stockage de test. Ils ne prouvent
 pas une connexion réelle à KFFR ni le stockage AsyncStorage sur iOS.
-**Ni Expo Doctor ni l'export iOS ne valident le fonctionnement sur un iPhone réel.**
+**Ni Expo Doctor ni l'export iOS ne remplacent les validations humaines restantes.**
 OAuth, création de compte, deep links, Solo/Multi natifs et distribution App Store
 restent hors périmètre. Le serveur, les règles, les données et la compatibilité
 future web/iOS ne sont pas modifiés par ce socle.
