@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,99 +12,42 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { Session } from "@supabase/supabase-js";
 
+import { createAccountController, initialAccountState } from "@/lib/account";
 import { supabase } from "@/lib/supabase";
 import { tokens } from "@/theme/tokens";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [accountState, setAccountState] = useState(initialAccountState);
+  const account = useRef<ReturnType<typeof createAccountController> | null>(null);
+  const { session, username, loading, submitting, error, signOutRequired, signOutIncomplete } = accountState;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [username, setUsername] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const readProfile = useCallback(async (userId: string) => {
-    if (!supabase) return;
-    const { data, error: profileError } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", userId)
-      .maybeSingle<{ username: string | null }>();
-    if (profileError) throw profileError;
-    setUsername(data?.username ?? null);
-  }, []);
 
   useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
-    const client = supabase;
-    let active = true;
-    void client.auth.getSession().then(async ({ data, error: sessionError }) => {
-      if (!active) return;
-      if (sessionError) setError("Session indisponible. Vérifie ta connexion.");
-      setSession(data.session);
-      if (data.session) {
-        try { await readProfile(data.session.user.id); }
-        catch { if (active) setError("Impossible de charger ton pseudo."); }
-      }
-    }).catch(() => {
-      if (active) setError("Connexion au serveur impossible.");
-    }).finally(() => { if (active) setLoading(false); });
-
-    const { data: { subscription } } = client.auth.onAuthStateChange((_event, next) => {
-      if (!active) return;
-      setSession(next);
-      if (!next) {
-        setUsername(null);
-      } else {
-        void readProfile(next.user.id).catch(() => {
-          if (active) setError("Impossible de charger ton pseudo.");
-        });
-      }
+    if (!supabase) return;
+    const controller = createAccountController(supabase, setAccountState);
+    account.current = controller;
+    controller.setForeground(AppState.currentState === "active");
+    const listener = AppState.addEventListener("change", (next) => {
+      controller.setForeground(next === "active");
     });
-    return () => { active = false; subscription.unsubscribe(); };
-  }, [readProfile]);
+    return () => {
+      listener.remove();
+      controller.dispose();
+      account.current = null;
+    };
+  }, []);
 
   async function signIn() {
-    if (!supabase || submitting) return;
-    if (!email.trim() || !password) {
-      setError("Renseigne ton email et ton mot de passe.");
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    try {
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-      if (authError) setError("Connexion refusée. Vérifie tes identifiants.");
-      else setPassword("");
-    } catch {
-      setError("Connexion impossible. Réessaie.");
-    } finally {
-      setSubmitting(false);
-    }
+    const controller = account.current;
+    if (await controller?.signIn(email, password) && account.current === controller) setPassword("");
   }
 
-  async function signOut() {
-    if (!supabase || submitting) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const { error: authError } = await supabase.auth.signOut();
-      if (authError) setError("Déconnexion impossible. Réessaie.");
-    } catch {
-      setError("Déconnexion impossible. Réessaie.");
-    } finally {
-      setSubmitting(false);
-    }
+  function signOut() {
+    setPassword("");
+    void account.current?.signOut();
   }
 
   return (
@@ -123,15 +67,34 @@ export default function HomeScreen() {
               <Text style={styles.body}>Crée apps/mobile/.env à partir de .env.example avec l’URL et la clé publique Supabase du projet KFFR Contrée, puis redémarre Expo.</Text>
             </>
           ) : loading ? (
-            <ActivityIndicator color={tokens.colors.accent} accessibilityLabel="Chargement du compte" />
+            <>
+              <ActivityIndicator color={tokens.colors.accent} accessibilityLabel="Chargement du compte" />
+              <Pressable style={styles.secondaryButton} onPress={signOut} disabled={submitting} accessibilityRole="button">
+                <Text style={styles.secondaryText}>Déconnecter cet appareil</Text>
+              </Pressable>
+            </>
+          ) : signOutRequired ? (
+            <>
+              <Text style={styles.heading}>{signOutIncomplete ? "Déconnexion à terminer" : "Session à vérifier"}</Text>
+              <Text style={styles.body}>Ton profil reste masqué tant que ta session ne peut pas être vérifiée.</Text>
+              {!signOutIncomplete ? <Pressable style={styles.secondaryButton} onPress={() => void account.current?.reload()} disabled={submitting} accessibilityRole="button">
+                <Text style={styles.secondaryText}>Réessayer</Text>
+              </Pressable> : null}
+              <Pressable style={styles.secondaryButton} onPress={signOut} disabled={submitting} accessibilityRole="button">
+                <Text style={styles.secondaryText}>{submitting ? "Déconnexion…" : "Déconnecter cet appareil"}</Text>
+              </Pressable>
+            </>
           ) : session ? (
             <>
               <Text style={styles.heading}>Bienvenue{username ? ` ${username}` : ""} !</Text>
               <Text style={styles.body}>Tu utilises le même compte que sur le site KFFR.</Text>
-              {!username ? <Text style={styles.hint}>Aucun pseudo enregistré : complète ton profil sur le site avant de continuer.</Text> : null}
+              {!username ? <Text style={styles.hint}>Pseudo indisponible. Tu peux réessayer ou compléter ton profil sur le site.</Text> : null}
+              <Pressable onPress={() => void account.current?.reload()} disabled={submitting} accessibilityRole="button" style={styles.secondaryButton}>
+                <Text style={styles.secondaryText}>Actualiser le profil</Text>
+              </Pressable>
               <View style={styles.rule} />
               <Text style={styles.coming}>La table de jeu native arrive au prochain lot.</Text>
-              <Pressable style={[styles.secondaryButton, submitting && styles.disabled]} onPress={() => void signOut()} disabled={submitting} accessibilityRole="button">
+              <Pressable style={[styles.secondaryButton, submitting && styles.disabled]} onPress={signOut} disabled={submitting} accessibilityRole="button">
                 <Text style={styles.secondaryText}>Se déconnecter</Text>
               </Pressable>
             </>
@@ -143,6 +106,7 @@ export default function HomeScreen() {
                 style={styles.input}
                 placeholder="Adresse email"
                 placeholderTextColor={tokens.colors.muted}
+                editable={!submitting}
                 autoCapitalize="none"
                 autoComplete="email"
                 keyboardType="email-address"
@@ -155,6 +119,7 @@ export default function HomeScreen() {
                 style={styles.input}
                 placeholder="Mot de passe"
                 placeholderTextColor={tokens.colors.muted}
+                editable={!submitting}
                 autoCapitalize="none"
                 autoComplete="current-password"
                 secureTextEntry

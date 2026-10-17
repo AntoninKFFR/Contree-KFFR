@@ -2,6 +2,7 @@ import "react-native-url-polyfill/auto";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { fetchWithTimeout } from "./fetchWithTimeout";
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -12,8 +13,9 @@ const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
  * App Store, migrer la persistance vers un stockage chiffré (SecureStore + chiffrement).
  */
 export const supabase: SupabaseClient | null =
-  url?.startsWith("https://") && key && !key.includes("YOUR_")
+  url?.startsWith("https://") && !url.includes("YOUR_") && key?.startsWith("sb_publishable_")
     ? createClient(url, key, {
+        global: { fetch: fetchWithTimeout },
         auth: {
           storage: AsyncStorage,
           autoRefreshToken: true,
