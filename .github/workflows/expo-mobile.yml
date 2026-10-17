@@ -42,7 +42,7 @@ jobs:
         run: npm ci
       - run: npm run typecheck
       - run: npm run lint
-      - name: Test account lifecycle and network handling
+      - name: Test account lifecycle, native navigation and network handling
         run: npm test
       - name: Check Expo Go SDK 57 package compatibility
         run: npx expo install --check

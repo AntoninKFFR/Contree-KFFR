@@ -21,10 +21,11 @@ publique. Aucune modification Supabase ou de production n'accompagne ce lot.
 
 ## Dépendances verrouillées
 
-`npm audit --json` sur le lockfile SDK 57 repris de la copie testée signale
-**28 paquets** (10 modérés, 18 élevés, aucun critique), contre 40 dans le socle
-SDK 54. Ces nombres incluent les dépendants : ce ne sont pas 28 avis distincts.
-Quatre avis sont recensés dans ce graphe :
+`npm audit --json` sur le lockfile de la phase accueil/navigation signale
+**64 paquets** (15 modérés, 49 élevés, aucun critique), contre 28 avant ajout
+de Jest Expo / Testing Library et de leur graphe de dépendances de test.
+Ces nombres incluent les dépendants : ce ne sont pas 64 avis distincts.
+Cinq avis sont recensés dans ce graphe :
 
 | Paquet concerné | Avis et risque | Correctif publié selon l'avis |
 | --- | --- | --- |
@@ -32,11 +33,18 @@ Quatre avis sont recensés dans ce graphe :
 | `decode-uri-component` 0.2.2 | [GHSA-vcc3-ghjq-m6fr](https://github.com/advisories/GHSA-vcc3-ghjq-m6fr) : consommation CPU sur des entrées encodées malformées | 0.5.0 |
 | `node-forge` 1.4.0 | [GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv) : vérification RSA incorrecte | Aucun indiqué |
 | `uuid` 7.0.3 | [GHSA-w5hq-g745-h8pq](https://github.com/advisories/GHSA-w5hq-g745-h8pq) : écriture incorrecte dans les buffers de certaines API UUID | 11.1.1, 12.0.1 ou 13.0.1 |
+| `sprintf-js` 1.0.3 | [GHSA-hp3w-g68c-fv3c](https://github.com/advisories/GHSA-hp3w-g68c-fv3c) : déni de service via une précision de formatage sans borne ; ajouté via les outils Jest | Aucun indiqué |
 
 Les chaînes Expo/Metro/React Native expliquent une partie des signalements.
 Le décodage d'URL via Expo Router nécessite aussi une revue côté application :
 il ne faut pas classer toute cette dette comme limitée aux outils de développement.
 Les tests actuels ne démontrent pas l'absence d'exploitation de ces avis.
+Les outils natifs de test sont déclarés en devDependencies, avec des versions
+compatibles SDK 57. Les peer dependencies optionnelles de React Native font
+cependant aussi apparaître une partie du graphe Jest dans `npm audit --omit=dev`
+(60 paquets : 15 modérés, 45 élevés). Ce filtre ne suffit donc pas à attribuer
+la portée d'un avis au bundle livré. Aucune dépendance applicative directe ni
+version du SDK n'a été changée dans cette phase ; l'export n'importe pas les tests.
 
 L'audit npm ne propose pas de correction compatible avec toutes les contraintes
 du graphe testé : ses recommandations changent les versions majeures d'Expo,

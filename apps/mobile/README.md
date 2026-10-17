@@ -1,7 +1,23 @@
 # KFFR Contrée — iPhone / Expo Go
 
-Socle natif autonome dans apps/mobile : connexion email/mot de passe aux comptes
-KFFR existants, lecture du vrai pseudo, reprise de session et déconnexion.
+Interface native autonome dans apps/mobile : accueil KFFR, onglets Accueil et
+Profil, connexion aux comptes existants, vrai pseudo, reprise de session et
+déconnexion. Solo, Multijoueur et Entraînement sont explicitement indisponibles
+sur iPhone : aucune carte ne lance une partie.
+
+## Navigation et session partagée
+
+- Expo Router sépare `login` de `(connected)` (Accueil et Profil). Les routes
+  privées sont protégées ; une session supprimée retire aussi leur historique.
+- Un seul `AccountProvider`, au-dessus du routeur, possède le contrôleur existant,
+  l'abonnement Auth et l'écoute AppState. Changer d'onglet ne les recrée pas.
+- Pendant la suspension, le renouvellement du jeton ou une nouvelle vérification,
+  le contenu privé est masqué et l'onglet choisi est conservé. Un échec réseau
+  propose une nouvelle tentative. Un changement de compte réinitialise la navigation.
+- Le profil reste en lecture seule : aucun pseudo inventé si sa lecture échoue.
+  Le bouton d'actualisation relit le profil vérifié. Déconnexion locale uniquement.
+- Logo issu de `public/brand/kffr-logo-dark.png`, recadré et réduit pour le bundle
+  natif ; aucune dépendance aux composants DOM du site.
 
 ## Versions et méthode
 
@@ -125,8 +141,8 @@ Expo Doctor est aussi épinglé en devDependency. La CI Expo iOS foundation exé
 ces contrôles dans apps/mobile, avec des paramètres factices sans accès aux données.
 L'export produit dist/ (ignoré) : c'est un bundle JavaScript/assets, pas un .ipa.
 
-L'audit npm reste non vierge après migration : **28 paquets signalés**
-(10 modérés, 18 élevés), contre 40 dans le socle SDK 54. Voir le
+L'audit npm reste non vierge : **64 paquets signalés**
+(15 modérés, 49 élevés), après ajout des outils de test natifs. Voir le
 [suivi de sécurité](SECURITY.md) pour les avis, leur portée, les limites
 des correctifs disponibles et les conditions avant distribution publique.
 Les contrôles CI de compilation ne constituent pas un audit sécurité réussi.
@@ -146,6 +162,14 @@ dans le compte rendu.
 
 ## Validation physique iPhone à réaliser
 
+- **L'accueil, les onglets et le profil de cette phase ne sont pas encore validés
+  sur iPhone réel.** La validation humaine ci-dessus concerne seulement la fondation.
+- Après connexion : vérifier les trois modes désactivés et leur mention « Bientôt
+  disponible », ouvrir Profil via l'onglet et « Voir mon profil », revenir à Accueil.
+- Tester petit écran, portrait/paysage, grande taille de texte et VoiceOver :
+  texte lisible, défilement complet, onglets accessibles au-dessus de l'indicateur iOS.
+- Depuis Profil : suspendre Expo Go puis revenir, vérifier que le même onglet est
+  conservé et que le pseudo réapparaît après vérification ; mode avion puis Réessayer.
 - Ouverture depuis QR, rendu, safe areas, clavier et bouton de connexion accessibles.
 - Mauvais identifiants, champs vides, puis connexion valide et pseudo identique au web.
 - Régression de la persistance déjà confirmée : fermeture forcée d’Expo Go,
@@ -157,11 +181,19 @@ dans le compte rendu.
   fermeture/réouverture sans reconnexion automatique.
 - Compte A puis compte B : aucun pseudo du compte précédent.
 
-Les tests automatisés couvrent les courses asynchrones et erreurs avec un client
-simulé, ainsi qu'un cycle connexion/persistance/restauration/profil/déconnexion
+`npm test` exécute les tests Node existants puis les tests Jest iOS avec le vrai
+routeur Expo et les vrais écrans React Native (`expo-router/testing-library`,
+Testing Library 13 requise par SDK 57, jest-expo 57). Ils couvrent accès anonyme,
+connexion, modes désactivés, onglets/retour, abonnement unique et nettoyage,
+suspension/renouvellement/réseau, compte remplacé, déconnexion et réponse obsolète.
+Le transport Auth/profils est simulé uniquement dans les tests. Voir les guides
+[Expo Router](https://docs.expo.dev/router/reference/testing/) et
+[Jest Expo](https://docs.expo.dev/develop/unit-testing/).
+
+Les tests automatisés couvrent aussi un cycle connexion/persistance/restauration/profil/déconnexion
 avec le véritable SDK Supabase et un transport/stockage de test. Ils ne prouvent
 pas une connexion réelle à KFFR ni le stockage AsyncStorage sur iOS.
 **Ni Expo Doctor ni l'export iOS ne remplacent les validations humaines restantes.**
-OAuth, création de compte, deep links, Solo/Multi natifs et distribution App Store
+OAuth, création de compte, liens d'auth externes, Solo/Multi natifs et distribution App Store
 restent hors périmètre. Le serveur, les règles, les données et la compatibilité
 future web/iOS ne sont pas modifiés par ce socle.
