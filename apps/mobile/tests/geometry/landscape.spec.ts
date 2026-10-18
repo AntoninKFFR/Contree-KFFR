@@ -135,3 +135,49 @@ test("asymmetric safe areas, rotation fallback and native form modal", async ({ 
   await page.getByRole("button", { name: "Se connecter", exact: true }).click();
   await expect(page.getByRole("tab", { name: "Onglet Accueil" })).toBeVisible();
 });
+
+for (const size of [sizes[0], sizes[2]]) {
+  test("comparable art directions at " + size.width, async ({ page }, info) => {
+    await page.setViewportSize(size);
+    for (const proposal of ["club", "salon"]) {
+      await page.goto("/?proposal=" + proposal);
+      await geometry(page, true);
+      const modes = page.getByRole("button", { name: /Bientôt disponible sur iPhone/ });
+      await expect(modes).toHaveCount(3);
+      for (const mode of await modes.all()) await expect(mode).toBeDisabled();
+      await page.screenshot({ path: info.outputPath("proposal-" + proposal + ".png"), animations: "disabled" });
+    }
+  });
+}
+
+test("real Reanimated press feedback follows live Reduce Motion and keyboard focus", async ({ page }, info) => {
+  await page.setViewportSize(sizes[2]);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/?screen=login");
+  const button = page.getByRole("button", { name: "Se connecter", exact: true });
+  const face = button.locator(":scope > div").first();
+  const duration = () => face.evaluate((element) => getComputedStyle(element).transitionDuration);
+  const scale = () => face.evaluate((element) => new DOMMatrix(getComputedStyle(element).transform).a);
+  await expect.poll(duration).toBe("0.12s");
+  await button.hover();
+  await page.mouse.down();
+  await expect.poll(scale).toBeCloseTo(0.97, 2);
+  await page.screenshot({ path: info.outputPath("login-pressed.png"), animations: "disabled" });
+  // Move away to cancel the click while still exercising release feedback.
+  await page.mouse.move(10, 10); await page.mouse.up();
+  await expect.poll(scale).toBe(1);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(duration).toBe("0s");
+  await button.hover(); await page.mouse.down();
+  await expect.poll(scale).toBe(1);
+  await page.mouse.move(10, 10); await page.mouse.up();
+  await button.focus();
+  await expect(button).toBeFocused();
+  await page.screenshot({ path: info.outputPath("login-keyboard-focus.png"), animations: "disabled" });
+  await page.keyboard.press("Enter");
+  await expect(page.getByLabel("Adresse email")).toBeVisible();
+  await page.getByLabel("Adresse email").focus();
+  await page.screenshot({ path: info.outputPath("login-form-focus.png"), animations: "disabled" });
+  await page.getByRole("button", { name: "Fermer" }).click();
+  await geometry(page, false);
+});

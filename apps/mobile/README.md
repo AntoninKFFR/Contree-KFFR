@@ -1,5 +1,10 @@
 # KFFR Contrée — iPhone natif / Expo SDK 57
 
+La refonte [Club Émeraude — issue #146](docs/visual-146/README.md) documente les
+deux directions comparées, les captures avant/après, les outils Expo installés
+et la nouvelle checklist iPhone. Les captures sont issues des composants natifs
+rendus par React Native Web ; cette nouvelle DA reste à valider sur l’appareil.
+
 Interface native autonome dans apps/mobile : accueil KFFR, onglets Accueil et
 Profil, connexion aux comptes existants, vrai pseudo, reprise de session et
 déconnexion. Solo, Multijoueur et Entraînement sont explicitement indisponibles

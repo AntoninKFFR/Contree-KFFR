@@ -13,6 +13,11 @@ import { Username } from "../src/components/ui";
 
 let mockClient: SupabaseClient | null;
 jest.mock("@/lib/supabase", () => ({ get supabase() { return mockClient; } }));
+// Router's Reanimated fallback can return an empty module without a JSI runtime.
+// These navigator/session tests only need its host view, not the JSI runtime.
+// The browser suite runs real Reanimated and checks press/reduced-motion states.
+jest.mock("react-native-reanimated", () => ({ __esModule: true, default: { View: jest.requireActual("react-native").View } }));
+jest.mock("react-native-reanimated/mock", () => ({ __esModule: true, default: { View: jest.requireActual("react-native").View } }));
 
 function fixture(initialUser: string | null = "alice") {
   let session = initialUser ? { user: { id: initialUser }, access_token: initialUser } as Session : null;
