@@ -25,12 +25,12 @@ export function Screen({ children, bottomInset = false, title = "KFFR Contrée",
       <TableBackdrop />
       <View testID="game-header" style={styles.header}>
         <View style={styles.headerSide}>
-          {back ? <Link href="/" replace asChild><Pressable accessibilityRole="link" accessibilityLabel="Retour à l’accueil" onFocus={() => setFocusedLink("back")} onBlur={() => setFocusedLink(null)} style={[styles.headerButton, focusedLink === "back" && tokens.focus]}><Text style={styles.headerLink}>‹ Accueil</Text></Pressable></Link>
+          {back ? <Link href="/" replace asChild><Pressable accessibilityRole="link" accessibilityLabel="Retour à l’accueil" onFocus={() => setFocusedLink("back")} onBlur={() => setFocusedLink(null)} style={StyleSheet.flatten([styles.headerButton, focusedLink === "back" && tokens.focus])}><Text style={styles.headerLink}>‹ Accueil</Text></Pressable></Link>
             : <Text style={styles.headerTitle}>{title}</Text>}
         </View>
         <Brand />
         <View style={[styles.headerSide, styles.headerRight]}>
-          {profileLink ? <Link href="/profile" asChild><Pressable accessibilityRole="link" accessibilityLabel="Voir mon profil" onFocus={() => setFocusedLink("profile")} onBlur={() => setFocusedLink(null)} style={[styles.headerButton, focusedLink === "profile" && tokens.focus]}><Text style={styles.headerLink}>Profil ›</Text></Pressable></Link>
+          {profileLink ? <Link href="/profile" asChild><Pressable accessibilityRole="link" accessibilityLabel="Voir mon profil" onFocus={() => setFocusedLink("profile")} onBlur={() => setFocusedLink(null)} style={StyleSheet.flatten([styles.headerButton, focusedLink === "profile" && tokens.focus])}><Text style={styles.headerLink}>Profil ›</Text></Pressable></Link>
             : back ? <Text accessibilityRole="header" style={styles.headerTitle}>{title}</Text> : null}
         </View>
       </View>
