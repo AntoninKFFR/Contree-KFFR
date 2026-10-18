@@ -4,13 +4,19 @@ import { SESSION_ID, START_KEY, soloFixture } from "../solo-fixtures";
 const scenario = new URLSearchParams(location.search).get("solo") || "empty";
 const phases = ["bidding", "playing", "finished", "game-over"] as const;
 let current = soloFixture(phases.includes(scenario as typeof phases[number]) ? scenario as typeof phases[number] : "playing");
-if (scenario === "trick") {
+if (scenario === "trick" || scenario === "last-trick") {
   current.state.currentTrick.cards = [
     { playerId: 1, card: { rank: "J", suit: "hearts" } },
     { playerId: 2, card: { rank: "A", suit: "clubs" } },
     { playerId: 3, card: { rank: "K", suit: "diamonds" } },
   ];
   current.state.handCounts = { 0: 8, 1: 7, 2: 7, 3: 7 };
+  if (scenario === "last-trick") {
+    const played = current.state.hand.shift()!;
+    current.state.completedTricks = [{ winnerId: 0, cards: [{ playerId: 0, card: played }, ...current.state.currentTrick.cards] }];
+    current.state.currentTrick.cards = [];
+    current.state.handCounts[0] = 7;
+  }
 }
 const memory = new Map<string, string>();
 if (scenario !== "empty") memory.set(soloStorageKey("visual-test-only"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));

@@ -3,6 +3,11 @@
 Le bouton Solo ouvre un véritable écran React Native. La partie reste sur le même
 serveur que le Solo web : enchères à la couleur de 80 à 160, passer, tours des bots,
 sélection/pose d’une carte, manche suivante et résultat serveur sont implémentés.
+La table native représente les adversaires à l’Ouest et à l’Est, le partenaire au
+Nord et le joueur au Sud. Les dos de cartes suivent exactement les comptes publics
+du serveur ; les cartes jouées occupent la position de leur joueur au centre du pli.
+Le contour doré désigne le joueur dont c’est le tour. Les mains adverses restent
+inconnues. VoiceOver annonce place, rôle, nombre de cartes masquées et cartes publiques.
 Multijoueur et Entraînement restent désactivés. Accueil et Profil conservent leur
 composition validée, sans barre inférieure.
 
@@ -26,6 +31,12 @@ valide et projette seulement les champs affichés ; il refuse notamment les main
 privées complètes et les cartes/versions/identifiants invalides. La main n’évolue
 qu’après une réponse serveur validée. Le pli courant, ou le dernier pli terminé,
 provient aussi de cette réponse.
+
+`src/solo/tsconfig.json` fournit une configuration TypeScript portable aux trois
+modules purs (API, contrat, contrôleur). Vitest web peut ainsi tester leur véritable
+code sans résoudre `expo/tsconfig.base` ni installer Expo à la racine. Le projet
+mobile conserve son typecheck complet indépendant, y compris le hook et l’adaptateur
+Expo ; aucun contrôle ni test n’est désactivé pour contourner cette séparation.
 
 ## Sauvegarde, erreurs et cycle de vie
 
@@ -102,7 +113,8 @@ Les [captures](docs/solo-148/README.md) montrent ces vrais composants via RN Web
 - La reprise découvre la dernière partie sauvegardée **sur cet appareil et ce compte**.
   Il n’existe pas d’endpoint de liste pour retrouver automatiquement une partie
   commencée sur le web ou un autre appareil.
-- Joueurs/enchères/résultat détaillé sont dans « Table ». Animations de distribution/
+- Les places, mains masquées et cartes publiques sont sur le tapis ; noms complets,
+  enchères et résultat détaillé sont dans « Table ». Animations de distribution/
   ramassage, historique complet des plis, préférences, statistiques et progression
   détaillée à l’écran restent à développer.
 - Pas de polling hors écran, de fonctionnement hors ligne ou de résolution de

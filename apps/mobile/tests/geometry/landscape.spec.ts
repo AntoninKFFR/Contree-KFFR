@@ -264,12 +264,27 @@ test("Solo public trick stays visible alongside an eight-card hand at small and 
   for (const size of [sizes[0], sizes[2]]) {
     await page.setViewportSize(size);
     for (const font of [1, 1.6]) {
-      await page.goto("/?screen=solo&solo=trick&font=" + font);
+      for (const scenario of ["trick", "last-trick"]) {
+      await page.goto("/?screen=solo&solo=" + scenario + "&font=" + font);
       await page.getByRole("button", { name: "Reprendre" }).click();
-      await expect(page.getByText("J2", { exact: true })).toBeVisible();
-      await expect(page.getByText("J4", { exact: true })).toBeVisible();
+      await expect(page.getByText("Ouest", { exact: true })).toBeVisible();
+      await expect(page.getByText("Nord", { exact: true })).toBeVisible();
+      await expect(page.getByText("Est", { exact: true })).toBeVisible();
+      await expect(page.getByTestId("solo-card-back-1")).toHaveCount(7);
+      await expect(page.getByTestId("solo-play-1")).toBeVisible();
+      const west = (await page.getByTestId("solo-play-1").boundingBox())!;
+      const north = (await page.getByTestId("solo-play-2").boundingBox())!;
+      const east = (await page.getByTestId("solo-play-3").boundingBox())!;
+      expect(west.x + west.width).toBeLessThan(north.x);
+      expect(north.x + north.width).toBeLessThan(east.x);
+      expect(north.y).toBeLessThan(west.y);
+      if (scenario === "last-trick") {
+        await expect(page.getByLabel("Dernier pli terminé")).toBeVisible();
+        await expect(page.getByTestId("solo-play-0")).toBeVisible();
+      }
       await geometry(page, true);
-      await page.screenshot({ path: info.outputPath("solo-trick-" + size.width + "-font-" + font + ".png"), animations: "disabled" });
+      await page.screenshot({ path: info.outputPath("solo-" + scenario + "-" + size.width + "-font-" + font + ".png"), animations: "disabled" });
+      }
     }
   }
 });

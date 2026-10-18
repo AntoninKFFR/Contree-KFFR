@@ -71,7 +71,10 @@ beforeEach(() => {
       const body = JSON.parse(init.body);
       mockSoloWire.version++;
       if (body.intent?.type === "bid" || body.intent?.type === "pass") mockSoloWire.state.phase = "playing";
-      if (body.intent?.type === "play-card") mockSoloWire.state.hand = mockSoloWire.state.hand.filter((c) => c.rank !== body.intent.card.rank || c.suit !== body.intent.card.suit);
+      if (body.intent?.type === "play-card") {
+        mockSoloWire.state.hand = mockSoloWire.state.hand.filter((c) => c.rank !== body.intent.card.rank || c.suit !== body.intent.card.suit);
+        mockSoloWire.state.currentTrick.cards.push({ playerId: 0, card: body.intent.card });
+      }
       mockSoloWire.state.handCounts[0] = mockSoloWire.state.hand.length;
     }
     return { ok: true, text: async () => JSON.stringify({ data: mockSoloWire }) };
@@ -339,6 +342,9 @@ describe("native navigation with the shared account controller", () => {
     expect(rendered.getPathname()).toBe("/solo"); expect(mockSoloRequests).not.toHaveBeenCalled();
     fireEvent.press(screen.getByRole("button", { name: "Nouvelle partie" })); await flush();
     expect(mockSoloRequests).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("solo-card-table")).toBeVisible();
+    expect(screen.getByTestId("solo-seat-2").props.accessibilityLabel).toContain("Nord, partenaire, 8 cartes masquées");
+    expect(screen.getAllByTestId("solo-card-back-1", { includeHiddenElements: true })).toHaveLength(8);
     expect(JSON.parse(mockSoloRequests.mock.calls[0][1].body).startKey).toBe(START_KEY);
     fireEvent.press(screen.getByRole("button", { name: "Enchérir" }));
     fireEvent.press(screen.getByRole("button", { name: "Augmenter l’enchère" }));
@@ -347,6 +353,7 @@ describe("native navigation with the shared account controller", () => {
     fireEvent.press(screen.getByRole("button", { name: "As de pique" }));
     fireEvent.press(screen.getByRole("button", { name: "Poser la carte" })); await flush();
     expect(mockSoloWire.state.hand).toHaveLength(7);
+    expect(screen.getByLabelText("Toi : As de pique")).toBeVisible();
     expect(mockSoloRequests.mock.calls[2][0]).toContain(SESSION_ID);
     fireEvent.press(screen.getByRole("link", { name: "Retour à l’accueil" })); await flush();
     const before = mockSoloRequests.mock.calls.length;
@@ -377,9 +384,11 @@ describe("native navigation with the shared account controller", () => {
     });
     await open(); fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
     fireEvent.press(screen.getByRole("button", { name: "Reprendre" })); await flush();
+    expect(screen.getByTestId("solo-seat-1").props.accessibilityLabel).toContain("à son tour");
     expect(mockSoloRequests.mock.calls.filter((call) => call[1].method === "POST")).toHaveLength(0);
     await act(async () => { await jest.advanceTimersByTimeAsync(650); }); await flush();
     expect(mockSoloWire.state.currentPlayerId).toBe(2);
+    expect(screen.getByTestId("solo-seat-2").props.accessibilityLabel).toContain("à son tour");
     fireEvent.press(screen.getByRole("link", { name: "Retour à l’accueil" })); await flush();
     const count = mockSoloRequests.mock.calls.length;
     await act(async () => { await jest.advanceTimersByTimeAsync(5000); });

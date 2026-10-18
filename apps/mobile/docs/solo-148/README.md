@@ -14,6 +14,7 @@ Ces captures ne constituent pas une validation matérielle iPhone.
 
 ![Table 844](solo-trick-844.png)
 ![Table compacte 568](solo-trick-568.png)
+![Dernier pli complet, quatre places](solo-last-trick-844.png)
 ![Grand texte compact](solo-large-text-568.png)
 
 ## Résultat et erreur
@@ -24,7 +25,7 @@ Ces captures ne constituent pas une validation matérielle iPhone.
 Reproduction : `npm run test:geometry`. Le banc Vite utilise des réponses fixtures
 uniquement dans `tests/visual/solo-environment.ts`, via un alias de test absent de
 Metro. Scénarios : `?screen=solo&solo=empty`, `bidding`, `playing`, `trick`,
-`finished`, `game-over`, `offline`, `loading` ou `action-error`. « Reprendre »
+`last-trick`, `finished`, `game-over`, `offline`, `loading` ou `action-error`. « Reprendre »
 reste nécessaire pour afficher une partie sauvegardée et déclencher le jeu.
 
 Architecture, fonctionnalités et limites : [SOLO.md](../../SOLO.md).

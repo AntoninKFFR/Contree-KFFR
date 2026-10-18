@@ -11,7 +11,7 @@ export function soloFixture(phase: "bidding" | "playing" | "finished" | "game-ov
     hand: phase === "finished" || phase === "game-over" ? [] : hand,
     handCounts: { 0: phase === "finished" || phase === "game-over" ? 0 : 8, 1: 8, 2: 8, 3: 8 },
     playerNames: { 0: "Antonin KFFR", 1: "Camille", 2: "Alexandre", 3: "Louise" },
-    totalScore: { 0: 240, 1: 180 }, currentTrick: { leaderId: 0, cards: [] as { playerId: number; card: { rank: string; suit: string } }[] }, completedTricks: [],
+    totalScore: { 0: 240, 1: 180 }, currentTrick: { leaderId: 0, cards: [] as { playerId: number; card: { rank: string; suit: string } }[] }, completedTricks: [] as { winnerId: number; cards: { playerId: number; card: { rank: string; suit: string } }[] }[],
     contract: phase === "bidding" ? null : { playerId: 0, teamId: 0, value: 100, contractMode: { kind: "suit", suit: "spades" }, status: "normal" },
     bids: [{ playerId: 0, action: "bid", value: 100, contractMode: { kind: "suit", suit: "spades" } }],
     result: phase === "finished" || phase === "game-over" ? { kind: "played", contractSucceeded: true, roundScore: { 0: 260, 1: 0 } } : null,
