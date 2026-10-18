@@ -1,6 +1,8 @@
 # KFFR Contrée — iPhone natif / Expo SDK 57
 
-La refonte [Club Émeraude — issue #146](docs/visual-146/README.md) documente les
+La dernière version de [l’accueil minimal — PR #147](docs/home-minimal-147/README.md)
+présente le logo et les trois modes, avec un lien Profil et sans barre inférieure.
+La refonte initiale [Club Émeraude — issue #146](docs/visual-146/README.md) documente les
 deux directions comparées, les captures avant/après, les outils Expo installés
 et la nouvelle checklist iPhone. Les captures sont issues des composants natifs
 rendus par React Native Web ; cette nouvelle DA reste à valider sur l’appareil.

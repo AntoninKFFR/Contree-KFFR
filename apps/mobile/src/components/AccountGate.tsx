@@ -5,11 +5,11 @@ import { Button, ErrorMessage, Screen, styles, useGameLayout } from "@/component
 import { tokens } from "@/theme/tokens";
 
 /** Private data stays hidden while the navigator remains mounted during revalidation. */
-export function AccountGate({ children, publicScreen = false }: { children: ReactNode; publicScreen?: boolean }) {
+export function AccountGate({ children, publicScreen = false, bottomInset = false }: { children: ReactNode; publicScreen?: boolean; bottomInset?: boolean }) {
   const account = useAccount();
   const { largeText } = useGameLayout();
   if (account.configured && !account.loading && !account.signOutRequired && (publicScreen || account.session)) return children;
-  return <Screen bottomInset={publicScreen} title="Mon compte">
+  return <Screen bottomInset={publicScreen || bottomInset} title="Mon compte">
     <View testID="game-panel" style={[styles.panel, { alignSelf: "center", width: "100%", maxWidth: 760 }, largeText && { flexDirection: "row", alignItems: "center" }]}>
       <View style={[{ gap: 10 }, largeText && { flex: 1 }]}>
         {!account.configured ? <>

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const sizes = [{ width: 568, height: 320 }, { width: 667, height: 375 }, { width: 844, height: 390 }, { width: 932, height: 430 }];
-async function geometry(page: Page, connected: boolean, left = 47, right = 47, bottom = 21) {
+async function geometry(page: Page, connected: boolean | "home", left = 47, right = 47, bottom = 21) {
   await expect(page.getByTestId("game-screen")).toBeVisible();
   await expect(page.getByTestId("game-screen").getByTestId("secondary-scroll")).toHaveCount(0);
   const result = await page.evaluate(({ connected, left, right, bottom }) => {
@@ -47,10 +47,13 @@ async function geometry(page: Page, connected: boolean, left = 47, right = 47, b
         if (glyphs.left < bounds.left - 1 || glyphs.right > bounds.right + 1 || glyphs.top < bounds.top - 1 || glyphs.bottom > bounds.bottom + 1) errors.push("text outside its control: " + element.textContent);
       }
     }
-    if (connected) {
+    if (connected === true) {
       const nav = document.querySelector('[data-testid="game-navigation"]')!.getBoundingClientRect();
       if (Math.abs(nav.height - bottom - 48) > 1) errors.push("navigation must be 48 + one bottom inset");
       if (content.bottom > nav.top + 1) errors.push("navigation overlaps content");
+    } else if (connected === "home") {
+      if (document.querySelector('[data-testid="game-navigation"]')) errors.push("home must not have a bottom navigation bar");
+      if (content.bottom > innerHeight - bottom + 1) errors.push("home crosses bottom safe area");
     }
     return { errors, viewport };
   }, { connected, left, right, bottom });
@@ -62,14 +65,17 @@ for (const size of sizes) {
     test(screen + " fits " + size.width + "x" + size.height, async ({ page }, info) => {
       await page.setViewportSize(size);
       await page.goto("/?screen=" + screen);
-      await geometry(page, screen !== "login");
+      await geometry(page, screen === "home" ? "home" : screen !== "login");
       if (screen === "home") {
+        await expect(page.getByTestId("game-header").getByLabel("KFFR Contrée")).toHaveCount(0);
+        await expect(page.getByTestId("home-brand").getByLabel("KFFR Contrée")).toBeVisible();
+        expect(await page.getByTestId("game-screen").innerText()).toMatch(/^Profil ›\s+Solo\s+Multijoueur\s+Entraînement$/);
         await expect(page.getByRole("button", { name: /Bientôt disponible sur iPhone/ })).toHaveCount(3);
         for (const button of await page.getByRole("button", { name: /Bientôt disponible sur iPhone/ }).all()) await expect(button).toBeDisabled();
-        await page.getByRole("tab", { name: "Onglet Profil" }).click();
+        await page.getByRole("link", { name: "Voir mon profil" }).click();
         await expect(page.getByLabel("Pseudo KFFR : Antonin KFFR")).toBeVisible();
         await page.getByRole("link", { name: "Retour à l’accueil" }).click();
-        await geometry(page, true);
+        await geometry(page, "home");
       }
       await page.screenshot({ path: info.outputPath(screen + ".png") });
     });
@@ -101,7 +107,7 @@ for (const size of sizes) {
     await page.setViewportSize(size);
     for (const screen of ["home", "profile", "login"]) {
       await page.goto("/?screen=" + screen + "&font=1.6");
-      await geometry(page, screen !== "login");
+      await geometry(page, screen === "home" ? "home" : screen !== "login");
       await page.screenshot({ path: info.outputPath(screen + "-large-text.png") });
     }
     for (const state of ["loading", "offline", "logout", "configuration"]) {
@@ -133,7 +139,28 @@ test("asymmetric safe areas, rotation fallback and native form modal", async ({ 
   await page.setViewportSize({ width: 844, height: 200 });
   await page.screenshot({ path: info.outputPath("login-reduced-height.png") });
   await page.getByRole("button", { name: "Se connecter", exact: true }).click();
-  await expect(page.getByRole("tab", { name: "Onglet Accueil" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Voir mon profil" })).toBeVisible();
+});
+
+test("minimal home keeps both island insets, rotation and account fallbacks safe", async ({ page }, info) => {
+  for (const [left, right] of [[59, 0], [0, 59]]) {
+    await page.setViewportSize(sizes[2]);
+    await page.goto("/?left=" + left + "&right=" + right);
+    await geometry(page, "home", left, right);
+    await page.screenshot({ path: info.outputPath("home-island-" + left + ".png") });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByTestId("rotation-notice")).toBeVisible();
+    await page.setViewportSize(sizes[2]);
+    await geometry(page, "home", left, right);
+  }
+  for (const size of [sizes[0], sizes[2]]) {
+    await page.setViewportSize(size);
+    for (const state of ["loading", "offline", "logout", "configuration"]) {
+      await page.goto("/?state=" + state);
+      await geometry(page, "home");
+      await expect(page.getByText("Antonin KFFR", { exact: true })).toHaveCount(0);
+    }
+  }
 });
 
 for (const size of [sizes[0], sizes[2]]) {
@@ -141,7 +168,7 @@ for (const size of [sizes[0], sizes[2]]) {
     await page.setViewportSize(size);
     for (const proposal of ["club", "salon"]) {
       await page.goto("/?proposal=" + proposal);
-      await geometry(page, true);
+      await geometry(page, proposal === "club" ? "home" : true);
       const modes = page.getByRole("button", { name: /Bientôt disponible sur iPhone/ });
       await expect(modes).toHaveCount(3);
       for (const mode of await modes.all()) await expect(mode).toBeDisabled();

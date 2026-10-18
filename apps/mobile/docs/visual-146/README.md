@@ -1,5 +1,8 @@
 # KFFR — direction artistique iOS, issue #146
 
+**Version actuelle de l’accueil : [accueil minimal de la PR #147](../home-minimal-147/README.md).**
+Les captures de ce dossier conservent la première passe de comparaison artistique.
+
 Première passe complète « Club Émeraude », [issue #146](https://github.com/AntoninKFFR/Contree-KFFR/issues/146).
 Base : `main` à `41c81000b136f2ecce517219e66748c218656ca1` (PR #145 fusionnée).
 Les images sont des captures Chromium des **vrais composants React Native via React Native Web**.

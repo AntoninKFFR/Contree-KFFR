@@ -15,7 +15,7 @@ export default function ConnectedLayout() {
     }
   }, [navigationIdentity, navigation]);
   return (
-    <Tabs initialRouteName="index" backBehavior="initialRoute" tabBar={({ state, navigation: tabs }) => (
+    <Tabs initialRouteName="index" backBehavior="initialRoute" tabBar={({ state, navigation: tabs }) => state.routes[state.index].name === "index" ? null : (
       <GameNavigation active={state.routes[state.index].name} onSelect={(name) => {
         const route = state.routes.find((item) => item.name === name);
         if (!route) return;

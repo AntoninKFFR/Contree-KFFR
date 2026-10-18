@@ -13,11 +13,11 @@ export function useGameLayout() {
   const { height, fontScale } = useWindowDimensions();
   return { compact: height < 380 || fontScale > 1.3, largeText: fontScale > 1.3, fontScale };
 }
-export function Brand() {
-  return <Image source={logo} resizeMode="contain" style={styles.logo} accessibilityLabel="KFFR Contrée" />;
+export function Brand({ placement = "header" }: { placement?: "header" | "table" }) {
+  return <Image source={logo} resizeMode="contain" style={placement === "table" ? styles.tableLogo : styles.logo} accessibilityLabel="KFFR Contrée" />;
 }
-export function Screen({ children, bottomInset = false, title = "KFFR Contrée", back = false, profileLink = false }: {
-  children: ReactNode; bottomInset?: boolean; title?: string; back?: boolean; profileLink?: boolean;
+export function Screen({ children, bottomInset = false, title = "KFFR Contrée", back = false, profileLink = false, minimalHeader = false }: {
+  children: ReactNode; bottomInset?: boolean; title?: string; back?: boolean; profileLink?: boolean; minimalHeader?: boolean;
 }) {
   const [focusedLink, setFocusedLink] = useState<"back" | "profile" | null>(null);
   return (
@@ -26,9 +26,9 @@ export function Screen({ children, bottomInset = false, title = "KFFR Contrée",
       <View testID="game-header" style={styles.header}>
         <View style={styles.headerSide}>
           {back ? <Link href="/" replace asChild><Pressable accessibilityRole="link" accessibilityLabel="Retour à l’accueil" onFocus={() => setFocusedLink("back")} onBlur={() => setFocusedLink(null)} style={StyleSheet.flatten([styles.headerButton, focusedLink === "back" && tokens.focus])}><Text style={styles.headerLink}>‹ Accueil</Text></Pressable></Link>
-            : <Text style={styles.headerTitle}>{title}</Text>}
+            : !minimalHeader ? <Text style={styles.headerTitle}>{title}</Text> : null}
         </View>
-        <Brand />
+        {!minimalHeader ? <Brand /> : null}
         <View style={[styles.headerSide, styles.headerRight]}>
           {profileLink ? <Link href="/profile" asChild><Pressable accessibilityRole="link" accessibilityLabel="Voir mon profil" onFocus={() => setFocusedLink("profile")} onBlur={() => setFocusedLink(null)} style={StyleSheet.flatten([styles.headerButton, focusedLink === "profile" && tokens.focus])}><Text style={styles.headerLink}>Profil ›</Text></Pressable></Link>
             : back ? <Text accessibilityRole="header" style={styles.headerTitle}>{title}</Text> : null}
@@ -121,6 +121,7 @@ export const styles = StyleSheet.create({
   headerTitle: { ...tokens.type.caption, color: tokens.colors.muted, fontWeight: "600", letterSpacing: 1 },
   headerLink: { ...tokens.type.label, color: tokens.colors.accent },
   logo: { width: 80, height: 34 },
+  tableLogo: { width: 160, height: 104, maxWidth: "100%" },
   content: { flex: 1, minHeight: 0, paddingHorizontal: tokens.spacing.md, paddingTop: tokens.spacing.xxs, paddingBottom: tokens.spacing.xs },
   heading: { ...tokens.type.heading, color: tokens.colors.text },
   body: { ...tokens.type.body, color: tokens.colors.muted },
