@@ -47,14 +47,8 @@ async function geometry(page: Page, connected: boolean | "home", left = 47, righ
         if (glyphs.left < bounds.left - 1 || glyphs.right > bounds.right + 1 || glyphs.top < bounds.top - 1 || glyphs.bottom > bounds.bottom + 1) errors.push("text outside its control: " + element.textContent);
       }
     }
-    if (connected === true) {
-      const nav = document.querySelector('[data-testid="game-navigation"]')!.getBoundingClientRect();
-      if (Math.abs(nav.height - bottom - 48) > 1) errors.push("navigation must be 48 + one bottom inset");
-      if (content.bottom > nav.top + 1) errors.push("navigation overlaps content");
-    } else if (connected === "home") {
-      if (document.querySelector('[data-testid="game-navigation"]')) errors.push("home must not have a bottom navigation bar");
-      if (content.bottom > innerHeight - bottom + 1) errors.push("home crosses bottom safe area");
-    }
+    if (document.querySelector('[data-testid="game-navigation"]')) errors.push("bottom navigation must not render on any screen");
+    if (connected && content.bottom > innerHeight - bottom + 1) errors.push("connected screen crosses bottom safe area");
     return { errors, viewport };
   }, { connected, left, right, bottom });
   expect(result.errors).toEqual([]);
@@ -73,7 +67,9 @@ for (const size of sizes) {
         await expect(page.getByRole("button", { name: /Bientôt disponible sur iPhone/ })).toHaveCount(3);
         for (const button of await page.getByRole("button", { name: /Bientôt disponible sur iPhone/ }).all()) await expect(button).toBeDisabled();
         await page.getByRole("link", { name: "Voir mon profil" }).click();
+        await expect(page.getByTestId("game-navigation")).toHaveCount(0);
         await expect(page.getByLabel("Pseudo KFFR : Antonin KFFR")).toBeVisible();
+        await geometry(page, true);
         await page.getByRole("link", { name: "Retour à l’accueil" }).click();
         await geometry(page, "home");
       }

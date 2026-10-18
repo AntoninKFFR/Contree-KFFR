@@ -7,12 +7,13 @@ simplifie uniquement l’accueil par rapport à la révision `8899b6e`.
 - Trois blocs avec uniquement **Solo**, **Multijoueur**, **Entraînement**.
 - Suppression du bloc décoratif, des cartes, des titres, sous-titres et badges orange.
 - Header sans titre ni logo, avec le lien discret **Profil** en haut à droite.
-- Barre inférieure masquée sur l’accueil. Le navigateur et les routes protégées restent
-  en place ; le profil garde exactement son rendu et ses moyens de retour existants.
+- Barre inférieure **supprimée de l’accueil et du profil**. L’accès « Profil › » depuis
+  l’accueil et le retour « ‹ Accueil » depuis le profil sont conservés. Les routes
+  protégées, la gestion des comptes et le navigateur restent en place.
 - Modes toujours désactivés : l’indisponibilité est annoncée à VoiceOver, sans texte secondaire visible.
 
-La marge basse est appliquée sur l’accueil et ses états d’attente/erreur, puisque la barre
-ne la fournit plus. Aucun changement du contrôleur Auth, du stockage, de Supabase, de la
+La marge basse est appliquée à l’accueil **et au profil** ainsi qu’aux états
+d’attente/erreur : chaque écran protège le Home Indicator sans barre inférieure. Aucun changement du contrôleur Auth, du stockage, de Supabase, de la
 configuration paysage, du SDK 57, des dépendances ou du profil.
 
 ## Captures du code réel
@@ -33,7 +34,10 @@ une validation matérielle iPhone. Insets simulés : 47 px de chaque côté, 21 
 
 La capture Profil 844 × 390 issue de cette exécution est **identique, octet pour octet**
 à `docs/visual-146/after-profile-844.png` de `8899b6e` (comparaison SHA-256).
-`profile.tsx`, `GameNavigation.tsx` et l’écran de connexion sont inchangés dans ce lot.
+Dans le correctif final, `profile.tsx` réserve uniquement l’inset inférieur ;
+le composant `GameNavigation.tsx` est retiré et l’écran de connexion reste inchangé.
+Les anciennes captures Profil montrent la navigation de la révision précédente ;
+un contrôle de rendu du profil sans barre est requis pour les nouvelles captures.
 
 ## Vérifications
 
@@ -49,5 +53,7 @@ désactivés, l’aller-retour Profil et les invariants de session. Les assertio
 44 pt, absence de scroll/clipping et protection des données restent actives.
 Les résultats CI sur le commit livré sont consignés dans la PR, qui reste en **draft**.
 
-Sur iPhone : revoir les deux paysages, les grandes polices, l’accès Profil/retour et
-la reprise de session. Le fallback de rotation Expo Go reste inchangé.
+L’utilisateur confirme avoir validé l’accueil actuel sur iPhone physique.
+Après retrait de la barre du profil, revérifier spécifiquement son safe area basse,
+l’aller-retour Profil/Accueil et les deux paysages sur l’appareil.
+Le fallback de rotation Expo Go reste inchangé.

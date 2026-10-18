@@ -1,14 +1,13 @@
 # KFFR Contrée — iPhone natif / Expo SDK 57
 
 La dernière version de [l’accueil minimal — PR #147](docs/home-minimal-147/README.md)
-présente le logo et les trois modes, avec un lien Profil et sans barre inférieure.
+présente le logo et les trois modes, avec un lien Profil et sans barre inférieure, ni sur l’accueil ni sur le profil.
 La refonte initiale [Club Émeraude — issue #146](docs/visual-146/README.md) documente les
 deux directions comparées, les captures avant/après, les outils Expo installés
 et la nouvelle checklist iPhone. Les captures sont issues des composants natifs
 rendus par React Native Web ; cette nouvelle DA reste à valider sur l’appareil.
 
-Interface native autonome dans apps/mobile : accueil KFFR, onglets Accueil et
-Profil, connexion aux comptes existants, vrai pseudo, reprise de session et
+Interface native autonome dans apps/mobile : accueil KFFR, accès Profil via un lien discret et retour Accueil depuis le profil, connexion aux comptes existants, vrai pseudo, reprise de session et
 déconnexion. Solo, Multijoueur et Entraînement sont explicitement indisponibles
 sur iPhone : aucune carte ne lance une partie.
 
@@ -43,9 +42,9 @@ Lire [l'audit et le plan natif](NATIVE-IOS.md) pour les preuves, les limites iOS
 - `Screen` est un layout flex fixe, sans ScrollView et sans masquage des débordements.
   Trois modes en rangée au centre d'une table verte ; profil en deux panneaux.
   Le header commun fait 44 points, avec logo centré dans une boîte 80×34.
-- Navigation : bande de 48 points, cibles de 46 points, inset inférieur ajouté une
-  seule fois. Les écrans connectés gèrent haut / gauche / droite ; la barre gère
-  son bas. Connexion et modales prennent les quatre bords.
+- Navigation : aucune barre inférieure dans l’application. Le lien « Profil › »
+  sur l’accueil et « ‹ Accueil » sur le profil conservent l’accès aux deux écrans.
+  Chaque écran réserve lui-même les quatre safe areas, bas compris. Connexion et modales prennent les quatre bords.
 - Clavier : « Se connecter » ouvre un formulaire dans une modale native distincte,
   avec KeyboardAvoidingView et défilement interne. Fermer efface le mot de passe.
   Pseudos longs ou très larges et erreurs détaillées en grande police sont lisibles
@@ -91,9 +90,9 @@ validée sur ce binaire, sans la déduire des captures ou des essais Expo Go.
 - Expo Router sépare `login` de `(connected)` (Accueil et Profil). Les routes
   privées sont protégées ; une session supprimée retire aussi leur historique.
 - Un seul `AccountProvider`, au-dessus du routeur, possède le contrôleur existant,
-  l'abonnement Auth et l'écoute AppState. Changer d'onglet ne les recrée pas.
+  l'abonnement Auth et l'écoute AppState. Naviguer entre Accueil et Profil ne les recrée pas.
 - Pendant la suspension, le renouvellement du jeton ou une nouvelle vérification,
-  le contenu privé est masqué et l'onglet choisi est conservé. Un échec réseau
+  le contenu privé est masqué et l'écran courant est conservé. Un échec réseau
   propose une nouvelle tentative. Un changement de compte réinitialise la navigation.
 - Le profil reste en lecture seule : aucun pseudo inventé si sa lecture échoue.
   Le bouton d'actualisation relit le profil vérifié. Déconnexion locale uniquement.
@@ -273,7 +272,7 @@ Un nouveau QR de développement ne peut ni signer ni installer le client KFFR.
 `npm test` exécute les tests Node existants puis les tests Jest iOS avec le vrai
 routeur Expo et les vrais écrans React Native (`expo-router/testing-library`,
 Testing Library 13 requise par SDK 57, jest-expo 57). Ils couvrent accès anonyme,
-connexion, modes désactivés, onglets/retour, abonnement unique et nettoyage,
+connexion, modes désactivés, navigation Accueil/Profil sans barre, abonnement unique et nettoyage,
 suspension/renouvellement/réseau, compte remplacé, déconnexion et réponse obsolète.
 Le transport Auth/profils est simulé uniquement dans les tests. Voir les guides
 [Expo Router](https://docs.expo.dev/router/reference/testing/) et

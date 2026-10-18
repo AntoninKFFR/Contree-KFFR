@@ -170,11 +170,14 @@ describe("native navigation with the shared account controller", () => {
     fireEvent.press(screen.getByRole("link", { name: "Voir mon profil" }));
     await flush();
     expect(rendered.getPathname()).toBe("/profile");
+    expect(screen.queryByTestId("game-navigation")).toBeNull();
     fireEvent.press(screen.getByRole("link", { name: "Retour à l’accueil" }));
     await flush();
     expect(rendered.getPathname()).toBe("/");
     await openProfile();
-    fireEvent.press(screen.getByLabelText("Onglet Accueil"));
+    expect(screen.queryByLabelText("Onglet Accueil")).toBeNull();
+    expect(screen.queryByLabelText("Onglet Profil")).toBeNull();
+    fireEvent.press(screen.getByRole("link", { name: "Retour à l’accueil" }));
     await flush();
     expect(rendered.getPathname()).toBe("/");
     expect(f.client.auth.onAuthStateChange).toHaveBeenCalledTimes(1);

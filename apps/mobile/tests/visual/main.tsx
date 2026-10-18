@@ -6,7 +6,6 @@ import Home from "../../src/app/(connected)/index";
 import Profile from "../../src/app/(connected)/profile";
 import Login from "../../src/app/login";
 import { WindowGuard } from "../../src/components/LandscapeFrame";
-import { GameNavigation } from "../../src/components/GameNavigation";
 import { VisualAccountContext } from "./account";
 import { RouteContext } from "./router";
 import { initialAccountState } from "../../src/lib/account";
@@ -29,7 +28,6 @@ function Harness() {
         <WindowGuard>
           {route === "login" ? <Login /> : <View style={{ flex: 1, minHeight: 0 }}>
             {route === "profile" ? <Profile /> : params.get("proposal") === "salon" ? <SalonProposal /> : <Home />}
-            {route === "profile" || params.get("proposal") === "salon" ? <GameNavigation active={route === "profile" ? "profile" : "index"} onSelect={(next) => setRoute(next === "profile" ? "profile" : "home")} /> : null}
           </View>}
         </WindowGuard>
       </View>

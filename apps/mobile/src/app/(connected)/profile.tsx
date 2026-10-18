@@ -7,8 +7,8 @@ import { tokens } from "@/theme/tokens";
 export default function ProfileScreen() {
   const account = useAccount();
   const { largeText } = useGameLayout();
-  return <AccountGate>
-    <Screen title="Mon profil" back>
+  return <AccountGate bottomInset>
+    <Screen bottomInset title="Mon profil" back>
       <View style={styles.row}>
         <View testID="game-panel" style={styles.panel}>
           <View style={local.identity}>

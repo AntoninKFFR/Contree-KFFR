@@ -11,7 +11,7 @@ const modes = [
 ];
 export default function SalonProposal() {
   const { compact } = useGameLayout();
-  return <Screen title="La contrée" profileLink>
+  return <Screen bottomInset title="La contrée" profileLink>
     <View style={s.table}>
       <View style={s.heading}><View style={s.line} /><Text style={s.title}>Le salon des joueurs</Text><View style={s.line} /></View>
       <View style={s.cards}>
