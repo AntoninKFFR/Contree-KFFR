@@ -1,5 +1,5 @@
 import type { AuthChangeEvent, Session, SupabaseClient } from "@supabase/supabase-js";
-import { AppState, Dimensions, ScrollView, type AppStateStatus } from "react-native";
+import { AppState, Dimensions, ScrollView, View, type AppStateStatus } from "react-native";
 import * as Orientation from "expo-screen-orientation";
 import { act, cleanup, fireEvent, renderRouter, screen } from "expo-router/testing-library";
 import { router } from "expo-router";
@@ -9,6 +9,7 @@ import Login from "../src/app/login";
 import ConnectedLayout from "../src/app/(connected)/_layout";
 import Home from "../src/app/(connected)/index";
 import Profile from "../src/app/(connected)/profile";
+import { Username } from "../src/components/ui";
 
 let mockClient: SupabaseClient | null;
 jest.mock("@/lib/supabase", () => ({ get supabase() { return mockClient; } }));
@@ -66,6 +67,27 @@ async function open(url = "/") { rendered = renderRouter(routes, { initialUrl: u
 async function profileTab() { fireEvent.press(screen.getByLabelText("Onglet Profil")); await flush(); }
 
 describe("native navigation with the shared account controller", () => {
+  test("a pseudo measured in a narrow window returns inline when landscape has room again", async () => {
+    const f = fixture();
+    const username = "Alice de la Contrée";
+    f.profile.mockResolvedValue({ data: { username }, error: null });
+    await open(); await profileTab();
+    const identityReads = f.client.auth.getUser.mock.calls.length;
+    const container = () => screen.UNSAFE_getByType(Username).findAllByType(View)[0];
+    const layout = (width: number) => fireEvent(container(), "layout", { nativeEvent: { layout: { width } } });
+    layout(350);
+    layout(140);
+    const narrowMeasurement = screen.getByLabelText("Pseudo KFFR : " + username).props.onTextLayout;
+    act(() => narrowMeasurement({ nativeEvent: { lines: [{}, {}, {}] } }));
+    expect(screen.getByRole("button", { name: "Voir mon pseudo" })).toBeVisible();
+    layout(350);
+    expect(screen.getByLabelText("Pseudo KFFR : " + username)).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Voir mon pseudo" })).toBeNull();
+    act(() => narrowMeasurement({ nativeEvent: { lines: [{}, {}, {}] } }));
+    expect(screen.getByLabelText("Pseudo KFFR : " + username)).toBeVisible();
+    expect(f.client.auth.getUser).toHaveBeenCalledTimes(identityReads);
+  });
+
   test("refused orientation lock shows the rotation fallback without resetting the verified profile", async () => {
     const f = fixture();
     jest.spyOn(Orientation, "supportsOrientationLockAsync").mockResolvedValue(true);

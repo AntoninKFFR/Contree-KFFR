@@ -8,7 +8,7 @@ import { tokens } from "@/theme/tokens";
 
 export function useGameLayout() {
   const { height, fontScale } = useWindowDimensions();
-  return { compact: height < 380 || fontScale > 1.3, largeText: fontScale > 1.3 };
+  return { compact: height < 380 || fontScale > 1.3, largeText: fontScale > 1.3, fontScale };
 }
 export function Brand() {
   return <Image source={logo} resizeMode="contain" style={styles.logo} accessibilityLabel="KFFR Contrée" />;
@@ -65,17 +65,19 @@ export function DetailDialog({ visible, title, onClose, children }: { visible: b
 export function Username({ username }: { username: string | null }) {
   const [expanded, setExpanded] = useState(false);
   const [width, setWidth] = useState(0);
-  const [tooManyLines, setTooManyLines] = useState(false);
-  const { largeText } = useGameLayout();
+  const [overflow, setOverflow] = useState<{ username: string; width: number; fontScale: number } | null>(null);
+  const { largeText, fontScale } = useGameLayout();
   if (!username) return <Text style={styles.heading}>Pseudo indisponible</Text>;
   // Conservatively route wide unbroken names to the full-text modal. Native text
   // measurement also catches multi-line scripts without truncation or font shrinking.
   const wideWord = width > 0 && username.split(/\s+/).some((word) =>
     Array.from(word).reduce((sum, char) => sum + (/[A-ZMWmw]/.test(char) ? 20 : char.charCodeAt(0) > 255 ? 24 : 13), 0) > width);
+  // A portrait measurement must not keep a fitting name in the modal after rotation.
+  const tooManyLines = overflow?.username === username && overflow.width === width && overflow.fontScale === fontScale;
   const needsDialog = Array.from(username).length > 22 || largeText || wideWord || tooManyLines;
   return <View style={{ alignSelf: "stretch" }} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
     {!needsDialog ? <Text accessibilityLabel={"Pseudo KFFR : " + username} style={styles.heading}
-      onTextLayout={(event) => { if (event.nativeEvent.lines.length > 2) setTooManyLines(true); }}>{username}</Text> : <>
+      onTextLayout={(event) => { if (event.nativeEvent.lines.length > 2) setOverflow({ username, width, fontScale }); }}>{username}</Text> : <>
     <Button label={largeText ? "Mon pseudo" : "Voir mon pseudo"} accessibilityLabel="Voir mon pseudo" secondary onPress={() => setExpanded(true)} />
     <DetailDialog visible={expanded} title="Pseudo KFFR" onClose={() => setExpanded(false)}>
       <Text accessibilityLabel={"Pseudo KFFR : " + username} style={styles.heading}>{username}</Text>

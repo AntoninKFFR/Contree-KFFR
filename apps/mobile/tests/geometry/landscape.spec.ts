@@ -123,6 +123,8 @@ test("asymmetric safe areas, rotation fallback and native form modal", async ({ 
   await page.screenshot({ path: info.outputPath("rotation-fallback.png") });
   await page.setViewportSize({ width: 844, height: 390 });
   await expect(page.getByText("Mon profil", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Pseudo KFFR : Antonin KFFR")).toBeVisible();
+  await geometry(page, true, 0, 59);
   await page.goto("/?screen=login");
   await page.getByRole("button", { name: "Se connecter", exact: true }).click();
   await expect(page.getByLabel("Adresse email")).toBeVisible();

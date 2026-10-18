@@ -215,19 +215,36 @@ SDK 57 dont les sources applicatives et les tests sont identiques à cette PR :
 - Récupération et affichage du vrai pseudo.
 - Persistance de session après fermeture et réouverture de l'application.
 
-Ces résultats sont rapportés par le testeur humain ; le modèle d'iPhone et la
-version d'iOS n'ont pas été renseignés. Aucun identifiant ni jeton n'est conservé
-dans le compte rendu.
+Ces résultats sont rapportés par le testeur humain. Aucun identifiant ni jeton
+n'est conservé dans le compte rendu.
+
+Le 18 octobre 2026, Antonin a aussi validé la refonte paysage sur **iPhone 15,
+iOS 27.0.1, Expo Go compatible SDK 57** (version exacte non renseignée) :
+
+- Affichage correct en paysage et message « Tourne ton iPhone » en portrait.
+- Accueil et Profil entièrement visibles, sans bouton coupé ni scroll principal apparent.
+- Petit logo centré et barre inférieure affinée acceptés visuellement.
+
+Les deux sens paysage et le formulaire avec clavier iOS restent à confirmer.
+Le testeur a signalé une disparition temporaire du pseudo après rotation ou
+revérification. Un test natif simulé a reproduit un dépassement de texte mémorisé
+après élargissement : sa mesure est désormais liée au pseudo, à la largeur et à
+la taille du texte. Cette correction reste à retester sur l'iPhone.
+Lors d'une revérification de session, le masquage temporaire des données privées
+reste volontaire : le pseudo revient après validation de l'identité et lecture
+du profil. Une rotation seule ne doit pas déclencher une nouvelle vérification.
 
 ## Validation physique iPhone à réaliser
 
-- La version initiale de l'accueil / profil a fait l'objet de la revue visuelle
-  iPhone rapportée dans le commentaire QA de #145. **Cette refonte fixe en paysage
-  reste à valider physiquement**, sans déduire son résultat de l'essai précédent.
+- Confirmer les deux sens paysage (Dynamic Island à gauche puis à droite), avec
+  le même onglet et le même pseudo après chaque retour du portrait.
+- Dans la modale de connexion : saisir email et mot de passe avec le clavier iOS
+  visible, atteindre le bouton de connexion par défilement interne, puis se connecter.
 - Après connexion : vérifier les trois modes désactivés et leur mention « Bientôt
   disponible », ouvrir Profil via l'onglet et « Voir mon profil », revenir à Accueil.
 - Tester petit écran, portrait/paysage, grande taille de texte et VoiceOver :
-  texte lisible, défilement complet, onglets accessibles au-dessus de l'indicateur iOS.
+  texte lisible, aucun scroll principal, détails longs lisibles dans leur modale,
+  onglets accessibles au-dessus de l'indicateur iOS.
 - Depuis Profil : suspendre Expo Go puis revenir, vérifier que le même onglet est
   conservé et que le pseudo réapparaît après vérification ; mode avion puis Réessayer.
 - Ouverture depuis QR, rendu, safe areas, clavier et bouton de connexion accessibles.
