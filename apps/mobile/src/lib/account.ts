@@ -73,7 +73,8 @@ export function createAccountController(client: SupabaseClient, onChange: (state
   const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
     if (disposed || signingOut) return;
     const request = ++revision;
-    update({ session: null, username: null, loading: foreground && Boolean(session),
+    // A background refresh is still awaiting verification on return, not a logout.
+    update({ session: null, username: null, loading: Boolean(session),
       error: null, signOutRequired: false });
     // Keep Auth I/O outside its event callback, including refresh-triggered reads.
     setTimeout(() => { void read(session, request); }, 0);

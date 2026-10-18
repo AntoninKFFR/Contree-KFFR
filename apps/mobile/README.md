@@ -1,7 +1,97 @@
-# KFFR Contrée — iPhone / Expo Go
+# KFFR Contrée — iPhone natif / Expo SDK 57
 
-Socle natif autonome dans apps/mobile : connexion email/mot de passe aux comptes
-KFFR existants, lecture du vrai pseudo, reprise de session et déconnexion.
+Interface native autonome dans apps/mobile : accueil KFFR, onglets Accueil et
+Profil, connexion aux comptes existants, vrai pseudo, reprise de session et
+déconnexion. Solo, Multijoueur et Entraînement sont explicitement indisponibles
+sur iPhone : aucune carte ne lance une partie.
+
+## Paysage natif : préparation du binaire dédié
+
+La QA précédente Expo Go est validée par le propriétaire sur iPhone 15 / iOS
+27.0.1, y compris deux sens paysage, pseudo et clavier. La nouvelle cible produit
+est une ouverture directe en paysage sans écran de rotation. Expo Go ne peut pas
+valider l'Info.plist de notre propre application.
+
+La configuration native et les profils de development build sont préparés dans
+`app.config.ts` / `eas.json` : orientations paysage uniquement, préférence plein
+écran, client KFFR, cycle de vie scenes pour compiler SDK 57 avec Xcode 27.
+Lire [l'audit et le plan natif](NATIVE-IOS.md) pour les preuves, les limites iOS
+27, les voies Windows/EAS ou Mac/Xcode, et les étapes après décision du propriétaire.
+**Aucun binaire signé, achat, installation ou distribution n'a été lancé.**
+
+## Table de jeu en paysage — révision QA de la PR #145
+
+- Connexion, Accueil, Profil et modales ciblent les deux orientations paysage.
+  Configuration Expo + Stack Router + demande `expo-screen-orientation` au montage
+  et au retour actif. Ce module SDK 57 (~57.0.3) est inclus dans Expo Go.
+- Le verrouillage n'est **pas garanti** : Expo Go utilise son propre binaire et
+  les options du plugin ne modifient pas ce binaire. Sur iOS 27, une fenêtre
+  redimensionnable peut refuser le verrouillage ; `getOrientationAsync` peut aussi
+  annoncer portrait malgré une fenêtre paysage. Le repli regarde donc largeur /
+  hauteur réelles : « Tourne ton iPhone », sans démonter le navigateur ni le compte.
+  Ce guard reste une protection du banc Expo Go pendant la préparation, et non
+  le comportement produit accepté. Le retirer pour cacher un refus est exclu.
+  Sources : [module SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/screen-orientation/),
+  [limites iOS 27](https://docs.expo.dev/versions/latest/sdk/screen-orientation/#orientation-locks-on-ios-27-and-later).
+- `Screen` est un layout flex fixe, sans ScrollView et sans masquage des débordements.
+  Trois modes en rangée au centre d'une table verte ; profil en deux panneaux.
+  Le header commun fait 44 points, avec logo centré dans une boîte 80×34.
+- Navigation : bande de 48 points, cibles de 46 points, inset inférieur ajouté une
+  seule fois. Les écrans connectés gèrent haut / gauche / droite ; la barre gère
+  son bas. Connexion et modales prennent les quatre bords.
+- Clavier : « Se connecter » ouvre un formulaire dans une modale native distincte,
+  avec KeyboardAvoidingView et défilement interne. Fermer efface le mot de passe.
+  Pseudos longs ou très larges et erreurs détaillées en grande police sont lisibles
+  intégralement dans une modale ; aucune ellipse ni identité inventée.
+- Grande police : disposition et libellés courts adaptés, noms accessibles complets.
+  Les symboles décoratifs disparaissent quand la place doit revenir au texte.
+- Inspiration d'ambiance seulement : [Eryod Soft](https://www.eryodsoft.com/fr/jeux/coinche).
+  Aucun asset, logo, jeu de cartes ou code tiers repris ; les enseignes sont du texte.
+
+### Captures et géométrie automatisées
+
+~~~powershell
+npx playwright install chromium
+npm run test:geometry
+~~~
+
+Le banc `tests/visual` rend les **vrais composants** via React Native Web pour
+mesurer leur géométrie et produire les captures dans `geometry-results/`, puis
+un rapport dans `geometry-report/`. Il est isolé de l'entrée Expo et n'est jamais
+importé par l'app iOS. Routeur, insets, état de compte et agrandissement typographique
+sont des adaptateurs de test. Les données fictives n'entrent pas dans le bundle iOS.
+
+37 scénarios couvrent 568×320, 667×375, 844×390 et 932×430, insets latéraux 47/47
+et 59/0 ou 0/59, header / barre / cibles >=44, aucun scroll principal ou débordement,
+limites des panneaux, contraste du texte >=4,5, noms longs, grande police (×1,6),
+chargement / réseau / déconnexion / configuration, portrait et modale à hauteur réduite.
+Les captures du compte utilisent une identité **de test** ; elles ne prouvent pas
+une connexion Supabase. Les tests Jest utilisent séparément le vrai routeur Expo,
+le contrôleur partagé et les événements de session, dont verrouillage refusé.
+
+Dépendances nouvelles justifiées : expo-screen-orientation en exécution ; React
+Native Web, types RN Web / React DOM, Vite et Playwright en développement pour ces mesures et
+captures sous Windows / CI. Elles ne transforment pas l'app iOS en WebView.
+La CI Expo exécute ces tests sans retry et conserve captures / traces / rapport.
+
+**Limite : ce rendu navigateur ne remplace ni le moteur de layout iOS, ni VoiceOver,
+ni le clavier logiciel, ni un essai réel du verrouillage.** La QA humaine Expo Go
+est acquise ci-dessous ; l'ouverture paysage d'un futur binaire dédié doit être
+validée sur ce binaire, sans la déduire des captures ou des essais Expo Go.
+
+## Navigation et session partagée
+
+- Expo Router sépare `login` de `(connected)` (Accueil et Profil). Les routes
+  privées sont protégées ; une session supprimée retire aussi leur historique.
+- Un seul `AccountProvider`, au-dessus du routeur, possède le contrôleur existant,
+  l'abonnement Auth et l'écoute AppState. Changer d'onglet ne les recrée pas.
+- Pendant la suspension, le renouvellement du jeton ou une nouvelle vérification,
+  le contenu privé est masqué et l'onglet choisi est conservé. Un échec réseau
+  propose une nouvelle tentative. Un changement de compte réinitialise la navigation.
+- Le profil reste en lecture seule : aucun pseudo inventé si sa lecture échoue.
+  Le bouton d'actualisation relit le profil vérifié. Déconnexion locale uniquement.
+- Logo issu de `public/brand/kffr-logo-dark.png`, recadré et réduit pour le bundle
+  natif ; aucune dépendance aux composants DOM du site.
 
 ## Versions et méthode
 
@@ -46,7 +136,7 @@ ne dépend pas d'Expo. Les alias des deux projets restent indépendants.
 3. Démarrer Metro :
 
    ~~~powershell
-   npx expo start --clear
+   npm start -- --clear
    ~~~
 
 4. Installer Expo Go sur l'iPhone et utiliser le même compte Expo dans Expo Go
@@ -113,6 +203,7 @@ npm ci
 npm run typecheck
 npm run lint
 npm test
+npm run native:check
 npx expo install --check
 npx expo-doctor
 npm run export:ios
@@ -125,8 +216,8 @@ Expo Doctor est aussi épinglé en devDependency. La CI Expo iOS foundation exé
 ces contrôles dans apps/mobile, avec des paramètres factices sans accès aux données.
 L'export produit dist/ (ignoré) : c'est un bundle JavaScript/assets, pas un .ipa.
 
-L'audit npm reste non vierge après migration : **28 paquets signalés**
-(10 modérés, 18 élevés), contre 40 dans le socle SDK 54. Voir le
+L'audit npm reste non vierge : **64 paquets signalés**
+(15 modérés, 49 élevés), après ajout des outils de test natifs. Voir le
 [suivi de sécurité](SECURITY.md) pour les avis, leur portée, les limites
 des correctifs disponibles et les conditions avant distribution publique.
 Les contrôles CI de compilation ne constituent pas un audit sécurité réussi.
@@ -140,28 +231,51 @@ SDK 57 dont les sources applicatives et les tests sont identiques à cette PR :
 - Récupération et affichage du vrai pseudo.
 - Persistance de session après fermeture et réouverture de l'application.
 
-Ces résultats sont rapportés par le testeur humain ; le modèle d'iPhone et la
-version d'iOS n'ont pas été renseignés. Aucun identifiant ni jeton n'est conservé
-dans le compte rendu.
+Ces résultats sont rapportés par le testeur humain. Aucun identifiant ni jeton
+n'est conservé dans le compte rendu.
 
-## Validation physique iPhone à réaliser
+Le 18 octobre 2026, Antonin a aussi validé la refonte paysage sur **iPhone 15,
+iOS 27.0.1, Expo Go compatible SDK 57** (version exacte non renseignée) :
 
-- Ouverture depuis QR, rendu, safe areas, clavier et bouton de connexion accessibles.
-- Mauvais identifiants, champs vides, puis connexion valide et pseudo identique au web.
-- Régression de la persistance déjà confirmée : fermeture forcée d’Expo Go,
-  réouverture et pseudo vérifié avec réseau.
-- Arrière-plan prolongé, expiration/renouvellement du jeton, retour au premier plan.
-- Mode avion au démarrage, à la connexion, au chargement du profil et à la
-  déconnexion ; reprise réseau et boutons de nouvelle tentative.
-- Déconnexion pendant une lecture lente : aucun pseudo tardif ; après réussite,
-  fermeture/réouverture sans reconnexion automatique.
-- Compte A puis compte B : aucun pseudo du compte précédent.
+- Affichage correct en paysage et message « Tourne ton iPhone » en portrait.
+- Accueil et Profil entièrement visibles, sans bouton coupé ni scroll principal apparent.
+- Petit logo centré et barre inférieure affinée acceptés visuellement.
 
-Les tests automatisés couvrent les courses asynchrones et erreurs avec un client
-simulé, ainsi qu'un cycle connexion/persistance/restauration/profil/déconnexion
+Le dernier commentaire du propriétaire du 18 octobre confirme aussi les deux
+sens paysage / Dynamic Island, le retour du pseudo, la connexion/déconnexion
+et le formulaire avec clavier iOS. Ces validations ne sont plus en attente.
+Le dépassement du pseudo mémorisé après élargissement a été corrigé dans
+f5bad74 ; sa mesure est liée au pseudo, à la largeur et à la taille du texte.
+Lors d'une revérification de session, le masquage temporaire des données privées
+reste volontaire : le pseudo revient après validation de l'identité et lecture
+du profil. Une rotation seule ne doit pas déclencher une nouvelle vérification.
+
+## Prochain contrôle matériel : le nouveau binaire
+
+Le prochain essai concerne le **binaire KFFR dédié**, après décision de signature
+et de compilation. Il devra ouvrir directement KFFR en paysage alors que
+l'iPhone est tenu verticalement, sans écran de rotation. Le cycle de vie scenes
+changeant le lancement et la reprise natifs, ce binaire devra aussi conserver
+les comportements validés. Voir [le plan et les critères](NATIVE-IOS.md#plan-après-décision-du-propriétaire--commandes-non-exécutées).
+
+Les commandes habituelles `npm start`, `npm run tunnel` et `npm run ios` ciblent
+explicitement Expo Go, même après ajout du dev client. Une fois le client signé
+installé, utiliser `npm run start:dev-client` ou `npm run tunnel:dev-client`.
+Un nouveau QR de développement ne peut ni signer ni installer le client KFFR.
+
+`npm test` exécute les tests Node existants puis les tests Jest iOS avec le vrai
+routeur Expo et les vrais écrans React Native (`expo-router/testing-library`,
+Testing Library 13 requise par SDK 57, jest-expo 57). Ils couvrent accès anonyme,
+connexion, modes désactivés, onglets/retour, abonnement unique et nettoyage,
+suspension/renouvellement/réseau, compte remplacé, déconnexion et réponse obsolète.
+Le transport Auth/profils est simulé uniquement dans les tests. Voir les guides
+[Expo Router](https://docs.expo.dev/router/reference/testing/) et
+[Jest Expo](https://docs.expo.dev/develop/unit-testing/).
+
+Les tests automatisés couvrent aussi un cycle connexion/persistance/restauration/profil/déconnexion
 avec le véritable SDK Supabase et un transport/stockage de test. Ils ne prouvent
 pas une connexion réelle à KFFR ni le stockage AsyncStorage sur iOS.
 **Ni Expo Doctor ni l'export iOS ne remplacent les validations humaines restantes.**
-OAuth, création de compte, deep links, Solo/Multi natifs et distribution App Store
+OAuth, création de compte, liens d'auth externes, Solo/Multi natifs et distribution App Store
 restent hors périmètre. Le serveur, les règles, les données et la compatibilité
 future web/iOS ne sont pas modifiés par ce socle.
