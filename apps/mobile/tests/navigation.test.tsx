@@ -9,7 +9,18 @@ import Login from "../src/app/login";
 import ConnectedLayout from "../src/app/(connected)/_layout";
 import Home from "../src/app/(connected)/index";
 import Profile from "../src/app/(connected)/profile";
+import Solo from "../src/app/(connected)/solo";
 import { Username } from "../src/components/ui";
+import { soloFixture, SESSION_ID, START_KEY } from "./solo-fixtures";
+import { soloStorageKey } from "../src/solo/controller";
+let mockSoloMemory = new Map<string, string>();
+let mockSoloWire = soloFixture();
+let mockSoloRequests = jest.fn();
+jest.mock("@/solo/environment", () => ({ soloEnvironment: {
+  uuid: () => jest.requireActual("./solo-fixtures").START_KEY,
+  storage: { getItem: async (key: string) => mockSoloMemory.get(key) ?? null, setItem: async (key: string, value: string) => { mockSoloMemory.set(key, value); } },
+  fetcher: (...args: unknown[]) => mockSoloRequests(...args),
+} }));
 
 let mockClient: SupabaseClient | null;
 jest.mock("@/lib/supabase", () => ({ get supabase() { return mockClient; } }));
@@ -54,6 +65,17 @@ function fixture(initialUser: string | null = "alice") {
 let lifecycle: (state: AppStateStatus) => void;
 let removeListener: ReturnType<typeof jest.fn>;
 beforeEach(() => {
+  mockSoloMemory = new Map(); mockSoloWire = soloFixture();
+  mockSoloRequests = jest.fn(async (_url, init) => {
+    if (init.method === "POST") {
+      const body = JSON.parse(init.body);
+      mockSoloWire.version++;
+      if (body.intent?.type === "bid" || body.intent?.type === "pass") mockSoloWire.state.phase = "playing";
+      if (body.intent?.type === "play-card") mockSoloWire.state.hand = mockSoloWire.state.hand.filter((c) => c.rank !== body.intent.card.rank || c.suit !== body.intent.card.suit);
+      mockSoloWire.state.handCounts[0] = mockSoloWire.state.hand.length;
+    }
+    return { ok: true, text: async () => JSON.stringify({ data: mockSoloWire }) };
+  });
   Object.defineProperty(AppState, "currentState", { value: "active", configurable: true });
   Dimensions.set({ window: { width: 844, height: 390, scale: 1, fontScale: 1 }, screen: { width: 844, height: 390, scale: 1, fontScale: 1 } });
   const listeners = new Set<(state: AppStateStatus) => void>();
@@ -65,7 +87,7 @@ beforeEach(() => {
   });
 });
 afterEach(() => { rendered?.unmount(); cleanup(); jest.restoreAllMocks(); jest.useRealTimers(); });
-const routes = { _layout: RootLayout, login: Login, "(connected)/_layout": ConnectedLayout, "(connected)/index": Home, "(connected)/profile": Profile };
+const routes = { _layout: RootLayout, login: Login, "(connected)/_layout": ConnectedLayout, "(connected)/index": Home, "(connected)/profile": Profile, "(connected)/solo": Solo };
 async function flush() { await act(async () => { await jest.advanceTimersByTimeAsync(50); }); }
 let rendered: ReturnType<typeof renderRouter>;
 async function open(url = "/") { rendered = renderRouter(routes, { initialUrl: url }); await flush(); return rendered; }
@@ -123,6 +145,7 @@ describe("native navigation with the shared account controller", () => {
     fireEvent.changeText(screen.getByLabelText("Mot de passe"), "test-only");
     fireEvent.press(screen.getByRole("button", { name: "Fermer" }));
     fireEvent.press(screen.getByRole("button", { name: "Se connecter" }));
+    await flush();
     expect(screen.getByLabelText("Mot de passe").props.value).toBe("");
   });
 
@@ -161,7 +184,9 @@ describe("native navigation with the shared account controller", () => {
     expect(screen.getByLabelText("KFFR Contrée")).toBeVisible();
     expect(screen.queryByText("LE CLUB KFFR")).toBeNull();
     expect(screen.queryByText("La contrée")).toBeNull();
-    for (const title of ["Solo", "Multijoueur", "Entraînement"]) {
+    expect(screen.getByRole("button", { name: "Solo" })).toBeEnabled();
+    expect(mockSoloRequests).not.toHaveBeenCalled();
+    for (const title of ["Multijoueur", "Entraînement"]) {
       const mode = screen.getByRole("button", { name: title + ". Bientôt disponible sur iPhone." });
       expect(mode).toBeDisabled();
       fireEvent.press(mode);
@@ -306,5 +331,75 @@ describe("native navigation with the shared account controller", () => {
     expect(rendered.getPathname()).toBe("/login");
     expect(screen.getByRole("button", { name: "Se connecter" })).toBeVisible();
     expect(screen.queryByText("STALE PRIVATE PROFILE")).toBeNull();
+  });
+
+  test("Solo enters without creation, explicitly starts, bids, plays, returns and resumes without a POST", async () => {
+    fixture(); await open();
+    fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    expect(rendered.getPathname()).toBe("/solo"); expect(mockSoloRequests).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByRole("button", { name: "Nouvelle partie" })); await flush();
+    expect(mockSoloRequests).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(mockSoloRequests.mock.calls[0][1].body).startKey).toBe(START_KEY);
+    fireEvent.press(screen.getByRole("button", { name: "Enchérir" }));
+    fireEvent.press(screen.getByRole("button", { name: "Augmenter l’enchère" }));
+    fireEvent.press(screen.getByRole("button", { name: "Augmenter l’enchère" }));
+    fireEvent.press(screen.getByRole("button", { name: "Annoncer 100" })); await flush();
+    fireEvent.press(screen.getByRole("button", { name: "As de pique" }));
+    fireEvent.press(screen.getByRole("button", { name: "Poser la carte" })); await flush();
+    expect(mockSoloWire.state.hand).toHaveLength(7);
+    expect(mockSoloRequests.mock.calls[2][0]).toContain(SESSION_ID);
+    fireEvent.press(screen.getByRole("link", { name: "Retour à l’accueil" })); await flush();
+    const before = mockSoloRequests.mock.calls.length;
+    fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    expect(screen.getByRole("button", { name: "Reprendre" })).toBeVisible();
+    expect(mockSoloRequests.mock.calls.slice(before).every((call) => call[1].method === "GET")).toBe(true);
+    expect(screen.queryByTestId("game-navigation")).toBeNull();
+  });
+
+  test("Solo data disappears on account change and does not create for the replacement account", async () => {
+    const f = fixture(); await open();
+    fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    fireEvent.press(screen.getByRole("button", { name: "Nouvelle partie" })); await flush();
+    act(() => f.emit("bob")); await flush();
+    expect(rendered.getPathname()).toBe("/"); expect(screen.queryByTestId("solo-screen")).toBeNull();
+    const before = mockSoloRequests.mock.calls.length;
+    fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    expect(screen.getByRole("button", { name: "Nouvelle partie" })).toBeVisible();
+    expect(mockSoloRequests.mock.calls.length).toBe(before);
+  });
+
+  test("Solo schedules one server bot at a time and stops sending intents when returning home", async () => {
+    fixture(); mockSoloWire = soloFixture("playing"); mockSoloWire.state.currentPlayerId = 1;
+    mockSoloMemory.set(soloStorageKey("alice"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
+    mockSoloRequests.mockImplementation(async (_url, init) => {
+      if (init.method === "POST") { expect(JSON.parse(init.body).intent).toEqual({ type: "advance-bot" }); mockSoloWire.version++; mockSoloWire.state.currentPlayerId = (mockSoloWire.state.currentPlayerId + 1) % 4; }
+      return { ok: true, text: async () => JSON.stringify({ data: mockSoloWire }) };
+    });
+    await open(); fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    fireEvent.press(screen.getByRole("button", { name: "Reprendre" })); await flush();
+    expect(mockSoloRequests.mock.calls.filter((call) => call[1].method === "POST")).toHaveLength(0);
+    await act(async () => { await jest.advanceTimersByTimeAsync(650); }); await flush();
+    expect(mockSoloWire.state.currentPlayerId).toBe(2);
+    fireEvent.press(screen.getByRole("link", { name: "Retour à l’accueil" })); await flush();
+    const count = mockSoloRequests.mock.calls.length;
+    await act(async () => { await jest.advanceTimersByTimeAsync(5000); });
+    expect(mockSoloRequests.mock.calls.length).toBe(count);
+  });
+
+  test("Solo hides its hand in background and reloads the saved game after account verification without advancing it", async () => {
+    fixture(); mockSoloWire = soloFixture("playing");
+    mockSoloMemory.set(soloStorageKey("alice"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
+    await open(); fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    fireEvent.press(screen.getByRole("button", { name: "Reprendre" })); await flush();
+    expect(screen.getByRole("button", { name: "As de pique" })).toBeVisible();
+    act(() => lifecycle("background")); await flush();
+    expect(screen.queryByRole("button", { name: "As de pique" })).toBeNull();
+    act(() => lifecycle("active")); await flush();
+    expect(rendered.getPathname()).toBe("/solo");
+    expect(screen.getByRole("button", { name: "Reprendre" })).toBeVisible();
+    expect(mockSoloRequests.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(mockSoloRequests.mock.calls.every((call) => call[1].method === "GET")).toBe(true);
+    fireEvent.press(screen.getByRole("button", { name: "Reprendre" })); await flush();
+    expect(screen.getByRole("button", { name: "As de pique" })).toBeVisible();
   });
 });

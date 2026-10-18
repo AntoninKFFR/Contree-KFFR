@@ -16,8 +16,8 @@ export function useGameLayout() {
 export function Brand({ placement = "header" }: { placement?: "header" | "table" }) {
   return <Image source={logo} resizeMode="contain" style={placement === "table" ? styles.tableLogo : styles.logo} accessibilityLabel="KFFR Contrée" />;
 }
-export function Screen({ children, bottomInset = false, title = "KFFR Contrée", back = false, profileLink = false, minimalHeader = false }: {
-  children: ReactNode; bottomInset?: boolean; title?: string; back?: boolean; profileLink?: boolean; minimalHeader?: boolean;
+export function Screen({ children, bottomInset = false, title = "KFFR Contrée", back = false, profileLink = false, minimalHeader = false, headerAction }: {
+  children: ReactNode; bottomInset?: boolean; title?: string; back?: boolean; profileLink?: boolean; minimalHeader?: boolean; headerAction?: ReactNode;
 }) {
   const [focusedLink, setFocusedLink] = useState<"back" | "profile" | null>(null);
   return (
@@ -31,7 +31,7 @@ export function Screen({ children, bottomInset = false, title = "KFFR Contrée",
         {!minimalHeader ? <Brand /> : null}
         <View style={[styles.headerSide, styles.headerRight]}>
           {profileLink ? <Link href="/profile" asChild><Pressable accessibilityRole="link" accessibilityLabel="Voir mon profil" onFocus={() => setFocusedLink("profile")} onBlur={() => setFocusedLink(null)} style={StyleSheet.flatten([styles.headerButton, focusedLink === "profile" && tokens.focus])}><Text style={styles.headerLink}>Profil ›</Text></Pressable></Link>
-            : back ? <Text accessibilityRole="header" style={styles.headerTitle}>{title}</Text> : null}
+            : headerAction ?? (back ? <Text accessibilityRole="header" style={styles.headerTitle}>{title}</Text> : null)}
         </View>
       </View>
       <View testID="game-content" style={styles.content}>{children}</View>

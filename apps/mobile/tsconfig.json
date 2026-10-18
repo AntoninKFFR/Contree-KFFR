@@ -4,6 +4,7 @@
     "strict": true,
     "allowJs": false,
     "paths": {
+      "@/engine/*": ["../../engine/*"],
       "@/*": [
         "./src/*"
       ]

@@ -64,7 +64,8 @@ for (const size of sizes) {
         await expect(page.getByTestId("game-header").getByLabel("KFFR Contrée")).toHaveCount(0);
         await expect(page.getByTestId("home-brand").getByLabel("KFFR Contrée")).toBeVisible();
         expect(await page.getByTestId("game-screen").innerText()).toMatch(/^Profil ›\s+Solo\s+Multijoueur\s+Entraînement$/);
-        await expect(page.getByRole("button", { name: /Bientôt disponible sur iPhone/ })).toHaveCount(3);
+        await expect(page.getByRole("button", { name: "Solo", exact: true })).toBeEnabled();
+        await expect(page.getByRole("button", { name: /Bientôt disponible sur iPhone/ })).toHaveCount(2);
         for (const button of await page.getByRole("button", { name: /Bientôt disponible sur iPhone/ }).all()) await expect(button).toBeDisabled();
         await page.getByRole("link", { name: "Voir mon profil" }).click();
         await expect(page.getByTestId("game-navigation")).toHaveCount(0);
@@ -166,7 +167,7 @@ for (const size of [sizes[0], sizes[2]]) {
       await page.goto("/?proposal=" + proposal);
       await geometry(page, proposal === "club" ? "home" : true);
       const modes = page.getByRole("button", { name: /Bientôt disponible sur iPhone/ });
-      await expect(modes).toHaveCount(3);
+      await expect(modes).toHaveCount(proposal === "club" ? 2 : 3);
       for (const mode of await modes.all()) await expect(mode).toBeDisabled();
       await page.screenshot({ path: info.outputPath("proposal-" + proposal + ".png"), animations: "disabled" });
     }
@@ -205,4 +206,70 @@ test("real Reanimated press feedback follows live Reduce Motion and keyboard foc
   await page.screenshot({ path: info.outputPath("login-form-focus.png"), animations: "disabled" });
   await page.getByRole("button", { name: "Fermer" }).click();
   await geometry(page, false);
+});
+
+for (const size of sizes) {
+  for (const scenario of ["empty", "bidding", "playing", "finished", "game-over", "offline", "loading"]) {
+    test("Solo " + scenario + " fits " + size.width, async ({ page }, info) => {
+      await page.setViewportSize(size);
+      await page.goto("/?screen=solo&solo=" + scenario);
+      await expect(page.getByTestId("solo-screen")).toBeVisible();
+      if (["bidding", "playing", "finished", "game-over"].includes(scenario)) {
+        await page.getByRole("button", { name: "Reprendre", exact: true }).click();
+      }
+      await geometry(page, true);
+      await page.screenshot({ path: info.outputPath("solo-" + scenario + ".png"), animations: "disabled" });
+      await page.getByRole("link", { name: "Retour à l’accueil" }).click();
+      await expect(page.getByTestId("home-table")).toBeVisible();
+      await geometry(page, "home");
+    });
+  }
+}
+
+test("Solo actual form/actions, server refusal, large text, rotation and two safe-area sides", async ({ page }, info) => {
+  await page.setViewportSize(sizes[2]);
+  await page.goto("/?screen=solo&solo=empty");
+  await page.getByRole("button", { name: "Nouvelle partie", exact: true }).click();
+  await page.getByRole("button", { name: "Enchérir", exact: true }).click();
+  await page.getByRole("button", { name: "Augmenter l’enchère" }).click();
+  await page.getByRole("button", { name: "Annoncer 90" }).click();
+  await page.getByRole("button", { name: "As de pique" }).click();
+  await page.getByRole("button", { name: "Poser la carte" }).click();
+  await expect(page.getByRole("button", { name: "As de pique" })).toHaveCount(0);
+  await geometry(page, true);
+  await page.screenshot({ path: info.outputPath("solo-played-card.png"), animations: "disabled" });
+  for (const [left, right] of [[59, 0], [0, 59]]) {
+    await page.goto("/?screen=solo&solo=playing&left=" + left + "&right=" + right);
+    await page.getByRole("button", { name: "Reprendre", exact: true }).click();
+    await geometry(page, true, left, right);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByTestId("rotation-notice")).toBeVisible();
+    await page.setViewportSize(sizes[2]); await geometry(page, true, left, right);
+  }
+  await page.goto("/?screen=solo&solo=action-error");
+  await page.getByRole("button", { name: "Reprendre" }).click();
+  await page.getByRole("button", { name: "As de pique" }).click();
+  await page.getByRole("button", { name: "Poser la carte" }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("button", { name: "As de pique" })).toBeVisible();
+  await geometry(page, true);
+  await page.setViewportSize(sizes[0]);
+  await page.goto("/?screen=solo&solo=playing&font=1.6");
+  await page.getByRole("button", { name: "Reprendre" }).click();
+  await geometry(page, true);
+  await page.screenshot({ path: info.outputPath("solo-large-text.png"), animations: "disabled" });
+});
+
+test("Solo public trick stays visible alongside an eight-card hand at small and large text sizes", async ({ page }, info) => {
+  for (const size of [sizes[0], sizes[2]]) {
+    await page.setViewportSize(size);
+    for (const font of [1, 1.6]) {
+      await page.goto("/?screen=solo&solo=trick&font=" + font);
+      await page.getByRole("button", { name: "Reprendre" }).click();
+      await expect(page.getByText("J2", { exact: true })).toBeVisible();
+      await expect(page.getByText("J4", { exact: true })).toBeVisible();
+      await geometry(page, true);
+      await page.screenshot({ path: info.outputPath("solo-trick-" + size.width + "-font-" + font + ".png"), animations: "disabled" });
+    }
+  }
 });

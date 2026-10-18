@@ -7,6 +7,7 @@ export default defineConfig({
   define: { __DEV__: "true", global: "globalThis", "process.env.EXPO_OS": '"web"' },
   optimizeDeps: { esbuildOptions: { resolveExtensions: webExtensions, jsx: "automatic" } },
   resolve: { extensions: webExtensions, alias: [
+    { find: "@/solo/environment", replacement: file("./solo-environment.ts") },
     { find: "@/auth/AccountProvider", replacement: file("./account.tsx") },
     { find: "expo-router", replacement: file("./router.tsx") },
     { find: "expo-screen-orientation", replacement: file("./orientation.ts") },

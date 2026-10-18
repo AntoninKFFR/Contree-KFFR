@@ -5,6 +5,7 @@ import type { Session } from "@supabase/supabase-js";
 import Home from "../../src/app/(connected)/index";
 import Profile from "../../src/app/(connected)/profile";
 import Login from "../../src/app/login";
+import Solo from "../../src/app/(connected)/solo";
 import { WindowGuard } from "../../src/components/LandscapeFrame";
 import { VisualAccountContext } from "./account";
 import { RouteContext } from "./router";
@@ -15,7 +16,7 @@ function Harness() {
   const [route, setRoute] = useState(params.get("screen") || "home");
   const [status, setStatus] = useState(params.get("state") || "ready");
   const connected = route !== "login";
-  const session = connected && status === "ready" ? { user: { id: "visual-test-only" } } as Session : null;
+  const session = connected && status === "ready" ? { user: { id: "visual-test-only" }, access_token: "visual-test-only-token" } as Session : null;
   return <VisualAccountContext.Provider value={{
     ...initialAccountState, session, username: session ? params.get("username") || "Antonin KFFR" : null,
     configured: status !== "configuration", loading: status === "loading", signOutRequired: ["offline", "logout"].includes(status),
@@ -23,11 +24,11 @@ function Harness() {
     reload: () => setStatus("ready"), signOut: () => { setRoute("login"); setStatus("ready"); },
     signIn: async () => { setRoute("home"); setStatus("ready"); return true; },
   }}>
-    <RouteContext.Provider value={(href) => setRoute(href === "/profile" ? "profile" : "home")}>
+    <RouteContext.Provider value={(href) => setRoute(href === "/profile" ? "profile" : href === "/solo" ? "solo" : "home")}>
       <View style={{ flex: 1, height: "100%" }}>
         <WindowGuard>
           {route === "login" ? <Login /> : <View style={{ flex: 1, minHeight: 0 }}>
-            {route === "profile" ? <Profile /> : params.get("proposal") === "salon" ? <SalonProposal /> : <Home />}
+            {route === "profile" ? <Profile /> : route === "solo" ? <Solo /> : params.get("proposal") === "salon" ? <SalonProposal /> : <Home />}
           </View>}
         </WindowGuard>
       </View>
