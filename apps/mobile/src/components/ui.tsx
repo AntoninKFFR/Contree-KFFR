@@ -19,17 +19,18 @@ export function Brand() {
 export function Screen({ children, bottomInset = false, title = "KFFR Contrée", back = false, profileLink = false }: {
   children: ReactNode; bottomInset?: boolean; title?: string; back?: boolean; profileLink?: boolean;
 }) {
+  const [focusedLink, setFocusedLink] = useState<"back" | "profile" | null>(null);
   return (
     <SafeAreaView testID="game-screen" style={styles.screen} edges={bottomInset ? ["top", "left", "right", "bottom"] : ["top", "left", "right"]}>
       <TableBackdrop />
       <View testID="game-header" style={styles.header}>
         <View style={styles.headerSide}>
-          {back ? <Link href="/" replace asChild><Pressable accessibilityRole="link" accessibilityLabel="Retour à l’accueil" style={styles.headerButton}><Text style={styles.headerLink}>‹ Accueil</Text></Pressable></Link>
+          {back ? <Link href="/" replace asChild><Pressable accessibilityRole="link" accessibilityLabel="Retour à l’accueil" onFocus={() => setFocusedLink("back")} onBlur={() => setFocusedLink(null)} style={[styles.headerButton, focusedLink === "back" && tokens.focus]}><Text style={styles.headerLink}>‹ Accueil</Text></Pressable></Link>
             : <Text style={styles.headerTitle}>{title}</Text>}
         </View>
         <Brand />
         <View style={[styles.headerSide, styles.headerRight]}>
-          {profileLink ? <Link href="/profile" asChild><Pressable accessibilityRole="link" accessibilityLabel="Voir mon profil" style={styles.headerButton}><Text style={styles.headerLink}>Profil ›</Text></Pressable></Link>
+          {profileLink ? <Link href="/profile" asChild><Pressable accessibilityRole="link" accessibilityLabel="Voir mon profil" onFocus={() => setFocusedLink("profile")} onBlur={() => setFocusedLink(null)} style={[styles.headerButton, focusedLink === "profile" && tokens.focus]}><Text style={styles.headerLink}>Profil ›</Text></Pressable></Link>
             : back ? <Text accessibilityRole="header" style={styles.headerTitle}>{title}</Text> : null}
         </View>
       </View>
@@ -41,9 +42,11 @@ export function Button({ label, onPress, disabled = false, secondary = false, ac
   label: string; onPress: () => void; disabled?: boolean; secondary?: boolean; accessibilityLabel?: string;
 }) {
   const [pressed, setPressed] = useState(false);
+  const [focused, setFocused] = useState(false);
   const reducedMotion = useMotionPreference();
   return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
-    onPressIn={() => setPressed(true)} onPressOut={() => setPressed(false)} style={styles.buttonTarget}>
+    onPressIn={() => setPressed(true)} onPressOut={() => setPressed(false)}
+    onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={[styles.buttonTarget, focused && !disabled && tokens.focus]}>
     <Animated.View style={[styles.button, secondary && styles.secondaryButton, {
       transform: [{ scale: pressed && !disabled && !reducedMotion ? tokens.motion.pressScale : 1 }],
       transitionProperty: "transform", transitionDuration: reducedMotion ? 0 : tokens.motion.pressDuration,

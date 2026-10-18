@@ -23,5 +23,6 @@ export const tokens = {
     card: "0 6px 10px rgba(0,0,0,0.30)",
     button: "0 3px 0 #8D6E38, 0 5px 9px rgba(0,0,0,0.24)",
   },
+  focus: { outlineColor: "#F7F0DF", outlineWidth: 2, outlineOffset: 2, outlineStyle: "solid" as const },
   motion: { pressDuration: 120, pressScale: 0.97, easing: "ease-out" },
 } as const;

@@ -1,14 +1,17 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { tokens } from "@/theme/tokens";
+import { useState } from "react";
 
 export function GameNavigation({ active, onSelect }: { active: string; onSelect: (name: "index" | "profile") => void }) {
   const insets = useSafeAreaInsets();
+  const [focused, setFocused] = useState<string | null>(null);
   return <View testID="game-navigation" style={[nav.bar, { paddingBottom: insets.bottom, paddingLeft: Math.max(8, insets.left), paddingRight: Math.max(8, insets.right) }]}>
     {(["index", "profile"] as const).map((name) => (
       <Pressable key={name} accessibilityRole="tab" accessibilityLabel={"Onglet " + (name === "index" ? "Accueil" : "Profil")}
         accessibilityState={{ selected: active === name }} onPress={() => onSelect(name)}
-        style={({ pressed }) => [nav.item, active === name && nav.active, pressed && nav.pressed]}>
+        onFocus={() => setFocused(name)} onBlur={() => setFocused(null)}
+        style={({ pressed }) => [nav.item, active === name && nav.active, pressed && nav.pressed, focused === name && tokens.focus]}>
         <View style={[nav.indicator, active === name && nav.selectedIndicator]} />
         <Text style={[nav.label, active === name && nav.activeLabel]}>{name === "index" ? "Accueil" : "Profil"}</Text>
       </Pressable>

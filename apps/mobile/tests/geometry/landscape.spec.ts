@@ -173,6 +173,8 @@ test("real Reanimated press feedback follows live Reduce Motion and keyboard foc
   await page.mouse.move(10, 10); await page.mouse.up();
   await button.focus();
   await expect(button).toBeFocused();
+  await expect(button).toHaveCSS("outline-style", "solid");
+  await expect(button).toHaveCSS("outline-width", "2px");
   await page.screenshot({ path: info.outputPath("login-keyboard-focus.png"), animations: "disabled" });
   await page.keyboard.press("Enter");
   await expect(page.getByLabel("Adresse email")).toBeVisible();
