@@ -1,9 +1,23 @@
-# KFFR Contrée — iPhone / Expo Go
+# KFFR Contrée — iPhone natif / Expo SDK 57
 
 Interface native autonome dans apps/mobile : accueil KFFR, onglets Accueil et
 Profil, connexion aux comptes existants, vrai pseudo, reprise de session et
 déconnexion. Solo, Multijoueur et Entraînement sont explicitement indisponibles
 sur iPhone : aucune carte ne lance une partie.
+
+## Paysage natif : préparation du binaire dédié
+
+La QA précédente Expo Go est validée par le propriétaire sur iPhone 15 / iOS
+27.0.1, y compris deux sens paysage, pseudo et clavier. La nouvelle cible produit
+est une ouverture directe en paysage sans écran de rotation. Expo Go ne peut pas
+valider l'Info.plist de notre propre application.
+
+La configuration native et les profils de development build sont préparés dans
+`app.config.ts` / `eas.json` : orientations paysage uniquement, préférence plein
+écran, client KFFR, cycle de vie scenes pour compiler SDK 57 avec Xcode 27.
+Lire [l'audit et le plan natif](NATIVE-IOS.md) pour les preuves, les limites iOS
+27, les voies Windows/EAS ou Mac/Xcode, et les étapes après décision du propriétaire.
+**Aucun binaire signé, achat, installation ou distribution n'a été lancé.**
 
 ## Table de jeu en paysage — révision QA de la PR #145
 
@@ -15,6 +29,8 @@ sur iPhone : aucune carte ne lance une partie.
   redimensionnable peut refuser le verrouillage ; `getOrientationAsync` peut aussi
   annoncer portrait malgré une fenêtre paysage. Le repli regarde donc largeur /
   hauteur réelles : « Tourne ton iPhone », sans démonter le navigateur ni le compte.
+  Ce guard reste une protection du banc Expo Go pendant la préparation, et non
+  le comportement produit accepté. Le retirer pour cacher un refus est exclu.
   Sources : [module SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/screen-orientation/),
   [limites iOS 27](https://docs.expo.dev/versions/latest/sdk/screen-orientation/#orientation-locks-on-ios-27-and-later).
 - `Screen` est un layout flex fixe, sans ScrollView et sans masquage des débordements.
@@ -59,10 +75,9 @@ captures sous Windows / CI. Elles ne transforment pas l'app iOS en WebView.
 La CI Expo exécute ces tests sans retry et conserve captures / traces / rapport.
 
 **Limite : ce rendu navigateur ne remplace ni le moteur de layout iOS, ni VoiceOver,
-ni le clavier logiciel, ni un essai réel du verrouillage. La refonte paysage n'est
-pas validée physiquement à ce stade.** Tester sur iPhone réel, renseigner modèle,
-iOS et version Expo Go ; vérifier rotations dans les deux sens, connexion / clavier,
-Accueil / Profil sans scroll, grande police, suspension, réseau et déconnexion.
+ni le clavier logiciel, ni un essai réel du verrouillage.** La QA humaine Expo Go
+est acquise ci-dessous ; l'ouverture paysage d'un futur binaire dédié doit être
+validée sur ce binaire, sans la déduire des captures ou des essais Expo Go.
 
 ## Navigation et session partagée
 
@@ -121,7 +136,7 @@ ne dépend pas d'Expo. Les alias des deux projets restent indépendants.
 3. Démarrer Metro :
 
    ~~~powershell
-   npx expo start --clear
+   npm start -- --clear
    ~~~
 
 4. Installer Expo Go sur l'iPhone et utiliser le même compte Expo dans Expo Go
@@ -188,6 +203,7 @@ npm ci
 npm run typecheck
 npm run lint
 npm test
+npm run native:check
 npx expo install --check
 npx expo-doctor
 npm run export:ios
@@ -225,38 +241,27 @@ iOS 27.0.1, Expo Go compatible SDK 57** (version exacte non renseignée) :
 - Accueil et Profil entièrement visibles, sans bouton coupé ni scroll principal apparent.
 - Petit logo centré et barre inférieure affinée acceptés visuellement.
 
-Les deux sens paysage et le formulaire avec clavier iOS restent à confirmer.
-Le testeur a signalé une disparition temporaire du pseudo après rotation ou
-revérification. Un test natif simulé a reproduit un dépassement de texte mémorisé
-après élargissement : sa mesure est désormais liée au pseudo, à la largeur et à
-la taille du texte. Cette correction reste à retester sur l'iPhone.
+Le dernier commentaire du propriétaire du 18 octobre confirme aussi les deux
+sens paysage / Dynamic Island, le retour du pseudo, la connexion/déconnexion
+et le formulaire avec clavier iOS. Ces validations ne sont plus en attente.
+Le dépassement du pseudo mémorisé après élargissement a été corrigé dans
+f5bad74 ; sa mesure est liée au pseudo, à la largeur et à la taille du texte.
 Lors d'une revérification de session, le masquage temporaire des données privées
 reste volontaire : le pseudo revient après validation de l'identité et lecture
 du profil. Une rotation seule ne doit pas déclencher une nouvelle vérification.
 
-## Validation physique iPhone à réaliser
+## Prochain contrôle matériel : le nouveau binaire
 
-- Confirmer les deux sens paysage (Dynamic Island à gauche puis à droite), avec
-  le même onglet et le même pseudo après chaque retour du portrait.
-- Dans la modale de connexion : saisir email et mot de passe avec le clavier iOS
-  visible, atteindre le bouton de connexion par défilement interne, puis se connecter.
-- Après connexion : vérifier les trois modes désactivés et leur mention « Bientôt
-  disponible », ouvrir Profil via l'onglet et « Voir mon profil », revenir à Accueil.
-- Tester petit écran, portrait/paysage, grande taille de texte et VoiceOver :
-  texte lisible, aucun scroll principal, détails longs lisibles dans leur modale,
-  onglets accessibles au-dessus de l'indicateur iOS.
-- Depuis Profil : suspendre Expo Go puis revenir, vérifier que le même onglet est
-  conservé et que le pseudo réapparaît après vérification ; mode avion puis Réessayer.
-- Ouverture depuis QR, rendu, safe areas, clavier et bouton de connexion accessibles.
-- Mauvais identifiants, champs vides, puis connexion valide et pseudo identique au web.
-- Régression de la persistance déjà confirmée : fermeture forcée d’Expo Go,
-  réouverture et pseudo vérifié avec réseau.
-- Arrière-plan prolongé, expiration/renouvellement du jeton, retour au premier plan.
-- Mode avion au démarrage, à la connexion, au chargement du profil et à la
-  déconnexion ; reprise réseau et boutons de nouvelle tentative.
-- Déconnexion pendant une lecture lente : aucun pseudo tardif ; après réussite,
-  fermeture/réouverture sans reconnexion automatique.
-- Compte A puis compte B : aucun pseudo du compte précédent.
+Le prochain essai concerne le **binaire KFFR dédié**, après décision de signature
+et de compilation. Il devra ouvrir directement KFFR en paysage alors que
+l'iPhone est tenu verticalement, sans écran de rotation. Le cycle de vie scenes
+changeant le lancement et la reprise natifs, ce binaire devra aussi conserver
+les comportements validés. Voir [le plan et les critères](NATIVE-IOS.md#plan-après-décision-du-propriétaire--commandes-non-exécutées).
+
+Les commandes habituelles `npm start`, `npm run tunnel` et `npm run ios` ciblent
+explicitement Expo Go, même après ajout du dev client. Une fois le client signé
+installé, utiliser `npm run start:dev-client` ou `npm run tunnel:dev-client`.
+Un nouveau QR de développement ne peut ni signer ni installer le client KFFR.
 
 `npm test` exécute les tests Node existants puis les tests Jest iOS avec le vrai
 routeur Expo et les vrais écrans React Native (`expo-router/testing-library`,

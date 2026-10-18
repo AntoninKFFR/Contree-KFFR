@@ -42,6 +42,46 @@ jobs:
         run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      - name: Verify generated native iOS orientation and development profiles
+        run: npm run native:check
+      - name: Generate iOS project sources without compiling or signing
+        run: npx expo prebuild --platform ios --no-install
+      - name: Verify generated Info.plist and iPhone Xcode targets
+        run: |
+          python3 - <<'PY'
+          import pathlib, plistlib, re
+          root = pathlib.Path('ios')
+          files = list(root.glob('*/Info.plist'))
+          assert len(files) == 1, 'Expected exactly one app Info.plist'
+          plist = plistlib.loads(files[0].read_bytes())
+          expected = {'UIInterfaceOrientationLandscapeLeft', 'UIInterfaceOrientationLandscapeRight'}
+          for key in ('UISupportedInterfaceOrientations', 'UISupportedInterfaceOrientations~ipad'):
+              values = plist[key]
+              assert len(values) == 2 and set(values) == expected, key
+          assert plist['EXDefaultScreenOrientationMask'] == 'UIInterfaceOrientationMaskLandscape'
+          assert plist['UIRequiresFullScreen'] is True
+          assert 'UIRequiresFullScreenIgnoredStartingWithVersion' not in plist
+          assert plist.get('UILaunchStoryboardName'), 'Native launch screen required'
+          scenes = plist['UIApplicationSceneManifest']
+          assert scenes['UIApplicationSupportsMultipleScenes'] is False
+          assert scenes['UISceneConfigurations']['UIWindowSceneSessionRoleApplication'][0]['UISceneDelegateClassName'] == 'EXExpoAppSceneDelegate'
+          delegate = files[0].with_name('AppDelegate.swift').read_text()
+          assert 'ExpoReactNativeFactoryProvider' in delegate, 'Scene factory provider missing'
+          assert 'factory.startReactNative(' not in delegate, 'Legacy startup must move to the scene delegate'
+          projects = list(root.glob('*.xcodeproj/project.pbxproj'))
+          assert len(projects) == 1, 'Expected exactly one Xcode project'
+          project = projects[0].read_text()
+          families = re.findall(r'TARGETED_DEVICE_FAMILY = ([^;]+);', project)
+          assert families and all(value.strip('"') == '1' for value in families), 'iPhone targets only'
+          assert 'com.antoninkffr.kffrcontree.dev' in project, 'Development bundle identifier missing'
+          print('Generated native files verified: landscape pair, initial landscape, game full-screen preference, launch screen, scene startup, iPhone targets. This is not a compiled or signed binary.')
+          PY
+      - name: Upload generated native project for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-native-configuration
+          path: apps/mobile/ios
+          if-no-files-found: error
       - name: Test account lifecycle, native navigation and network handling
         run: npm test
       - name: Install browser for landscape component geometry checks

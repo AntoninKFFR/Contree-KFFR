@@ -8,8 +8,24 @@ const config: ExpoConfig = {
   orientation: "landscape",
   userInterfaceStyle: "dark",
   platforms: ["ios"],
-  ios: { supportsTablet: false },
-  plugins: ["expo-router", ["expo-screen-orientation", { initialOrientation: "LANDSCAPE" }]],
+  ios: {
+    // Development identifier only; not registered with Apple or linked to EAS yet.
+    bundleIdentifier: "com.antoninkffr.kffrcontree.dev",
+    supportsTablet: false,
+    // Native game compatibility mode, not an unconditional iOS 27 resize opt-out.
+    requireFullScreen: true,
+    infoPlist: {
+      UISupportedInterfaceOrientations: ["UIInterfaceOrientationLandscapeLeft", "UIInterfaceOrientationLandscapeRight"],
+      "UISupportedInterfaceOrientations~ipad": ["UIInterfaceOrientationLandscapeLeft", "UIInterfaceOrientationLandscapeRight"],
+    },
+  },
+  plugins: [
+    "expo-router",
+    ["expo-screen-orientation", { initialOrientation: "LANDSCAPE" }],
+    ["expo-dev-client", { launchMode: "most-recent" }],
+    // SDK 57 requires this opt-in for apps built with Xcode / iOS SDK 27.
+    ["expo-build-properties", { ios: { enableSceneSupport: true } }],
+  ],
   experiments: { typedRoutes: true },
 };
 

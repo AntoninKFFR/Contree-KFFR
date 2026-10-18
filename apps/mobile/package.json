@@ -4,9 +4,11 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start",
-    "tunnel": "expo start --tunnel",
-    "ios": "expo start --ios",
+    "start": "expo start --go",
+    "tunnel": "expo start --go --tunnel",
+    "ios": "expo start --go --ios",
+    "start:dev-client": "expo start --dev-client",
+    "tunnel:dev-client": "expo start --dev-client --tunnel",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
     "test": "npm run test:unit && npm run test:navigation",
@@ -15,7 +17,8 @@
     "export:ios": "expo export --platform ios",
     "test:unit": "tsx --test tests/*.test.ts",
     "test:navigation": "jest --runInBand",
-    "test:geometry": "playwright test --config playwright.geometry.config.ts"
+    "test:geometry": "playwright test --config playwright.geometry.config.ts",
+    "native:check": "tsx scripts/check-native-ios.ts"
   },
   "engines": {
     "node": ">=22.13.0"
@@ -24,7 +27,9 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "2.118.0",
     "expo": "~57.0.30",
+    "expo-build-properties": "~57.0.22",
     "expo-constants": "~57.0.22",
+    "expo-dev-client": "~57.0.20",
     "expo-linking": "~57.0.13",
     "expo-router": "~57.0.28",
     "expo-screen-orientation": "~57.0.3",
