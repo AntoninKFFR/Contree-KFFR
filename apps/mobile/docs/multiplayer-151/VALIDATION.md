@@ -37,7 +37,9 @@ L’état CI et le SHA immuable livré sont consignés dans la description de la
 
 La première suite racine complète lancée pendant les captures parallèles a dépassé les 15 s du benchmark Monte Carlo V2/V1 existant : 1 960 réussis, un timeout. Aucun fichier de simulation, timeout ou assertion n’a été modifié ; la suite complète réussit avec deux workers. Un premier essai `--maxWorkers=2` seul a été refusé par Vitest (minimum automatique incompatible) et n’a exécuté aucun test ; la commande ci-dessus fixe les deux bornes.
 
-Les anciennes attentes « Multijoueur bientôt disponible » ont été actualisées pour l’activation réelle du mode. Le harnais Vite a été corrigé pour l’appel des timers et pour résoudre en ESM les **vraies** fonctions du compilateur RN Web utilisées par Reanimated ; aucune animation simulée n’a été introduite. Un build sans variables publiques de test affichait légitimement « Supabase indisponible » ; les captures livrées ont été refaites sur un build localhost correctement configuré, après vérification du chargement.
+Les anciennes attentes « Multijoueur bientôt disponible » ont été actualisées pour l’activation réelle du mode. Le premier job CI web a aussi révélé que le nouveau test pur héritait du tsconfig Expo absent de ce job. Un tsconfig autonome pour les modules multijoueurs purs corrige cette dépendance ; les six tests de transport Solo/Multi passent avec les dépendances mobiles retirées temporairement. Les deux directions d’isolation (web sans mobile, mobile sans racine) ont été vérifiées.
+
+Le harnais Vite a été corrigé pour l’appel des timers et pour résoudre en ESM les **vraies** fonctions du compilateur RN Web utilisées par Reanimated ; aucune animation simulée n’a été introduite. Un build sans variables publiques de test affichait légitimement « Supabase indisponible » ; les captures livrées ont été refaites sur un build localhost correctement configuré, après vérification du chargement.
 
 ## Sécurité et périmètre
 

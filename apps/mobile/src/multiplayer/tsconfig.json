@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "types": ["node"],
+    "paths": {
+      "@/engine/*": ["../../../../engine/*"],
+      "@/lib/preferences/*": ["../../../../lib/preferences/*"],
+      "@/lib/roomTypes": ["../../../../lib/roomTypes.ts"],
+      "@/lib/multiplayerTablePreferences": ["../../../../lib/multiplayerTablePreferences.ts"]
+    }
+  },
+  "include": ["api.ts", "contract.ts", "controller.ts", "lifecycle.ts"]
+}
