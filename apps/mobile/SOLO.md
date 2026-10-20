@@ -63,8 +63,11 @@ historique, progression ou production n'est introduit.
 Les préférences utilisent le schéma, les valeurs par défaut et la normalisation
 web, avec stockage natif : délais, confirmations, collecte, tri, aides, thèmes,
 styles, contraste, taille du texte, animations, sons et musique. Les règles de
-prochaine partie utilisent les presets et la validation existants, sans modifier
-la donne courante. Seules les feuilles secondaires défilent.
+prochaine partie utilisent les presets et la validation existants. Sans partie,
+elles sont sauvegardées pour le prochain démarrage ; pendant une partie,
+« Appliquer et nouvelle partie » crée volontairement son remplacement, comme
+sur le web, sans changer les règles de l'ancienne sauvegarde serveur.
+Seules les feuilles secondaires défilent.
 
 `@expo/ui` fournit les véritables contrôles natifs Switch/Picker/Slider/Host ;
 `expo-blur` le fond du résultat ; `expo-audio` les sons équivalents et la playlist

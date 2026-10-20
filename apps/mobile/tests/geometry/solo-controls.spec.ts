@@ -64,6 +64,17 @@ test("Solo rules are draft-only until saved and sent with a voluntary new game",
   await page.getByRole("button", { name: "Nouvelle partie", exact: true }).click();
   await expect.poll(async () => (await posts(page)).at(-1)?.rules).toMatchObject({ presetId: "contree-kffr", overrides: { bidding: { allowNoTrump: true } } });
 });
+test("Solo applies changed rules to a voluntary replacement game just like web", async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 }); await page.goto("/?screen=solo&parity=start");
+  await page.getByRole("button", { name: "Menu Partie", exact: true }).click(); await page.getByRole("button", { name: "Règles de la prochaine partie", exact: true }).click();
+  await expect(page.getByText("Ces règles remplaceront la partie en cours.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Contrats", exact: true }).click(); await page.getByText("Sans Atout", { exact: true }).click();
+  expect(await posts(page)).toEqual([]);
+  await page.getByRole("button", { name: "Appliquer et nouvelle partie", exact: true }).click();
+  await expect.poll(() => posts(page)).toEqual([expect.objectContaining({ rules: expect.objectContaining({ presetId: "contree-kffr", overrides: expect.objectContaining({ bidding: expect.objectContaining({ allowNoTrump: true }) }) }), startKey: expect.any(String) })]);
+  await expect(page.getByRole("button", { name: "Appliquer et nouvelle partie", exact: true })).toHaveCount(0);
+});
+
 test("Solo illegal cards use the same explanation locally and never send a play intent", async ({ page }) => {
   const game = parseSoloResponse({ data: illegalState }).state, legal = soloLegalHumanCards(game);
   const card = game.hand.find((c) => !legal.some((l) => cardKey(c) === cardKey(l)))!;

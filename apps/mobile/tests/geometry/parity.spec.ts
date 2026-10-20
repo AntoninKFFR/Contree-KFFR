@@ -11,7 +11,7 @@ for (const viewport of [{ width: 844, height: 390 }, { width: 568, height: 320 }
     await expect(page.getByTestId("solo-card-table")).toBeVisible();
     if (stage === "bidding") await expect(page.getByTestId("solo-bidding")).toBeVisible();
     if (stage === "result") await expect(page.getByTestId("solo-round-result")).toBeVisible();
-    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(async () => { await document.fonts.ready; await Promise.all(Array.from(document.images).map((image) => image.decode())); });
     mkdirSync(dir, { recursive: true });
     await page.screenshot({ path: `${dir}/native-${viewport.width}-${stage}.png` });
     const geometry = await page.evaluate(() => {

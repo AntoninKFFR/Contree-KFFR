@@ -40,7 +40,7 @@ ou l'équivalence de chaque pixel. Les trois planches ont été inspectées.
 | Dernier pli | `soloLastTrick`, cartes publiques | Overlay demandé, ordre, vainqueur, points et dernière carte forcée selon helper existant ; tests |
 | Résultat | `RoundCompletionCard`, résultat serveur | Contrat/preneur, score manche/partie, détails plis/belote/annonces/multiplicateur, manche suivante et fin ; captures + tests moteur/transport |
 | Préférences | `playerPreferences`, `presentation` | Même modèle/defaults/normalisation ; contrôles reliés et persistance, 4 thèmes, tri, aides, délais, animations, accessibilité, sons/musique ; tests réels Expo UI |
-| Règles suivantes | presets/merge/validation du moteur | Brouillon jusqu'à sauvegarde ; envoyé seulement à la création volontaire, nonce/règles liés si réponse incertaine ; tests UI et contrôleur |
+| Règles suivantes | presets/merge/validation du moteur | Brouillon jusqu'à sauvegarde ; « Appliquer et nouvelle partie » remplace volontairement une partie active comme web, nonce/règles liés si réponse incertaine ; tests UI et contrôleur |
 | Reprise et compte | API Solo existante | GET local connu et reprise comme web ; propriétaire/versions/fences/annulation conservés ; tests contrôleur, navigation et transport |
 | Modèle public | `PlayerGameView`, parseur natif | Contrats/résultats/règles/historique conservés en objets validés ; champs inconnus filtrés, mains adverses rejetées ; tests de parité et malformations |
 | Autorité | API et moteur serveur inchangés | Aucune transition/bot natif ; source map iOS auditée, tests complets moteur/actions ; aucune modification Supabase |
@@ -66,6 +66,9 @@ ou l'équivalence de chaque pixel. Les trois planches ont été inspectées.
   une écoute réelle dans Expo Go.
 - La découverte interappareil est absente des deux clients actuels : UUID stocké
   localement. Voir la [proposition backend précise, non appliquée](CONTINUITY.md).
+- Le natif reste réservé aux comptes connectés, comme la fondation existante.
+  Le Solo anonyme local du web n'est pas porté : il utilise un moteur côté client,
+  exclu de cette PR où les transitions restent exclusivement sur le serveur.
 - QA physique encore nécessaire sur iPhone 15 : deux sens paysage, animations et
   ramassage avec/sans Reduce Motion, VoiceOver, clavier des règles, son, musique,
   arrière-plan/reprise et absence de double action. Aucune nouvelle validation

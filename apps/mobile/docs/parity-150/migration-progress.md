@@ -27,7 +27,7 @@ modification Supabase ou publication de production.
 | Typecheck et lint Expo | Réussis |
 | Unités mobile | 25 tests réussis |
 | Navigation native / vrais écrans et hooks | 18 tests réussis |
-| Géométrie et interactions RN Web | 94 tests réussis, aucun retry ; dont 12 comparaisons à 1 px et 11 cas avancés |
+| Géométrie et interactions RN Web | 95 tests réussis, aucun retry ; dont 12 comparaisons à 1 px et 12 cas avancés |
 | Configuration iOS | Vérifiée : deux paysages, iPhone, scene lifecycle, aucune permission micro/audio en arrière-plan |
 | Compatibilité des paquets SDK 57 | `expo install --check` réussi |
 | Expo Doctor | 21/21 réussis |

@@ -36,7 +36,7 @@ function NumberRule({ label, value, onChange, min = 0, disabled = false }: { lab
   const text = editing ?? String(value);
   return <View style={{ gap: 8, paddingVertical: 8 }}><Text style={{ color: "#f4ead0", fontWeight: "700" }}>{label}</Text><TextInput accessibilityLabel={label} value={text} editable={!disabled} keyboardType="number-pad" onChangeText={setEditing} onBlur={() => { const n = Number(text); if (text.trim() && Number.isSafeInteger(n) && n >= min && n <= 100000) onChange(n); setEditing(null); }} style={{ minHeight: 44, borderWidth: 1, borderColor: "#ffffff26", padding: 10, borderRadius: 8, color: disabled ? "#ffffff55" : "#fff", fontSize: 16 }} /></View>;
 }
-export function SoloRulesPanel({ initial, onSave, onCancel }: { initial: CustomRulesetInput; onSave: (draft: CustomRulesetInput) => Promise<boolean>; onCancel: () => void }) {
+export function SoloRulesPanel({ initial, onSave, onCancel, replacesGame = false, saveDisabled = false }: { initial: CustomRulesetInput; onSave: (draft: CustomRulesetInput) => Promise<boolean>; onCancel: () => void; replacesGame?: boolean; saveDisabled?: boolean }) {
   const [draft, setDraft] = useState(initial), [section, setSection] = useState<string>("game"), [error, setError] = useState<string | null>(null), [busy, setBusy] = useState(false), [reset, setReset] = useState(false);
   const rules = buildCustomRuleset(draft);
   function patch(value: RulesetOverrides) {
@@ -50,6 +50,7 @@ export function SoloRulesPanel({ initial, onSave, onCancel }: { initial: CustomR
       || key === "doubleAllPointsOnCoinche" && !rules.bidding.allowCoinche;
   }
   return <View style={{ gap: 12 }}>
+    <Text style={{ color: "#ffffffb3" }}>{replacesGame ? "Ces règles remplaceront la partie en cours." : "Ces règles seront utilisées au démarrage de la partie."}</Text>
     <Text style={{ color: "#ffffffb3" }}>Ces règles s’appliquent à la prochaine partie. La partie en cours garde ses règles serveur.</Text>
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>{sections.map(([id, label]) => <TableButton key={id} label={label} selected={section === id} onPress={() => setSection(id)} />)}</View>
     {section in booleans ? booleans[section as keyof typeof booleans].map(([key, label]) => <Toggle key={key} label={label} value={Boolean((rules[section as keyof typeof booleans] as unknown as Record<string, unknown>)[key])} disabled={disabled(section, key)} onChange={(value) => patch({ [section]: { [key]: value } })} />) : null}
@@ -58,7 +59,7 @@ export function SoloRulesPanel({ initial, onSave, onCancel }: { initial: CustomR
     {section === "scoring" ? <Choice label="Mode de score" value={rules.scoring.mode} options={[["ffb", "Officiel"], ["contract-only", "Contrat uniquement"], ["contract-only-160-failure", "Contrat uniquement / base de chute"], ["points-only", "Points réalisés"]]} onChange={(v) => patch({ scoring: { mode: v as typeof rules.scoring.mode } })} /> : null}
     {section === "advanced" ? <><NumberRule label="Valeur de la Générale" min={1} value={rules.scoring.generaleBasePoints} disabled={!rules.bidding.allowGenerale} onChange={(v) => patch({ scoring: { generaleBasePoints: v } })} /><Toggle label="Générale Sans Atout" value={rules.bidding.generaleAllowNoTrump} disabled={!rules.bidding.allowGenerale || !rules.bidding.allowNoTrump} onChange={(v) => patch({ bidding: { generaleAllowNoTrump: v } })} /><Toggle label="Générale Tout Atout" value={rules.bidding.generaleAllowAllTrump} disabled={!rules.bidding.allowGenerale || !rules.bidding.allowAllTrump} onChange={(v) => patch({ bidding: { generaleAllowAllTrump: v } })} /><NumberRule label="Multiplicateur Coinche" value={rules.scoring.coincheMultiplier} min={1} disabled={!rules.bidding.allowCoinche} onChange={(v) => patch({ scoring: { coincheMultiplier: v } })} /><NumberRule label="Multiplicateur Surcoinche" value={rules.scoring.surcoincheMultiplier} min={1} disabled={!rules.bidding.allowCoinche} onChange={(v) => patch({ scoring: { surcoincheMultiplier: v } })} /></> : null}
     {error ? <Text accessibilityRole="alert" style={{ color: "#fca5a5" }}>{error}</Text> : null}
-    <TableButton label="Enregistrer les règles" primary disabled={busy} onPress={() => { setBusy(true); void onSave(rulesetToCustomInput(rules)).then((saved) => { if (!saved) setError("Sauvegarde impossible. Réessaie."); }).finally(() => setBusy(false)); }} />
+    <TableButton label={replacesGame ? "Appliquer et nouvelle partie" : "Enregistrer les règles"} primary disabled={busy || saveDisabled} onPress={() => { setBusy(true); void onSave(rulesetToCustomInput(rules)).then((saved) => { if (!saved) setError("Sauvegarde impossible. Réessaie."); }).finally(() => setBusy(false)); }} />
     <TableButton label="Annuler" onPress={onCancel} disabled={busy} />
     <TableButton label={reset ? "Confirmer la réinitialisation KFFR" : "Réinitialiser les règles"} onPress={() => { if (reset) { setDraft({ presetId: "contree-kffr" }); setReset(false); } else setReset(true); }} />
   </View>;
