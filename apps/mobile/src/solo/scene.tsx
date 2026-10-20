@@ -46,10 +46,10 @@ function PlayerCell({ game, player, position, width, height, preferences, reduce
     </Animated.View> : null}
   </View>;
 }
-export function TrickCards({ cards, height, animatedKeys = [], preferences, reduced, details = false }: { cards: PlayedCard[]; height: number; animatedKeys?: string[]; preferences: PlayerPreferences; reduced: boolean; details?: boolean }) {
+export function TrickCards({ cards, height, animatedKeys = [], preferences, reduced, details = false, viewer = 0 }: { viewer?: PlayerId; cards: PlayedCard[]; height: number; animatedKeys?: string[]; preferences: PlayerPreferences; reduced: boolean; details?: boolean }) {
   return <View testID="solo-trick-cards" pointerEvents="none" style={{ width: 180, height: 160 }}>
     {cards.map((played, index) => {
-      const p = played.playerId, x = p === 1 ? height * .44 : p === 3 ? -height * .44 : p === 0 ? 5 : -5, y = p === 2 ? -height * .22 : p === 0 ? height * .22 : 0;
+      const p = ((played.playerId - viewer + 4) % 4) as PlayerId, x = p === 1 ? height * .44 : p === 3 ? -height * .44 : p === 0 ? 5 : -5, y = p === 2 ? -height * .22 : p === 0 ? height * .22 : 0;
       const rotation = p === 2 ? -2 : p === 0 ? 1 : p === 3 ? -4 : 4;
       return <View key={playedCardKey(played)} testID={`solo-play-${p}`} accessible accessibilityLabel={`${playerName(p)} : ${cardLabel(played.card)}, carte ${index + 1}`} style={{ position: "absolute", left: 90 - height * .34 + x, top: 80 - height / 2 + y, zIndex: index + 1, transform: [{ rotate: `${rotation}deg` }] }}>
         <Animated.View style={p !== 0 && !reduced && animatedKeys.includes(playedCardKey(played)) ? { animationName: playEntries[p], animationDuration: 240, animationTimingFunction: "ease-out", animationFillMode: "both" } : undefined}>
@@ -65,7 +65,7 @@ export function SoloScene({ session, width, height, preferences, reduced, human,
   layers: TrickLayer[]; cardPresentations: Map<string, CardPresentation>; presented: PresentedTrick | null; policy: { autoCollect: boolean; delayMs: number }; onCollect: () => void; onLastTrick: () => void;
   pendingCard?: Card | null;
 }) {
-  const game = session.state, geometry = soloSceneGeometry(width, height, game.phase === "bidding"), seats = tableSeatsFor(game), live = getPublicRoundPoints(game);
+  const game = session.state, geometry = soloSceneGeometry(width, height, game.phase === "bidding"), seats = tableSeatsFor(game), us = game.viewerPlayerId % 2 as 0 | 1, them = (1 - us) as 0 | 1, live = getPublicRoundPoints(game);
   const contractText = game.contract ? `${formatContractLabel(game.contract)}${game.contract.status === "coinched" ? " · Coinché" : game.contract.status === "surcoinched" ? " · Surcoinché" : ""}` : "Annonces";
   const colors = { "classic-green": "#0d5b3c", "midnight-blue": "#17345a", burgundy: "#742f3b", "dark-neutral": "#343a3a" };
   const playDelay = isPreferenceAnimationEnabled(preferences, "card-play", reduced) ? Math.min(240, policy.delayMs) : 0;
@@ -75,27 +75,27 @@ export function SoloScene({ session, width, height, preferences, reduced, human,
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: preferences.visual.tableTheme === "classic-green" ? "#04301f5e" : "#00000020", boxShadow: "inset 0 0 90px #00000061" }]} />
     {layers.map((layer, i) => {
       const collecting = layer.kind === "completed" && presented && policy.autoCollect && isPreferenceAnimationEnabled(preferences, "trick", reduced);
-      const winner = presented?.trick.winnerId;
+      const winner = presented ? (presented.trick.winnerId - game.viewerPlayerId + 4) % 4 : undefined;
       const x = winner === 3 ? -width / 2 + 80 : winner === 1 ? width / 2 - 80 : 0, y = winner === 2 ? -height * .4 + 32 : winner === 0 ? height * .32 : 0;
       return <Animated.View key={layer.key} pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 25 + i }, collecting ? {
         animationName: { "0%, 85%": { opacity: 1, transform: [{ translateX: 0 }, { translateY: 0 }, { scale: 1 }] }, to: { opacity: 0, transform: [{ translateX: x }, { translateY: y }, { scale: .82 }] } }, animationDuration: Math.max(0, policy.delayMs - playDelay), animationDelay: playDelay, animationTimingFunction: "ease-in", animationFillMode: "forwards",
       } : {}]}>
-        <View testID="solo-trick-area" style={{ position: "absolute", left: width / 2 - 90, top: geometry.trickY - 80 }}><TrickCards cards={layer.cards} height={geometry.trickHeight} preferences={preferences} reduced={reduced} animatedKeys={cardPresentations.get(layer.key)?.animatedKeys} /></View>
+        <View testID="solo-trick-area" style={{ position: "absolute", left: width / 2 - 90, top: geometry.trickY - 80 }}><TrickCards cards={layer.cards} height={geometry.trickHeight} preferences={preferences} reduced={reduced} animatedKeys={cardPresentations.get(layer.key)?.animatedKeys} viewer={game.viewerPlayerId} /></View>
       </Animated.View>;
     })}
     <View testID="solo-hud" style={{ position: "absolute", left: 56, top: 5, maxWidth: width / 2 - 96, paddingVertical: 5, paddingHorizontal: 8, borderColor: "#ead8a638", borderWidth: 1, borderRadius: 12, backgroundColor: "#07150fdb", zIndex: 10 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Text numberOfLines={1} allowFontScaling={false} style={{ flexShrink: 0, fontSize: 10, lineHeight: 12, fontWeight: "900", color: "#fff" }}>Nous {game.totalScore[0]} — Eux {game.totalScore[1]}</Text><Text numberOfLines={1} allowFontScaling={false} style={{ flexShrink: 1, fontSize: 9, lineHeight: 12, color: "#e8d8adbf", fontWeight: "700" }}>{contractText.toLocaleUpperCase("fr")}</Text></View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Text numberOfLines={1} allowFontScaling={false} style={{ flexShrink: 0, fontSize: 10, lineHeight: 12, fontWeight: "900", color: "#fff" }}>Nous {game.totalScore[us]} — Eux {game.totalScore[them]}</Text><Text numberOfLines={1} allowFontScaling={false} style={{ flexShrink: 1, fontSize: 9, lineHeight: 12, color: "#e8d8adbf", fontWeight: "700" }}>{contractText.toLocaleUpperCase("fr")}</Text></View>
       {game.inactivePlayerId !== null ? <Text style={{ color: "#ffffffb3", fontSize: 9 }}>{playerName(game.inactivePlayerId, game.playerNames)} ne joue pas cette donne.</Text> : null}
     </View>
-    {preferences.assistance.showLivePoints ? <View accessibilityLabel="Points en direct" style={{ position: "absolute", right: 56, top: 5, borderWidth: 1, borderColor: "#ffffff33", backgroundColor: "#07150fdb", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12, flexDirection: "row", gap: 6 }}><Text allowFontScaling={false} style={{ color: "#e8d8adbf", fontSize: 8, fontWeight: "700" }}>DIRECT</Text><Text allowFontScaling={false} style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>Nous {live[0]}  Eux {live[1]}</Text></View> : null}
+    {preferences.assistance.showLivePoints ? <View accessibilityLabel="Points en direct" style={{ position: "absolute", right: 56, top: 5, borderWidth: 1, borderColor: "#ffffff33", backgroundColor: "#07150fdb", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12, flexDirection: "row", gap: 6 }}><Text allowFontScaling={false} style={{ color: "#e8d8adbf", fontSize: 8, fontWeight: "700" }}>DIRECT</Text><Text allowFontScaling={false} style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>Nous {live[us]}  Eux {live[them]}</Text></View> : null}
     {Object.entries(seats).map(([position, player]) => <PlayerCell key={player} game={game} player={player} position={position} width={width} height={height} preferences={preferences} reduced={reduced} />)}
-    <NativeHand key={`${session.id}:${game.roundNumber}`} game={game} width={width} height={geometry.handHeight} canPlay={human && game.phase === "playing"} onPlay={(card) => onIntent({ type: "play-card", playerId: 0, card })} preferences={preferences} reduced={reduced} pendingCard={pendingCard} target={{ x: width / 2 + 5, y: geometry.trickY + geometry.trickHeight * .22, height: geometry.trickHeight, tableHeight: height }} />
+    <NativeHand key={`${session.id}:${game.roundNumber}`} game={game} width={width} height={geometry.handHeight} canPlay={human && game.phase === "playing"} onPlay={(card) => onIntent({ type: "play-card", playerId: game.viewerPlayerId, card })} preferences={preferences} reduced={reduced} pendingCard={pendingCard} target={{ x: width / 2 + 5, y: geometry.trickY + geometry.trickHeight * .22, height: geometry.trickHeight, tableHeight: height }} />
     {game.phase === "bidding" ? <NativeBidding key={`${session.id}:${game.roundNumber}:${game.bids.length}`} game={game} canBid={human} width={width} height={height} handHeight={geometry.handHeight} top={geometry.biddingTop} preferences={preferences} reduced={reduced} onIntent={onIntent} /> : null}
     {presented && !policy.autoCollect ? <View style={{ position: "absolute", right: 68, bottom: geometry.handHeight + 10, width: 112, zIndex: 40 }}><TableButton label={`Ramasser le pli\n${playerName(presented.trick.winnerId, game.playerNames)} · ${presented.trick.points} pts`} onPress={onCollect} /></View> : null}
     {preferences.assistance.showLastTrick && game.completedTricks.length > 0 && !presented ? <Pressable accessibilityRole="button" accessibilityLabel="Dernier pli" onPress={onLastTrick} style={{ position: "absolute", right: 4, bottom: 60, width: 80, height: 44, alignItems: "center", justifyContent: "flex-end", zIndex: 20 }}><Text style={{ backgroundColor: "#07150fdb", borderColor: "#ead8a64d", borderWidth: 1, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 2, fontSize: 10, color: "#fff" }}>Dernier pli</Text></Pressable> : null}
   </View>;
 }
-export function RoundCompletion({ game, disabled, onAction, onDetails, reduced }: { game: NativeSoloSession["state"]; disabled: boolean; onAction: () => void; onDetails: () => void; reduced: boolean }) {
+export function RoundCompletion({ game, disabled, onAction, onDetails, reduced, actionLabel }: { actionLabel?: string; game: NativeSoloSession["state"]; disabled: boolean; onAction: () => void; onDetails: () => void; reduced: boolean }) {
   const result = game.result?.kind === "played" ? game.result : null, success = result?.contractSucceeded;
   const mode = result ? resolveContractMode(result.contract) : null;
   const winner = game.roundScore[0] === game.roundScore[1] ? null : game.roundScore[0] > game.roundScore[1] ? 0 : 1;
@@ -108,7 +108,7 @@ export function RoundCompletion({ game, disabled, onAction, onDetails, reduced }
         {result ? <Text style={{ color: "#f3ead2", textAlign: "center", fontSize: 18, fontWeight: "900" }}>{result.contract.kind === "capot" ? "Capot" : result.contract.kind === "generale" ? "Générale" : result.contract.value} {mode?.kind === "suit" ? SUIT_SYMBOLS[mode.suit] : mode?.kind === "no-trump" ? "SA" : "TA"} — {playerName(result.contract.playerId, game.playerNames)}</Text> : null}
         <View style={{ borderWidth: 1, borderColor: "#ffffff1a", borderRadius: 12, padding: 10, backgroundColor: "#ffffff0f", gap: 4 }}><Text style={{ color: "#f5f1e7", textAlign: "center", fontWeight: "900", fontSize: 24 }}>{game.roundScore[0]} — {game.roundScore[1]}</Text><Text style={{ color: "#ffffffb3", textAlign: "center", fontWeight: "700", fontSize: 12 }}>{winner === null ? "Score de manche partagé" : `${teamName(winner, game.playerNames)} remportent la manche`}</Text><Text style={{ borderTopWidth: 1, borderColor: "#ffffff1a", paddingTop: 8, color: "#e7d7aebf", fontWeight: "700", textAlign: "center", fontSize: 12 }}>Partie : {game.totalScore[0]} — {game.totalScore[1]}</Text></View>
       </View>
-      <View style={{ flex: 1, paddingTop: 42, gap: 48 }}><TableButton label={game.phase === "game-over" ? "Nouvelle partie" : "Manche suivante"} primary paper disabled={disabled} onPress={onAction} reduced={reduced} /><TableButton label="Détails" onPress={onDetails} /></View>
+      <View style={{ flex: 1, paddingTop: 42, gap: 48 }}><TableButton label={actionLabel ?? (game.phase === "game-over" ? "Nouvelle partie" : "Manche suivante")} primary paper disabled={disabled} onPress={onAction} reduced={reduced} /><TableButton label="Détails" onPress={onDetails} /></View>
     </Animated.View>
   </View>;
 }

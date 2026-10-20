@@ -117,7 +117,7 @@ export function parseSoloResponse(value: unknown): NativeSoloSession {
   const id = text(r.id, 36); if (!uuidPattern.test(id) || s.viewerPlayerId !== 0 || "hands" in s) invalid();
   const phase = oneOf(s.phase, ["bidding", "playing", "finished", "game-over"] as const);
   const hand = list(s.hand, 8).map(card), handCounts = playerNumbers(s.handCounts);
-  if (new Set(hand.map(cardKey)).size !== hand.length || handCounts[0] !== hand.length) invalid();
+  if (new Set(hand.map(cardKey)).size !== hand.length || handCounts[viewerPlayerId] !== hand.length) invalid();
   const names = s.playerNames === undefined ? null : object(s.playerNames);
   const playerNames = names ? { 0: text(names[0], 200), 1: text(names[1], 200), 2: text(names[2], 200), 3: text(names[3], 200) } : undefined;
   return { id, version: integer(r.version), state: {
@@ -131,4 +131,10 @@ export function parseSoloResponse(value: unknown): NativeSoloSession {
     ...(s.forfeitingTeam === undefined ? {} : { forfeitingTeam: nullableTeam(s.forfeitingTeam) }),
     ...(s.announcements === undefined ? {} : { announcements: announcements(s.announcements) }), ...(s.belote === undefined ? {} : { belote: belote(s.belote) }),
   } };
+}
+
+export function parseSoloResponse(value: unknown): NativeSoloSession {
+  const r = object(object(value).data), id = text(r.id, 36), state = parsePlayerGameView(r.state);
+  if (!uuidPattern.test(id) || state.viewerPlayerId !== 0) invalid();
+  return { id, version: integer(r.version), state };
 }

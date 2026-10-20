@@ -45,7 +45,7 @@ export function NativeHand({ game, width, height, canPlay, onPlay, preferences, 
         <Animated.View testID={pending ? "solo-provisional-card" : undefined} entering={animate ? FadeInDown.duration(220).delay(index * 35) : undefined}>
           <Pressable testID={pending ? "solo-pending-card" : undefined} accessibilityRole="button" accessibilityLabel={"Jouer " + cardLabel(card) + (pending ? ", envoi en cours" : "")} accessibilityState={{ disabled, busy: pending }} disabled={disabled}
             onFocus={() => setFocused(key)} onBlur={() => setFocused(null)}
-            onPress={() => { if (allowed) { setFeedback(null); onPlay(card); } else if (mode) setFeedback(explainIllegalCard({ hand: game.hand, trick: game.currentTrick, playerId: 0, card, mode, rules: resolveGameRules(game.settings).cardPlay })); }}
+            onPress={() => { if (allowed) { setFeedback(null); onPlay(card); } else if (mode) setFeedback(explainIllegalCard({ hand: game.hand, trick: game.currentTrick, playerId: game.viewerPlayerId, card, mode, rules: resolveGameRules(game.settings).cardPlay })); }}
             style={({ pressed }) => ({ opacity: canPlay && !allowed && preferences.assistance.dimIllegalCards ? .55 : 1, transform: [{ translateY: pending ? 0 : canPlay && (pressed || focused === key) ? -8 : canPlay && allowed && preferences.assistance.highlightLegalCards ? -4 : 0 }], outlineWidth: !pending && focused === key ? 2 : 0, outlineColor: "#ead8a6", outlineOffset: 3 })}>
             <CardFace card={card} height={height} width={cardWidth} modern={preferences.cards.cardStyle === "modern"} contrast={preferences.visual.highContrast} />
           </Pressable>
