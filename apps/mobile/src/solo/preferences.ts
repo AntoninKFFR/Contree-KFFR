@@ -1,3 +1,4 @@
+import { soloSpeed } from "./performance";
 import { useEffect, useRef, useState } from "react";
 import { clonePlayerPreferences, normalizePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY, type PlayerPreferences } from "@/lib/preferences/playerPreferences";
 import { soloEnvironment } from "@/solo/environment";
@@ -17,6 +18,9 @@ export function useSoloPreferences() {
     }).catch(() => { if (live) setError("Les paramètres locaux sont indisponibles."); }).finally(() => { if (live) setLoaded(true); });
     return () => { live = false; };
   }, []);
+  useEffect(() => {
+    if (loaded) soloSpeed(preferences.gameplay.gameSpeed, preferences.gameplay.botDelayMs, preferences.gameplay.biddingDelayMs, preferences.gameplay.trickDisplayMs, systemReducedMotion || preferences.visual.reducedMotion);
+  }, [loaded, preferences.gameplay.gameSpeed, preferences.gameplay.botDelayMs, preferences.gameplay.biddingDelayMs, preferences.gameplay.trickDisplayMs, preferences.visual.reducedMotion, systemReducedMotion]);
   function update(next: PlayerPreferences) {
     const safe = normalizePlayerPreferences(next);
     setPreferences(safe);

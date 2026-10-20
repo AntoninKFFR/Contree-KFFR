@@ -28,7 +28,7 @@ if (scenario === "trick" || scenario === "last-trick") {
   }
 }
 const memory = new Map<string, string>();
-if (parityStage || biddingStage) { const prefs = clonePlayerPreferences(); prefs.visual.reducedMotion = true; memory.set(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(prefs)); }
+if (parityStage || biddingStage) { const prefs = clonePlayerPreferences(); prefs.visual.reducedMotion = new URLSearchParams(location.search).get("motion") !== "1"; memory.set(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(prefs)); }
 if (scenario !== "empty" || parityStage || biddingStage) memory.set(soloStorageKey("visual-test-only"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
 const requests: { method: string; body: unknown }[] = [];
 Object.assign(globalThis, { __soloFixture: { requests, stored: (key: string) => memory.get(key) ?? null } });

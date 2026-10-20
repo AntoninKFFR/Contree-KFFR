@@ -1,3 +1,4 @@
+import { soloDisplayCommitted } from "./performance";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { useFocusEffect } from "expo-router";
@@ -22,6 +23,7 @@ export function useSolo() {
     void next.load(); // GET saved ID only. Creating a game always needs a user press.
     return () => { live = false; listener.remove(); next.dispose(); setBinding(null); };
   }, [owner, token]));
+  useEffect(soloDisplayCommitted, [binding?.snapshot.session]);
   const live = binding && binding.owner === owner && binding.token === token;
   return { state: live ? binding.snapshot : initialSoloState, controller: live ? binding.controller : null };
 }

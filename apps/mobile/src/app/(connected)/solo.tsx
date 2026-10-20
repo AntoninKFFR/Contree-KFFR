@@ -1,3 +1,4 @@
+import { soloWait } from "@/solo/performance";
 import { formatBidLabel } from "@/lib/solo/tableAnnouncements";
 import { SoloAppearance, SoloText as Text } from "@/solo/appearance";
 import { useEffect, useRef, useState } from "react";
@@ -33,19 +34,21 @@ function SoloRoom() {
   const ready = Boolean(controller && !state.busy && !state.requiresSync && !state.error && settings.loaded && rules.loaded);
   const enabled = ready && state.active && window.width > window.height;
   const human = enabled && game?.currentPlayerId === 0;
-  const presentation = useTablePresentation(session, settings.preferences, settings.reduced, enabled);
+  const presentation = useTablePresentation(session, settings.preferences, settings.reduced, Boolean(state.active && settings.loaded && window.width > window.height));
   const audio = useSoloAudio(settings.preferences, session, presentation.lastCollected);
   const pacer = useRef<SoloBotTurnPacer | null>(null);
+  const botDelay = game?.phase === "bidding" ? settings.preferences.gameplay.biddingDelayMs : settings.preferences.gameplay.botDelayMs;
+  const collectionKey = game ? soloBotCollectionKey(game, settings.preferences, settings.reduced) : null;
   useEffect(() => {
     if (!enabled || !game || !["bidding", "playing"].includes(game.phase) || game.currentPlayerId === 0) return;
-    const key = soloBotCollectionKey(game, settings.preferences, settings.reduced);
-    const next = scheduleSoloBotTurn(game.phase === "bidding" ? settings.preferences.gameplay.biddingDelayMs : settings.preferences.gameplay.botDelayMs,
-      key && !presentation.isCollected(key) ? key : null, () => { void controller?.move({ type: "advance-bot" }); });
+    const started = performance.now();
+    const next = scheduleSoloBotTurn(botDelay,
+      collectionKey && !presentation.isCollected(collectionKey) ? collectionKey : null, () => { soloWait("bot", botDelay, performance.now() - started); void controller?.move({ type: "advance-bot" }); });
     pacer.current = next;
     return () => { next.cancel(); if (pacer.current === next) pacer.current = null; };
     // A collection releases the running timer below; it must not restart its bot delay.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, session?.id, session?.version, game, controller, settings.preferences, settings.reduced]);
+  }, [enabled, session?.id, session?.version, game, controller, botDelay, collectionKey]);
   useEffect(() => { if (presentation.lastCollected) pacer.current?.autoCollected(presentation.lastCollected); }, [presentation.lastCollected]);
   useEffect(() => {
     if (!enabled || !game || game.currentPlayerId !== 0) return;

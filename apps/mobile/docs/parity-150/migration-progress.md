@@ -57,3 +57,18 @@ Le [premier retour iPhone](PHYSICAL-QA.md) confirme le fonctionnement général 
 la table, avec réserves de latence et chargement. Le correctif de réactivité/cache
 reste à réessayer. RN Web et l'export ne prouvent pas les validations matérielles
 restantes, ni un gain mesuré de fluidité. Voir PARITY.md et PHYSICAL-QA.md.
+
+## Audit et correctif de latence suivants
+
+[PERFORMANCE.md](PERFORMANCE.md) détaille la chaîne client/HTTP/bots/collecte,
+les vitesses indépendantes de l'iPhone, la pose réversible sans ornements,
+deux redémarrages de timers supprimés, les mesures brutes avant/après et une
+proposition serveur non implémentée. Accueil et Profil ne changent pas.
+
+Validation locale du correctif : 26 tests unitaires mobiles, 19 tests de
+navigation, 101 géométries/interactions RN Web (dont 4 nouveaux tests de latence
+et trajectoire), Doctor 21/21, export iOS et audit de 1 760 sources. Typecheck et
+lint web/mobile passent, ainsi que 1 957 tests Vitest et le build Next. Les deux
+régressions de scheduling ont aussi été reproduites sur les anciennes conditions,
+puis vérifiées corrigées. Les checks distants du dernier SHA restent la référence
+pour les validations CI, notamment les suites web/responsive complètes.

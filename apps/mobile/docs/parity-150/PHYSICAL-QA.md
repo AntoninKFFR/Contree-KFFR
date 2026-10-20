@@ -41,3 +41,22 @@ Les géométries, couleurs, logo et feutrines validés restent les mêmes. Les
 corrections de chargement ne refont ni Accueil ni Profil, et ne touchent pas Auth.
 Le correctif de réactivité/cache reste à réessayer physiquement avec le même QR.
 La CI et RN Web ne prouvent pas une amélioration de fluidité mesurée sur iPhone.
+
+## Correctif suivant : pose provisoire et délais superflus
+
+Le léger relevé est remplacé pendant l'envoi par la trajectoire de la carte
+vers son emplacement final, sans modifier l'état autoritaire. Pas de spinner,
+liseré ou voile ; retour en main en cas de refus. Le ramassage ne repart plus
+à zéro pendant une requête, et un changement visuel ne redémarre plus le bot.
+Les anciens logs `[Solo HTTP]` sont remplacés par les phases de développement
+décrites dans [l'audit de performance](PERFORMANCE.md), avec mesures contrôlées
+avant/après. Les valeurs historiques ci-dessus ne sont pas des mesures de ce
+nouveau correctif.
+
+À ressentir sur l'iPhone 15 avec le même tunnel : toucher une carte légale,
+vérifier qu'elle part directement et reste stable à la confirmation ; tester
+Lent/Normal/Rapide/Instantané dans Paramètres (indépendants des réglages web),
+ramassage manuel/automatique, portrait puis retour paysage et reprise après
+arrière-plan. Un refus de test est couvert automatiquement sans provoquer
+d'actions illégales dans une vraie partie. Aucun résultat physique de ce dernier
+correctif n'est affirmé avant un nouveau retour utilisateur.

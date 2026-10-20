@@ -101,6 +101,7 @@ test("double human moves send a single versioned POST even before React can disa
   let release!: (r: Response) => void;
   const f = setup(async (_url, init) => init?.method === "GET" ? json({ data: soloFixture("playing", 3) }) : new Promise((resolve) => { release = resolve; }));
   f.remember(); await f.controller.load(); f.controller.resume();
+  const before = f.updates.length;
   const first = f.controller.move({ type: "play-card", playerId: 0, card: { rank: "A", suit: "spades" } });
   assert.deepEqual(f.controller.state.pendingCard, { rank: "A", suit: "spades" });
   assert.equal(f.controller.state.session?.version, 3);
@@ -108,4 +109,5 @@ test("double human moves send a single versioned POST even before React can disa
   assert.equal(f.calls.length, 2); release(json({ data: soloFixture("playing", 4) })); await first;
   assert.equal(f.controller.state.session?.version, 4);
   assert.equal(f.controller.state.pendingCard, null);
+  assert.equal(f.updates.length - before, 2); // Pending + accepted, without intermediate busy-only states.
 });
