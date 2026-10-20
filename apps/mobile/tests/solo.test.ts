@@ -25,9 +25,9 @@ test("loading an empty bookmark never creates a game; explicit creation persists
   assert.deepEqual(JSON.parse(f.map.get(soloStorageKey("alice"))!), { sessionId: SESSION_ID, startKey: null });
   assert.equal(f.controller.state.active, true); f.controller.dispose();
 });
-test("reopening loads only the owner's saved ID, then requires an explicit resume", async () => {
+test("reopening Solo resumes only the owner's saved ID through GET, as on web", async () => {
   const f = setup(); f.remember(); f.map.set(soloStorageKey("bob"), "private-bob"); await f.controller.load();
-  assert.equal(f.calls[0].init?.method, "GET"); assert.equal(f.controller.state.active, false); f.controller.resume(); assert.equal(f.controller.state.active, true);
+  assert.equal(f.calls[0].init?.method, "GET"); assert.equal(f.controller.state.active, true); assert.equal(f.calls.length, 1);
   assert.equal(f.map.get(soloStorageKey("bob")), "private-bob"); f.controller.dispose();
 });
 test("a missing/expired identity cannot create or continue a game and triggers verification on 401", async () => {
@@ -50,6 +50,19 @@ test("double start is serialized; an ambiguous creation retries the same durable
   release(json({}, 503)); await first; assert.equal(f.calls.length, 1);
   const retry = f.controller.start(); await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
   assert.equal(JSON.parse(String(f.calls[1].init?.body)).startKey, START_KEY); release(json({ data: soloFixture() })); await retry;
+});
+
+test("an ambiguous custom-rules creation keeps the original rules paired with its durable nonce", async () => {
+  let attempts = 0;
+  const f = setup(async () => ++attempts === 1 ? json({}, 503) : json({ data: soloFixture() }));
+  await f.controller.load();
+  await f.controller.start({ presetId: "contree-kffr", overrides: { bidding: { allowNoTrump: true }, game: { targetScore: 1750 } } });
+  const first = JSON.parse(String(f.calls[0].init?.body));
+  assert.equal(first.rules.overrides.bidding.allowNoTrump, true);
+  assert.equal(first.rules.overrides.game.targetScore, 1750);
+  await f.controller.start({ presetId: "contree-kffr", overrides: { game: { targetScore: 500 } } });
+  assert.deepEqual(JSON.parse(String(f.calls[1].init?.body)), first);
+  assert.equal(f.calls.length, 2); f.controller.dispose();
 });
 test("account change, token replacement, blur and background invalidate pending responses", async () => {
   for (const mode of ["account", "token", "dispose", "background"] as const) {

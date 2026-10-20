@@ -1,10 +1,11 @@
 "use client";
+import { formatBidLabel, formatFinalContract, dominantBidPlayerId, type AnnouncementBubbleContent } from "@/lib/solo/tableAnnouncements";
 
 import React, { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { CardView } from "@/components/CardView";
 import { PlayerPanel } from "@/components/PlayerPanel";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
-import { formatContractLabel, formatContractMode, resolveContractMode } from "@/engine/contractMode";
+import { formatContractLabel } from "@/engine/contractMode";
 import { getContractProgress, getPublicRoundPoints } from "@/engine/contractProgress";
 import { inactivePlayerId as inactivePlayerForState } from "@/engine/activePlayers";
 import { playerName, teamName } from "@/engine/players";
@@ -12,7 +13,6 @@ import { playerTeam } from "@/engine/rules";
 import type {
   Bid,
   CompletedTrick,
-  Contract,
   GameState,
   PlayedCard,
   PlayerId,
@@ -33,17 +33,8 @@ import {
 } from "@/lib/trickPresentation";
 
 type GameTableState = GameState | PlayerGameView;
-type TableSeats = { bottom: PlayerId; right: PlayerId; top: PlayerId; left: PlayerId };
-
-export function tableSeatsFor(state: GameTableState): TableSeats {
-  const bottom = "viewerPlayerId" in state ? state.viewerPlayerId : 0;
-  return {
-    bottom,
-    right: ((bottom + 1) % 4) as PlayerId,
-    top: ((bottom + 2) % 4) as PlayerId,
-    left: ((bottom + 3) % 4) as PlayerId,
-  };
-}
+import { tableSeatsFor, type TableSeats } from "@/lib/solo/tableSeats";
+export { tableSeatsFor } from "@/lib/solo/tableSeats";
 
 export function inactivePlayerMessage(state: GameTableState): string | null {
   const inactive = "inactivePlayerId" in state ? state.inactivePlayerId : inactivePlayerForState(state);
@@ -65,63 +56,6 @@ type GameTableProps = {
   onAutoCollectComplete?: (trickKey: string) => void;
 };
 
-type AnnouncementBubbleContent = {
-  label: string;
-  detail?: string;
-  tone: "neutral" | "accent";
-};
-
-function formatBidLabel(bid: Bid): AnnouncementBubbleContent {
-  if (bid.action === "pass") {
-    return { label: "Passe", tone: "neutral" };
-  }
-
-  if (bid.action === "coinche") {
-    return { label: "Coinche", tone: "accent" };
-  }
-
-  if (bid.action === "surcoinche") {
-    return { label: "Surcoinche", tone: "accent" };
-  }
-
-  if (bid.action === "capot") {
-    return { label: `Capot ${formatContractMode(resolveContractMode(bid)!)}`, tone: "accent" };
-  }
-
-  if (bid.action === "generale") {
-    return { label: `Générale ${formatContractMode(resolveContractMode(bid)!)}`, tone: "accent" };
-  }
-
-  return {
-    label: `${bid.value} ${formatContractMode(resolveContractMode(bid)!)}`,
-    tone: "accent",
-  };
-}
-
-function formatFinalContract(contract: Contract): AnnouncementBubbleContent {
-  const label = formatContractLabel(contract);
-  if (contract.status === "surcoinched") {
-    return {
-      label,
-      detail: "Surcoinchee",
-      tone: "accent",
-    };
-  }
-
-  if (contract.status === "coinched") {
-    return {
-      label,
-      detail: "Coinchee",
-      tone: "accent",
-    };
-  }
-
-  return {
-    label,
-    tone: "accent",
-  };
-}
-
 function latestBidKey(roundNumber: number, bids: Bid[]): string | null {
   const latestBid = bids.at(-1);
 
@@ -142,17 +76,6 @@ function bidKey(roundNumber: number, bidsLength: number, bid: Bid): string {
   }
 
   return `${roundNumber}-${bidsLength}-${bid.playerId}-${bid.action}`;
-}
-
-function dominantBidPlayerId(bids: Bid[]): PlayerId | null {
-  for (let index = bids.length - 1; index >= 0; index -= 1) {
-    const bid = bids[index];
-    if (bid.action === "bid" || bid.action === "capot" || bid.action === "generale") {
-      return bid.playerId;
-    }
-  }
-
-  return null;
 }
 
 function trickCollectionOffset(winnerId: PlayerId, seats: TableSeats): { x: string; y: string } {

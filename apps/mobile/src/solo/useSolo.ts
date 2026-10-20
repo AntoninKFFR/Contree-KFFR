@@ -18,7 +18,7 @@ export function useSolo() {
       api: createSoloApi(soloEnvironment.fetcher), storage: soloEnvironment.storage, uuid: soloEnvironment.uuid,
       onChange: (value) => { if (live) setBinding({ owner, token, snapshot: value, controller: next }); }, unauthorized: () => accountRef.current.reload(),
     });
-    const listener = AppState.addEventListener("change", (status) => { if (status !== "active") next.suspend(); });
+    const listener = AppState.addEventListener("change", (status) => { if (status !== "active") next.suspend(); else void next.load(); });
     void next.load(); // GET saved ID only. Creating a game always needs a user press.
     return () => { live = false; listener.remove(); next.dispose(); setBinding(null); };
   }, [owner, token]));

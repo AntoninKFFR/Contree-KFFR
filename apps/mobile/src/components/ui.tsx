@@ -58,8 +58,8 @@ export function Button({ label, onPress, disabled = false, secondary = false, ac
 }
 
 /** Optional long content and keyboard entry scroll only inside this separate native modal. */
-export function DetailDialog({ visible, title, onClose, children }: { visible: boolean; title: string; onClose: () => void; children: ReactNode }) {
-  const reducedMotion = useMotionPreference();
+export function DetailDialog({ visible, title, onClose, children, reduceMotion = false }: { visible: boolean; title: string; onClose: () => void; children: ReactNode; reduceMotion?: boolean }) {
+  const reducedMotion = useMotionPreference() || reduceMotion;
   return <Modal visible={visible} transparent animationType={reducedMotion ? "none" : "fade"} presentationStyle="overFullScreen"
     supportedOrientations={["landscape-left", "landscape-right"]} onRequestClose={onClose}>
     <WindowGuard>

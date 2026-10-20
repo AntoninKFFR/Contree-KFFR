@@ -52,10 +52,11 @@ it("native transport completes real server-engine hands, rejects illegal cards a
     expect(client.state.session?.state.hand).toEqual(server.hands[0]);
     expect(client.state.session?.state.totalScore).toEqual(server.totalScore);
     if (step === 8) {
-      client.dispose(); client = make(); await client.load(); expect(client.state.active).toBe(false); client.resume();
+      client.dispose(); client = make(); const movesBeforeResume = moves; await client.load(); expect(client.state.active).toBe(true); expect(moves).toBe(movesBeforeResume);
     }
   }
   expect(server.phase).toBe("game-over"); expect(moves).toBeGreaterThan(30); expect(starts).toBe(1);
+  expect(triedIllegal).toBe(true);
   expect(client.state.session?.state.winnerTeam).toBe(server.winnerTeam);
   expect(latest).not.toBeNull(); client.dispose();
 }, 30_000);
@@ -74,7 +75,7 @@ it("a real all-pass server result can explicitly start the next round through th
     storage: { getItem: async () => JSON.stringify({ sessionId: id, startKey: null }), setItem: async () => {} },
     uuid: () => id, onChange: () => {}, unauthorized: () => {},
   });
-  await controller.load(); controller.resume(); expect(controller.state.session?.state.result).toContain("Tous ont passé");
+  await controller.load(); expect(controller.state.session?.state.result).toEqual({ kind: "all-pass", roundScore: server.roundScore });
   await controller.move({ type: "start-next-round" });
   expect(controller.state.session?.state.phase).toBe("bidding"); expect(controller.state.session?.state.roundNumber).toBe(2);
   expect(controller.state.session?.state.hand).toHaveLength(8); controller.dispose();

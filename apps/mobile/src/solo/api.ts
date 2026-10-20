@@ -1,4 +1,5 @@
 import { parseSoloResponse, SoloFailure, uuidPattern, type NativeSoloSession, type SoloIntent } from "./contract";
+import type { CustomRulesetInput } from "../../../../engine/rulesets/custom";
 
 // Verified repository homepage and deployed Solo endpoint (unauthenticated GET -> 401).
 // Keep bearer tokens on this exact HTTPS origin; never accept a game-supplied URL.
@@ -39,7 +40,7 @@ export function createSoloApi(fetcher: typeof fetch = fetch, timeoutMs = 15_000)
   }
   return {
     load: (who: SoloIdentity, signal: AbortSignal, id: string) => call(who, signal, id),
-    start: (who: SoloIdentity, signal: AbortSignal, startKey: string) => call(who, signal, undefined, { rules: { presetId: "contree-kffr" }, startKey }),
+    start: (who: SoloIdentity, signal: AbortSignal, startKey: string, rules: CustomRulesetInput = { presetId: "contree-kffr" }) => call(who, signal, undefined, { rules, startKey }),
     move: (who: SoloIdentity, signal: AbortSignal, current: NativeSoloSession, intent: SoloIntent) => call(who, signal, current.id, { expectedVersion: current.version, intent }),
   };
 }

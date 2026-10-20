@@ -29,6 +29,8 @@ assert.equal(plist.UIRequiresFullScreenIgnoredStartingWithVersion, undefined);
 assert.equal(config.orientation, "landscape");
 assert.equal(config.ios.supportsTablet, false);
 assert.equal(config.ios.bundleIdentifier, "com.antoninkffr.kffrcontree.dev");
+assert.equal(plist.NSMicrophoneUsageDescription, undefined, "Solo playback must not add a recording permission.");
+assert.ok(!plist.UIBackgroundModes?.includes("audio"), "Solo audio stops when the game is backgrounded.");
 assert.equal(plist.UIApplicationSceneManifest?.UIApplicationSupportsMultipleScenes, false);
 assert.equal(
   plist.UIApplicationSceneManifest?.UISceneConfigurations?.UIWindowSceneSessionRoleApplication?.[0]?.UISceneDelegateClassName,
