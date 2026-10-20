@@ -41,6 +41,8 @@ export const soloEnvironment = {
     if (scenario === "loading") return new Promise<Response>(() => {});
     if (init?.method === "POST") {
       const body = JSON.parse(String(init.body));
+      const postDelay = Number(new URLSearchParams(location.search).get("postDelay") || 0);
+      if (postDelay > 0) await new Promise((resolve) => setTimeout(resolve, postDelay));
       // Callback/permission tests stay on the same engine-generated human turn.
       // Full transitions and bots are exercised by the real-engine transport test.
       if (biddingStage && body.intent) { current.version++; return new Response(JSON.stringify({ data: current })); }

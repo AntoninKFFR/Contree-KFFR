@@ -27,12 +27,12 @@ modification Supabase ou publication de production.
 | Typecheck et lint Expo | Réussis |
 | Unités mobile | 25 tests réussis |
 | Navigation native / vrais écrans et hooks | 18 tests réussis |
-| Géométrie et interactions RN Web | 95 tests réussis, aucun retry ; dont 12 comparaisons à 1 px et 12 cas avancés |
+| Géométrie et interactions RN Web | 97 tests, dont 12 comparaisons à 1 px et 14 cas avancés ; attente/refus réseau inclus |
 | Configuration iOS | Vérifiée : deux paysages, iPhone, scene lifecycle, aucune permission micro/audio en arrière-plan |
 | Compatibilité des paquets SDK 57 | `expo install --check` réussi |
 | Expo Doctor | 21/21 réussis |
 | Export iOS Metro avec source map | Réussi |
-| Audit de la vraie source map | 1 747 sources ; aucune transition, bot, serveur, UI DOM ou fixture |
+| Audit de la vraie source map | 1 759 sources ; aucune transition, bot, serveur, UI DOM ou fixture |
 | Diff whitespace | `git diff --check` réussi |
 
 Le banc RN Web groupe les modules Vite pour éviter l'épuisement des sockets
@@ -53,6 +53,7 @@ Le statut courant et le SHA testé sont consultables dans les
 Le rapport de livraison indique les runs et leur SHA effectivement vérifiés ;
 ce document ne fige pas un statut CI avant sa fin.
 
-L'essai matériel de cette nouvelle table reste à faire : les captures RN Web et
-l'export Metro ne prouvent pas les gestes, le clavier, VoiceOver, l'audio ou la
-fluidité sur l'iPhone 15. Les différences restantes figurent dans PARITY.md.
+Le [premier retour iPhone](PHYSICAL-QA.md) confirme le fonctionnement général de
+la table, avec réserves de latence et chargement. Le correctif de réactivité/cache
+reste à réessayer. RN Web et l'export ne prouvent pas les validations matérielles
+restantes, ni un gain mesuré de fluidité. Voir PARITY.md et PHYSICAL-QA.md.

@@ -1,10 +1,10 @@
-import { SoloFailure, uuidPattern, type NativeSoloSession, type SoloIntent } from "./contract";
+import { SoloFailure, uuidPattern, type Card, type NativeSoloSession, type SoloIntent } from "./contract";
 import type { SoloApi, SoloIdentity } from "./api";
 import { buildCustomRuleset, rulesetToCustomInput, type CustomRulesetInput } from "../../../../engine/rulesets/custom";
 
 export type SoloStorage = { getItem: (key: string) => Promise<string | null>; setItem: (key: string, value: string) => Promise<unknown> };
-export type SoloState = { session: NativeSoloSession | null; busy: boolean; hydrated: boolean; active: boolean; requiresSync: boolean; error: string | null };
-export const initialSoloState: SoloState = { session: null, busy: false, hydrated: false, active: false, requiresSync: false, error: null };
+export type SoloState = { session: NativeSoloSession | null; busy: boolean; hydrated: boolean; active: boolean; requiresSync: boolean; error: string | null; pendingCard: Card | null };
+export const initialSoloState: SoloState = { session: null, busy: false, hydrated: false, active: false, requiresSync: false, error: null, pendingCard: null };
 export const soloStorageKey = (userId: string) => "kffr-native-solo:v1:" + encodeURIComponent(userId);
 type Bookmark = { sessionId: string | null; startKey: string | null; rules?: CustomRulesetInput };
 
@@ -42,7 +42,7 @@ export function createSoloController(options: {
       const failure = error instanceof SoloFailure ? error : new SoloFailure("La sauvegarde locale ou le réseau est indisponible. Réessaie.", 0, "storage");
       if (failure.status === 401) { update({ session: null, active: false, requiresSync: true, error: failure.message }); unauthorized(); }
       else update({ error: failure.message, requiresSync: failure.status !== 400 });
-    } finally { if (current()) { request = null; update({ busy: false, hydrated: true }); } }
+    } finally { if (current()) { request = null; update({ busy: false, hydrated: true, pendingCard: null }); } }
   }
   function accept(next: NativeSoloSession) {
     if (state.session && next.id === state.session.id && next.version < state.session.version) throw new SoloFailure("État serveur obsolète. Recharge la partie.", 0, "version");
@@ -78,6 +78,9 @@ export function createSoloController(options: {
     move: (intent: SoloIntent) => run(async (who, signal, current) => {
       const previous = state.session;
       if (!previous || !state.active || state.requiresSync) return;
+      // Presentation feedback only. Keep the authoritative hand/trick untouched
+      // until the validated server reply, including on refusal or disconnect.
+      if (intent.type === "play-card") update({ pendingCard: intent.card });
       const next = await api.move(who, signal, previous, intent); if (!current()) return;
       if (next.version <= previous.version) throw new SoloFailure("Action non confirmée. Recharge la partie.", 0, "version");
       accept(next);

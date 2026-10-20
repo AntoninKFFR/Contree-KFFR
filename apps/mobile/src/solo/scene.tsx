@@ -1,6 +1,7 @@
 import { formatBidLabel, formatFinalContract } from "@/lib/solo/tableAnnouncements";
 import { SoloText as Text } from "./appearance";
-import { Image, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Image } from "expo-image";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { BlurView } from "expo-blur";
 import { tableSeatsFor } from "@/lib/solo/tableSeats";
@@ -17,7 +18,7 @@ import { NativeBidding } from "./bidding";
 import { NativeHand } from "./hand";
 import { CardFace, cardLabel } from "./card-face";
 import { TableButton } from "./table-controls";
-import type { NativeSoloSession, SoloIntent } from "./contract";
+import type { Card, NativeSoloSession, SoloIntent } from "./contract";
 
 const clamp = (min: number, n: number, max: number) => Math.min(max, Math.max(min, n));
 const playEntry = (x: number, y: number) => ({ from: { opacity: 0, transform: [{ translateX: x }, { translateY: y }, { scale: .96 }] }, to: { opacity: 1, transform: [{ translateX: 0 }, { translateY: 0 }, { scale: 1 }] } });
@@ -59,9 +60,10 @@ export function TrickCards({ cards, height, animatedKeys = [], preferences, redu
     })}
   </View>;
 }
-export function SoloScene({ session, width, height, preferences, reduced, human, onIntent, layers, cardPresentations, presented, policy, onCollect, onLastTrick }: {
+export function SoloScene({ session, width, height, preferences, reduced, human, onIntent, layers, cardPresentations, presented, policy, onCollect, onLastTrick, pendingCard }: {
   session: NativeSoloSession; width: number; height: number; preferences: PlayerPreferences; reduced: boolean; human: boolean; onIntent: (intent: SoloIntent) => void;
   layers: TrickLayer[]; cardPresentations: Map<string, CardPresentation>; presented: PresentedTrick | null; policy: { autoCollect: boolean; delayMs: number }; onCollect: () => void; onLastTrick: () => void;
+  pendingCard?: Card | null;
 }) {
   const game = session.state, geometry = soloSceneGeometry(width, height, game.phase === "bidding"), seats = tableSeatsFor(game), live = getPublicRoundPoints(game);
   const contractText = game.contract ? `${formatContractLabel(game.contract)}${game.contract.status === "coinched" ? " · Coinché" : game.contract.status === "surcoinched" ? " · Surcoinché" : ""}` : "Annonces";
@@ -69,7 +71,7 @@ export function SoloScene({ session, width, height, preferences, reduced, human,
   const playDelay = isPreferenceAnimationEnabled(preferences, "card-play", reduced) ? Math.min(240, policy.delayMs) : 0;
   const obscured = game.phase === "finished" || game.phase === "game-over";
   return <View testID="solo-card-table" aria-hidden={obscured} accessibilityElementsHidden={obscured} importantForAccessibility={obscured ? "no-hide-descendants" : "auto"} pointerEvents={obscured ? "none" : "auto"} style={{ flex: 1, overflow: "hidden", backgroundColor: colors[preferences.visual.tableTheme] }}>
-    {preferences.visual.tableTheme === "classic-green" ? <Image source={felt} resizeMode="cover" style={StyleSheet.absoluteFill} accessible={false} /> : null}
+    {preferences.visual.tableTheme === "classic-green" ? <Image source={felt} contentFit="cover" cachePolicy="memory-disk" transition={0} style={StyleSheet.absoluteFill} accessible={false} /> : null}
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: preferences.visual.tableTheme === "classic-green" ? "#04301f5e" : "#00000020", boxShadow: "inset 0 0 90px #00000061" }]} />
     {layers.map((layer, i) => {
       const collecting = layer.kind === "completed" && presented && policy.autoCollect && isPreferenceAnimationEnabled(preferences, "trick", reduced);
@@ -87,7 +89,7 @@ export function SoloScene({ session, width, height, preferences, reduced, human,
     </View>
     {preferences.assistance.showLivePoints ? <View accessibilityLabel="Points en direct" style={{ position: "absolute", right: 56, top: 5, borderWidth: 1, borderColor: "#ffffff33", backgroundColor: "#07150fdb", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12, flexDirection: "row", gap: 6 }}><Text allowFontScaling={false} style={{ color: "#e8d8adbf", fontSize: 8, fontWeight: "700" }}>DIRECT</Text><Text allowFontScaling={false} style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>Nous {live[0]}  Eux {live[1]}</Text></View> : null}
     {Object.entries(seats).map(([position, player]) => <PlayerCell key={player} game={game} player={player} position={position} width={width} height={height} preferences={preferences} reduced={reduced} />)}
-    <NativeHand key={`${session.id}:${game.roundNumber}`} game={game} width={width} height={geometry.handHeight} canPlay={human && game.phase === "playing"} onPlay={(card) => onIntent({ type: "play-card", playerId: 0, card })} preferences={preferences} reduced={reduced} />
+    <NativeHand key={`${session.id}:${game.roundNumber}`} game={game} width={width} height={geometry.handHeight} canPlay={human && game.phase === "playing"} onPlay={(card) => onIntent({ type: "play-card", playerId: 0, card })} preferences={preferences} reduced={reduced} pendingCard={pendingCard} />
     {game.phase === "bidding" ? <NativeBidding key={`${session.id}:${game.roundNumber}:${game.bids.length}`} game={game} canBid={human} width={width} height={height} handHeight={geometry.handHeight} top={geometry.biddingTop} preferences={preferences} reduced={reduced} onIntent={onIntent} /> : null}
     {presented && !policy.autoCollect ? <View style={{ position: "absolute", right: 68, bottom: geometry.handHeight + 10, width: 112, zIndex: 40 }}><TableButton label={`Ramasser le pli\n${playerName(presented.trick.winnerId, game.playerNames)} · ${presented.trick.points} pts`} onPress={onCollect} /></View> : null}
     {preferences.assistance.showLastTrick && game.completedTricks.length > 0 && !presented ? <Pressable accessibilityRole="button" accessibilityLabel="Dernier pli" onPress={onLastTrick} style={{ position: "absolute", right: 4, bottom: 60, width: 80, height: 44, alignItems: "center", justifyContent: "flex-end", zIndex: 20 }}><Text style={{ backgroundColor: "#07150fdb", borderColor: "#ead8a64d", borderWidth: 1, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 2, fontSize: 10, color: "#fff" }}>Dernier pli</Text></Pressable> : null}

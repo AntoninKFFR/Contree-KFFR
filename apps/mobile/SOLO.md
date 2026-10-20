@@ -72,7 +72,9 @@ Seules les feuilles secondaires défilent.
 `@expo/ui` fournit les véritables contrôles natifs Switch/Picker/Slider/Host ;
 `expo-blur` le fond du résultat ; `expo-audio` les sons équivalents et la playlist
 publique existante. `expo-asset` est la dépendance nécessaire de chargement.
-Versions sélectionnées par `expo install`, sans changer SDK 57. Aucune permission
+`expo-image` assure le cache mémoire/disque et le préchargement des images sans
+changer les assets ni bloquer l'authentification. Versions sélectionnées par
+`expo install`, sans changer SDK 57. Aucune permission
 microphone, lecture audio d'arrière-plan ou compilation payante n'est ajoutée.
 `expo-crypto` conserve les UUID sûrs. Expo Go SDK 57 reste la cible d'essai.
 
@@ -96,5 +98,7 @@ publique existante du [README](README.md), puis ouvrir le QR dans Expo Go SDK 57
 Tester les deux paysages, un démarrage volontaire, les enchères, la pose directe,
 le dernier pli, les paramètres, le résultat/manche suivante, puis sortie/reprise
 et arrière-plan. Vérifier VoiceOver, Reduce Motion et audio sur le matériel.
-La nouvelle table n'a pas encore reçu cette QA physique ; l'ancienne validation
-du prototype ne doit pas être réutilisée comme preuve.
+Le propriétaire a confirmé le fonctionnement de cette nouvelle table sur iPhone,
+avec des réserves de latence et chargement. Voir le [retour physique et les
+corrections](docs/parity-150/PHYSICAL-QA.md) ; le correctif de réactivité/cache et
+les validations matérielles restantes ne sont pas encore confirmés.

@@ -69,10 +69,11 @@ ou l'équivalence de chaque pixel. Les trois planches ont été inspectées.
 - Le natif reste réservé aux comptes connectés, comme la fondation existante.
   Le Solo anonyme local du web n'est pas porté : il utilise un moteur côté client,
   exclu de cette PR où les transitions restent exclusivement sur le serveur.
-- QA physique encore nécessaire sur iPhone 15 : deux sens paysage, animations et
-  ramassage avec/sans Reduce Motion, VoiceOver, clavier des règles, son, musique,
-  arrière-plan/reprise et absence de double action. Aucune nouvelle validation
-  physique n'est revendiquée ; aucun build signé, achat ou simulateur payant.
+- Premier retour physique positif sur la nouvelle table : [observations et
+  correctifs de réactivité/cache](PHYSICAL-QA.md). Réessai du correctif et QA
+  ciblée encore nécessaires : deux sens paysage, Reduce Motion, VoiceOver,
+  clavier des règles, audio et double action. Aucun gain de fluidité mesuré,
+  build signé, achat ou simulateur payant n'est revendiqué.
 
 ## Outils et contrôles
 

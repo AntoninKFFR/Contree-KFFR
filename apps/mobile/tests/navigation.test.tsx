@@ -1,3 +1,4 @@
+import { Children } from "react";
 import type { AuthChangeEvent, Session, SupabaseClient } from "@supabase/supabase-js";
 import { AppState, Dimensions, ScrollView, View, type AppStateStatus } from "react-native";
 import * as Orientation from "expo-screen-orientation";
@@ -369,6 +370,13 @@ describe("native navigation with the shared account controller", () => {
     fireEvent.press(playable); await flush();
     expect(mockSoloWire.state.hand).toHaveLength(7);
     expect(screen.getByTestId("solo-play-0")).toBeVisible();
+    fireEvent.press(screen.getByRole("button", { name: "Menu Partie" }));
+    // A raw whitespace child renders on web but causes an actual iOS native
+    // "Text strings must be rendered within a <Text>" error in the menu.
+    for (const scroll of screen.UNSAFE_getAllByType(ScrollView)) {
+      expect(Children.toArray(scroll.props.children).filter((child) => typeof child === "string")).toEqual([]);
+    }
+    fireEvent.press(screen.getByRole("button", { name: "Fermer" }));
     expect(mockSoloRequests.mock.calls[2][0]).toContain(SESSION_ID);
     fireEvent.press(screen.getByRole("button", { name: "Quitter la table et revenir à l’accueil" }));
     fireEvent.press(screen.getByRole("button", { name: "Revenir à l’accueil" })); await flush();

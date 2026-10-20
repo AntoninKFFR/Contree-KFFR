@@ -89,3 +89,20 @@ test("Solo illegal cards use the same explanation locally and never send a play 
   await expect(button).toBeEnabled(); await button.click(); await expect(page.getByRole("alert")).toHaveText(message!);
   expect(await posts(page)).toEqual([]); await expect(button).toBeVisible();
 });
+
+for (const refused of [false, true]) test(`Solo responds immediately while a delayed card request ${refused ? "is refused" : "is accepted"}`, async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto(`/?screen=solo&parity=start&postDelay=1000${refused ? "&solo=action-error" : ""}`);
+  const cards = page.getByRole("button", { name: /^Jouer / });
+  await expect(cards).toHaveCount(8);
+  await cards.first().click();
+  await expect(page.getByTestId("solo-pending-card")).toBeVisible();
+  await expect(page.getByLabel("Envoi de la carte au serveur")).toBeVisible();
+  // No optimistic game state: the hand and actual trick still await the server.
+  await expect(cards).toHaveCount(8); await expect(page.getByTestId("solo-play-0")).toHaveCount(0);
+  expect(await posts(page)).toHaveLength(1);
+  await expect(page.getByTestId("solo-pending-card")).toHaveCount(0);
+  await expect(cards).toHaveCount(refused ? 8 : 7);
+  await expect(page.getByTestId("solo-play-0")).toHaveCount(refused ? 0 : 1);
+  if (refused) await expect(page.getByRole("alert")).toContainText("Action refusée");
+});

@@ -1,9 +1,10 @@
-import { Image, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 import felt from "../../assets/felt-table.png";
 import { tokens as t } from "@/theme/tokens";
 
 export function TableBackdrop() {
-  return <View style={StyleSheet.absoluteFill} pointerEvents="none" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><Image source={felt} resizeMode="cover" style={StyleSheet.absoluteFill} accessible={false} /></View>;
+  return <View style={StyleSheet.absoluteFill} pointerEvents="none" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><Image source={felt} contentFit="cover" cachePolicy="memory-disk" transition={0} style={StyleSheet.absoluteFill} accessible={false} /></View>;
 }
 
 /** Decorative cards are original native views, never controls or fake playable cards. */

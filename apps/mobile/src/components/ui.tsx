@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "expo-router";
-import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import logo from "../../assets/kffr-logo.png";
 import { WindowGuard } from "@/components/LandscapeFrame";
@@ -14,7 +15,7 @@ export function useGameLayout() {
   return { compact: height < 380 || fontScale > 1.3, largeText: fontScale > 1.3, fontScale };
 }
 export function Brand({ placement = "header" }: { placement?: "header" | "table" }) {
-  return <Image source={logo} resizeMode="contain" style={placement === "table" ? styles.tableLogo : styles.logo} accessibilityLabel="KFFR Contrée" />;
+  return <Image source={logo} contentFit="contain" cachePolicy="memory-disk" priority="high" transition={0} style={placement === "table" ? styles.tableLogo : styles.logo} accessible accessibilityLabel="KFFR Contrée" aria-label="KFFR Contrée" />;
 }
 export function Screen({ children, bottomInset = false, title = "KFFR Contrée", back = false, profileLink = false, minimalHeader = false, headerAction }: {
   children: ReactNode; bottomInset?: boolean; title?: string; back?: boolean; profileLink?: boolean; minimalHeader?: boolean; headerAction?: ReactNode;

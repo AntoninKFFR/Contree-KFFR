@@ -22,6 +22,7 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     "expo-asset",
+    "expo-image",
     ["expo-screen-orientation", { initialOrientation: "LANDSCAPE" }],
     ["expo-dev-client", { launchMode: "most-recent" }],
     ["expo-audio", { microphonePermission: false, recordAudioAndroid: false, enableBackgroundRecording: false, enableBackgroundPlayback: false }],

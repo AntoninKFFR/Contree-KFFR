@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import { fileURLToPath } from "node:url";
 const file = (value: string) => fileURLToPath(new URL(value, import.meta.url));
-const webExtensions = [".web.tsx", ".tsx", ".web.ts", ".ts", ".web.js", ".js", ".json"];
+const webExtensions = [".web.tsx", ".web.ts", ".web.js", ".tsx", ".ts", ".jsx", ".js", ".json"];
 export default defineConfig({
   root: file("./"),
   define: { __DEV__: "true", global: "globalThis", "process.env.EXPO_OS": '"web"' },

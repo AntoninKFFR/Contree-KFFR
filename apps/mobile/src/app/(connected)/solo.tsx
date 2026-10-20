@@ -58,7 +58,7 @@ function SoloRoom() {
   return <SoloAppearance value={{ textSize: settings.preferences.visual.textSize, contrast: settings.preferences.visual.highContrast, reduced: settings.reduced, sound: () => audio.sound("ui") }}><SafeAreaView testID="solo-screen" edges={["top", "bottom", "left", "right"]} style={{ flex: 1, backgroundColor: "#06120d" }}>
     <View style={{ flex: 1, overflow: "hidden" }} aria-hidden={dialog !== null} accessibilityElementsHidden={dialog !== null} importantForAccessibility={dialog !== null ? "no-hide-descendants" : "auto"}>
       {game && state.active && settings.loaded ? <>
-        <SoloScene session={session!} width={width} height={height} preferences={settings.preferences} reduced={settings.reduced} human={human} onIntent={send}
+        <SoloScene session={session!} width={width} height={height} preferences={settings.preferences} reduced={settings.reduced} human={human} onIntent={send} pendingCard={state.pendingCard}
           layers={presentation.layers} cardPresentations={presentation.cardPresentations} presented={presentation.presented} policy={presentation.policy} onCollect={presentation.collect} onLastTrick={() => setDialog("last")} />
         {game.phase === "finished" || game.phase === "game-over" ? <RoundCompletion game={game} disabled={!ready} onAction={() => game.phase === "game-over" ? setDialog("new") : send({ type: "start-next-round" })} onDetails={() => setDialog("details")} reduced={settings.reduced} /> : null}
       </> : <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 68, gap: 12 }}>
@@ -74,7 +74,8 @@ function SoloRoom() {
       <View style={{ position: "absolute", right: 4, top: 4, zIndex: 50, width: 44 }}><TableButton label="☰" accessibilityLabel="Menu Partie" onPress={() => setDialog("menu")} symbol chrome /></View>
       <View style={{ position: "absolute", right: 4, bottom: 12, zIndex: 50, width: 44 }}><TableButton label="‹" accessibilityLabel="Menu KFFR" onPress={() => setDialog("menu")} symbol chrome /></View>
     </View>
-    <DetailDialog reduceMotion={settings.reduced} visible={dialog !== null} title={{ menu: "Menu Partie", exit: "Revenir à l’accueil ?", new: "Nouvelle partie", settings: "Paramètres", rules: "Règles de la prochaine partie", table: "La table", last: "Dernier pli", details: "Détails de la manche" }[dialog ?? "menu"]} onClose={() => setDialog(null)}>    {dialog === "menu" ? <>
+    <DetailDialog reduceMotion={settings.reduced} visible={dialog !== null} title={{ menu: "Menu Partie", exit: "Revenir à l’accueil ?", new: "Nouvelle partie", settings: "Paramètres", rules: "Règles de la prochaine partie", table: "La table", last: "Dernier pli", details: "Détails de la manche" }[dialog ?? "menu"]} onClose={() => setDialog(null)}>
+    {dialog === "menu" ? <>
       <TableButton label="Table, enchères et scores" onPress={() => setDialog("table")} />
       <TableButton label="Paramètres" onPress={() => setDialog("settings")} />
       <TableButton label="Règles de la prochaine partie" onPress={() => setDialog("rules")} />
