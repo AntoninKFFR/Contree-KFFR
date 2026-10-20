@@ -7,14 +7,14 @@ import { tokens } from "@/theme/tokens";
 export default function ProfileScreen() {
   const account = useAccount();
   const { largeText } = useGameLayout();
-  return <AccountGate>
-    <Screen title="Mon profil" back>
+  return <AccountGate bottomInset>
+    <Screen bottomInset title="Mon profil" back>
       <View style={styles.row}>
         <View testID="game-panel" style={styles.panel}>
           <View style={local.identity}>
             {!largeText ? <View style={local.avatar} accessible={false}><Text style={local.initial}>{Array.from(account.username?.trim() || "♠")[0].toLocaleUpperCase("fr")}</Text></View> : null}
             <View style={local.name}>
-              {!largeText ? <Text style={styles.hint}>Pseudo KFFR</Text> : null}
+              {!largeText ? <Text style={local.eyebrow}>JOUEUR KFFR</Text> : null}
               <Username username={account.username} />
             </View>
           </View>
@@ -31,8 +31,9 @@ export default function ProfileScreen() {
   </AccountGate>;
 }
 const local = StyleSheet.create({
-  identity: { flexDirection: "row", alignItems: "center", gap: 12 },
-  name: { flex: 1, minWidth: 0, gap: 4 },
-  avatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: tokens.colors.accent, alignItems: "center", justifyContent: "center" },
-  initial: { color: tokens.colors.accent, fontSize: 23, fontWeight: "700" },
+  identity: { flexDirection: "row", alignItems: "center", gap: tokens.spacing.sm },
+  name: { flex: 1, minWidth: 0, gap: tokens.spacing.xxs },
+  eyebrow: { ...tokens.type.eyebrow, color: tokens.colors.muted },
+  avatar: { width: 52, height: 52, borderRadius: tokens.radius.round, borderWidth: 1, borderColor: tokens.colors.accent, backgroundColor: tokens.colors.inset, boxShadow: tokens.shadow.panel, alignItems: "center", justifyContent: "center" },
+  initial: { ...tokens.type.heading, color: tokens.colors.accent },
 });

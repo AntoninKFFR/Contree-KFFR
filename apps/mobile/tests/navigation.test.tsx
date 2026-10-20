@@ -13,6 +13,11 @@ import { Username } from "../src/components/ui";
 
 let mockClient: SupabaseClient | null;
 jest.mock("@/lib/supabase", () => ({ get supabase() { return mockClient; } }));
+// Router's Reanimated fallback can return an empty module without a JSI runtime.
+// These navigator/session tests only need its host view, not the JSI runtime.
+// The browser suite runs real Reanimated and checks press/reduced-motion states.
+jest.mock("react-native-reanimated", () => ({ __esModule: true, default: { View: jest.requireActual("react-native").View } }));
+jest.mock("react-native-reanimated/mock", () => ({ __esModule: true, default: { View: jest.requireActual("react-native").View } }));
 
 function fixture(initialUser: string | null = "alice") {
   let session = initialUser ? { user: { id: initialUser }, access_token: initialUser } as Session : null;
@@ -64,14 +69,14 @@ const routes = { _layout: RootLayout, login: Login, "(connected)/_layout": Conne
 async function flush() { await act(async () => { await jest.advanceTimersByTimeAsync(50); }); }
 let rendered: ReturnType<typeof renderRouter>;
 async function open(url = "/") { rendered = renderRouter(routes, { initialUrl: url }); await flush(); return rendered; }
-async function profileTab() { fireEvent.press(screen.getByLabelText("Onglet Profil")); await flush(); }
+async function openProfile() { fireEvent.press(screen.getByRole("link", { name: "Voir mon profil" })); await flush(); }
 
 describe("native navigation with the shared account controller", () => {
   test("a pseudo measured in a narrow window returns inline when landscape has room again", async () => {
     const f = fixture();
     const username = "Alice de la Contrée";
     f.profile.mockResolvedValue({ data: { username }, error: null });
-    await open(); await profileTab();
+    await open(); await openProfile();
     const identityReads = f.client.auth.getUser.mock.calls.length;
     const container = () => screen.UNSAFE_getByType(Username).findAllByType(View)[0];
     const layout = (width: number) => fireEvent(container(), "layout", { nativeEvent: { layout: { width } } });
@@ -92,7 +97,7 @@ describe("native navigation with the shared account controller", () => {
     const f = fixture();
     jest.spyOn(Orientation, "supportsOrientationLockAsync").mockResolvedValue(true);
     jest.spyOn(Orientation, "lockAsync").mockRejectedValue(new Error("iOS refuses orientation"));
-    await open(); await profileTab();
+    await open(); await openProfile();
     expect(Orientation.lockAsync).toHaveBeenCalledWith(Orientation.OrientationLock.LANDSCAPE);
     act(() => Dimensions.set({ window: { width: 390, height: 844, scale: 1, fontScale: 1 } }));
     await flush();
@@ -109,7 +114,7 @@ describe("native navigation with the shared account controller", () => {
     const f = fixture();
     await open();
     expect(screen.UNSAFE_queryAllByType(ScrollView)).toHaveLength(0);
-    await profileTab();
+    await openProfile();
     expect(screen.UNSAFE_queryAllByType(ScrollView)).toHaveLength(0);
     act(() => f.emit(null)); await flush();
     expect(screen.UNSAFE_queryAllByType(ScrollView)).toHaveLength(0);
@@ -125,7 +130,7 @@ describe("native navigation with the shared account controller", () => {
     const f = fixture();
     const username = "Un très long pseudo KFFR sans troncature";
     f.profile.mockResolvedValue({ data: { username }, error: null });
-    await open(); await profileTab();
+    await open(); await openProfile();
     fireEvent.press(screen.getByRole("button", { name: "Voir mon pseudo" }));
     expect(screen.getByLabelText("Pseudo KFFR : " + username)).toBeVisible();
     act(() => f.emit(null)); await flush();
@@ -144,14 +149,19 @@ describe("native navigation with the shared account controller", () => {
     await flush();
     expect(f.client.auth.signInWithPassword).toHaveBeenCalledWith({ email: "alice@example.test", password: "test-only-password" });
     expect(rendered.getPathname()).toBe("/");
-    await profileTab();
+    await openProfile();
     expect(screen.getByLabelText("Pseudo KFFR : Alice KFFR")).toBeVisible();
   });
 
   test("restores the account, disables future modes, navigates back without new auth listeners", async () => {
     const f = fixture();
     const app = await open();
-    for (const title of ["Jouer en solo", "Multijoueur", "Entraînement"]) {
+    expect(screen.queryByLabelText("Onglet Accueil")).toBeNull();
+    expect(screen.queryByLabelText("Onglet Profil")).toBeNull();
+    expect(screen.getByLabelText("KFFR Contrée")).toBeVisible();
+    expect(screen.queryByText("LE CLUB KFFR")).toBeNull();
+    expect(screen.queryByText("La contrée")).toBeNull();
+    for (const title of ["Solo", "Multijoueur", "Entraînement"]) {
       const mode = screen.getByRole("button", { name: title + ". Bientôt disponible sur iPhone." });
       expect(mode).toBeDisabled();
       fireEvent.press(mode);
@@ -160,11 +170,14 @@ describe("native navigation with the shared account controller", () => {
     fireEvent.press(screen.getByRole("link", { name: "Voir mon profil" }));
     await flush();
     expect(rendered.getPathname()).toBe("/profile");
+    expect(screen.queryByTestId("game-navigation")).toBeNull();
     fireEvent.press(screen.getByRole("link", { name: "Retour à l’accueil" }));
     await flush();
     expect(rendered.getPathname()).toBe("/");
-    await profileTab();
-    fireEvent.press(screen.getByLabelText("Onglet Accueil"));
+    await openProfile();
+    expect(screen.queryByLabelText("Onglet Accueil")).toBeNull();
+    expect(screen.queryByLabelText("Onglet Profil")).toBeNull();
+    fireEvent.press(screen.getByRole("link", { name: "Retour à l’accueil" }));
     await flush();
     expect(rendered.getPathname()).toBe("/");
     expect(f.client.auth.onAuthStateChange).toHaveBeenCalledTimes(1);
@@ -178,7 +191,7 @@ describe("native navigation with the shared account controller", () => {
   test("preserves Profile across background and offline revalidation, hiding private content until retry succeeds", async () => {
     const f = fixture();
     await open();
-    await profileTab();
+    await openProfile();
     act(() => lifecycle("background"));
     expect(screen.queryByText("Alice KFFR")).toBeNull();
     expect(rendered.getPathname()).toBe("/profile");
@@ -202,7 +215,7 @@ describe("native navigation with the shared account controller", () => {
 
   test("token refresh preserves navigation and verifies identity again", async () => {
     const f = fixture();
-    await open(); await profileTab();
+    await open(); await openProfile();
     const before = f.getUser.mock.calls.length;
     act(() => f.emit("alice", "TOKEN_REFRESHED"));
     expect(screen.queryByText("Alice KFFR")).toBeNull();
@@ -214,7 +227,7 @@ describe("native navigation with the shared account controller", () => {
 
   test("expired session removes private history and blocks later profile navigation", async () => {
     const f = fixture();
-    await open(); await profileTab();
+    await open(); await openProfile();
     act(() => f.emit(null));
     await flush();
     expect(rendered.getPathname()).toBe("/login");
@@ -223,26 +236,26 @@ describe("native navigation with the shared account controller", () => {
     await flush();
     expect(rendered.getPathname()).toBe("/login");
     act(() => f.emit("bob")); await flush();
-    await profileTab();
+    await openProfile();
     expect(screen.getByLabelText("Pseudo KFFR : Bob KFFR")).toBeVisible();
     expect(screen.queryByText("Alice KFFR")).toBeNull();
   });
 
   test("direct account changes reset the tab navigator and never display the old pseudo", async () => {
     const f = fixture();
-    await open(); await profileTab();
+    await open(); await openProfile();
     act(() => f.emit("bob"));
     expect(screen.queryByText("Alice KFFR")).toBeNull();
     await flush();
     expect(rendered.getPathname()).toBe("/");
-    await profileTab();
+    await openProfile();
     expect(screen.getByLabelText("Pseudo KFFR : Bob KFFR")).toBeVisible();
     expect(f.client.auth.onAuthStateChange).toHaveBeenCalledTimes(1);
   });
 
   test("failed logout immediately hides the profile and permits retry before returning to login", async () => {
     const f = fixture();
-    await open(); await profileTab();
+    await open(); await openProfile();
     f.signOut.mockResolvedValueOnce({ error: new Error("offline") });
     fireEvent.press(screen.getByRole("button", { name: "Se déconnecter" }));
     await flush();
@@ -260,7 +273,7 @@ describe("native navigation with the shared account controller", () => {
   test("profile read failures show no invented username and refresh the same screen", async () => {
     const f = fixture();
     f.profile.mockResolvedValue({ data: { username: "" }, error: new Error("network") });
-    await open(); await profileTab();
+    await open(); await openProfile();
     expect(screen.getByText("Pseudo indisponible")).toBeVisible();
     expect(screen.getByRole("alert")).toHaveTextContent("Impossible de charger ton pseudo. Réessaie.");
     f.profile.mockResolvedValue({ data: { username: "Alice KFFR" }, error: null });
@@ -280,7 +293,7 @@ describe("native navigation with the shared account controller", () => {
 
   test("a delayed profile response cannot restore private content after logout", async () => {
     const f = fixture();
-    await open(); await profileTab();
+    await open(); await openProfile();
     let finish!: (result: { data: { username: string }; error: null }) => void;
     f.profile.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
     fireEvent.press(screen.getByRole("button", { name: "Actualiser le profil" }));

@@ -5,27 +5,32 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import logo from "../../assets/kffr-logo.png";
 import { WindowGuard } from "@/components/LandscapeFrame";
 import { tokens } from "@/theme/tokens";
+import Animated from "react-native-reanimated";
+import { useMotionPreference } from "@/components/use-motion-preference";
+import { TableBackdrop } from "@/components/table-art";
 
 export function useGameLayout() {
   const { height, fontScale } = useWindowDimensions();
   return { compact: height < 380 || fontScale > 1.3, largeText: fontScale > 1.3, fontScale };
 }
-export function Brand() {
-  return <Image source={logo} resizeMode="contain" style={styles.logo} accessibilityLabel="KFFR Contrée" />;
+export function Brand({ placement = "header" }: { placement?: "header" | "table" }) {
+  return <Image source={logo} resizeMode="contain" style={placement === "table" ? styles.tableLogo : styles.logo} accessibilityLabel="KFFR Contrée" />;
 }
-export function Screen({ children, bottomInset = false, title = "KFFR Contrée", back = false, profileLink = false }: {
-  children: ReactNode; bottomInset?: boolean; title?: string; back?: boolean; profileLink?: boolean;
+export function Screen({ children, bottomInset = false, title = "KFFR Contrée", back = false, profileLink = false, minimalHeader = false }: {
+  children: ReactNode; bottomInset?: boolean; title?: string; back?: boolean; profileLink?: boolean; minimalHeader?: boolean;
 }) {
+  const [focusedLink, setFocusedLink] = useState<"back" | "profile" | null>(null);
   return (
     <SafeAreaView testID="game-screen" style={styles.screen} edges={bottomInset ? ["top", "left", "right", "bottom"] : ["top", "left", "right"]}>
+      <TableBackdrop />
       <View testID="game-header" style={styles.header}>
         <View style={styles.headerSide}>
-          {back ? <Link href="/" replace asChild><Pressable accessibilityRole="link" accessibilityLabel="Retour à l’accueil" style={styles.headerButton}><Text style={styles.headerLink}>‹ Accueil</Text></Pressable></Link>
-            : <Text style={styles.headerTitle}>{title}</Text>}
+          {back ? <Link href="/" replace asChild><Pressable accessibilityRole="link" accessibilityLabel="Retour à l’accueil" onFocus={() => setFocusedLink("back")} onBlur={() => setFocusedLink(null)} style={StyleSheet.flatten([styles.headerButton, focusedLink === "back" && tokens.focus])}><Text style={styles.headerLink}>‹ Accueil</Text></Pressable></Link>
+            : !minimalHeader ? <Text style={styles.headerTitle}>{title}</Text> : null}
         </View>
-        <Brand />
+        {!minimalHeader ? <Brand /> : null}
         <View style={[styles.headerSide, styles.headerRight]}>
-          {profileLink ? <Link href="/profile" asChild><Pressable accessibilityRole="link" accessibilityLabel="Voir mon profil" style={styles.headerButton}><Text style={styles.headerLink}>Profil ›</Text></Pressable></Link>
+          {profileLink ? <Link href="/profile" asChild><Pressable accessibilityRole="link" accessibilityLabel="Voir mon profil" onFocus={() => setFocusedLink("profile")} onBlur={() => setFocusedLink(null)} style={StyleSheet.flatten([styles.headerButton, focusedLink === "profile" && tokens.focus])}><Text style={styles.headerLink}>Profil ›</Text></Pressable></Link>
             : back ? <Text accessibilityRole="header" style={styles.headerTitle}>{title}</Text> : null}
         </View>
       </View>
@@ -36,15 +41,26 @@ export function Screen({ children, bottomInset = false, title = "KFFR Contrée",
 export function Button({ label, onPress, disabled = false, secondary = false, accessibilityLabel }: {
   label: string; onPress: () => void; disabled?: boolean; secondary?: boolean; accessibilityLabel?: string;
 }) {
+  const [pressed, setPressed] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const reducedMotion = useMotionPreference();
   return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
-    style={({ pressed }) => [styles.button, secondary && styles.secondaryButton, (disabled || pressed) && styles.dimmed]}>
-    <Text style={[styles.buttonText, secondary && styles.secondaryText]}>{label}</Text>
+    onPressIn={() => setPressed(true)} onPressOut={() => setPressed(false)}
+    onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={[styles.buttonTarget, focused && !disabled && tokens.focus]}>
+    <Animated.View style={[styles.button, secondary && styles.secondaryButton, {
+      transform: [{ scale: pressed && !disabled && !reducedMotion ? tokens.motion.pressScale : 1 }],
+      transitionProperty: "transform", transitionDuration: reducedMotion ? 0 : tokens.motion.pressDuration,
+      transitionTimingFunction: tokens.motion.easing,
+    }, pressed && !disabled && (secondary ? styles.secondaryPressed : styles.primaryPressed), disabled && styles.unavailable]}>
+      <Text style={[styles.buttonText, (secondary || disabled) && styles.secondaryText]}>{label}</Text>
+    </Animated.View>
   </Pressable>;
 }
 
 /** Optional long content and keyboard entry scroll only inside this separate native modal. */
 export function DetailDialog({ visible, title, onClose, children }: { visible: boolean; title: string; onClose: () => void; children: ReactNode }) {
-  return <Modal visible={visible} transparent animationType="fade" presentationStyle="overFullScreen"
+  const reducedMotion = useMotionPreference();
+  return <Modal visible={visible} transparent animationType={reducedMotion ? "none" : "fade"} presentationStyle="overFullScreen"
     supportedOrientations={["landscape-left", "landscape-right"]} onRequestClose={onClose}>
     <WindowGuard>
       <SafeAreaView style={styles.modalSafe} edges={["top", "bottom", "left", "right"]}>
@@ -98,28 +114,32 @@ export function ErrorMessage({ message }: { message: string }) {
 }
 export const styles = StyleSheet.create({
   screen: { flex: 1, minHeight: 0, backgroundColor: tokens.colors.background },
-  header: { height: 44, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, gap: 8 },
+  header: { height: 44, flexDirection: "row", alignItems: "center", paddingHorizontal: tokens.spacing.md, gap: tokens.spacing.xs },
   headerSide: { flex: 1, minWidth: 0 },
   headerRight: { alignItems: "flex-end" },
   headerButton: { minHeight: 44, minWidth: 44, justifyContent: "center" },
-  headerTitle: { color: tokens.colors.muted, fontSize: 13, fontWeight: "600" },
-  headerLink: { color: tokens.colors.accent, fontSize: 14, fontWeight: "700" },
+  headerTitle: { ...tokens.type.caption, color: tokens.colors.muted, fontWeight: "600", letterSpacing: 1 },
+  headerLink: { ...tokens.type.label, color: tokens.colors.accent },
   logo: { width: 80, height: 34 },
-  content: { flex: 1, minHeight: 0, paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8 },
-  heading: { color: tokens.colors.text, fontSize: 20, lineHeight: 25, fontWeight: "700" },
-  body: { color: tokens.colors.muted, fontSize: 14, lineHeight: 20 },
-  hint: { color: tokens.colors.muted, fontSize: 12, lineHeight: 17 },
-  panel: { flex: 1, minWidth: 0, padding: 14, gap: 10, borderRadius: 18, borderWidth: 1, borderColor: tokens.colors.border, backgroundColor: tokens.colors.surface, justifyContent: "center" },
-  row: { flex: 1, minHeight: 0, flexDirection: "row", gap: 12 },
-  button: { minHeight: 44, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 11, backgroundColor: tokens.colors.accent, alignItems: "center", justifyContent: "center" },
-  buttonText: { color: tokens.colors.background, fontSize: 14, lineHeight: 20, fontWeight: "800", textAlign: "center" },
-  secondaryButton: { backgroundColor: "transparent", borderWidth: 1, borderColor: tokens.colors.border },
+  tableLogo: { width: 160, height: 104, maxWidth: "100%" },
+  content: { flex: 1, minHeight: 0, paddingHorizontal: tokens.spacing.md, paddingTop: tokens.spacing.xxs, paddingBottom: tokens.spacing.xs },
+  heading: { ...tokens.type.heading, color: tokens.colors.text },
+  body: { ...tokens.type.body, color: tokens.colors.muted },
+  hint: { ...tokens.type.caption, color: tokens.colors.muted },
+  panel: { flex: 1, minWidth: 0, padding: tokens.spacing.md, gap: tokens.spacing.sm, borderRadius: tokens.radius.lg, borderCurve: "continuous", borderWidth: 1, borderColor: tokens.colors.border, backgroundColor: tokens.colors.surface, boxShadow: tokens.shadow.panel, justifyContent: "center" },
+  row: { flex: 1, minHeight: 0, flexDirection: "row", gap: tokens.spacing.sm },
+  buttonTarget: { minHeight: 44, minWidth: 44, justifyContent: "center" },
+  button: { minHeight: 44, paddingHorizontal: tokens.spacing.sm, paddingVertical: tokens.spacing.xs, borderRadius: tokens.radius.md, borderCurve: "continuous", borderWidth: 1, borderColor: tokens.colors.accent, backgroundColor: tokens.colors.accent, boxShadow: tokens.shadow.button, alignItems: "center", justifyContent: "center" },
+  buttonText: { ...tokens.type.label, color: tokens.colors.accentInk, textAlign: "center" },
+  secondaryButton: { backgroundColor: tokens.colors.inset, borderColor: tokens.colors.border, boxShadow: "none" },
   secondaryText: { color: tokens.colors.accent },
-  dimmed: { opacity: 0.6 },
-  error: { color: tokens.colors.danger, fontSize: 13, lineHeight: 18 },
-  modalSafe: { flex: 1, backgroundColor: "rgba(3,12,8,0.96)", padding: 8 },
+  primaryPressed: { backgroundColor: tokens.colors.accentPressed, boxShadow: "none" },
+  secondaryPressed: { backgroundColor: tokens.colors.raised, borderColor: tokens.colors.accent },
+  unavailable: { backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border, boxShadow: "none" },
+  error: { ...tokens.type.caption, color: tokens.colors.danger },
+  modalSafe: { flex: 1, backgroundColor: tokens.colors.scrim, padding: tokens.spacing.xs },
   modalKeyboard: { flex: 1, justifyContent: "center", alignItems: "center" },
-  dialog: { width: "100%", maxWidth: 720, flex: 1, minHeight: 0, borderRadius: 18, backgroundColor: tokens.colors.surface, borderWidth: 1, borderColor: tokens.colors.border },
-  dialogHeader: { flexDirection: "row", alignItems: "center", padding: 8, paddingLeft: 16, gap: 12 },
-  dialogContent: { padding: 16, gap: 12 },
+  dialog: { width: "100%", maxWidth: 720, flex: 1, minHeight: 0, borderRadius: tokens.radius.lg, borderCurve: "continuous", backgroundColor: tokens.colors.surface, borderWidth: 1, borderColor: tokens.colors.border, boxShadow: tokens.shadow.panel },
+  dialogHeader: { flexDirection: "row", alignItems: "center", padding: tokens.spacing.xs, paddingLeft: tokens.spacing.md, gap: tokens.spacing.sm, borderBottomWidth: 1, borderColor: tokens.colors.hairline },
+  dialogContent: { padding: tokens.spacing.md, gap: tokens.spacing.sm },
 });

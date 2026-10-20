@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const sizes = [{ width: 568, height: 320 }, { width: 667, height: 375 }, { width: 844, height: 390 }, { width: 932, height: 430 }];
-async function geometry(page: Page, connected: boolean, left = 47, right = 47, bottom = 21) {
+async function geometry(page: Page, connected: boolean | "home", left = 47, right = 47, bottom = 21) {
   await expect(page.getByTestId("game-screen")).toBeVisible();
   await expect(page.getByTestId("game-screen").getByTestId("secondary-scroll")).toHaveCount(0);
   const result = await page.evaluate(({ connected, left, right, bottom }) => {
@@ -47,11 +47,8 @@ async function geometry(page: Page, connected: boolean, left = 47, right = 47, b
         if (glyphs.left < bounds.left - 1 || glyphs.right > bounds.right + 1 || glyphs.top < bounds.top - 1 || glyphs.bottom > bounds.bottom + 1) errors.push("text outside its control: " + element.textContent);
       }
     }
-    if (connected) {
-      const nav = document.querySelector('[data-testid="game-navigation"]')!.getBoundingClientRect();
-      if (Math.abs(nav.height - bottom - 48) > 1) errors.push("navigation must be 48 + one bottom inset");
-      if (content.bottom > nav.top + 1) errors.push("navigation overlaps content");
-    }
+    if (document.querySelector('[data-testid="game-navigation"]')) errors.push("bottom navigation must not render on any screen");
+    if (connected && content.bottom > innerHeight - bottom + 1) errors.push("connected screen crosses bottom safe area");
     return { errors, viewport };
   }, { connected, left, right, bottom });
   expect(result.errors).toEqual([]);
@@ -62,14 +59,19 @@ for (const size of sizes) {
     test(screen + " fits " + size.width + "x" + size.height, async ({ page }, info) => {
       await page.setViewportSize(size);
       await page.goto("/?screen=" + screen);
-      await geometry(page, screen !== "login");
+      await geometry(page, screen === "home" ? "home" : screen !== "login");
       if (screen === "home") {
+        await expect(page.getByTestId("game-header").getByLabel("KFFR Contrée")).toHaveCount(0);
+        await expect(page.getByTestId("home-brand").getByLabel("KFFR Contrée")).toBeVisible();
+        expect(await page.getByTestId("game-screen").innerText()).toMatch(/^Profil ›\s+Solo\s+Multijoueur\s+Entraînement$/);
         await expect(page.getByRole("button", { name: /Bientôt disponible sur iPhone/ })).toHaveCount(3);
         for (const button of await page.getByRole("button", { name: /Bientôt disponible sur iPhone/ }).all()) await expect(button).toBeDisabled();
-        await page.getByRole("tab", { name: "Onglet Profil" }).click();
+        await page.getByRole("link", { name: "Voir mon profil" }).click();
+        await expect(page.getByTestId("game-navigation")).toHaveCount(0);
         await expect(page.getByLabel("Pseudo KFFR : Antonin KFFR")).toBeVisible();
-        await page.getByRole("link", { name: "Retour à l’accueil" }).click();
         await geometry(page, true);
+        await page.getByRole("link", { name: "Retour à l’accueil" }).click();
+        await geometry(page, "home");
       }
       await page.screenshot({ path: info.outputPath(screen + ".png") });
     });
@@ -101,7 +103,7 @@ for (const size of sizes) {
     await page.setViewportSize(size);
     for (const screen of ["home", "profile", "login"]) {
       await page.goto("/?screen=" + screen + "&font=1.6");
-      await geometry(page, screen !== "login");
+      await geometry(page, screen === "home" ? "home" : screen !== "login");
       await page.screenshot({ path: info.outputPath(screen + "-large-text.png") });
     }
     for (const state of ["loading", "offline", "logout", "configuration"]) {
@@ -133,5 +135,74 @@ test("asymmetric safe areas, rotation fallback and native form modal", async ({ 
   await page.setViewportSize({ width: 844, height: 200 });
   await page.screenshot({ path: info.outputPath("login-reduced-height.png") });
   await page.getByRole("button", { name: "Se connecter", exact: true }).click();
-  await expect(page.getByRole("tab", { name: "Onglet Accueil" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Voir mon profil" })).toBeVisible();
+});
+
+test("minimal home keeps both island insets, rotation and account fallbacks safe", async ({ page }, info) => {
+  for (const [left, right] of [[59, 0], [0, 59]]) {
+    await page.setViewportSize(sizes[2]);
+    await page.goto("/?left=" + left + "&right=" + right);
+    await geometry(page, "home", left, right);
+    await page.screenshot({ path: info.outputPath("home-island-" + left + ".png") });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByTestId("rotation-notice")).toBeVisible();
+    await page.setViewportSize(sizes[2]);
+    await geometry(page, "home", left, right);
+  }
+  for (const size of [sizes[0], sizes[2]]) {
+    await page.setViewportSize(size);
+    for (const state of ["loading", "offline", "logout", "configuration"]) {
+      await page.goto("/?state=" + state);
+      await geometry(page, "home");
+      await expect(page.getByText("Antonin KFFR", { exact: true })).toHaveCount(0);
+    }
+  }
+});
+
+for (const size of [sizes[0], sizes[2]]) {
+  test("comparable art directions at " + size.width, async ({ page }, info) => {
+    await page.setViewportSize(size);
+    for (const proposal of ["club", "salon"]) {
+      await page.goto("/?proposal=" + proposal);
+      await geometry(page, proposal === "club" ? "home" : true);
+      const modes = page.getByRole("button", { name: /Bientôt disponible sur iPhone/ });
+      await expect(modes).toHaveCount(3);
+      for (const mode of await modes.all()) await expect(mode).toBeDisabled();
+      await page.screenshot({ path: info.outputPath("proposal-" + proposal + ".png"), animations: "disabled" });
+    }
+  });
+}
+
+test("real Reanimated press feedback follows live Reduce Motion and keyboard focus", async ({ page }, info) => {
+  await page.setViewportSize(sizes[2]);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/?screen=login");
+  const button = page.getByRole("button", { name: "Se connecter", exact: true });
+  const face = button.locator(":scope > div").first();
+  const duration = () => face.evaluate((element) => getComputedStyle(element).transitionDuration);
+  const scale = () => face.evaluate((element) => new DOMMatrix(getComputedStyle(element).transform).a);
+  await expect.poll(duration).toBe("0.12s");
+  await button.hover();
+  await page.mouse.down();
+  await expect.poll(scale).toBeCloseTo(0.97, 2);
+  await page.screenshot({ path: info.outputPath("login-pressed.png"), animations: "disabled" });
+  // Move away to cancel the click while still exercising release feedback.
+  await page.mouse.move(10, 10); await page.mouse.up();
+  await expect.poll(scale).toBe(1);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(duration).toBe("0s");
+  await button.hover(); await page.mouse.down();
+  await expect.poll(scale).toBe(1);
+  await page.mouse.move(10, 10); await page.mouse.up();
+  await button.focus();
+  await expect(button).toBeFocused();
+  await expect(button).toHaveCSS("outline-style", "solid");
+  await expect(button).toHaveCSS("outline-width", "2px");
+  await page.screenshot({ path: info.outputPath("login-keyboard-focus.png"), animations: "disabled" });
+  await page.keyboard.press("Enter");
+  await expect(page.getByLabel("Adresse email")).toBeVisible();
+  await page.getByLabel("Adresse email").focus();
+  await page.screenshot({ path: info.outputPath("login-form-focus.png"), animations: "disabled" });
+  await page.getByRole("button", { name: "Fermer" }).click();
+  await geometry(page, false);
 });
