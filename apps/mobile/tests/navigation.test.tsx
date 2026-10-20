@@ -1,3 +1,4 @@
+import { Children } from "react";
 import type { AuthChangeEvent, Session, SupabaseClient } from "@supabase/supabase-js";
 import { AppState, Dimensions, ScrollView, View, type AppStateStatus } from "react-native";
 import * as Orientation from "expo-screen-orientation";
@@ -9,15 +10,44 @@ import Login from "../src/app/login";
 import ConnectedLayout from "../src/app/(connected)/_layout";
 import Home from "../src/app/(connected)/index";
 import Profile from "../src/app/(connected)/profile";
+import Solo from "../src/app/(connected)/solo";
 import { Username } from "../src/components/ui";
+import { soloFixture, SESSION_ID, START_KEY } from "./solo-fixtures";
+import { soloStorageKey } from "../src/solo/controller";
+import parityStates from "./parity/states.json";
+import { SoloSettingsPanel } from "../src/solo/settings-panel";
+import { clonePlayerPreferences, withGameSpeed, PLAYER_PREFERENCES_STORAGE_KEY } from "@/lib/preferences/playerPreferences";
+let mockSoloMemory = new Map<string, string>();
+let mockSoloWire = soloFixture();
+let mockSoloRequests = jest.fn();
+jest.mock("@/solo/environment", () => ({ soloEnvironment: {
+  uuid: () => jest.requireActual("./solo-fixtures").START_KEY,
+  storage: { getItem: async (key: string) => mockSoloMemory.get(key) ?? null, setItem: async (key: string, value: string) => { mockSoloMemory.set(key, value); } },
+  fetcher: (...args: unknown[]) => mockSoloRequests(...args),
+} }));
 
 let mockClient: SupabaseClient | null;
 jest.mock("@/lib/supabase", () => ({ get supabase() { return mockClient; } }));
 // Router's Reanimated fallback can return an empty module without a JSI runtime.
 // These navigator/session tests only need its host view, not the JSI runtime.
 // The browser suite runs real Reanimated and checks press/reduced-motion states.
-jest.mock("react-native-reanimated", () => ({ __esModule: true, default: { View: jest.requireActual("react-native").View } }));
-jest.mock("react-native-reanimated/mock", () => ({ __esModule: true, default: { View: jest.requireActual("react-native").View } }));
+jest.mock("react-native-reanimated", () => {
+  const builder = { duration() { return this; }, delay() { return this; } };
+  return { __esModule: true, default: { View: jest.requireActual("react-native").View }, FadeIn: builder, FadeInDown: builder, cubicBezier: () => "ease-out" };
+});
+jest.mock("react-native-reanimated/mock", () => {
+  const builder = { duration() { return this; }, delay() { return this; } };
+  return { __esModule: true, default: { View: jest.requireActual("react-native").View }, FadeIn: builder, FadeInDown: builder, cubicBezier: () => "ease-out" };
+});
+// These lifecycle tests have no SwiftUI/AVFoundation host. Browser geometry uses
+// the actual Expo UI and Reanimated web implementations; gameplay uses the real engine separately.
+jest.mock("@expo/ui", () => {
+  const React = jest.requireActual("react"), Native = jest.requireActual("react-native");
+  const Picker = ({ children }: { children: React.ReactNode }) => React.createElement(Native.View, null, children);
+  Picker.Item = function PickerItem({ label }: { label: string }) { return React.createElement(Native.Text, null, label); };
+  return { Host: Native.View, Picker, Slider: Native.View, Switch: ({ label, ...props }: { label: string }) => React.createElement(Native.Switch, { ...props, accessibilityLabel: label }) };
+});
+jest.mock("expo-audio", () => ({ createAudioPlayer: () => ({ volume: 0, play: jest.fn(), pause: jest.fn(), replace: jest.fn(), remove: jest.fn(), addListener: () => ({ remove: jest.fn() }) }) }));
 
 function fixture(initialUser: string | null = "alice") {
   let session = initialUser ? { user: { id: initialUser }, access_token: initialUser } as Session : null;
@@ -54,6 +84,20 @@ function fixture(initialUser: string | null = "alice") {
 let lifecycle: (state: AppStateStatus) => void;
 let removeListener: ReturnType<typeof jest.fn>;
 beforeEach(() => {
+  mockSoloMemory = new Map(); mockSoloWire = soloFixture();
+  mockSoloRequests = jest.fn(async (_url, init) => {
+    if (init.method === "POST") {
+      const body = JSON.parse(init.body);
+      mockSoloWire.version++;
+      if (body.intent?.type === "bid" || body.intent?.type === "pass") mockSoloWire = soloFixture("playing", mockSoloWire.version);
+      if (body.intent?.type === "play-card") {
+        mockSoloWire.state.hand = mockSoloWire.state.hand.filter((c) => c.rank !== body.intent.card.rank || c.suit !== body.intent.card.suit);
+        mockSoloWire.state.currentTrick.cards.push({ playerId: 0, card: body.intent.card });
+      }
+      mockSoloWire.state.handCounts[0] = mockSoloWire.state.hand.length;
+    }
+    return { ok: true, text: async () => JSON.stringify({ data: mockSoloWire }) };
+  });
   Object.defineProperty(AppState, "currentState", { value: "active", configurable: true });
   Dimensions.set({ window: { width: 844, height: 390, scale: 1, fontScale: 1 }, screen: { width: 844, height: 390, scale: 1, fontScale: 1 } });
   const listeners = new Set<(state: AppStateStatus) => void>();
@@ -65,7 +109,7 @@ beforeEach(() => {
   });
 });
 afterEach(() => { rendered?.unmount(); cleanup(); jest.restoreAllMocks(); jest.useRealTimers(); });
-const routes = { _layout: RootLayout, login: Login, "(connected)/_layout": ConnectedLayout, "(connected)/index": Home, "(connected)/profile": Profile };
+const routes = { _layout: RootLayout, login: Login, "(connected)/_layout": ConnectedLayout, "(connected)/index": Home, "(connected)/profile": Profile, "(connected)/solo": Solo };
 async function flush() { await act(async () => { await jest.advanceTimersByTimeAsync(50); }); }
 let rendered: ReturnType<typeof renderRouter>;
 async function open(url = "/") { rendered = renderRouter(routes, { initialUrl: url }); await flush(); return rendered; }
@@ -123,6 +167,7 @@ describe("native navigation with the shared account controller", () => {
     fireEvent.changeText(screen.getByLabelText("Mot de passe"), "test-only");
     fireEvent.press(screen.getByRole("button", { name: "Fermer" }));
     fireEvent.press(screen.getByRole("button", { name: "Se connecter" }));
+    await flush();
     expect(screen.getByLabelText("Mot de passe").props.value).toBe("");
   });
 
@@ -161,7 +206,9 @@ describe("native navigation with the shared account controller", () => {
     expect(screen.getByLabelText("KFFR Contrée")).toBeVisible();
     expect(screen.queryByText("LE CLUB KFFR")).toBeNull();
     expect(screen.queryByText("La contrée")).toBeNull();
-    for (const title of ["Solo", "Multijoueur", "Entraînement"]) {
+    expect(screen.getByRole("button", { name: "Solo" })).toBeEnabled();
+    expect(mockSoloRequests).not.toHaveBeenCalled();
+    for (const title of ["Multijoueur", "Entraînement"]) {
       const mode = screen.getByRole("button", { name: title + ". Bientôt disponible sur iPhone." });
       expect(mode).toBeDisabled();
       fireEvent.press(mode);
@@ -306,5 +353,183 @@ describe("native navigation with the shared account controller", () => {
     expect(rendered.getPathname()).toBe("/login");
     expect(screen.getByRole("button", { name: "Se connecter" })).toBeVisible();
     expect(screen.queryByText("STALE PRIVATE PROFILE")).toBeNull();
+  });
+
+  test("Solo enters without creation, explicitly starts, bids, plays, returns and resumes without a POST", async () => {
+    fixture(); await open();
+    fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    expect(rendered.getPathname()).toBe("/solo"); expect(mockSoloRequests).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByRole("button", { name: "Nouvelle partie" })); await flush();
+    expect(mockSoloRequests).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("solo-card-table")).toBeVisible();
+    expect(screen.getByLabelText(/Hugo, Nord, partenaire/)).toBeVisible();
+    expect(screen.getByLabelText(/Léa, Est, adversaire/)).toBeVisible();
+    expect(screen.getByLabelText(/Emma, Ouest, adversaire/)).toBeVisible();
+    expect(JSON.parse(mockSoloRequests.mock.calls[0][1].body).startKey).toBe(START_KEY);
+    fireEvent.press(screen.getByRole("button", { name: "Valeur 100" }));
+    fireEvent.press(screen.getByRole("button", { name: "Annoncer" })); await flush();
+    expect(JSON.parse(mockSoloRequests.mock.calls[1][1].body).intent).toMatchObject({ type: "bid", playerId: 0, value: 100 });
+    const playable = screen.getAllByRole("button", { name: /^Jouer / }).find((button) => !button.props.accessibilityState.disabled)!;
+    fireEvent.press(playable); await flush();
+    expect(mockSoloWire.state.hand).toHaveLength(7);
+    expect(screen.getByTestId("solo-play-0")).toBeVisible();
+    fireEvent.press(screen.getByRole("button", { name: "Menu Partie" }));
+    // A raw whitespace child renders on web but causes an actual iOS native
+    // "Text strings must be rendered within a <Text>" error in the menu.
+    for (const scroll of screen.UNSAFE_getAllByType(ScrollView)) {
+      expect(Children.toArray(scroll.props.children).filter((child) => typeof child === "string")).toEqual([]);
+    }
+    fireEvent.press(screen.getByRole("button", { name: "Fermer" }));
+    expect(mockSoloRequests.mock.calls[2][0]).toContain(SESSION_ID);
+    fireEvent.press(screen.getByRole("button", { name: "Quitter la table et revenir à l’accueil" }));
+    fireEvent.press(screen.getByRole("button", { name: "Revenir à l’accueil" })); await flush();
+    const before = mockSoloRequests.mock.calls.length;
+    fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    expect(screen.getByTestId("solo-card-table")).toBeVisible();
+    expect(mockSoloRequests.mock.calls.slice(before).every((call) => call[1].method === "GET")).toBe(true);
+    expect(screen.queryByTestId("game-navigation")).toBeNull();
+  });
+
+  test("Solo data disappears on account change and does not create for the replacement account", async () => {
+    const f = fixture(); await open();
+    fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    fireEvent.press(screen.getByRole("button", { name: "Nouvelle partie" })); await flush();
+    act(() => f.emit("bob")); await flush();
+    expect(rendered.getPathname()).toBe("/"); expect(screen.queryByTestId("solo-screen")).toBeNull();
+    const before = mockSoloRequests.mock.calls.length;
+    fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    expect(screen.getByRole("button", { name: "Nouvelle partie" })).toBeVisible();
+    expect(mockSoloRequests.mock.calls.length).toBe(before);
+  });
+
+  test("Solo schedules one server bot at a time and stops sending intents when returning home", async () => {
+    fixture(); mockSoloWire = soloFixture("playing"); mockSoloWire.state.currentPlayerId = 1;
+    mockSoloMemory.set(soloStorageKey("alice"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
+    mockSoloRequests.mockImplementation(async (_url, init) => {
+      if (init.method === "POST") {
+        expect(JSON.parse(init.body).intent).toEqual({ type: "advance-bot" });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        mockSoloWire.version++; mockSoloWire.state.currentPlayerId = (mockSoloWire.state.currentPlayerId + 1) % 4;
+      }
+      return { ok: true, text: async () => JSON.stringify({ data: mockSoloWire }) };
+    });
+    await open(); fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    expect(screen.getByLabelText(/Léa, Est, adversaire, à son tour/)).toBeVisible();
+    expect(mockSoloRequests.mock.calls.filter((call) => call[1].method === "POST")).toHaveLength(1);
+    await act(async () => { await jest.advanceTimersByTimeAsync(600); });
+    expect(screen.getByLabelText(/Léa, Est, adversaire, à son tour/)).toBeVisible();
+    expect(mockSoloRequests.mock.calls.filter((call) => call[1].method === "POST")).toHaveLength(1);
+    fireEvent.press(screen.getByRole("button", { name: "Menu Partie" }));
+    fireEvent.press(screen.getByRole("button", { name: "Paramètres" }));
+    const settings = screen.UNSAFE_getByType(SoloSettingsPanel).props;
+    act(() => settings.onChange({ ...settings.preferences, visual: { ...settings.preferences.visual, tableTheme: "midnight-blue" } }));
+    fireEvent.press(screen.getByRole("button", { name: "Fermer" }));
+    // An unrelated visual preference must not restart the 1200ms bot delay.
+    await act(async () => { await jest.advanceTimersByTimeAsync(600); }); await flush();
+    expect(mockSoloWire.state.currentPlayerId).toBe(2);
+    expect(screen.getByLabelText(/Hugo, Nord, partenaire, à son tour/)).toBeVisible();
+    fireEvent.press(screen.getByRole("button", { name: "Quitter la table et revenir à l’accueil" }));
+    fireEvent.press(screen.getByRole("button", { name: "Revenir à l’accueil" })); await flush();
+    const count = mockSoloRequests.mock.calls.length;
+    await act(async () => { await jest.advanceTimersByTimeAsync(5000); });
+    expect(mockSoloRequests.mock.calls.length).toBe(count);
+  });
+
+  test.each(["slow", "normal", "fast", "instant"] as const)("Solo bot latency benchmark %s preserves the chosen delay while HTTP overlaps", async (speed) => {
+    fixture(); mockSoloWire = soloFixture("playing"); mockSoloWire.state.currentPlayerId = 1;
+    const preferences = withGameSpeed(clonePlayerPreferences(), speed), httpMs = 1000;
+    mockSoloMemory.set(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
+    mockSoloMemory.set(soloStorageKey("alice"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
+    const starts: number[] = [], accepted: number[] = [];
+    jest.spyOn(console, "debug").mockImplementation((label, fields) => {
+      if (label === "[Solo wait]" && fields.kind === "bot") starts.push(Date.now() - fields.elapsedMs);
+      if (label === "[Solo performance]" && fields.operation === "advance-bot" && fields.phase === "state") accepted.push(Date.now());
+    });
+    let posts = 0;
+    mockSoloRequests.mockImplementation(async (_url, init) => {
+      if (init.method === "POST") {
+        posts++; expect(JSON.parse(init.body).intent).toEqual({ type: "advance-bot" });
+        expect(JSON.parse(init.body).expectedVersion).toBe(mockSoloWire.version);
+        await new Promise((resolve) => setTimeout(resolve, httpMs));
+        mockSoloWire.version++; mockSoloWire.state.currentPlayerId = (mockSoloWire.state.currentPlayerId + 1) % 4;
+      }
+      return { ok: true, text: async () => JSON.stringify({ data: mockSoloWire }) };
+    });
+    await open(); fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    const period = process.env.SOLO_BOT_BASELINE ? preferences.gameplay.botDelayMs + httpMs : Math.max(preferences.gameplay.botDelayMs, httpMs);
+    for (let turn = 1; turn <= 3; turn++) {
+      await act(async () => { await jest.advanceTimersByTimeAsync(period); }); await flush();
+      expect(accepted).toHaveLength(turn);
+    }
+    expect(posts).toBe(3); expect(starts).toHaveLength(3);
+    const spans = accepted.map((time, index) => time - starts[index]);
+    expect(spans).toEqual([period, period, period]);
+    console.info(JSON.stringify({ botBenchmark: process.env.SOLO_BOT_BASELINE ? "before" : "after", speed, httpMs, spans }));
+  });
+
+  test("Solo resumes a bot winner without waiting for a loaded trick that must never replay", async () => {
+    fixture(); mockSoloWire = soloFixture("playing"); mockSoloWire.state.currentPlayerId = 1;
+    mockSoloWire.state.completedTricks = [{ ...structuredClone(parityStates.trick.state.completedTricks[0]), winnerId: 1 }];
+    mockSoloWire.state.currentTrick.cards = [];
+    mockSoloMemory.set(soloStorageKey("alice"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
+    mockSoloRequests.mockImplementation(async (_url, init) => {
+      if (init.method === "POST") {
+        mockSoloWire.version++; mockSoloWire.state.currentPlayerId = 0;
+      }
+      return { ok: true, text: async () => JSON.stringify({ data: mockSoloWire }) };
+    });
+    await open(); fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    expect(screen.queryByTestId("solo-play-0")).toBeNull();
+    expect(screen.getByLabelText(/Léa, Est, adversaire, à son tour/)).toBeVisible();
+    await act(async () => { await jest.advanceTimersByTimeAsync(1200); }); await flush();
+    expect(screen.getByLabelText(/Antonin, Sud, à son tour/)).toBeVisible();
+    expect(mockSoloRequests.mock.calls.filter((call) => call[1].method === "POST")).toHaveLength(1);
+  });
+
+  test("Solo collection keeps its original deadline while the next human HTTP move is pending", async () => {
+    fixture(); mockSoloWire = soloFixture("playing");
+    mockSoloMemory.set(soloStorageKey("alice"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
+    let posts = 0, release!: (value: unknown) => void;
+    mockSoloRequests.mockImplementation(async (_url, init) => {
+      if (init.method === "POST") {
+        posts++;
+        if (posts === 2) return new Promise((resolve) => { release = resolve; });
+        const card = JSON.parse(init.body).intent.card;
+        mockSoloWire.version++;
+        mockSoloWire.state.hand = mockSoloWire.state.hand.filter((c) => c.rank !== card.rank || c.suit !== card.suit);
+        mockSoloWire.state.handCounts[0] = mockSoloWire.state.hand.length;
+        mockSoloWire.state.completedTricks = [structuredClone(parityStates.trick.state.completedTricks[0])];
+        mockSoloWire.state.currentTrick.cards = [];
+      }
+      return { ok: true, text: async () => JSON.stringify({ data: mockSoloWire }) };
+    });
+    await open(); fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    const play = () => fireEvent.press(screen.getAllByRole("button", { name: /^Jouer / }).find((b) => !b.props.accessibilityState.disabled)!);
+    play(); await flush();
+    expect(screen.getAllByTestId("solo-trick-area")).toHaveLength(2); // Completed + empty current layer.
+    await act(async () => { await jest.advanceTimersByTimeAsync(500); });
+    play(); await flush();
+    expect(posts).toBe(2);
+    await act(async () => { await jest.advanceTimersByTimeAsync(1350); });
+    // 1900ms since the first acknowledgement; the configured slow dwell is 1800.
+    expect(screen.getAllByTestId("solo-trick-area")).toHaveLength(1); // Only the empty current layer remains.
+    expect(screen.getByRole("button", { name: "Dernier pli" })).toBeVisible();
+    await act(async () => { release({ ok: false, status: 400 }); }); await flush();
+    expect(screen.getByRole("alert")).toHaveTextContent(/Action refusée/);
+  });
+
+  test("Solo hides its hand in background and reloads the saved game after account verification without advancing it", async () => {
+    fixture(); mockSoloWire = soloFixture("playing");
+    mockSoloMemory.set(soloStorageKey("alice"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
+    await open(); fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    expect(screen.getAllByRole("button", { name: /^Jouer / })).toHaveLength(8);
+    act(() => lifecycle("background")); await flush();
+    expect(screen.queryAllByRole("button", { name: /^Jouer / })).toHaveLength(0);
+    act(() => lifecycle("active")); await flush();
+    expect(rendered.getPathname()).toBe("/solo");
+    expect(screen.getByTestId("solo-card-table")).toBeVisible();
+    expect(mockSoloRequests.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(mockSoloRequests.mock.calls.every((call) => call[1].method === "GET")).toBe(true);
+    expect(screen.getAllByRole("button", { name: /^Jouer / })).toHaveLength(8);
   });
 });

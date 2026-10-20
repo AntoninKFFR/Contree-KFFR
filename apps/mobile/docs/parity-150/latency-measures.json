@@ -1,0 +1,666 @@
+{
+  "method": "Actual RN Web scene/controller/API, Chromium 844x390; controlled fake HTTP wait, reduced motion; five page reloads per delay. Not an iPhone or production network benchmark. Feedback is next RAF containing provisional/confirmed card; confirmed is next RAF containing authoritative played card.",
+  "baselineCommit": "1e2f924897600c0135c28567ac79d9545e2a542a",
+  "before": [
+    {
+      "delay": 600,
+      "samples": [
+        606.1,
+        622.4,
+        617.8,
+        612.9,
+        618.4
+      ]
+    },
+    {
+      "delay": 1600,
+      "samples": [
+        1615.7,
+        1618.5,
+        1610.6,
+        1614.2,
+        1612.0
+      ]
+    }
+  ],
+  "after": [
+    {
+      "benchmark": "after",
+      "delay": 600,
+      "samples": [
+        {
+          "feedbackMs": 12.2,
+          "confirmedMs": 614.9,
+          "phases": [
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "intent",
+              "elapsedMs": 0
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "http-start",
+              "elapsedMs": 1.3
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "headers",
+              "elapsedMs": 603
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "body",
+              "elapsedMs": 603.3
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "validated",
+              "elapsedMs": 603.9
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "state",
+              "elapsedMs": 604.1
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "commit",
+              "elapsedMs": 617.7
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "frame",
+              "elapsedMs": 629.4
+            }
+          ]
+        },
+        {
+          "feedbackMs": 10.5,
+          "confirmedMs": 628.6,
+          "phases": [
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "intent",
+              "elapsedMs": 0
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "http-start",
+              "elapsedMs": 0.1
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "headers",
+              "elapsedMs": 611.4
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "body",
+              "elapsedMs": 611.6
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "validated",
+              "elapsedMs": 612
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "state",
+              "elapsedMs": 612.1
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "commit",
+              "elapsedMs": 620.7
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "frame",
+              "elapsedMs": 628.3
+            }
+          ]
+        },
+        {
+          "feedbackMs": 8.6,
+          "confirmedMs": 628,
+          "phases": [
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "intent",
+              "elapsedMs": 0
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "http-start",
+              "elapsedMs": 0.3
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "headers",
+              "elapsedMs": 608.9
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "body",
+              "elapsedMs": 609.2
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "validated",
+              "elapsedMs": 609.6
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "state",
+              "elapsedMs": 609.6
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "commit",
+              "elapsedMs": 617.8
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "frame",
+              "elapsedMs": 627.9
+            }
+          ]
+        },
+        {
+          "feedbackMs": 9.8,
+          "confirmedMs": 621.7,
+          "phases": [
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "intent",
+              "elapsedMs": 0
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "http-start",
+              "elapsedMs": 0.2
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "headers",
+              "elapsedMs": 603
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "body",
+              "elapsedMs": 603.3
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "validated",
+              "elapsedMs": 603.7
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "state",
+              "elapsedMs": 603.9
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "commit",
+              "elapsedMs": 614.4
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "frame",
+              "elapsedMs": 621.3
+            }
+          ]
+        },
+        {
+          "feedbackMs": 12,
+          "confirmedMs": 619.5,
+          "phases": [
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "intent",
+              "elapsedMs": 0
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "http-start",
+              "elapsedMs": 0.4
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "headers",
+              "elapsedMs": 609.8
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "body",
+              "elapsedMs": 610.1
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "validated",
+              "elapsedMs": 610.5
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "state",
+              "elapsedMs": 610.7
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "commit",
+              "elapsedMs": 621.5
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "frame",
+              "elapsedMs": 632.5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "benchmark": "after",
+      "delay": 1600,
+      "samples": [
+        {
+          "feedbackMs": 12.4,
+          "confirmedMs": 1621.4,
+          "phases": [
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "intent",
+              "elapsedMs": 0
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "http-start",
+              "elapsedMs": 1.3
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "headers",
+              "elapsedMs": 1607
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "body",
+              "elapsedMs": 1607.2
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "validated",
+              "elapsedMs": 1607.6
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "state",
+              "elapsedMs": 1607.7
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "commit",
+              "elapsedMs": 1625.3
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "frame",
+              "elapsedMs": 1635.9
+            }
+          ]
+        },
+        {
+          "feedbackMs": 8.9,
+          "confirmedMs": 1619.8,
+          "phases": [
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "intent",
+              "elapsedMs": 0
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "http-start",
+              "elapsedMs": 0.3
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "headers",
+              "elapsedMs": 1601.4
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "body",
+              "elapsedMs": 1601.7
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "validated",
+              "elapsedMs": 1602.1
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "state",
+              "elapsedMs": 1602.3
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "commit",
+              "elapsedMs": 1610.9
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "frame",
+              "elapsedMs": 1619.5
+            }
+          ]
+        },
+        {
+          "feedbackMs": 10.5,
+          "confirmedMs": 1618.4,
+          "phases": [
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "intent",
+              "elapsedMs": 0
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "http-start",
+              "elapsedMs": 0.5
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "headers",
+              "elapsedMs": 1602.3
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "body",
+              "elapsedMs": 1602.6
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "validated",
+              "elapsedMs": 1603
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "state",
+              "elapsedMs": 1603.1
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "commit",
+              "elapsedMs": 1610.8
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "frame",
+              "elapsedMs": 1618
+            }
+          ]
+        },
+        {
+          "feedbackMs": 7,
+          "confirmedMs": 1619.7,
+          "phases": [
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "intent",
+              "elapsedMs": 0
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "http-start",
+              "elapsedMs": 0.2
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "headers",
+              "elapsedMs": 1602.3
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "body",
+              "elapsedMs": 1602.6
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "validated",
+              "elapsedMs": 1602.9
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "state",
+              "elapsedMs": 1603.1
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "commit",
+              "elapsedMs": 1612.4
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "frame",
+              "elapsedMs": 1619.4
+            }
+          ]
+        },
+        {
+          "feedbackMs": 13.1,
+          "confirmedMs": 1623.6,
+          "phases": [
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "intent",
+              "elapsedMs": 0
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "http-start",
+              "elapsedMs": 0.3
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "headers",
+              "elapsedMs": 1610.2
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "body",
+              "elapsedMs": 1610.5
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "validated",
+              "elapsedMs": 1611
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "state",
+              "elapsedMs": 1611.1
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "commit",
+              "elapsedMs": 1625.3
+            },
+            {
+              "trace": 2,
+              "operation": "play-card",
+              "phase": "frame",
+              "elapsedMs": 1636.7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "bots_before": [
+    {
+      "botBenchmark": "before",
+      "speed": "slow",
+      "httpMs": 1000,
+      "spans": [
+        2200,
+        2200,
+        2200
+      ]
+    },
+    {
+      "botBenchmark": "before",
+      "speed": "normal",
+      "httpMs": 1000,
+      "spans": [
+        1700,
+        1700,
+        1700
+      ]
+    },
+    {
+      "botBenchmark": "before",
+      "speed": "fast",
+      "httpMs": 1000,
+      "spans": [
+        1300,
+        1300,
+        1300
+      ]
+    },
+    {
+      "botBenchmark": "before",
+      "speed": "instant",
+      "httpMs": 1000,
+      "spans": [
+        1000,
+        1000,
+        1000
+      ]
+    }
+  ],
+  "bots_after": [
+    {
+      "botBenchmark": "after",
+      "speed": "slow",
+      "httpMs": 1000,
+      "spans": [
+        1200,
+        1200,
+        1200
+      ]
+    },
+    {
+      "botBenchmark": "after",
+      "speed": "normal",
+      "httpMs": 1000,
+      "spans": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    {
+      "botBenchmark": "after",
+      "speed": "fast",
+      "httpMs": 1000,
+      "spans": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    {
+      "botBenchmark": "after",
+      "speed": "instant",
+      "httpMs": 1000,
+      "spans": [
+        1000,
+        1000,
+        1000
+      ]
+    }
+  ],
+  "botBaselineCommit": "6a5af6a26ed04a5fc29931361984e92980b2725a",
+  "botMethod": "Actual native hooks/controller/API in Jest with fake clock and 1000ms response wait; three known bot turns per preset. Per-turn timer-start to validated state publication, excluding runner flushes. No iPhone FPS or production latency measurement."
+}

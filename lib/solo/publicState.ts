@@ -1,5 +1,5 @@
 import { resolveContractMode } from "@/engine/contractMode";
-import { playableCardsForCurrentPlayer } from "@/engine/game";
+import { inactivePlayerId } from "@/engine/activePlayers";
 import { getLegalCards } from "@/engine/rules";
 import { resolveGameRules } from "@/engine/rulesets/resolve";
 import type { Card, GameState, PlayerId } from "@/engine/types";
@@ -12,7 +12,12 @@ export function soloHumanHand(state: SoloDisplayState, playerId: PlayerId): Card
 }
 
 export function soloLegalHumanCards(state: SoloDisplayState): Card[] {
-  if ("hands" in state) return playableCardsForCurrentPlayer(state);
+  if ("hands" in state) {
+    const mode = resolveContractMode(state);
+    if (state.phase !== "playing" || state.currentPlayerId === inactivePlayerId(state) || !mode) return [];
+    return getLegalCards(state.hands[state.currentPlayerId], state.currentTrick, state.currentPlayerId, mode,
+      resolveGameRules(state.settings).cardPlay);
+  }
   const mode = resolveContractMode(state);
   if (state.phase !== "playing" || state.currentPlayerId !== state.viewerPlayerId
     || state.currentPlayerId === state.inactivePlayerId || !mode) return [];

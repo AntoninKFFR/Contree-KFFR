@@ -1,0 +1,72 @@
+{
+  "viewport": {
+    "width": 844,
+    "height": 390
+  },
+  "header": {
+    "x": 0,
+    "y": 0,
+    "width": 844,
+    "height": 0
+  },
+  "shell": {
+    "x": 0,
+    "y": 0,
+    "width": 844,
+    "height": 390
+  },
+  "contentHeight": "max(0px,calc(100dvh - calc(0px + 0px)))",
+  "table": {
+    "x": 47,
+    "y": 0,
+    "width": 750,
+    "height": 369
+  },
+  "bidding": null,
+  "biddingControls": [],
+  "hand": null,
+  "cards": [],
+  "players": [
+    {
+      "x": 392,
+      "y": 4,
+      "width": 60,
+      "height": 24
+    },
+    {
+      "x": 51,
+      "y": 172.5,
+      "width": 60,
+      "height": 24
+    },
+    {
+      "x": 733,
+      "y": 172.5,
+      "width": 60,
+      "height": 24
+    },
+    {
+      "x": 51,
+      "y": 337,
+      "width": 60,
+      "height": 24
+    }
+  ],
+  "trick": {
+    "x": 332,
+    "y": 111.375,
+    "width": 180,
+    "height": 160
+  },
+  "safe": {
+    "left": "47px",
+    "right": "47px",
+    "bottom": "21px",
+    "top": "0px"
+  },
+  "overflow": {
+    "x": 0,
+    "y": 0
+  },
+  "fixtureDigest": "9265427599e958b88d2751378f57557dbfd6466c7dc445199f7b79e6b24b14d2"
+}

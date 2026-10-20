@@ -282,6 +282,8 @@ Les tests automatisés couvrent aussi un cycle connexion/persistance/restauratio
 avec le véritable SDK Supabase et un transport/stockage de test. Ils ne prouvent
 pas une connexion réelle à KFFR ni le stockage AsyncStorage sur iOS.
 **Ni Expo Doctor ni l'export iOS ne remplacent les validations humaines restantes.**
-OAuth, création de compte, liens d'auth externes, Solo/Multi natifs et distribution App Store
-restent hors périmètre. Le serveur, les règles, les données et la compatibilité
+OAuth, création de compte, liens d'auth externes, Multijoueur/Entraînement natifs et distribution App Store
+restent hors périmètre. Le Solo natif reprend désormais la table du jeu web et les API du même serveur :
+voir [SOLO.md](SOLO.md) pour la reprise, les actions implémentées, les limites et les tests Expo Go.
+Le serveur, les règles, les données et la compatibilité
 future web/iOS ne sont pas modifiés par ce socle.

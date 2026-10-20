@@ -2,17 +2,24 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { AccountGate } from "@/components/AccountGate";
 import { Brand, Screen, useGameLayout } from "@/components/ui";
 import { tokens } from "@/theme/tokens";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 
 const modes = ["Solo", "Multijoueur", "Entraînement"] as const;
 export default function HomeScreen() {
   const { largeText } = useGameLayout();
+  const router = useRouter();
+  const [focused, setFocused] = useState(false);
   return <AccountGate bottomInset>
     <Screen bottomInset minimalHeader profileLink>
       <View testID="home-table" style={local.table}>
         <View testID="home-brand" style={local.brand}><Brand placement="table" /></View>
         <View style={local.modes}>
-          {modes.map((title) => <Pressable testID="game-panel" key={title} disabled accessibilityRole="button" accessibilityState={{ disabled: true }}
-            accessibilityLabel={title + ". Bientôt disponible sur iPhone."} style={local.mode}>
+          {modes.map((title) => <Pressable testID="game-panel" key={title} disabled={title !== "Solo"} accessibilityRole="button" accessibilityState={{ disabled: title !== "Solo" }}
+            accessibilityLabel={title === "Solo" ? "Solo" : title + ". Bientôt disponible sur iPhone."}
+            onPress={title === "Solo" ? () => router.push("/solo") : undefined}
+            onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+            style={({ pressed }) => [local.mode, title === "Solo" && focused && tokens.focus, pressed && { backgroundColor: tokens.colors.raised }]}>
             <Text style={[local.modeTitle, largeText && local.largeTitle]}>{title}</Text>
           </Pressable>)}
         </View>

@@ -21,8 +21,11 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    "expo-asset",
+    "expo-image",
     ["expo-screen-orientation", { initialOrientation: "LANDSCAPE" }],
     ["expo-dev-client", { launchMode: "most-recent" }],
+    ["expo-audio", { microphonePermission: false, recordAudioAndroid: false, enableBackgroundRecording: false, enableBackgroundPlayback: false }],
     // SDK 57 requires this opt-in for apps built with Xcode / iOS SDK 27.
     ["expo-build-properties", { ios: { enableSceneSupport: true } }],
   ],

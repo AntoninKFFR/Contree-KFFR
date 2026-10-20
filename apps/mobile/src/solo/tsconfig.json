@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "types": ["node"],
+    "paths": { "@/engine/*": ["../../../../engine/*"] }
+  },
+  "include": ["api.ts", "contract.ts", "controller.ts"]
+}

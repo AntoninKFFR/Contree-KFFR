@@ -4,5 +4,5 @@ export default defineConfig({
   reporter: [["list"], ["html", { outputFolder: "geometry-report", open: "never" }]],
   outputDir: "geometry-results",
   use: { baseURL: "http://127.0.0.1:8091", browserName: "chromium", trace: "retain-on-failure" },
-  webServer: { command: "npx vite --config tests/visual/vite.config.ts", url: "http://127.0.0.1:8091", reuseExistingServer: false, timeout: 60000 },
+  webServer: { command: "node scripts/serve-visual-tests.mjs", url: "http://127.0.0.1:8091", reuseExistingServer: false, timeout: 120000 },
 });

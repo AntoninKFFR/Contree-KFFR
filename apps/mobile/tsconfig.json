@@ -4,6 +4,12 @@
     "strict": true,
     "allowJs": false,
     "paths": {
+      "@/engine/*": ["../../engine/*"],
+      "@/lib/preferences/*": ["../../lib/preferences/*"],
+      "@/lib/solo/*": ["../../lib/solo/*"],
+      "@/lib/trickPresentation": ["../../lib/trickPresentation.ts"],
+      "@/lib/soloBotPacing": ["../../lib/soloBotPacing.ts"],
+      "@/lib/soloLastTrick": ["../../lib/soloLastTrick.ts"],
       "@/*": [
         "./src/*"
       ]

@@ -1,0 +1,53 @@
+{
+  "table": {
+    "x": 47,
+    "y": 0,
+    "width": 474,
+    "height": 299
+  },
+  "bidding": null,
+  "hand": {
+    "x": 47,
+    "y": 248.25,
+    "width": 474,
+    "height": 74.75
+  },
+  "cards": [],
+  "players": [
+    {
+      "x": 51,
+      "y": 267,
+      "width": 60,
+      "height": 24
+    },
+    {
+      "x": 457,
+      "y": 137.5,
+      "width": 60,
+      "height": 24
+    },
+    {
+      "x": 254,
+      "y": 4,
+      "width": 60,
+      "height": 24
+    },
+    {
+      "x": 51,
+      "y": 137.5,
+      "width": 60,
+      "height": 24
+    }
+  ],
+  "trick": {
+    "x": 194,
+    "y": 85.125,
+    "width": 180,
+    "height": 160
+  },
+  "overflow": {
+    "x": 0,
+    "y": 0
+  },
+  "fixtureDigest": "9265427599e958b88d2751378f57557dbfd6466c7dc445199f7b79e6b24b14d2"
+}

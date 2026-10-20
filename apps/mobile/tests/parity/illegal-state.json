@@ -1,0 +1,251 @@
+{
+  "id": "33333333-3333-4333-8333-333333333333",
+  "version": 1,
+  "state": {
+    "settings": {
+      "scoringMode": "ffb",
+      "targetScore": 1000,
+      "ruleset": {
+        "id": "contree-kffr",
+        "version": 1,
+        "game": {
+          "targetScore": 1000
+        },
+        "bidding": {
+          "minBid": 80,
+          "maxBid": 160,
+          "bidStep": 10,
+          "allowCapot": true,
+          "allowGenerale": false,
+          "generaleAllowNoTrump": false,
+          "generaleAllowAllTrump": false,
+          "allowCoinche": true,
+          "allowSurcoinche": true,
+          "allowNoTrump": false,
+          "allowAllTrump": false
+        },
+        "cardPlay": {
+          "mustFollowSuit": true,
+          "mustTrumpWhenVoid": true,
+          "mustOvertrump": true,
+          "mustRaiseAtTrump": true,
+          "allowDiscardWhenPartnerWinning": true,
+          "allowDiscardWhenCannotOvertrump": true
+        },
+        "announcements": {
+          "enabled": false,
+          "tierce": false,
+          "fifty": false,
+          "hundred": false,
+          "squares": false
+        },
+        "belote": {
+          "enabled": true,
+          "points": 20,
+          "countsForContractSuccess": true,
+          "countsForContractFailure": true,
+          "allowInAllTrump": false
+        },
+        "contractSuccess": {
+          "mustReachBid": true,
+          "mustBeatDefense": true,
+          "announcementsCount": false
+        },
+        "trickScoring": {
+          "lastTrickBonus": 10,
+          "capotLastTrickBonus": 100
+        },
+        "scoring": {
+          "mode": "ffb",
+          "roundToTen": true,
+          "announcementsLostOnFailure": true,
+          "announcementsLostOnCapot": true,
+          "failureBasePoints": 160,
+          "capotBasePoints": 250,
+          "generaleBasePoints": 500,
+          "coincheMultiplier": 2,
+          "surcoincheMultiplier": 4,
+          "doubleAllPointsOnCoinche": false
+        }
+      }
+    },
+    "playerNames": {
+      "0": "Moi",
+      "1": "Boulais",
+      "2": "MC",
+      "3": "Sian"
+    },
+    "phase": "playing",
+    "roundNumber": 1,
+    "startingPlayerId": 0,
+    "totalScore": {
+      "0": 0,
+      "1": 0
+    },
+    "roundHistory": [],
+    "winnerTeam": null,
+    "endReason": null,
+    "forfeitingTeam": null,
+    "trump": "hearts",
+    "contractMode": {
+      "kind": "suit",
+      "suit": "hearts"
+    },
+    "currentPlayerId": 0,
+    "currentTrick": {
+      "leaderId": 2,
+      "cards": [
+        {
+          "playerId": 2,
+          "card": {
+            "suit": "hearts",
+            "rank": "9"
+          }
+        },
+        {
+          "playerId": 3,
+          "card": {
+            "suit": "hearts",
+            "rank": "7"
+          }
+        }
+      ]
+    },
+    "completedTricks": [
+      {
+        "leaderId": 0,
+        "cards": [
+          {
+            "playerId": 0,
+            "card": {
+              "suit": "hearts",
+              "rank": "A"
+            }
+          },
+          {
+            "playerId": 1,
+            "card": {
+              "suit": "hearts",
+              "rank": "8"
+            }
+          },
+          {
+            "playerId": 2,
+            "card": {
+              "suit": "hearts",
+              "rank": "J"
+            }
+          },
+          {
+            "playerId": 3,
+            "card": {
+              "suit": "hearts",
+              "rank": "10"
+            }
+          }
+        ],
+        "winnerId": 2,
+        "points": 41
+      }
+    ],
+    "bids": [
+      {
+        "playerId": 0,
+        "action": "bid",
+        "value": 80,
+        "contractMode": {
+          "kind": "suit",
+          "suit": "hearts"
+        }
+      },
+      {
+        "playerId": 1,
+        "action": "pass"
+      },
+      {
+        "playerId": 2,
+        "action": "pass"
+      },
+      {
+        "playerId": 3,
+        "action": "pass"
+      }
+    ],
+    "contract": {
+      "kind": "points",
+      "playerId": 0,
+      "teamId": 0,
+      "value": 80,
+      "trump": "hearts",
+      "contractMode": {
+        "kind": "suit",
+        "suit": "hearts"
+      },
+      "status": "normal"
+    },
+    "result": null,
+    "trickPoints": {
+      "0": 41,
+      "1": 0
+    },
+    "announcements": {
+      "declarations": [],
+      "declaredPlayerIds": [],
+      "winningTeam": null,
+      "pointsByTeam": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    "belote": {
+      "declaration": null,
+      "pointsByTeam": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    "roundScore": {
+      "0": 0,
+      "1": 0
+    },
+    "message": "Sian a joue 7♥.",
+    "viewerPlayerId": 0,
+    "hand": [
+      {
+        "suit": "hearts",
+        "rank": "K"
+      },
+      {
+        "suit": "hearts",
+        "rank": "Q"
+      },
+      {
+        "suit": "spades",
+        "rank": "J"
+      },
+      {
+        "suit": "spades",
+        "rank": "7"
+      },
+      {
+        "suit": "diamonds",
+        "rank": "Q"
+      },
+      {
+        "suit": "diamonds",
+        "rank": "8"
+      },
+      {
+        "suit": "clubs",
+        "rank": "9"
+      }
+    ],
+    "handCounts": {
+      "0": 7,
+      "1": 7,
+      "2": 6,
+      "3": 6
+    },
+    "inactivePlayerId": null
+  }
+}
