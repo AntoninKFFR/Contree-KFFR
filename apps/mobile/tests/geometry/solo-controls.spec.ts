@@ -97,7 +97,9 @@ for (const refused of [false, true]) test(`Solo responds immediately while a del
   await expect(cards).toHaveCount(8);
   await cards.first().click();
   await expect(page.getByTestId("solo-pending-card")).toBeVisible();
-  await expect(page.getByLabel("Envoi de la carte au serveur")).toBeVisible();
+  await expect(page.getByRole("progressbar")).toHaveCount(0);
+  await expect(page.getByTestId("solo-pending-card")).toHaveCSS("outline-width", "0px");
+  await expect(page.getByTestId("solo-pending-card")).toHaveCSS("opacity", "1");
   // No optimistic game state: the hand and actual trick still await the server.
   await expect(cards).toHaveCount(8); await expect(page.getByTestId("solo-play-0")).toHaveCount(0);
   expect(await posts(page)).toHaveLength(1);

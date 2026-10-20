@@ -1,6 +1,6 @@
 import { SoloText as Text } from "./appearance";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { sortHandForDisplay } from "@/lib/preferences/handSorting";
 import { isPreferenceAnimationEnabled } from "@/lib/preferences/presentation";
@@ -36,9 +36,8 @@ export function NativeHand({ game, width, height, canPlay, onPlay, preferences, 
           <Pressable testID={pending ? "solo-pending-card" : undefined} accessibilityRole="button" accessibilityLabel={"Jouer " + cardLabel(card) + (pending ? ", envoi en cours" : "")} accessibilityState={{ disabled, busy: pending }} disabled={disabled}
             onFocus={() => setFocused(key)} onBlur={() => setFocused(null)}
             onPress={() => { if (allowed) { setFeedback(null); onPlay(card); } else if (mode) setFeedback(explainIllegalCard({ hand: game.hand, trick: game.currentTrick, playerId: 0, card, mode, rules: resolveGameRules(game.settings).cardPlay })); }}
-            style={({ pressed }) => ({ opacity: pending ? .85 : canPlay && !allowed && preferences.assistance.dimIllegalCards ? .55 : 1, transform: [{ translateY: pending ? -12 : canPlay && (pressed || focused === key) ? -8 : canPlay && allowed && preferences.assistance.highlightLegalCards ? -4 : 0 }], outlineWidth: pending || focused === key ? 2 : 0, outlineColor: "#ead8a6", outlineOffset: 3 })}>
+            style={({ pressed }) => ({ opacity: canPlay && !allowed && preferences.assistance.dimIllegalCards ? .55 : 1, transform: [{ translateY: pending || canPlay && (pressed || focused === key) ? -8 : canPlay && allowed && preferences.assistance.highlightLegalCards ? -4 : 0 }], outlineWidth: !pending && focused === key ? 2 : 0, outlineColor: "#ead8a6", outlineOffset: 3 })}>
             <CardFace card={card} height={height} width={cardWidth} modern={preferences.cards.cardStyle === "modern"} contrast={preferences.visual.highContrast} />
-            {pending ? <View style={{ position: "absolute", top: 5, right: 3 }}><ActivityIndicator size="small" color="#856422" accessibilityLabel="Envoi de la carte au serveur" /></View> : null}
           </Pressable>
         </Animated.View>
       </View>;

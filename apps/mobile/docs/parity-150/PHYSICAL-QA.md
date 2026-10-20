@@ -14,10 +14,14 @@ séparément VoiceOver, clavier des règles, audio ou Reduce Motion.
 - La vraie pose attend la réponse HTTPS du serveur KFFR. Cette requête part
   directement vers l'API, sans passer par le tunnel Metro. Le client conserve
   l'autorité serveur : aucune carte retirée de la main ou ajoutée au pli avant
-  validation. La part exacte de latence réseau et d'Expo Go n'a pas été mesurée
-  sur le matériel ; aucune cause unique ni gain en millisecondes n'est affirmé.
-- La carte touchée est désormais relevée et marquée « envoi en cours » dès le
-  début de la requête, sans attendre celle-ci. Un échec restaure la présentation,
+  validation. Les logs de cette session iPhone montrent des appels Solo de
+  **593 à 1 625 ms**. Cette durée inclut l'attente HTTP et le traitement distant ;
+  elle n'isole pas le coût propre d'Expo Go ni le temps de rendu. Aucun gain en
+  millisecondes avant/après n'est affirmé.
+- La carte touchée reste légèrement relevée dès le début de la requête, sans
+  attendre celle-ci. Aucun spinner, liseré d'attente ou voile d'opacité n'est
+  affiché : le propriétaire a rejeté ces ajouts après un premier essai, tout en
+  décrivant la réactivité comme un peu meilleure. Un échec restaure la présentation,
   sans double envoi ni faux pli. Deux tests avec réponse retardée vérifient succès
   et refus avant/après la validation serveur.
 - Le tapis original pèse 3 019 270 octets, le logo 123 917 octets. En développement,
