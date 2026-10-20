@@ -1,0 +1,10 @@
+{
+  "fixtureDigest": "9b5dc9e645b08e9d144f5c14f242db23ea15ae891b5d68ffe97cbab3ed915a96",
+  "viewport": {
+    "width": 568,
+    "height": 320
+  },
+  "seat": 3,
+  "stage": "start",
+  "renderer": "actual Next.js web components; public test fixture"
+}

@@ -8,11 +8,11 @@ import { IPHONE_UA, simulatePwaEnvironment } from "./pwa";
 export const LONG_NAVIGATION_USERNAME = "Navigation".repeat(4); // Actual 40-character limit.
 export const NAVIGATION_FRIEND_ID = "44444444-4444-4444-8444-444444444444";
 
-export async function installMobileNavigationFixture(page: Page, { authenticated = true, theme = "dark", xp = 22750, username = LONG_NAVIGATION_USERNAME, notifications = true, standalone = true, preservePreferencesOnReload = false }:
-  { authenticated?: boolean; theme?: "dark" | "light"; xp?: number; username?: string; notifications?: boolean; standalone?: boolean; preservePreferencesOnReload?: boolean } = {}) {
+export async function installMobileNavigationFixture(page: Page, { authenticated = true, theme = "dark", xp = 22750, username = LONG_NAVIGATION_USERNAME, notifications = true, standalone = true, preservePreferencesOnReload = false, reducedMotion = false }:
+  { authenticated?: boolean; theme?: "dark" | "light"; xp?: number; username?: string; notifications?: boolean; standalone?: boolean; preservePreferencesOnReload?: boolean; reducedMotion?: boolean } = {}) {
   if (standalone) await simulatePwaEnvironment(page, { ua: IPHONE_UA, standalone: "ios" });
   const room = await installMobileRoomFixture(page, { seedSession: authenticated });
-  const preferences = clonePlayerPreferences(); preferences.visual.theme = theme;
+  const preferences = clonePlayerPreferences(); preferences.visual.theme = theme; preferences.visual.reducedMotion = reducedMotion;
   await page.addInitScript(({ key, preferences, preserve }) => {
     if (!preserve || !localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(preferences));
   }, { key: PLAYER_PREFERENCES_STORAGE_KEY, preferences, preserve: preservePreferencesOnReload });

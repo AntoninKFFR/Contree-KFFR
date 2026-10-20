@@ -15,9 +15,9 @@ export default function HomeScreen() {
       <View testID="home-table" style={local.table}>
         <View testID="home-brand" style={local.brand}><Brand placement="table" /></View>
         <View style={local.modes}>
-          {modes.map((title) => <Pressable testID="game-panel" key={title} disabled={title !== "Solo"} accessibilityRole="button" accessibilityState={{ disabled: title !== "Solo" }}
-            accessibilityLabel={title === "Solo" ? "Solo" : title + ". Bientôt disponible sur iPhone."}
-            onPress={title === "Solo" ? () => router.push("/solo") : undefined}
+          {modes.map((title) => <Pressable testID="game-panel" key={title} disabled={title === "Entraînement"} accessibilityRole="button" accessibilityState={{ disabled: title === "Entraînement" }}
+            accessibilityLabel={title !== "Entraînement" ? title : title + ". Bientôt disponible sur iPhone."}
+            onPress={title === "Solo" ? () => router.push("/solo") : title === "Multijoueur" ? () => router.push("/multiplayer") : undefined}
             onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
             style={({ pressed }) => [local.mode, title === "Solo" && focused && tokens.focus, pressed && { backgroundColor: tokens.colors.raised }]}>
             <Text style={[local.modeTitle, largeText && local.largeTitle]}>{title}</Text>

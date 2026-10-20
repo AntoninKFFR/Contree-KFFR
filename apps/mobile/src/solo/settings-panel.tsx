@@ -23,7 +23,7 @@ const flags = {
   visual: [["compactLayout", "Interface compacte"], ["animations", "Animations"], ["dealAnimation", "Distribution des cartes"], ["cardPlayAnimation", "Cartes jouées"], ["trickAnimation", "Ramassage du pli"], ["biddingAnimation", "Enchères"]],
   audio: [["enabled", "Effets sonores"], ["cardSounds", "Sons des cartes"], ["biddingSounds", "Sons des enchères"], ["uiSounds", "Sons de l’interface"], ["musicEnabled", "Musique"]],
 } as const;
-export function SoloSettingsPanel({ preferences: p, onChange, onTestSound, music }: { preferences: PlayerPreferences; onChange: (p: PlayerPreferences) => void; onTestSound: () => void; music: { title: string; playing: boolean; toggle: () => void; next: () => void; previous: () => void } }) {
+export function SoloSettingsPanel({ preferences: p, onChange, onTestSound, music, managedTable = false }: { managedTable?: boolean; preferences: PlayerPreferences; onChange: (p: PlayerPreferences) => void; onTestSound: () => void; music: { title: string; playing: boolean; toggle: () => void; next: () => void; previous: () => void } }) {
   const [section, setSection] = useState<string>("gameplay"), [query, setQuery] = useState(""), [reset, setReset] = useState(false);
   function patch<K extends keyof PlayerPreferences>(section: K, value: Partial<PlayerPreferences[K]>) { onChange({ ...p, [section]: { ...(p[section] as object), ...value } }); }
   const needle = query.trim().toLocaleLowerCase("fr"), shown = sections.filter(([id, label]) => !needle || `${label} ${id in flags ? flags[id as keyof typeof flags].map(([, label]) => label).join(" ") : "cartes tri couleur contraste texte mouvement"}`.toLocaleLowerCase("fr").includes(needle));
@@ -33,9 +33,9 @@ export function SoloSettingsPanel({ preferences: p, onChange, onTestSound, music
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>{shown.map(([id, label]) => <TableButton key={id} label={label} selected={active === id} onPress={() => setSection(id)} />)}</View>
     {!active ? <Text style={{ color: "#fff" }}>Aucun paramètre ne correspond à « {query} ».</Text> : null}
     {active === "gameplay" ? <>
-      <Choice label="Vitesse de jeu" value={p.gameplay.gameSpeed} options={[["slow", "Lente"], ["normal", "Normale"], ["fast", "Rapide"], ["instant", "Instantanée"], ["custom", "Personnalisée"]]} onChange={(speed) => { if (speed !== "custom") onChange(withGameSpeed(p, speed as PresetGameSpeed)); }} />
-      {flags.gameplay.map(([key, label]) => <Toggle key={key} label={label} value={p.gameplay[key]} onChange={(v) => patch("gameplay", { [key]: v })} />)}
-      {([["botDelayMs", "Temps de réflexion visuel des bots", 2000], ["trickDisplayMs", "Durée d’affichage d’un pli", 3000], ["biddingDelayMs", "Délai entre enchères", 1500]] as const).map(([key, label, max]) => <Range key={key} label={label} max={max} value={p.gameplay[key]} onChange={(v) => onChange(withCustomTiming(p, key, v))} />)}
+      {!managedTable ? <Choice label="Vitesse de jeu" value={p.gameplay.gameSpeed} options={[["slow", "Lente"], ["normal", "Normale"], ["fast", "Rapide"], ["instant", "Instantanée"], ["custom", "Personnalisée"]]} onChange={(speed) => { if (speed !== "custom") onChange(withGameSpeed(p, speed as PresetGameSpeed)); }} /> : null}
+      {flags.gameplay.filter(([key]) => !managedTable || key !== "autoCollectTricks").map(([key, label]) => <Toggle key={key} label={label} value={p.gameplay[key]} onChange={(v) => patch("gameplay", { [key]: v })} />)}
+      {!managedTable ? ([["botDelayMs", "Temps de réflexion visuel des bots", 2000], ["trickDisplayMs", "Durée d’affichage d’un pli", 3000], ["biddingDelayMs", "Délai entre enchères", 1500]] as const).map(([key, label, max]) => <Range key={key} label={label} max={max} value={p.gameplay[key]} onChange={(v) => onChange(withCustomTiming(p, key, v))} />) : null}
     </> : null}
     {active === "assistance" ? flags.assistance.map(([key, label]) => <Toggle key={key} label={label} value={p.assistance[key]} onChange={(v) => patch("assistance", { [key]: v })} />) : null}
     {active === "cards" ? <>

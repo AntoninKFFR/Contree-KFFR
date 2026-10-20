@@ -4,9 +4,17 @@ const file = (value: string) => fileURLToPath(new URL(value, import.meta.url));
 const webExtensions = [".web.tsx", ".web.ts", ".web.js", ".tsx", ".ts", ".jsx", ".js", ".json"];
 export default defineConfig({
   root: file("./"),
+  // Vite does not transform the optional CJS requires in Reanimated webUtils.
+  // Resolve those same real RN Web compiler functions as ESM for this harness.
+  plugins: [{ name: "reanimated-real-web-compiler", enforce: "pre", transform(_code, id) {
+    if (!/react-native-reanimated\/src\/ReanimatedModule\/js-reanimated\/webUtils(\.web)?\.ts$/.test(id.replaceAll("\\", "/"))) return;
+    return `export { default as createReactDOMStyle } from "react-native-web/dist/exports/StyleSheet/compiler/createReactDOMStyle"; export { createTransformValue, createTextShadowValue } from "react-native-web/dist/exports/StyleSheet/preprocess";`;
+  } }],
   define: { __DEV__: "true", global: "globalThis", "process.env.EXPO_OS": '"web"' },
   optimizeDeps: { esbuildOptions: { resolveExtensions: webExtensions, jsx: "automatic" } },
   resolve: { extensions: webExtensions, alias: [
+    { find: "@/lib/supabase", replacement: file("./supabase.ts") },
+    ...["multiplayerTablePreferences", "multiplayerTurnTimer", "multiplayerPresence", "roomTypes"].map((name) => ({ find: "@/lib/" + name, replacement: file("../../../../lib/" + name + ".ts") })),
     { find: "@/engine", replacement: file("../../../../engine") },
     { find: "@/lib/preferences", replacement: file("../../../../lib/preferences") },
     { find: "@/lib/solo", replacement: file("../../../../lib/solo") },

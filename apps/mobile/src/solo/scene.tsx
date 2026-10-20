@@ -27,21 +27,22 @@ export function soloSceneGeometry(width: number, height: number, bidding: boolea
   const handHeight = bidding ? clamp(70, height - 212, 90) : clamp(74, height * .25, 96);
   return { width, height, handHeight, trickHeight: clamp(76.44, height * .273, 100.1), trickY: (height - handHeight + 106) / 2, biddingTop: Math.max(88, 52 + (height - handHeight - 196) / 2) };
 }
-function PlayerCell({ game, player, position, width, height, preferences, reduced }: { game: NativeSoloSession["state"]; player: PlayerId; position: string; width: number; height: number; preferences: PlayerPreferences; reduced: boolean }) {
+function PlayerCell({ game, player, position, width, height, preferences, reduced, status }: { status?: "online" | "offline" | "bot"; game: NativeSoloSession["state"]; player: PlayerId; position: string; width: number; height: number; preferences: PlayerPreferences; reduced: boolean }) {
   const lead = currentTrickLeaderId(game) === player, active = game.currentPlayerId === player && preferences.assistance.showTurnIndicator;
   const last = game.bids.filter((b) => b.playerId === player).at(-1);
   const announcement = game.phase === "bidding" ? last ? formatBidLabel(last) : null : game.contract?.playerId === player ? formatFinalContract(game.contract) : null;
   const bubble = announcement ? [announcement.label, announcement.detail].filter(Boolean).join("\n") : null;
   const neutral = announcement?.tone === "neutral";
-  const offset = position === "top" ? { left: width / 2 - 30, top: 4 } : position === "left" ? { left: 4, top: height / 2 - 12 } : position === "right" ? { right: 4, top: height / 2 - 12 } : { left: 4, bottom: 8 };
+  const offset = position === "top" ? { left: width / 2 - 30, top: 4 } : position === "left" ? { left: 4, top: height / 2 - (status ? 18 : 12) } : position === "right" ? { right: 4, top: height / 2 - (status ? 18 : 12) } : { left: 4, bottom: 8 };
   return <View testID={`solo-seat-${player}`} style={[{ position: "absolute", width: 60, zIndex: 10 }, offset]}>
-    <View accessible accessibilityLabel={`${playerName(player, game.playerNames)}, ${position === "bottom" ? "Sud" : position === "top" ? "Nord, partenaire" : position === "right" ? "Est, adversaire" : "Ouest, adversaire"}${active ? ", à son tour" : ""}${game.inactivePlayerId === player ? ", ne joue pas cette donne" : ""}`}
+    <View accessible accessibilityLabel={`${playerName(player, game.playerNames)}, ${position === "bottom" ? "Sud" : position === "top" ? "Nord, partenaire" : position === "right" ? "Est, adversaire" : "Ouest, adversaire"}${status ? `, ${status === "online" ? "en ligne" : status === "offline" ? "absent" : "bot"}` : ""}${active ? ", à son tour" : ""}${game.inactivePlayerId === player ? ", ne joue pas cette donne" : ""}`}
       style={{ minHeight: 24, width: 60, borderWidth: preferences.visual.highContrast ? 2 : 1, borderRadius: 7, borderColor: active ? "#6ee7b7cc" : "#ffffff1a", backgroundColor: "#07150fb8", paddingHorizontal: 4, paddingVertical: 2, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2 }}>
       <Text numberOfLines={1} maxFontSizeMultiplier={1.5} style={{ flexShrink: 1, color: "#fff", fontSize: 11, lineHeight: 14, fontWeight: "700" }}>{playerName(player, game.playerNames)}</Text>
       {lead ? <Text allowFontScaling={false} style={{ color: "#f0dfb1", borderWidth: 1, borderColor: "#d8c48f80", borderRadius: 3, fontSize: 8, lineHeight: 12, width: 10, textAlign: "center" }}>P</Text> : <View style={{ width: 10 }} />}
     </View>
+    {status ? <Text allowFontScaling={false} style={{ fontSize: 8, lineHeight: 10, paddingBottom: 2, textAlign: "center", backgroundColor: "#07150fb8", color: status === "online" ? "#34d399" : status === "offline" ? "#fbbf24" : "#cbd5e1", borderRadius: 4 }}>{status === "online" ? "● En ligne" : status === "offline" ? "● Absent" : "● Bot"}</Text> : null}
     {bubble ? <Animated.View key={`${game.roundNumber}:${last ? game.bids.indexOf(last) : "contract"}:${bubble}`} entering={game.phase === "bidding" && last === game.bids.at(-1) && isPreferenceAnimationEnabled(preferences, "bidding", reduced) ? FadeIn.duration(150) : undefined}
-      style={{ position: "absolute", width: 60, ...(position === "bottom" ? { bottom: 26 } : { top: 26 }), borderRadius: 8, borderWidth: 1, borderColor: neutral ? "#ffffff1a" : "#ead8a640", backgroundColor: neutral ? "#00000040" : "#f8f2dff2", padding: 4 }}>
+      style={{ position: "absolute", width: 60, ...(position === "bottom" ? { bottom: status ? 38 : 26 } : { top: status ? 38 : 26 }), borderRadius: 8, borderWidth: 1, borderColor: neutral ? "#ffffff1a" : "#ead8a640", backgroundColor: neutral ? "#00000040" : "#f8f2dff2", padding: 4 }}>
       <Text maxFontSizeMultiplier={1.5} style={{ fontSize: 8, lineHeight: 9, textAlign: "center", fontWeight: "700", color: neutral ? "#ffffffa6" : "#1c1917" }}>{bubble}</Text>
     </Animated.View> : null}
   </View>;
@@ -51,7 +52,7 @@ export function TrickCards({ cards, height, animatedKeys = [], preferences, redu
     {cards.map((played, index) => {
       const p = ((played.playerId - viewer + 4) % 4) as PlayerId, x = p === 1 ? height * .44 : p === 3 ? -height * .44 : p === 0 ? 5 : -5, y = p === 2 ? -height * .22 : p === 0 ? height * .22 : 0;
       const rotation = p === 2 ? -2 : p === 0 ? 1 : p === 3 ? -4 : 4;
-      return <View key={playedCardKey(played)} testID={`solo-play-${p}`} accessible accessibilityLabel={`${playerName(p)} : ${cardLabel(played.card)}, carte ${index + 1}`} style={{ position: "absolute", left: 90 - height * .34 + x, top: 80 - height / 2 + y, zIndex: index + 1, transform: [{ rotate: `${rotation}deg` }] }}>
+      return <View key={playedCardKey(played)} testID={`solo-play-${p}`} accessible accessibilityLabel={`${playerName(played.playerId)} : ${cardLabel(played.card)}, carte ${index + 1}`} style={{ position: "absolute", left: 90 - height * .34 + x, top: 80 - height / 2 + y, zIndex: index + 1, transform: [{ rotate: `${rotation}deg` }] }}>
         <Animated.View style={p !== 0 && !reduced && animatedKeys.includes(playedCardKey(played)) ? { animationName: playEntries[p], animationDuration: 240, animationTimingFunction: "ease-out", animationFillMode: "both" } : undefined}>
           <CardFace card={played.card} height={height} modern={preferences.cards.cardStyle === "modern"} contrast={preferences.visual.highContrast} />
           {details ? <Text style={{ position: "absolute", right: -8, top: -8, width: 20, height: 20, borderRadius: 10, textAlign: "center", backgroundColor: "#022c22", color: "#fff", fontWeight: "900" }}>{index + 1}</Text> : null}
@@ -60,10 +61,10 @@ export function TrickCards({ cards, height, animatedKeys = [], preferences, redu
     })}
   </View>;
 }
-export function SoloScene({ session, width, height, preferences, reduced, human, onIntent, layers, cardPresentations, presented, policy, onCollect, onLastTrick, pendingCard }: {
+export function SoloScene({ session, width, height, preferences, reduced, human, onIntent, layers, cardPresentations, presented, policy, onCollect, onLastTrick, pendingCard, showWaitingBids = true, playerStatus }: {
   session: NativeSoloSession; width: number; height: number; preferences: PlayerPreferences; reduced: boolean; human: boolean; onIntent: (intent: SoloIntent) => void;
   layers: TrickLayer[]; cardPresentations: Map<string, CardPresentation>; presented: PresentedTrick | null; policy: { autoCollect: boolean; delayMs: number }; onCollect: () => void; onLastTrick: () => void;
-  pendingCard?: Card | null;
+  pendingCard?: Card | null; showWaitingBids?: boolean; playerStatus?: Partial<Record<PlayerId, "online" | "offline" | "bot">>;
 }) {
   const game = session.state, geometry = soloSceneGeometry(width, height, game.phase === "bidding"), seats = tableSeatsFor(game), us = game.viewerPlayerId % 2 as 0 | 1, them = (1 - us) as 0 | 1, live = getPublicRoundPoints(game);
   const contractText = game.contract ? `${formatContractLabel(game.contract)}${game.contract.status === "coinched" ? " · Coinché" : game.contract.status === "surcoinched" ? " · Surcoinché" : ""}` : "Annonces";
@@ -88,25 +89,27 @@ export function SoloScene({ session, width, height, preferences, reduced, human,
       {game.inactivePlayerId !== null ? <Text style={{ color: "#ffffffb3", fontSize: 9 }}>{playerName(game.inactivePlayerId, game.playerNames)} ne joue pas cette donne.</Text> : null}
     </View>
     {preferences.assistance.showLivePoints ? <View accessibilityLabel="Points en direct" style={{ position: "absolute", right: 56, top: 5, borderWidth: 1, borderColor: "#ffffff33", backgroundColor: "#07150fdb", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12, flexDirection: "row", gap: 6 }}><Text allowFontScaling={false} style={{ color: "#e8d8adbf", fontSize: 8, fontWeight: "700" }}>DIRECT</Text><Text allowFontScaling={false} style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>Nous {live[us]}  Eux {live[them]}</Text></View> : null}
-    {Object.entries(seats).map(([position, player]) => <PlayerCell key={player} game={game} player={player} position={position} width={width} height={height} preferences={preferences} reduced={reduced} />)}
+    {Object.entries(seats).map(([position, player]) => <PlayerCell status={playerStatus?.[player]} key={player} game={game} player={player} position={position} width={width} height={height} preferences={preferences} reduced={reduced} />)}
     <NativeHand key={`${session.id}:${game.roundNumber}`} game={game} width={width} height={geometry.handHeight} canPlay={human && game.phase === "playing"} onPlay={(card) => onIntent({ type: "play-card", playerId: game.viewerPlayerId, card })} preferences={preferences} reduced={reduced} pendingCard={pendingCard} target={{ x: width / 2 + 5, y: geometry.trickY + geometry.trickHeight * .22, height: geometry.trickHeight, tableHeight: height }} />
-    {game.phase === "bidding" ? <NativeBidding key={`${session.id}:${game.roundNumber}:${game.bids.length}`} game={game} canBid={human} width={width} height={height} handHeight={geometry.handHeight} top={geometry.biddingTop} preferences={preferences} reduced={reduced} onIntent={onIntent} /> : null}
+    {game.phase === "bidding" && (showWaitingBids || game.currentPlayerId === game.viewerPlayerId) ? <NativeBidding key={`${session.id}:${game.roundNumber}:${game.bids.length}`} game={game} canBid={human} width={width} height={height} handHeight={geometry.handHeight} top={geometry.biddingTop} preferences={preferences} reduced={reduced} onIntent={onIntent} /> : null}
     {presented && !policy.autoCollect ? <View style={{ position: "absolute", right: 68, bottom: geometry.handHeight + 10, width: 112, zIndex: 40 }}><TableButton label={`Ramasser le pli\n${playerName(presented.trick.winnerId, game.playerNames)} · ${presented.trick.points} pts`} onPress={onCollect} /></View> : null}
     {preferences.assistance.showLastTrick && game.completedTricks.length > 0 && !presented ? <Pressable accessibilityRole="button" accessibilityLabel="Dernier pli" onPress={onLastTrick} style={{ position: "absolute", right: 4, bottom: 60, width: 80, height: 44, alignItems: "center", justifyContent: "flex-end", zIndex: 20 }}><Text style={{ backgroundColor: "#07150fdb", borderColor: "#ead8a64d", borderWidth: 1, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 2, fontSize: 10, color: "#fff" }}>Dernier pli</Text></Pressable> : null}
   </View>;
 }
-export function RoundCompletion({ game, disabled, onAction, onDetails, reduced, actionLabel }: { actionLabel?: string; game: NativeSoloSession["state"]; disabled: boolean; onAction: () => void; onDetails: () => void; reduced: boolean }) {
+export function RoundCompletion({ game, disabled, onAction, onDetails, reduced, actionLabel, finalResult = false }: { finalResult?: boolean; actionLabel?: string; game: NativeSoloSession["state"]; disabled: boolean; onAction: () => void; onDetails: () => void; reduced: boolean }) {
   const result = game.result?.kind === "played" ? game.result : null, success = result?.contractSucceeded;
   const mode = result ? resolveContractMode(result.contract) : null;
+  const positive = finalResult ? game.winnerTeam === game.viewerPlayerId % 2 : success;
+  const us = game.viewerPlayerId % 2 as 0 | 1, them = (1 - us) as 0 | 1;
   const winner = game.roundScore[0] === game.roundScore[1] ? null : game.roundScore[0] > game.roundScore[1] ? 0 : 1;
   return <View style={[StyleSheet.absoluteFill, { zIndex: 40, alignItems: "center", justifyContent: "center", padding: 16 }]} pointerEvents="box-none" accessibilityViewIsModal>
     <BlurView intensity={12} tint="dark" style={StyleSheet.absoluteFill} />
     <View style={[StyleSheet.absoluteFill, { backgroundColor: "#000000b8" }]} />
-    <Animated.View testID="solo-round-result" entering={reduced ? undefined : FadeIn.duration(220)} style={{ width: "100%", maxWidth: 448, borderRadius: 16, borderWidth: 1, borderColor: success ? "#ead8a673" : "#fca5a559", backgroundColor: "#0b1c15ed", padding: 16, flexDirection: "row", gap: 16 }}>
+    <Animated.View testID="solo-round-result" entering={reduced ? undefined : FadeIn.duration(220)} style={{ width: "100%", maxWidth: 448, borderRadius: 16, borderWidth: 1, borderColor: positive ? "#ead8a673" : "#fca5a559", backgroundColor: "#0b1c15ed", padding: 16, flexDirection: "row", gap: 16 }}>
       <View style={{ flex: 1, gap: 8, alignItems: "stretch" }}>
-        <Text style={{ color: success ? "#ead8a6" : "#fca5a5", fontWeight: "900", fontSize: 12, textAlign: "center", letterSpacing: 2 }}>{result ? success ? "CONTRAT RÉUSSI ✓" : "CONTRAT CHUTÉ" : "MANCHE TERMINÉE"}</Text>
+        <Text style={{ color: positive ? "#ead8a6" : "#fca5a5", fontWeight: "900", fontSize: 12, textAlign: "center", letterSpacing: 2 }}>{finalResult ? `${game.winnerTeam === us ? "VICTOIRE" : "DÉFAITE"}${game.endReason === "forfeit" ? " · FORFAIT" : ""}` : result ? success ? "CONTRAT RÉUSSI ✓" : "CONTRAT CHUTÉ" : "MANCHE TERMINÉE"}</Text>
         {result ? <Text style={{ color: "#f3ead2", textAlign: "center", fontSize: 18, fontWeight: "900" }}>{result.contract.kind === "capot" ? "Capot" : result.contract.kind === "generale" ? "Générale" : result.contract.value} {mode?.kind === "suit" ? SUIT_SYMBOLS[mode.suit] : mode?.kind === "no-trump" ? "SA" : "TA"} — {playerName(result.contract.playerId, game.playerNames)}</Text> : null}
-        <View style={{ borderWidth: 1, borderColor: "#ffffff1a", borderRadius: 12, padding: 10, backgroundColor: "#ffffff0f", gap: 4 }}><Text style={{ color: "#f5f1e7", textAlign: "center", fontWeight: "900", fontSize: 24 }}>{game.roundScore[0]} — {game.roundScore[1]}</Text><Text style={{ color: "#ffffffb3", textAlign: "center", fontWeight: "700", fontSize: 12 }}>{winner === null ? "Score de manche partagé" : `${teamName(winner, game.playerNames)} remportent la manche`}</Text><Text style={{ borderTopWidth: 1, borderColor: "#ffffff1a", paddingTop: 8, color: "#e7d7aebf", fontWeight: "700", textAlign: "center", fontSize: 12 }}>Partie : {game.totalScore[0]} — {game.totalScore[1]}</Text></View>
+        <View style={{ borderWidth: 1, borderColor: "#ffffff1a", borderRadius: 12, padding: 10, backgroundColor: "#ffffff0f", gap: 4 }}><Text style={{ color: "#f5f1e7", textAlign: "center", fontWeight: "900", fontSize: 24 }}>{finalResult ? game.totalScore[us] : game.roundScore[us]} — {finalResult ? game.totalScore[them] : game.roundScore[them]}</Text><Text style={{ color: "#ffffffb3", textAlign: "center", fontWeight: "700", fontSize: 12 }}>{finalResult ? `${teamName(game.winnerTeam ?? 0, game.playerNames)} remportent la partie` : winner === null ? "Score de manche partagé" : `${teamName(winner, game.playerNames)} remportent la manche`}</Text><Text style={{ borderTopWidth: 1, borderColor: "#ffffff1a", paddingTop: 8, color: "#e7d7aebf", fontWeight: "700", textAlign: "center", fontSize: 12 }}>Partie : {game.totalScore[us]} — {game.totalScore[them]}</Text></View>
       </View>
       <View style={{ flex: 1, paddingTop: 42, gap: 48 }}><TableButton label={actionLabel ?? (game.phase === "game-over" ? "Nouvelle partie" : "Manche suivante")} primary paper disabled={disabled} onPress={onAction} reduced={reduced} /><TableButton label="Détails" onPress={onDetails} /></View>
     </Animated.View>

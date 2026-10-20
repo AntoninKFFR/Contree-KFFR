@@ -8,7 +8,7 @@ module.exports = {
     "^@/engine/(.*)$": "<rootDir>/../../engine/$1",
     "^@/lib/preferences/(.*)$": "<rootDir>/../../lib/preferences/$1",
     "^@/lib/solo/(.*)$": "<rootDir>/../../lib/solo/$1",
-    "^@/lib/(trickPresentation|soloBotPacing|soloLastTrick)$": "<rootDir>/../../lib/$1",
+    "^@/lib/(trickPresentation|soloBotPacing|soloLastTrick|multiplayerTablePreferences|multiplayerTurnTimer|multiplayerPresence|roomTypes)$": "<rootDir>/../../lib/$1",
     "^@/(.*)$": "<rootDir>/src/$1",
   },
   clearMocks: true,

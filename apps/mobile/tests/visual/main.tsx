@@ -5,6 +5,7 @@ import type { Session } from "@supabase/supabase-js";
 import Home from "../../src/app/(connected)/index";
 import Profile from "../../src/app/(connected)/profile";
 import Login from "../../src/app/login";
+import Multiplayer from "../../src/app/(connected)/multiplayer";
 import Solo from "../../src/app/(connected)/solo";
 import { WindowGuard } from "../../src/components/LandscapeFrame";
 import { VisualAccountContext } from "./account";
@@ -24,11 +25,11 @@ function Harness() {
     reload: () => setStatus("ready"), signOut: () => { setRoute("login"); setStatus("ready"); },
     signIn: async () => { setRoute("home"); setStatus("ready"); return true; },
   }}>
-    <RouteContext.Provider value={(href) => setRoute(href === "/profile" ? "profile" : href === "/solo" ? "solo" : "home")}>
+    <RouteContext.Provider value={(href) => setRoute(href === "/profile" ? "profile" : href === "/solo" ? "solo" : href === "/multiplayer" ? "multiplayer" : "home")}>
       <View style={{ flex: 1, height: "100%" }}>
         <WindowGuard>
           {route === "login" ? <Login /> : <View style={{ flex: 1, minHeight: 0 }}>
-            {route === "profile" ? <Profile /> : route === "solo" ? <Solo /> : params.get("proposal") === "salon" ? <SalonProposal /> : <Home />}
+            {route === "profile" ? <Profile /> : route === "solo" ? <Solo /> : route === "multiplayer" ? <Multiplayer /> : params.get("proposal") === "salon" ? <SalonProposal /> : <Home />}
           </View>}
         </WindowGuard>
       </View>

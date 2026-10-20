@@ -4,14 +4,41 @@
     "strict": true,
     "allowJs": false,
     "paths": {
-      "@/engine/*": ["../../engine/*"],
-      "@/lib/preferences/*": ["../../lib/preferences/*"],
-      "@/lib/solo/*": ["../../lib/solo/*"],
-      "@/lib/trickPresentation": ["../../lib/trickPresentation.ts"],
-      "@/lib/soloBotPacing": ["../../lib/soloBotPacing.ts"],
-      "@/lib/soloLastTrick": ["../../lib/soloLastTrick.ts"],
+      "@/engine/*": [
+        "../../engine/*"
+      ],
+      "@/lib/preferences/*": [
+        "../../lib/preferences/*"
+      ],
+      "@/lib/solo/*": [
+        "../../lib/solo/*"
+      ],
+      "@/lib/trickPresentation": [
+        "../../lib/trickPresentation.ts"
+      ],
+      "@/lib/soloBotPacing": [
+        "../../lib/soloBotPacing.ts"
+      ],
+      "@/lib/soloLastTrick": [
+        "../../lib/soloLastTrick.ts"
+      ],
       "@/*": [
         "./src/*"
+      ],
+      "@/lib/multiplayerTablePreferences": [
+        "../../lib/multiplayerTablePreferences.ts"
+      ],
+      "@/lib/multiplayerTurnTimer": [
+        "../../lib/multiplayerTurnTimer.ts"
+      ],
+      "@/lib/multiplayerPresence": [
+        "../../lib/multiplayerPresence.ts"
+      ],
+      "@/lib/roomTypes": [
+        "../../lib/roomTypes.ts"
+      ],
+      "@supabase/supabase-js": [
+        "./node_modules/@supabase/supabase-js"
       ]
     },
     "types": [
