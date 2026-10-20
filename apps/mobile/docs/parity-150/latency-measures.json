@@ -576,5 +576,91 @@
         }
       ]
     }
-  ]
+  ],
+  "bots_before": [
+    {
+      "botBenchmark": "before",
+      "speed": "slow",
+      "httpMs": 1000,
+      "spans": [
+        2200,
+        2200,
+        2200
+      ]
+    },
+    {
+      "botBenchmark": "before",
+      "speed": "normal",
+      "httpMs": 1000,
+      "spans": [
+        1700,
+        1700,
+        1700
+      ]
+    },
+    {
+      "botBenchmark": "before",
+      "speed": "fast",
+      "httpMs": 1000,
+      "spans": [
+        1300,
+        1300,
+        1300
+      ]
+    },
+    {
+      "botBenchmark": "before",
+      "speed": "instant",
+      "httpMs": 1000,
+      "spans": [
+        1000,
+        1000,
+        1000
+      ]
+    }
+  ],
+  "bots_after": [
+    {
+      "botBenchmark": "after",
+      "speed": "slow",
+      "httpMs": 1000,
+      "spans": [
+        1200,
+        1200,
+        1200
+      ]
+    },
+    {
+      "botBenchmark": "after",
+      "speed": "normal",
+      "httpMs": 1000,
+      "spans": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    {
+      "botBenchmark": "after",
+      "speed": "fast",
+      "httpMs": 1000,
+      "spans": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    {
+      "botBenchmark": "after",
+      "speed": "instant",
+      "httpMs": 1000,
+      "spans": [
+        1000,
+        1000,
+        1000
+      ]
+    }
+  ],
+  "botBaselineCommit": "6a5af6a26ed04a5fc29931361984e92980b2725a",
+  "botMethod": "Actual native hooks/controller/API in Jest with fake clock and 1000ms response wait; three known bot turns per preset. Per-turn timer-start to validated state publication, excluding runner flushes. No iPhone FPS or production latency measurement."
 }

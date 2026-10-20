@@ -33,6 +33,13 @@ export function createSoloController(options: {
     } catch { throw new SoloFailure("La reprise locale est illisible. Aucune donnée n’a été effacée.", 0, "storage"); }
   }
   const save = (data: Bookmark) => storage.setItem(key, JSON.stringify(data));
+  async function waitForPresentation(ready: Promise<void>, signal: AbortSignal) {
+    let release!: () => void;
+    const interrupted = new Promise<void>((resolve) => { release = resolve; });
+    signal.addEventListener("abort", release, { once: true });
+    try { if (!signal.aborted) await Promise.race([ready, interrupted]); }
+    finally { signal.removeEventListener("abort", release); }
+  }
   async function run(work: (who: SoloIdentity, signal: AbortSignal, current: () => boolean) => Promise<void>, pendingCard: Card | null = null) {
     if (disposed || state.busy) return;
     const who = identity();
@@ -49,15 +56,15 @@ export function createSoloController(options: {
       else update({ error: failure.message, requiresSync: failure.status !== 400 });
     } finally { if (current()) { request = null; update({ busy: false, hydrated: true, pendingCard: null }); } }
   }
-  function accept(next: NativeSoloSession, settled = false) {
+  function accept(next: NativeSoloSession) {
     if (state.session && next.id === state.session.id && next.version < state.session.version) throw new SoloFailure("État serveur obsolète. Recharge la partie.", 0, "version");
-    update({ session: next, requiresSync: false, ...(settled ? { busy: false, hydrated: true, pendingCard: null } : {}) });
+    update({ session: next, requiresSync: false, active: true, busy: false, hydrated: true, pendingCard: null });
   }
   async function load() {
     return run(async (who, signal, current) => {
       const saved = await bookmark(); if (!current()) return;
       if (!saved.sessionId) { update({ session: null, requiresSync: false }); return; }
-      try { const next = await api.load(who, signal, saved.sessionId); if (current()) { accept(next); update({ active: true }); } }
+      try { const next = await api.load(who, signal, saved.sessionId); if (current()) accept(next); }
       catch (error) {
         if (error instanceof SoloFailure && error.status === 404 && current()) {
           await save({ ...saved, sessionId: null });
@@ -77,10 +84,10 @@ export function createSoloController(options: {
       const next = await api.start(who, signal, startKey, preparedRules); if (!current()) return;
       await save({ sessionId: next.id, startKey: null }); if (!current()) return;
       // A deliberately new session can have a lower version than the old bookmark.
-      update({ session: next, active: true, requiresSync: false });
+      update({ session: next, active: true, requiresSync: false, busy: false, hydrated: true });
     }),
     resume: () => { if (!disposed && state.hydrated && !state.busy && !state.requiresSync && state.session) update({ active: true, error: null }); },
-    move: (intent: SoloIntent) => run(async (who, signal, current) => {
+    move: (intent: SoloIntent, presentationReady?: Promise<void>) => run(async (who, signal, current) => {
       const previous = state.session;
       if (!previous || !state.active || state.requiresSync) return;
       // Presentation feedback only. Keep the authoritative hand/trick untouched
@@ -88,8 +95,13 @@ export function createSoloController(options: {
       const trace = traceSolo(intent.type);
       const next = await api.move(who, signal, previous, intent, trace); if (!current()) return;
       if (next.version <= previous.version) throw new SoloFailure("Action non confirmée. Recharge la partie.", 0, "version");
+      // Only the already-authoritative current bot is requested. Its validated
+      // response waits for the player's timing/collection gate, never a prediction.
+      if (intent.type === "advance-bot" && presentationReady) await waitForPresentation(presentationReady, signal);
+      if (!current()) return;
+      if (presentationReady) markSolo(trace, "presentation-ready");
       markSolo(trace, "state");
-      accept(next, true);
+      accept(next);
     }, intent.type === "play-card" ? intent.card : null),
     suspend: () => { ++generation; request?.abort(); request = null; update({ ...initialSoloState }); },
     dispose: () => { disposed = true; ++generation; request?.abort(); request = null; state = { ...initialSoloState }; },

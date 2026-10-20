@@ -66,9 +66,47 @@ Les sélecteurs de présentation, de légalité et de tri sont mémorisés penda
 les mises à jour d'envoi : aucune transition de moteur ajoutée au bundle natif.
 
 Le web anonyme utilise le moteur local et n'attend pas de HTTP. Le web connecté
-(`useSoloGameLoop.ts` + `sessionApi.ts`) et le natif attendent chacun un POST
-`advance-bot` par action, après le délai configuré. Trois bots successifs coûtent
-donc trois délais et trois échanges. `instant` retire les timers, **pas le HTTP**.
+(`useSoloGameLoop.ts` + `sessionApi.ts`) sérialise délai puis POST `advance-bot`.
+Le natif faisait la même chose. Après validation physique de la nouvelle pose,
+le propriétaire demande maintenant d'accélérer les bots : le natif envoie le
+POST du **bot dont le tour est déjà confirmé** en parallèle de son délai visuel.
+Seule la réponse publique validée est conservée en attente ; sa publication
+attend à la fois HTTP, délai choisi et collecte requise. Aucun bot suivant n'est
+sollicité avant publication de cette réponse. Aucun moteur/décision local,
+aucune carte inventée, aucun changement d'API. Le choix de vitesse est figé au
+début du tour ; une modification s'applique au suivant sans redémarrer ce tour.
+
+Le serveur peut donc avoir déjà enregistré cette unique action pendant que son
+animation attend : quitter/mettre en arrière-plan ne peut pas annuler une
+mutation déjà commise. La réponse en attente est invalidée sur perte de compte,
+focus ou arrière-plan ; la reprise relit le dernier état serveur. Changer
+l'orientation libère la présentation en cours, sans programmer de nouveau bot
+dans l'écran portrait. Les chargements et créations publient maintenant leur
+état prêt atomiquement pour qu'aucun tour ne démarre dans un busy intermédiaire.
+`instant` retire les timers, **pas le HTTP**.
+
+Mesure supplémentaire avec les vrais hooks/contrôleur/API natifs et horloge
+Jest contrôlée : trois tours bots consécutifs, réponse retardée de 1 000 ms,
+quatre presets, avant (effet séquentiel du commit `6a5af6a`) puis après.
+
+| Preset | Un tour avant | Un tour après | Trois tours avant → après |
+| --- | ---: | ---: | ---: |
+| slow | 2 200 ms | 1 200 ms | 6 600 → 3 600 ms |
+| normal | 1 700 ms | 1 000 ms | 5 100 → 3 000 ms |
+| fast | 1 300 ms | 1 000 ms | 3 900 → 3 000 ms |
+| instant | 1 000 ms | 1 000 ms | 3 000 → 3 000 ms |
+
+Ce sont des échéances réellement observées dans les tests natifs à temps simulé,
+pas un benchmark de CPU, de réseau réel ou de FPS iPhone. Le total additionne les
+trois intervalles de présentation ; il exclut les pauses de flush du runner.
+Reproduction sans changer la branche ni le serveur Expo :
+
+```sh
+node scripts/benchmark-solo-bots.mjs
+```
+
+Le script charge temporairement l'ancien écran uniquement dans Jest, contrôle
+les mêmes quatre scénarios, nettoie sa copie puis mesure le code actuel.
 Le transport web peut réessayer certains échecs ; le natif ne rejoue jamais
 automatiquement une mutation ambiguë. Ce comportement de sécurité est conservé.
 
@@ -117,8 +155,10 @@ avant toucher, la pose avant réponse et la confirmation :
 
 `[Solo performance]` : numéro de trace local, type d'opération, phase et temps
 depuis l'intention (`http-start`, `headers`, `body`, `validated`, `state`,
-`commit`, `frame`, `failure`). Les différences entre phases isolent les coûts
-client ; `headers − http-start` inclut transport **et serveur**. `commit` est
+`presentation-ready`, `commit`, `frame`, `failure`). Les différences entre phases isolent les coûts
+client ; `headers − http-start` inclut transport **et serveur**. Pour un bot,
+`validated → state` peut inclure la fin du délai volontaire ou la collecte ;
+`presentation-ready` marque leur libération, pas du travail CPU de validation. `commit` est
 un effet React, `frame` un prochain RAF : ce ne sont pas des mesures de pixels
 effectivement peints par le GPU iOS.
 
@@ -152,7 +192,9 @@ ou réglage de production n'a été modifié dans ce correctif.
 
 ## Limites de validation
 
-La QA antérieure valide le gameplay iPhone, pas ce nouveau déplacement. Ces
+Le propriétaire a maintenant validé la pose immédiate sur iPhone (« excellent »),
+puis demandé les bots plus rapides. Ce dernier chevauchement reste à ressentir
+sur son appareil. Ces
 mesures sont des expériences RN Web contrôlées, pas une mesure avant/après sur
 l'iPhone 15. Expo Go en développement et l'export Hermes ne prouvent pas les FPS
 d'un binaire de release. Le premier téléchargement des gros assets via tunnel

@@ -39,17 +39,27 @@ function SoloRoom() {
   const pacer = useRef<SoloBotTurnPacer | null>(null);
   const botDelay = game?.phase === "bidding" ? settings.preferences.gameplay.biddingDelayMs : settings.preferences.gameplay.botDelayMs;
   const collectionKey = game ? soloBotCollectionKey(game, settings.preferences, settings.reduced) : null;
+  const collectionDone = collectionKey !== null && presentation.isCollected(collectionKey);
+  const botEnabled = Boolean(controller && !state.requiresSync && !state.error && settings.loaded && rules.loaded && state.active && window.width > window.height);
   useEffect(() => {
-    if (!enabled || !game || !["bidding", "playing"].includes(game.phase) || game.currentPlayerId === 0) return;
+    if (!botEnabled || !game || !["bidding", "playing"].includes(game.phase) || game.currentPlayerId === 0) return;
     const started = performance.now();
+    let release!: () => void;
+    const presentationReady = new Promise<void>((resolve) => { release = resolve; });
     const next = scheduleSoloBotTurn(botDelay,
-      collectionKey && !presentation.isCollected(collectionKey) ? collectionKey : null, () => { soloWait("bot", botDelay, performance.now() - started); void controller?.move({ type: "advance-bot" }); });
+      collectionKey && !presentation.isCollected(collectionKey) ? collectionKey : null, () => { soloWait("bot", botDelay, performance.now() - started); release(); });
     pacer.current = next;
-    return () => { next.cancel(); if (pacer.current === next) pacer.current = null; };
-    // A collection releases the running timer below; it must not restart its bot delay.
+    void controller?.move({ type: "advance-bot" }, presentationReady);
+    return () => { next.cancel(); release(); if (pacer.current === next) pacer.current = null; };
+    // One request per confirmed turn. HTTP overlaps its chosen visual delay.
+    // Busy updates cannot cancel their own gate; preference changes apply next turn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, session?.id, session?.version, game, controller, botDelay, collectionKey]);
+  }, [botEnabled, session?.id, session?.version, game, controller]);
   useEffect(() => { if (presentation.lastCollected) pacer.current?.autoCollected(presentation.lastCollected); }, [presentation.lastCollected]);
+  useEffect(() => {
+    if (!collectionKey) pacer.current?.releaseCollection();
+    else if (collectionDone) pacer.current?.autoCollected(collectionKey);
+  }, [collectionKey, collectionDone]);
   useEffect(() => {
     if (!enabled || !game || game.currentPlayerId !== 0) return;
     return queueForcedHumanLastCard(game, 0, settings.preferences.gameplay.botDelayMs, (expected, card) => {

@@ -65,10 +65,16 @@ les vitesses indépendantes de l'iPhone, la pose réversible sans ornements,
 deux redémarrages de timers supprimés, les mesures brutes avant/après et une
 proposition serveur non implémentée. Accueil et Profil ne changent pas.
 
-Validation locale du correctif : 26 tests unitaires mobiles, 19 tests de
+Validation locale du correctif : 27 tests unitaires mobiles, 24 tests de
 navigation, 101 géométries/interactions RN Web (dont 4 nouveaux tests de latence
 et trajectoire), Doctor 21/21, export iOS et audit de 1 760 sources. Typecheck et
 lint web/mobile passent, ainsi que 1 957 tests Vitest et le build Next. Les deux
 régressions de scheduling ont aussi été reproduites sur les anciennes conditions,
 puis vérifiées corrigées. Les checks distants du dernier SHA restent la référence
 pour les validations CI, notamment les suites web/responsive complètes.
+
+Après validation physique de la pose, les bots chevauchent désormais leur délai
+visuel avec le POST du seul tour déjà confirmé. Quatre benchmarks natifs vérifient
+les presets et 14 tests transport/parité/pacing revérifient le moteur réel et la
+collecte ; un test contrôle la réponse retenue et son invalidation à la fermeture.
+Mesures et reproduction sont documentées dans PERFORMANCE.md.

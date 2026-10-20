@@ -16,6 +16,7 @@ import { soloFixture, SESSION_ID, START_KEY } from "./solo-fixtures";
 import { soloStorageKey } from "../src/solo/controller";
 import parityStates from "./parity/states.json";
 import { SoloSettingsPanel } from "../src/solo/settings-panel";
+import { clonePlayerPreferences, withGameSpeed, PLAYER_PREFERENCES_STORAGE_KEY } from "@/lib/preferences/playerPreferences";
 let mockSoloMemory = new Map<string, string>();
 let mockSoloWire = soloFixture();
 let mockSoloRequests = jest.fn();
@@ -405,13 +406,19 @@ describe("native navigation with the shared account controller", () => {
     fixture(); mockSoloWire = soloFixture("playing"); mockSoloWire.state.currentPlayerId = 1;
     mockSoloMemory.set(soloStorageKey("alice"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
     mockSoloRequests.mockImplementation(async (_url, init) => {
-      if (init.method === "POST") { expect(JSON.parse(init.body).intent).toEqual({ type: "advance-bot" }); mockSoloWire.version++; mockSoloWire.state.currentPlayerId = (mockSoloWire.state.currentPlayerId + 1) % 4; }
+      if (init.method === "POST") {
+        expect(JSON.parse(init.body).intent).toEqual({ type: "advance-bot" });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        mockSoloWire.version++; mockSoloWire.state.currentPlayerId = (mockSoloWire.state.currentPlayerId + 1) % 4;
+      }
       return { ok: true, text: async () => JSON.stringify({ data: mockSoloWire }) };
     });
     await open(); fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
     expect(screen.getByLabelText(/Léa, Est, adversaire, à son tour/)).toBeVisible();
-    expect(mockSoloRequests.mock.calls.filter((call) => call[1].method === "POST")).toHaveLength(0);
+    expect(mockSoloRequests.mock.calls.filter((call) => call[1].method === "POST")).toHaveLength(1);
     await act(async () => { await jest.advanceTimersByTimeAsync(600); });
+    expect(screen.getByLabelText(/Léa, Est, adversaire, à son tour/)).toBeVisible();
+    expect(mockSoloRequests.mock.calls.filter((call) => call[1].method === "POST")).toHaveLength(1);
     fireEvent.press(screen.getByRole("button", { name: "Menu Partie" }));
     fireEvent.press(screen.getByRole("button", { name: "Paramètres" }));
     const settings = screen.UNSAFE_getByType(SoloSettingsPanel).props;
@@ -426,6 +433,57 @@ describe("native navigation with the shared account controller", () => {
     const count = mockSoloRequests.mock.calls.length;
     await act(async () => { await jest.advanceTimersByTimeAsync(5000); });
     expect(mockSoloRequests.mock.calls.length).toBe(count);
+  });
+
+  test.each(["slow", "normal", "fast", "instant"] as const)("Solo bot latency benchmark %s preserves the chosen delay while HTTP overlaps", async (speed) => {
+    fixture(); mockSoloWire = soloFixture("playing"); mockSoloWire.state.currentPlayerId = 1;
+    const preferences = withGameSpeed(clonePlayerPreferences(), speed), httpMs = 1000;
+    mockSoloMemory.set(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
+    mockSoloMemory.set(soloStorageKey("alice"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
+    const starts: number[] = [], accepted: number[] = [];
+    jest.spyOn(console, "debug").mockImplementation((label, fields) => {
+      if (label === "[Solo wait]" && fields.kind === "bot") starts.push(Date.now() - fields.elapsedMs);
+      if (label === "[Solo performance]" && fields.operation === "advance-bot" && fields.phase === "state") accepted.push(Date.now());
+    });
+    let posts = 0;
+    mockSoloRequests.mockImplementation(async (_url, init) => {
+      if (init.method === "POST") {
+        posts++; expect(JSON.parse(init.body).intent).toEqual({ type: "advance-bot" });
+        expect(JSON.parse(init.body).expectedVersion).toBe(mockSoloWire.version);
+        await new Promise((resolve) => setTimeout(resolve, httpMs));
+        mockSoloWire.version++; mockSoloWire.state.currentPlayerId = (mockSoloWire.state.currentPlayerId + 1) % 4;
+      }
+      return { ok: true, text: async () => JSON.stringify({ data: mockSoloWire }) };
+    });
+    await open(); fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    const period = process.env.SOLO_BOT_BASELINE ? preferences.gameplay.botDelayMs + httpMs : Math.max(preferences.gameplay.botDelayMs, httpMs);
+    for (let turn = 1; turn <= 3; turn++) {
+      await act(async () => { await jest.advanceTimersByTimeAsync(period); }); await flush();
+      expect(accepted).toHaveLength(turn);
+    }
+    expect(posts).toBe(3); expect(starts).toHaveLength(3);
+    const spans = accepted.map((time, index) => time - starts[index]);
+    expect(spans).toEqual([period, period, period]);
+    console.info(JSON.stringify({ botBenchmark: process.env.SOLO_BOT_BASELINE ? "before" : "after", speed, httpMs, spans }));
+  });
+
+  test("Solo resumes a bot winner without waiting for a loaded trick that must never replay", async () => {
+    fixture(); mockSoloWire = soloFixture("playing"); mockSoloWire.state.currentPlayerId = 1;
+    mockSoloWire.state.completedTricks = [{ ...structuredClone(parityStates.trick.state.completedTricks[0]), winnerId: 1 }];
+    mockSoloWire.state.currentTrick.cards = [];
+    mockSoloMemory.set(soloStorageKey("alice"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
+    mockSoloRequests.mockImplementation(async (_url, init) => {
+      if (init.method === "POST") {
+        mockSoloWire.version++; mockSoloWire.state.currentPlayerId = 0;
+      }
+      return { ok: true, text: async () => JSON.stringify({ data: mockSoloWire }) };
+    });
+    await open(); fireEvent.press(screen.getByRole("button", { name: "Solo" })); await flush();
+    expect(screen.queryByTestId("solo-play-0")).toBeNull();
+    expect(screen.getByLabelText(/Léa, Est, adversaire, à son tour/)).toBeVisible();
+    await act(async () => { await jest.advanceTimersByTimeAsync(1200); }); await flush();
+    expect(screen.getByLabelText(/Antonin, Sud, à son tour/)).toBeVisible();
+    expect(mockSoloRequests.mock.calls.filter((call) => call[1].method === "POST")).toHaveLength(1);
   });
 
   test("Solo collection keeps its original deadline while the next human HTTP move is pending", async () => {

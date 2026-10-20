@@ -60,3 +60,14 @@ ramassage manuel/automatique, portrait puis retour paysage et reprise après
 arrière-plan. Un refus de test est couvert automatiquement sans provoquer
 d'actions illégales dans une vraie partie. Aucun résultat physique de ce dernier
 correctif n'est affirmé avant un nouveau retour utilisateur.
+
+## Retour physique suivant et accélération des bots
+
+Le propriétaire confirme la pose immédiate sur le même iPhone : « C'est
+excellent », et précise que seuls les bots doivent maintenant être plus rapides.
+La pose sans moulinette/liseré est donc validée physiquement. Le correctif suivant
+fait chevaucher HTTP et délai visuel du bot courant, sans prédire sa décision ni
+solliciter le bot suivant avant confirmation/publication. Les réglages choisis
+restent des minimums visuels. Voir PERFORMANCE.md pour les échéances mesurées
+avant/après et la limite restante du réseau. Aucun nouveau retour matériel sur
+cette accélération des bots n'est encore affirmé.

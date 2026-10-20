@@ -1,7 +1,7 @@
 declare const __DEV__: boolean;
 // Enum/number-only development diagnostics. Never accept payloads, IDs or URLs.
 type Operation = "load" | "start" | "play-card" | "advance-bot" | "pass" | "bid" | "coinche" | "surcoinche" | "capot" | "generale" | "start-next-round";
-type Phase = "intent" | "http-start" | "headers" | "body" | "validated" | "state" | "commit" | "frame" | "failure";
+type Phase = "intent" | "http-start" | "headers" | "body" | "validated" | "presentation-ready" | "state" | "commit" | "frame" | "failure";
 export type SoloTrace = { id: number; operation: Operation; started: number } | null;
 const development = () => typeof __DEV__ !== "undefined" && __DEV__;
 let sequence = 0;

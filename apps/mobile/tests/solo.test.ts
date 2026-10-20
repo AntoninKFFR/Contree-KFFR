@@ -111,3 +111,27 @@ test("double human moves send a single versioned POST even before React can disa
   assert.equal(f.controller.state.pendingCard, null);
   assert.equal(f.updates.length - before, 2); // Pending + accepted, without intermediate busy-only states.
 });
+
+test("a validated bot reply waits for the visual gate; disposal still invalidates it and never sends the next bot", async () => {
+  for (const mode of ["accept", "dispose", "suspend", "identity", "token"]) {
+    const f = setup(async (_url, init) => json({ data: soloFixture("playing", init?.method === "GET" ? 3 : 4) }));
+    f.remember(); await f.controller.load();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const move = f.controller.move({ type: "advance-bot" }, gate);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(f.calls.length, 2); assert.equal(f.controller.state.session?.version, 3);
+    assert.equal(f.controller.state.busy, true);
+    await f.controller.move({ type: "advance-bot" }); assert.equal(f.calls.length, 2);
+    if (mode === "dispose") f.controller.dispose();
+    else if (mode === "suspend") f.controller.suspend();
+    else {
+      if (mode === "identity") f.setIdentity(who("bob"));
+      if (mode === "token") f.setIdentity(who("alice", "replacement-token"));
+      release();
+    }
+    await move;
+    assert.equal(f.controller.state.session?.version ?? null, mode === "accept" ? 4 : ["dispose", "suspend"].includes(mode) ? null : 3);
+    f.controller.dispose(); assert.equal(f.controller.state.busy, false);
+  }
+});
