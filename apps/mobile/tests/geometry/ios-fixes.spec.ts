@@ -42,6 +42,10 @@ for (const viewport of [{ width: 568, height: 320 }, { width: 844, height: 390 }
       await expect.poll(() => intents(page)).toEqual([{ type: "join-seat", seatIndex: seat }]);
       if (!baseline) await expect(target).toContainText("Réservation…");
       await expect(target).toContainText("Moi");
+      // The lobby has shared, fixed positions like RoomLobby on web. Checking
+      // only the seat ID misses a successful reservation rotated to the south.
+      expect(await target.boundingBox()).toEqual(box);
+      expect(await page.evaluate(() => (globalThis as unknown as { __multiplayerFixture: { current: () => { viewerSeatIndex: number | null } } }).__multiplayerFixture.current().viewerSeatIndex)).toBe(seat);
       if (!baseline) await expect(target).toHaveAttribute("aria-selected", "true");
       const before = await intents(page);
       const occupied = page.getByTestId(`lobby-seat-${host}`); await expect(occupied).toBeDisabled();

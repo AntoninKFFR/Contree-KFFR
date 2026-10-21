@@ -118,6 +118,62 @@ async function open(url = "/") { rendered = renderRouter(routes, { initialUrl: u
 async function openProfile() { fireEvent.press(screen.getByRole("link", { name: "Voir mon profil" })); await flush(); }
 
 describe("native navigation with the shared account controller", () => {
+  test.each(["success", "requiresSync", "conflict", "wrong-ack", "http-error", "background"])("native seat touch confirms the actual player or a visible refusal: %s", async (scenario) => {
+    jest.useFakeTimers();
+    jest.spyOn(console, "debug").mockImplementation(() => {});
+    const f = fixture();
+    let wire = { ...structuredClone(multiplayerStates["lobby-free"][0]), viewerSeatIndex: null as number | null, isHost: false };
+    let status!: (value: string) => void, holdRead = false, reads = 0;
+    let releaseRead!: () => void, releasePost!: () => void;
+    const readGate = new Promise<void>((resolve) => { releaseRead = resolve; });
+    let postGate = new Promise<void>((resolve) => { releasePost = resolve; });
+    const posts: { expectedVersion: number; intent: { type: string; seatIndex: number } }[] = [];
+    const channel = { on: jest.fn().mockReturnThis(), subscribe: jest.fn() };
+    channel.subscribe.mockImplementation((callback) => { status = callback; return channel; });
+    Object.assign(f.client, { channel: jest.fn(() => channel), removeChannel: jest.fn(async () => {}) });
+    mockSoloMemory.set("kffr.native.multiplayer.room.v1:alice", wire.room.id);
+    mockSoloRequests = jest.fn(async (url, init) => {
+      const path = new URL(String(url)).pathname;
+      if (path.includes("/api/social/")) return { ok: true, status: 200, text: async () => JSON.stringify({ data: { invitations: [], counts: { receivedPending: 0, sentPending: 0 } } }) };
+      const body = init?.body ? JSON.parse(init.body) : null;
+      if (body?.intent?.type === "join-seat") {
+        posts.push(body); await postGate;
+        if (posts.length === 1 && ["conflict", "http-error"].includes(scenario)) return { ok: false, status: scenario === "conflict" ? 409 : 503, text: async () => JSON.stringify({ error: "Place refusée. Réessaie explicitement.", code: "version_conflict" }) };
+        if (posts.length === 1 && scenario === "wrong-ack") return { ok: true, status: 200, text: async () => JSON.stringify({ data: { ...wire, room: { ...wire.room, state_version: wire.room.state_version + 1 } } }) };
+        const seat = body.intent.seatIndex;
+        wire = { ...wire, viewerSeatIndex: seat, room: { ...wire.room, state_version: wire.room.state_version + 1 }, players: wire.players.map((p) => p.seat_index === seat ? { ...p, kind: "human", display_name: "Alice", is_connected: true } : p) };
+      } else { reads++; if (holdRead) await readGate; }
+      return { ok: true, status: 200, text: async () => JSON.stringify({ data: wire }) };
+    });
+    await open(); fireEvent.press(screen.getByRole("button", { name: "Multijoueur" })); await flush(); await flush();
+    fireEvent.press(screen.getByRole("button", { name: "Rouvrir la dernière table de cet appareil" })); await flush(); await flush();
+    const seat = () => screen.getByTestId("lobby-seat-2");
+    expect(seat()).toBeEnabled();
+    if (scenario === "requiresSync") { holdRead = true; act(() => status("CHANNEL_ERROR")); await flush(); }
+    fireEvent.press(seat()); fireEvent.press(seat()); await flush();
+    if (scenario === "requiresSync") {
+      expect(screen.getByText("Actualisation…")).toBeVisible(); expect(screen.queryByText("Réservation…")).toBeNull(); expect(posts).toHaveLength(0);
+      holdRead = false; releaseRead(); await flush();
+    }
+    expect(posts).toHaveLength(1); expect(screen.getByText("Réservation…")).toBeVisible();
+    expect(wire.viewerSeatIndex).toBeNull();
+    if (scenario === "background") { act(() => lifecycle("background")); await flush(); expect(screen.queryByTestId("multiplayer-lobby")).toBeNull(); }
+    releasePost(); await flush(); await flush();
+    if (scenario === "background") { act(() => lifecycle("active")); await flush(); await flush(); }
+    if (["conflict", "wrong-ack", "http-error"].includes(scenario)) {
+      expect(screen.getByRole("alert")).toBeVisible(); expect(wire.viewerSeatIndex).toBeNull(); expect(posts).toHaveLength(1);
+      expect(screen.queryByText("Alice · Moi")).toBeNull();
+      // A later background read must not silently dismiss the refusal.
+      act(() => status("SUBSCRIBED")); await flush(); await flush(); expect(screen.getByRole("alert")).toBeVisible(); expect(posts).toHaveLength(1);
+      postGate = Promise.resolve(); fireEvent.press(seat()); await flush(); await flush();
+      expect(posts).toHaveLength(2);
+    }
+    expect(wire.viewerSeatIndex).toBe(2);
+    expect(screen.getByText("Alice · Moi")).toBeVisible(); expect(screen.queryByText("Réservation…")).toBeNull();
+    expect(posts.filter((p) => p.intent.type === "join-seat")).toHaveLength(["conflict", "wrong-ack", "http-error"].includes(scenario) ? 2 : 1);
+    expect(reads).toBeGreaterThan(0);
+  });
+
   test("native invitations resolve a real room, accept only after taking a place, and clear the room on account change", async () => {
     jest.useFakeTimers();
     const f = fixture();

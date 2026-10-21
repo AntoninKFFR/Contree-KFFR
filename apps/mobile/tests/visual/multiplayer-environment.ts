@@ -6,6 +6,7 @@ const params = new URLSearchParams(location.search), stage = params.get("multi")
 const source = (states as Record<string, MultiplayerRoomView[]>)[stage] ?? states["lobby-free"];
 let current = structuredClone(source[seat]);
 let seatConflict = params.has("seatConflict");
+let seatFailure = params.get("seatFailure");
 const biddingState = biddingFixture(params.get("bidding"));
 if (biddingState) current.game = parseSoloResponse({ data: biddingState }).state;
 const handSteps = (globalThis as unknown as { __nativeHandSequence?: NonNullable<MultiplayerRoomView["game"]>[] }).__nativeHandSequence;
@@ -30,6 +31,19 @@ export async function multiplayerFetch(url: string, init?: RequestInit) {
     const intent = body.intent as RoomIntent;
     if (params.get("refuse") === "1") return new Response(JSON.stringify({ error: "Action refusée.", code: "version_conflict" }), { status: 409 });
     if (intent.type === "join-seat") {
+      if (seatFailure) {
+        const failure = seatFailure; seatFailure = null;
+        if (failure === "network") throw new Error("Test-only interrupted response");
+        if (failure === "http") return new Response(JSON.stringify({ error: "Réservation indisponible. Réessaie explicitement.", code: "http" }), { status: 503 });
+        if (failure === "stale") {
+          current.room.state_version++;
+          return new Response(JSON.stringify({ error: "La table a changé. Réessaie explicitement.", code: "version_conflict" }), { status: 409 });
+        }
+        if (failure === "wrong-ack") {
+          const wrong = structuredClone(current); wrong.room.state_version++;
+          return new Response(JSON.stringify({ data: wrong }));
+        }
+      }
       const target = current.players.find((p) => p.seat_index === intent.seatIndex)!;
       if (target.kind !== "empty") return new Response(JSON.stringify({ error: "Cette place n'est plus libre.", code: "seat_occupied" }), { status: 409 });
       if (seatConflict) {
@@ -42,6 +56,11 @@ export async function multiplayerFetch(url: string, init?: RequestInit) {
       if (previous) Object.assign(previous, { kind: "empty", display_name: null, is_host: false, is_ready: false, is_connected: false, joined_at: null, last_seen_at: null });
       Object.assign(target, { kind: "human", display_name: "Antonin KFFR", is_host: current.isHost, is_ready: false, is_connected: true, joined_at: new Date().toISOString(), last_seen_at: new Date().toISOString() });
       current.viewerSeatIndex = intent.seatIndex;
+    }
+    if (intent.type === "leave-seat") {
+      const previous = current.players.find((p) => p.seat_index === current.viewerSeatIndex);
+      if (previous) Object.assign(previous, { kind: "empty", display_name: null, is_host: false, is_ready: false, is_connected: false, joined_at: null, last_seen_at: null });
+      current.viewerSeatIndex = null;
     }
     if (intent.type === "game-action" && intent.action.type === "play-card") {
       if (handSteps) current.game = structuredClone(handSteps[++handStep]);

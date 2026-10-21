@@ -1,0 +1,48 @@
+{
+  "positions": [
+    {
+      "x": 358,
+      "y": 220,
+      "width": 128,
+      "height": 64
+    },
+    {
+      "x": 654,
+      "y": 141.5,
+      "width": 128,
+      "height": 64
+    },
+    {
+      "x": 358,
+      "y": 57,
+      "width": 128,
+      "height": 64
+    },
+    {
+      "x": 62,
+      "y": 141.5,
+      "width": 128,
+      "height": 64
+    }
+  ],
+  "result": {
+    "seat": 1,
+    "intents": [
+      {
+        "type": "join-seat",
+        "seatIndex": 2
+      },
+      {
+        "type": "join-seat",
+        "seatIndex": 3
+      },
+      {
+        "type": "leave-seat"
+      },
+      {
+        "type": "join-seat",
+        "seatIndex": 1
+      }
+    ]
+  }
+}
