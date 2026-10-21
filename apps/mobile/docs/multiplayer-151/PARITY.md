@@ -1,5 +1,7 @@
 # Parité web / React Native
 
+Complément après test physique : [preuves et mesures des quatre corrections](IOS-FIXES.md). Les captures initiales restent historiques ; le lobby corrige ses cibles et son bandeau, la main partagée interpole toute sa position et les deux plateformes trient selon le contrat annoncé pendant les enchères.
+
 Les captures proviennent des véritables pages Next.js et de la véritable route native, rendue par React Native Web avec Expo UI et Reanimated réels. Les seules substitutions concernent les comptes, le stockage, l’orientation/safe areas et le transport de test. Aucun mockup n’est présenté comme une partie réelle. Les projections sont générées par le moteur serveur existant ; aucune main adverse n’entre dans le graphe iOS.
 
 | Fonctionnalité | Web | Natif livré | Tests / écarts |

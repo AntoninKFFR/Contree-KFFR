@@ -1,4 +1,6 @@
-# QA physique — non réalisée pendant ce chantier
+# QA physique — checklist initiale et régressions
+
+Le propriétaire a depuis validé le crossplay iPhone/PC avec deux comptes jusqu’à une manche complète : création/connexion, enchères, cartes, synchronisation et reprise. Les cases ci-dessous restent une checklist détaillée de régression, sans attester les scénarios non rapportés. Les [quatre corrections récentes ont leur checklist ciblée](IOS-FIXES.md#rechargement-et-vérification-sur-iphone). Leur validation matérielle reste ouverte, ainsi que les futures captures de fin de partie.
 
 Utiliser deux comptes KFFR distincts, un iPhone sous Expo Go SDK 57 et un PC connecté au web existant. Ces essais humains sont volontaires ; aucune partie réelle n’a été créée par les suites automatisées.
 

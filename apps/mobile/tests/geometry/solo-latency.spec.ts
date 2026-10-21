@@ -1,5 +1,4 @@
 import { expect, test, type ConsoleMessage } from "@playwright/test";
-import { resolve } from "node:path";
 
 // Actual RN-web scene/controller/API with a controlled HTTP wait; no UI mocks.
 for (const delay of [600, 1600]) test(`Solo latency benchmark ${delay}ms`, async ({ page }, info) => {
@@ -49,7 +48,7 @@ for (const refused of [false, true]) test(`Solo provisional flight ${refused ? "
   await page.waitForTimeout(500);
   const label = (await card.getAttribute("aria-label"))!;
   const original = (await page.getByTestId("solo-hand-card").first().boundingBox())!;
-  if (!refused) await page.screenshot({ path: resolve("docs/parity-150/captures/latency-before-touch.png") });
+  if (!refused) await page.screenshot({ path: info.outputPath("before-touch.png") });
   // Browser scrollIntoView on a clipped fan changes the viewport; a DOM click
   // invokes the real Pressable without that Playwright-specific auto-scroll.
   await card.evaluate((button) => (button as HTMLElement).click());
@@ -60,7 +59,6 @@ for (const refused of [false, true]) test(`Solo provisional flight ${refused ? "
   await expect(page.getByTestId("solo-play-0")).toHaveCount(0);
   await expect(page.getByRole("progressbar")).toHaveCount(0);
   await page.screenshot({ path: info.outputPath("pending-flight.png") });
-  if (!refused) await page.screenshot({ path: resolve("docs/parity-150/captures/latency-immediate-flight.png") });
   await expect(provisional).toHaveCount(0);
   if (refused) {
     const restored = page.getByRole("button", { name: label, exact: true });
@@ -72,6 +70,6 @@ for (const refused of [false, true]) test(`Solo provisional flight ${refused ? "
     const confirmed = (await page.getByTestId("solo-play-0").boundingBox())!;
     expect(Math.abs(confirmed.x - flying.x)).toBeLessThan(3);
     expect(Math.abs(confirmed.y - flying.y)).toBeLessThan(3);
-    await page.screenshot({ path: resolve("docs/parity-150/captures/latency-confirmed.png") });
+    await page.screenshot({ path: info.outputPath("confirmed.png") });
   }
 });

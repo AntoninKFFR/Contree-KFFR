@@ -2,7 +2,8 @@ import { test, expect } from "@playwright/test";
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import states from "../multiplayer/states.json";
-const dir = "docs/multiplayer-151/captures";
+const referenceDir = "docs/multiplayer-151/captures";
+const dir = process.env.NATIVE_CAPTURE_DIR ? `${process.env.NATIVE_CAPTURE_DIR}/multiplayer` : referenceDir;
 for (const viewport of [{ width: 568, height: 320 }, { width: 844, height: 390 }, { width: 932, height: 430 }]) {
   for (const stage of ["landing", "lobby-free", "lobby-full", "bidding", "start", "trick", "last", "result"] as const) {
     for (const seat of stage === "landing" || stage.startsWith("lobby") ? [0] : [0, 1, 2, 3]) test(`multiplayer parity native ${viewport.width} ${stage} seat ${seat}`, async ({ page }) => {
@@ -25,7 +26,7 @@ for (const viewport of [{ width: 568, height: 320 }, { width: 844, height: 390 }
       });
       expect(geometry).toEqual({ left: 47, right: viewport.width - 47, bottom: viewport.height - 21, overflowX: 0, overflowY: 0 });
       const fixtureDigest = createHash("sha256").update(JSON.stringify(view)).digest("hex");
-      const reference = `${dir}/web-${viewport.width}-${stage}-${seat}.json`;
+      const reference = `${referenceDir}/web-${viewport.width}-${stage}-${seat}.json`;
       if (existsSync(reference)) expect(fixtureDigest).toBe(JSON.parse(readFileSync(reference, "utf8")).fixtureDigest);
       mkdirSync(dir, { recursive: true }); await page.screenshot({ path: `${dir}/native-${viewport.width}-${stage}-${seat}.png` });
       writeFileSync(`${dir}/native-${viewport.width}-${stage}-${seat}.json`, JSON.stringify({ fixtureDigest, viewport, seat, stage, geometry, renderer: "actual React Native Web components; not physical iOS" }, null, 2));

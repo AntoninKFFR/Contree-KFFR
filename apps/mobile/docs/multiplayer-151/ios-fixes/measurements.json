@@ -1,0 +1,196 @@
+{
+  "baseline": "8d1ac9d98c81840401a36b3a401bd06a76b8d60a",
+  "method": "Baseline substitutes only the three original mobile components using git show; same current harness and dependencies. Actual RN Web/Reanimated, not native iOS performance.",
+  "sourceSha256": {
+    "apps/mobile/src/solo/hand.tsx": "e28cb2599d7c0378d58048d277923c06276364b83e8ee47a0e29016b17428a12",
+    "apps/mobile/src/multiplayer/lobby.tsx": "2d709f090745da5b4cd3bbdd662f636069b603a822ca218f97fa0197181dd57c",
+    "apps/mobile/src/app/(connected)/multiplayer.tsx": "2184185c4193797127266c67cb8ec1440f466738e0a33e7e321f6049852ba305",
+    "lib/preferences/handSorting.ts": "daa5c704a187eb029395bbe692fffd56fddebfa95df0a7501b8e10952c3b226d",
+    "apps/mobile/tests/hand/states.json": "4bb47bb93ad24ac785707ac354b30b0649b331176b64b7a9f6c1465aefdc162c"
+  },
+  "captureSha256": {
+    "before/lobby-568-left-0.png": "5a8d35c6ddd25a69a991c09278526ea905f828f17cacd2509c9fc735e4ea6d66",
+    "after/lobby-568-left-0.png": "ba91252cf8ff596c476828f2cc392ae7a9122823eccaa81ddfd958126ef63978",
+    "before/lobby-568-right-0.png": "003ac0a97cd6b494a5ac09e16ff660b54d7b643e22f806fad0b102bd4f0c625a",
+    "after/lobby-568-right-0.png": "eb5714ca46bbaa618f1c851961caf84d8efc018747ad1f0326e997ea0ae47854",
+    "before/lobby-844-left-0.png": "f2da74f1967934c71fea6c2eeead35cd08b242a063328a86e55490e4ae55e4fb",
+    "after/lobby-844-left-0.png": "91adead36cd38ab1b0340046dc2bb79a4c9e2e7875f8be6fb40faa5d2ba871d8",
+    "before/lobby-844-right-0.png": "dd59dfed15b4667511729bfcdaecfb5fc857cc2184c2e40e34dbadc088f2cae2",
+    "after/lobby-844-right-0.png": "c1576d8f51777bd75f597ceaff35e014448d285593626b795858c95c98dd76bf",
+    "before/lobby-932-left-0.png": "41203db156652cb3aa154bfa5212a572e066038a8aa3ec61a4615fda22df2d7f",
+    "after/lobby-932-left-0.png": "550c2b2620c36b7867e57ad1d974ecb065bb9b92340ae5d8d938b27f4a9a03eb",
+    "before/lobby-932-right-0.png": "e212337b6673f03b91bb29b13ad28c65e76a1dfb8ebb160316b9437b556c3409",
+    "after/lobby-932-right-0.png": "690801ffb61d78fba56193c4de2abb5d7cd4c01ccd7ce9090832aac01980f3de",
+    "before/lobby-error-banner-844-left.png": "275d16ce030ddf6010080a65880437034ac2b51d3e360f7c0d1ad626a26fc5b2",
+    "after/lobby-error-banner-844-left.png": "f3467d5ff26247540b211d4de88b0eb4535599a430a3193fe109ea97d334dad2",
+    "after/fan-solo-on-8.png": "0248933573d683a865615de26961cacaa5db5202222fe659cbfc506b14a962af",
+    "after/fan-multiplayer-on-8.png": "37e4abbbdf69ecbef5ecb7e38d120353d74de5341e5476d4f06841275138ee65",
+    "after/fan-solo-on-7.png": "ac90a29b77961ad75ea7a4bc6cd3c2bceaeea9e92df8ed1f1efb2e97a27781f4",
+    "after/fan-multiplayer-on-7.png": "a39dd5500f6167ae4cf5ada16e5bd0f9257301afe64b89630c96980d20f0faf6",
+    "after/fan-solo-on-6.png": "1af755c49b894575e1fb12bb6c37afaf1465a48c3bcb6411551855c9f97147c0",
+    "after/fan-multiplayer-on-6.png": "6c7c38dfc9cca4856d1a29df6119380dab3468c5fce0683d38a3554f1a1dde18",
+    "after/fan-solo-on-5.png": "bda1182a6453eaa35643494276f809cc1d8e82154c8c4a4e4a8d4ac68a732354",
+    "after/fan-multiplayer-on-5.png": "44c3fa7bdb3bf6d1a84bc883d2b5795f733f9271d64d3d53d6cb0b339451c094",
+    "after/fan-solo-on-4.png": "da386b1f00ff3a958194ec137a8bbeedd33f7ba11dca6b9215b28b805a9ac625",
+    "after/fan-multiplayer-on-4.png": "637300aba87f308f5e108478be925a55039464131852a59484339c0a18fa3e20",
+    "after/fan-solo-on-3.png": "b7888cf464a24868466c57bd7f6afcb60986c8b97ca758e96761c7400f0a646a",
+    "after/fan-multiplayer-on-3.png": "06dc8f7a0f7368b01e6c31d0b97b0072fe912ddb4009bb987bcf6e6e82c2c576",
+    "after/fan-solo-on-2.png": "f05a099a78a273d0e7a07b6844d2dfcf715e38eeba4f00c0019c8b50f653ce80",
+    "after/fan-multiplayer-on-2.png": "e8d553c19e18374e6d5aaf43d1a7bc5ed9ce8fc4d9c4c7b8fc3abbb9f99ef1b5",
+    "after/fan-solo-on-1.png": "5dc5f19f5edb96bc9c00e53e2620b4b08c1d52a594ed057ae9a65c76c256f5d2",
+    "after/fan-multiplayer-on-1.png": "4a94baa2f117b831a136e8f044f13dca24a63cf41bcc3c456b296490e0a2fc80",
+    "before/fan-solo-intermediate.png": "3e99a53490ed26dcf8ef8c03711a3cbf7e467660ebb9c94f2581cd45e095c9ab",
+    "after/fan-solo-intermediate.png": "ac90a29b77961ad75ea7a4bc6cd3c2bceaeea9e92df8ed1f1efb2e97a27781f4",
+    "before/fan-multiplayer-intermediate.png": "d14844fd15f5165cfff7fc2f0d50bbd06029263e9850076d1fcb675bf2b96192",
+    "after/fan-multiplayer-intermediate.png": "a39dd5500f6167ae4cf5ada16e5bd0f9257301afe64b89630c96980d20f0faf6",
+    "sorting/web-multiplayer-empty-2.png": "3ec2dfc506db08fc50245a877e042547e118fa81da989d7d106e72b35d517353",
+    "sorting/native-multiplayer-empty-2.png": "443bc1c73c05841e96e4e8c1b82db456e5d0ef642dd79e0e20ebf973b9e875c7",
+    "sorting/web-multiplayer-hearts-2.png": "2b84081ae9b0bb4381d0edfc41bb76bdcebdca67c71265f07349040ae6bbe127",
+    "sorting/native-multiplayer-hearts-2.png": "c6a579fbb856bb0f00cd24e85b63a7b57d2f5c8a9e76b2bf2a0eeca57ddc49ce",
+    "sorting/web-multiplayer-clubs-0.png": "c7e6b762b9f0602fc61eccb1bed35c8b648e4cd93e321bddc4c39dd1f414385d",
+    "sorting/native-multiplayer-clubs-0.png": "51b558732eef40ca1115f32fbfbe9863316f45aa314993c44a8d376dd24cb1bc",
+    "sorting/web-multiplayer-sa-2.png": "1293e7fa7164afb226cf4dc7def4bd21c13e036ceec639020ddd20d3713d2629",
+    "sorting/native-multiplayer-sa-2.png": "7e61bc607c30dbb49a9b01cf1b5ddb9da5ebf36765f642f450dbe16d7bfa3023",
+    "sorting/web-multiplayer-ta-2.png": "f986671c776919295012ed31fcae7520abf5835d286c3b8a1df7656efb0292cd",
+    "sorting/native-multiplayer-ta-2.png": "e791bd1b1832d2bcfc47184fcbea1edad07a961d009400cd358478d15ab33d93",
+    "sorting/web-multiplayer-confirmed-2.png": "a8271d705a15f196c311512899eccdeb69fbb9042faa6fe2940ff787f475bf69",
+    "sorting/native-multiplayer-confirmed-2.png": "75990fe1e9c910e0fc505e786d7a85ddea381dd8b5ad161e4250f423679e49c0",
+    "ci-original/test-results/socialPresence--social-pri-72b27-table-mobile-and-themes-fit-social/test-failed-2.png": "1d3d48c97875de59e5797d26fa5cb14be1db7ee2ab84bd8e9b16746251552656",
+    "social-final-results/socialPresence--social-pri-72b27-table-mobile-and-themes-fit-social/presence-online.png": "394858ceb4c1e8586405006a457a59a5d08f8ebca9ff52c55f635ce406feea28",
+    "social-final-results/socialPresence--social-pri-72b27-table-mobile-and-themes-fit-social/presence-offline.png": "7c0787cfc8be1f8b59981b7bdcf08ce3f121904c06cd47ec57c8ba671543958d"
+  },
+  "metrics": {
+    "before": {
+      "solo-on": {
+        "layoutJumpPx": [
+          22.5,
+          22.5,
+          22.5,
+          22.5,
+          22.5,
+          22.5,
+          22.5
+        ],
+        "intermediateTransitions": 5,
+        "transitions": 7,
+        "largestObservedFrameDeltaPx": 22.5,
+        "profilerCommits": 43,
+        "profilerTotalRenderMs": 121.90000002086163
+      },
+      "multiplayer-on": {
+        "layoutJumpPx": [
+          22.5,
+          22.5,
+          22.5,
+          22.5,
+          22.5,
+          22.5,
+          22.5
+        ],
+        "intermediateTransitions": 5,
+        "transitions": 7,
+        "largestObservedFrameDeltaPx": 22.5,
+        "profilerCommits": 71,
+        "profilerTotalRenderMs": 134.3999999910593
+      }
+    },
+    "after": {
+      "solo-on": {
+        "layoutJumpPx": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "intermediateTransitions": 7,
+        "transitions": 7,
+        "largestObservedFrameDeltaPx": 10.404205322265625,
+        "profilerCommits": 43,
+        "profilerTotalRenderMs": 109.3999999947846
+      },
+      "solo-reduced": {
+        "layoutJumpPx": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "intermediateTransitions": 0,
+        "transitions": 7,
+        "largestObservedFrameDeltaPx": 24.974639892578125,
+        "profilerCommits": 42,
+        "profilerTotalRenderMs": 94.29999999701977
+      },
+      "solo-off": {
+        "layoutJumpPx": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "intermediateTransitions": 0,
+        "transitions": 7,
+        "largestObservedFrameDeltaPx": 24.974639892578125,
+        "profilerCommits": 42,
+        "profilerTotalRenderMs": 97.29999999329448
+      },
+      "multiplayer-on": {
+        "layoutJumpPx": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "intermediateTransitions": 7,
+        "transitions": 7,
+        "largestObservedFrameDeltaPx": 10.3836669921875,
+        "profilerCommits": 71,
+        "profilerTotalRenderMs": 115.30000000074506
+      },
+      "multiplayer-reduced": {
+        "layoutJumpPx": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "intermediateTransitions": 0,
+        "transitions": 7,
+        "largestObservedFrameDeltaPx": 24.974639892578125,
+        "profilerCommits": 65,
+        "profilerTotalRenderMs": 107.70000000670552
+      },
+      "multiplayer-off": {
+        "layoutJumpPx": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "intermediateTransitions": 0,
+        "transitions": 7,
+        "largestObservedFrameDeltaPx": 24.974639892578125,
+        "profilerCommits": 67,
+        "profilerTotalRenderMs": 111.0
+      }
+    }
+  }
+}

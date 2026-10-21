@@ -8,12 +8,15 @@ import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../../..
 const parityStage = new URLSearchParams(location.search).get("parity") as keyof typeof parity | null;
 const biddingStage = new URLSearchParams(location.search).get("bidding");
 const scenario = new URLSearchParams(location.search).get("solo") || "empty";
+const handSteps = (globalThis as unknown as { __nativeHandSequence?: typeof parity.start.state[] }).__nativeHandSequence;
+let handStep = 0;
 const phases = ["bidding", "playing", "finished", "game-over"] as const;
 let current = soloFixture(phases.includes(scenario as typeof phases[number]) ? scenario as typeof phases[number] : "playing");
 if (parityStage && parity[parityStage]) current = { ...structuredClone(parity[parityStage]), id: SESSION_ID } as typeof current;
 const biddingState = biddingFixture(biddingStage);
 if (biddingState) current = { ...biddingState, id: SESSION_ID } as unknown as typeof current;
 if (scenario === "illegal") current = { ...structuredClone(illegalState), id: SESSION_ID } as typeof current;
+if (handSteps) current = { ...current, state: structuredClone(handSteps[0]) } as typeof current;
 if (scenario === "trick" || scenario === "last-trick") {
   current.state.currentTrick.cards = [
     { playerId: 1, card: { rank: "J", suit: "hearts" } },
@@ -30,7 +33,7 @@ if (scenario === "trick" || scenario === "last-trick") {
 }
 const memory = new Map<string, string>();
 if (new URLSearchParams(location.search).get("multi") && !["landing", "live"].includes(new URLSearchParams(location.search).get("multi")!)) memory.set("kffr.native.multiplayer.room.v1:visual-test-only", "15100000-0000-4000-8000-000000000001");
-if (parityStage || biddingStage || new URLSearchParams(location.search).has("multi")) { const prefs = clonePlayerPreferences(); prefs.visual.reducedMotion = new URLSearchParams(location.search).get("motion") !== "1"; memory.set(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(prefs)); }
+if (parityStage || biddingStage || new URLSearchParams(location.search).has("multi")) { const prefs = clonePlayerPreferences(); prefs.visual.reducedMotion = new URLSearchParams(location.search).get("motion") !== "1"; if (new URLSearchParams(location.search).get("animations") === "0") prefs.visual.animations = false; memory.set(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(prefs)); }
 if (scenario !== "empty" || parityStage || biddingStage) memory.set(soloStorageKey("visual-test-only"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
 const requests: { method: string; body: unknown }[] = [];
 Object.assign(globalThis, { __soloFixture: { requests, current: () => current, stored: (key: string) => memory.get(key) ?? null } });
@@ -46,6 +49,10 @@ export const soloEnvironment = {
       const body = JSON.parse(String(init.body));
       const postDelay = Number(new URLSearchParams(location.search).get("postDelay") || 0);
       if (postDelay > 0) await new Promise((resolve) => setTimeout(resolve, postDelay));
+      if (handSteps && body.intent?.type === "play-card" && scenario !== "action-error") {
+        current = { ...current, version: current.version + 1, state: structuredClone(handSteps[++handStep]) } as typeof current;
+        return new Response(JSON.stringify({ data: current }));
+      }
       // Callback/permission tests stay on the same engine-generated human turn.
       // Full transitions and bots are exercised by the real-engine transport test.
       if (biddingStage && body.intent) {

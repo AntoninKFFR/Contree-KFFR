@@ -116,7 +116,7 @@ function Multiplayer({ id, onRoomChange: setId }: { id: string | null; onRoomCha
     setDialog(null); setNotice(null); setId(next.room.id); setSaved(next.room.id);
     if (owner) void soloEnvironment.storage.setItem(savedRoomKey(owner), next.room.id).catch(() => setNotice("Code accessible, mais reprise locale non sauvegardée."));
   }
-  function send(intent: RoomIntent) { void controller?.move(intent); }
+  function send(intent: RoomIntent) { return controller?.move(intent) ?? Promise.resolve(false); }
   async function invitation(invite: GameInvitation, action: "join" | "decline") {
     if (action === "decline") {
       const next = await run((api, who, signal) => api.invitation(who, signal, invite.id, "decline"));
@@ -136,6 +136,7 @@ function Multiplayer({ id, onRoomChange: setId }: { id: string | null; onRoomCha
     if (next) setFriends(next);
   }
   const title = room ? `Table ${room.room.code}` : "Multijoueur";
+  const message = state.error ?? service.error ?? notice;
   const tableSettings = normalizeMultiplayerTablePreferences(room?.room.presentation_settings);
   const received = invitations.filter((i) => i.inviteeId === owner && i.status === "pending");
   const body = (text: string) => <Text style={styles.body}>{text}</Text>;
@@ -156,9 +157,9 @@ function Multiplayer({ id, onRoomChange: setId }: { id: string | null; onRoomCha
           </>}
         </View>}
         <View style={{ position: "absolute", left: 4, top: 4, width: 44, zIndex: 60 }}><TableButton label="←" accessibilityLabel={id ? "Revenir aux salons" : "Revenir à l’accueil"} symbol chrome onPress={() => { if (id) { setId(null); setInvitationId(null); } else router.replace("/"); }} /></View>
-        {!room?.game ? <Text style={{ position: "absolute", top: 15, left: 58, right: 58, color: "#ead8a6", fontSize: 16, fontWeight: "900" }}>{title}</Text> : null}
+        {!room?.game && !message ? <Text style={{ position: "absolute", top: 15, left: 58, right: 58, color: "#ead8a6", fontSize: 16, fontWeight: "900" }}>{title}</Text> : null}
         <View style={{ position: "absolute", right: 4, top: 4, width: 44, zIndex: 60 }}><TableButton label="☰" accessibilityLabel="Menu Multijoueur" symbol chrome onPress={() => setDialog("menu")} /></View>
-        {state.error || service.error || notice ? <View style={{ position: "absolute", top: 50, left: 58, right: 58, zIndex: 70, padding: 8, borderRadius: 8, backgroundColor: "#392b13f5", flexDirection: "row", alignItems: "center", gap: 8 }}><Text accessibilityRole="alert" style={{ color: "#fff", flex: 1, fontSize: 12 }}>{state.error ?? service.error ?? notice}</Text><TableButton label={state.error ? "Recharger" : "OK"} onPress={() => { if (state.error) void controller?.load(); service.setError(null); setNotice(null); }} /></View> : null}
+        {message ? <View testID="multiplayer-notice" pointerEvents="box-none" style={{ position: "absolute", top: room?.game ? 50 : 4, left: 58, right: 58, zIndex: 70, minHeight: 44, paddingHorizontal: 8, paddingVertical: room?.game ? 8 : 0, borderRadius: 8, backgroundColor: "#392b13f5", flexDirection: "row", alignItems: "center", gap: 8 }}><View pointerEvents="none" style={{ flex: 1 }}><Text numberOfLines={room?.game ? undefined : 2} accessibilityRole="alert" style={{ color: "#fff", fontSize: 12 }}>{message}</Text></View><TableButton label={state.error ? "Recharger" : "OK"} onPress={() => { if (state.error) void controller?.load(); service.setError(null); setNotice(null); }} /></View> : null}
       </View>
       <DetailDialog visible={dialog !== null} title={{ join: "Code de table", rules: "Règles de la table", invitations: "Invitations reçues", invite: "Inviter des amis", menu: title, host: "Hôte et présence", forfeit: "Déclarer forfait ?", preferences: "Préférences personnelles", table: "Paramètres partagés" }[dialog ?? "menu"]} onClose={() => setDialog(null)} reduceMotion={settings.reduced}>
         {dialog === "join" ? <>{body("Saisis le code reçu sur PC ou iPhone.")}<TextInput accessibilityLabel="Code de table" value={code} onChangeText={setCode} autoCapitalize="characters" autoCorrect={false} maxLength={12} style={{ color: "#fff", borderWidth: 1, borderColor: "#ead8a680", borderRadius: 12, padding: 12, fontSize: 20, minHeight: 48 }} /><TableButton label="Rejoindre la table" primary disabled={busy || !code.trim()} onPress={() => { void run((api, who, signal) => api.find(who, signal, code)).then((next) => { if (next) open(next); }); }} /></> : null}

@@ -8,6 +8,7 @@ import { GameTable } from "@/components/GameTable";
 import { useGameChrome } from "@/components/GameChromeProvider";
 import { GameMenuPopover, type GameMenuAction } from "@/components/GameMenuPopover";
 import { HumanHand } from "@/components/HumanHand";
+import { handDisplayMode } from "@/lib/preferences/handSorting";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { FinishedRoomCard } from "@/components/multiplayer/FinishedRoomCard";
@@ -486,7 +487,7 @@ export default function MultiplayerRoomPage() {
                     hand={(playerView.phase === "bidding" || playerView.phase === "playing") ? <HumanHand
                       canPlay={canPlayCard && !isPlayingCard}
                       cards={handWithoutPendingCard(playerView.hand, visiblePendingCardValue)}
-                      contractMode={currentMode}
+                      contractMode={handDisplayMode(playerView)}
                       illegalCardMessage={illegalCardMessage}
                       inScene
                       legalCards={legalCards}

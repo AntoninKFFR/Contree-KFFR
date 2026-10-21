@@ -9,6 +9,7 @@ import { GameTable } from "@/components/GameTable";
 import { useGameChrome } from "@/components/GameChromeProvider";
 import { GameMenuPopover } from "@/components/GameMenuPopover";
 import { HumanHand } from "@/components/HumanHand";
+import { handDisplayMode } from "@/lib/preferences/handSorting";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
@@ -268,7 +269,7 @@ export default function SoloPage() {
               hand={(gameState.phase === "bidding" || gameState.phase === "playing") ? <HumanHand
                 canPlay={humanCanPlay}
                 cards={soloHumanHand(gameState, localHumanPlayerId)}
-                contractMode={currentMode}
+                contractMode={handDisplayMode(gameState)}
                 illegalCardMessage={illegalCardMessage}
                 inScene
                 legalCards={legalHumanCards}

@@ -1,5 +1,7 @@
 # Validation — 21 octobre 2026
 
+Ce rapport décrit la livraison initiale. Voir [les quatre corrections après test physique](IOS-FIXES.md) pour les résultats les plus récents ; les anciens nombres ci-dessous sont historiques.
+
 L’état CI et le SHA immuable livré sont consignés dans la description de la [PR #152](https://github.com/AntoninKFFR/Contree-KFFR/pull/152). La PR reste DRAFT. Aucun merge ou déploiement n’est demandé par ces commandes.
 
 ## Exécuté localement

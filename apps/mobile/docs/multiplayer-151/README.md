@@ -2,6 +2,8 @@
 
 [Issue](https://github.com/AntoninKFFR/Contree-KFFR/issues/151) · [PR DRAFT](https://github.com/AntoninKFFR/Contree-KFFR/pull/152) · branche `feat/151-ios-multiplayer`, issue de `main` `0314cfb`.
 
+**Dernier correctif : [places tactiles, présence CI, regroupement des cartes et tri aux enchères](IOS-FIXES.md)** — causes démontrées, captures avant/après, mesures et validations. Les planches initiales ci-dessous restent des références historiques.
+
 Le bouton Multijoueur ouvre une interface React Native connectée aux mêmes API et au même projet Supabase que le web. Aucun nouveau moteur, backend ou schéma. Aucune migration, RLS, Auth, donnée de production, fusion ou commande de déploiement n’a été appliquée. Aucune dépendance ajoutée.
 
 ## Fonctionnement livré
@@ -39,4 +41,4 @@ Le backend de production existant suffit au code proposé : aucun déploiement b
 - [Harmonisation des enchères Solo / Multijoueur, tests et captures avant/après](BIDDING.md).
 - [Comparaison interactive locale](comparison.html) : vrais composants web et React Native Web sur les mêmes projections publiques vérifiées par SHA-256 ; 69 paires. Les captures **ne sont pas des captures iOS matérielles**.
 - [Planche 568](captures/comparison-568.png), [844](captures/comparison-844.png), [932](captures/comparison-932.png).
-- La QA physique iPhone + PC, la latence réseau et la fluidité matérielle restent à réaliser. Une réussite automatisée ne les remplace pas.
+- Le propriétaire a validé le crossplay iPhone + PC jusqu’à une manche complète (création/connexion, enchères, cartes, synchronisation et reprise). Les quatre corrections et la fluidité matérielle restent à revalider selon [IOS-FIXES.md](IOS-FIXES.md). Les futures captures de fin de partie restent distinctes.

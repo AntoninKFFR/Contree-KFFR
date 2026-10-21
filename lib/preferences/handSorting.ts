@@ -1,6 +1,15 @@
 import { cardStrength } from "@/engine/rules";
-import type { Card, ContractMode, Suit } from "@/engine/types";
+import { getCurrentContractFromBids } from "@/engine/bidding";
+import { resolveContractMode } from "@/engine/contractMode";
+import type { Bid, Card, ContractMode, Suit } from "@/engine/types";
 import type { PlayerPreferences } from "./playerPreferences";
+
+/** Display only: a selected, unannounced suit never changes the hand order. */
+export function handDisplayMode(game: { phase: string; bids: Bid[]; contractMode?: ContractMode | null; trump?: Suit | null }): ContractMode | null {
+  return game.phase === "bidding"
+    ? resolveContractMode(getCurrentContractFromBids(game.bids) ?? {})
+    : resolveContractMode(game);
+}
 
 function suitIndex(suit: Suit, order: Suit[]): number {
   const index = order.indexOf(suit);

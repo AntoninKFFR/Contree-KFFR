@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Profiler, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { View } from "react-native";
 import type { Session } from "@supabase/supabase-js";
@@ -13,6 +13,8 @@ import { RouteContext } from "./router";
 import { initialAccountState } from "../../src/lib/account";
 import SalonProposal from "./proposals/salon";
 const params = new URLSearchParams(location.search);
+const renders: { phase: string; duration: number }[] = [];
+Object.assign(globalThis, { __nativeRenderMetrics: renders });
 function Harness() {
   const [route, setRoute] = useState(params.get("screen") || "home");
   const [status, setStatus] = useState(params.get("state") || "ready");
@@ -27,11 +29,11 @@ function Harness() {
   }}>
     <RouteContext.Provider value={(href) => setRoute(href === "/profile" ? "profile" : href === "/solo" ? "solo" : href === "/multiplayer" ? "multiplayer" : "home")}>
       <View style={{ flex: 1, height: "100%" }}>
-        <WindowGuard>
+        <Profiler id="native-route" onRender={(_id, phase, duration) => { if (params.has("perf")) renders.push({ phase, duration }); }}><WindowGuard>
           {route === "login" ? <Login /> : <View style={{ flex: 1, minHeight: 0 }}>
             {route === "profile" ? <Profile /> : route === "solo" ? <Solo /> : route === "multiplayer" ? <Multiplayer /> : params.get("proposal") === "salon" ? <SalonProposal /> : <Home />}
           </View>}
-        </WindowGuard>
+        </WindowGuard></Profiler>
       </View>
     </RouteContext.Provider>
   </VisualAccountContext.Provider>;

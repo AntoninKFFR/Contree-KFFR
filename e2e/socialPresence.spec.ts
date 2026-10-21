@@ -34,7 +34,7 @@ function assertInsideViewport(box: { x: number; y: number; width: number; height
 }
 
 test.describe("@social private friend presence", () => {
-  test("online friend leads both lists, offline friend remains invitable, mobile and themes fit", async ({ browser, baseURL }) => {
+  test("online friend leads both lists, offline friend remains invitable, mobile and themes fit", async ({ browser, baseURL }, testInfo) => {
     test.setTimeout(240_000);
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const secret = process.env.SUPABASE_SECRET_KEY;
@@ -80,7 +80,27 @@ test.describe("@social private friend presence", () => {
       const friendRow = a.locator(".friend-presence-row").filter({ hasText: usernameB });
       await expect(friendRow).toContainText("En ligne");
       await expect(a.getByRole("heading", { name: "En ligne · 1" })).toBeVisible();
-      expect(await friendRow.locator(".friend-presence-dot--online").count()).toBe(1);
+      // Auth/focus refresh can briefly replace this entire list with loading
+      // after the text assertions (the failed CI screenshots show that state).
+      await expect(friendRow.locator(".friend-presence-dot--online")).toHaveCount(1);
+      // Reproduce that real same-account lifecycle deterministically against
+      // local Supabase: pause the snapshot while the SDK delivers SIGNED_IN.
+      let releaseSnapshot!: () => void;
+      const snapshotGate = new Promise<void>((resolve) => { releaseSnapshot = resolve; });
+      const holdSnapshot = async (route: import("@playwright/test").Route) => { await snapshotGate; await route.continue(); };
+      await a.route("**/api/social", holdSnapshot);
+      try {
+        await a.evaluate(() => {
+          const key = Object.keys(localStorage).find((item) => item.startsWith("sb-") && item.endsWith("-auth-token"))!;
+          const channel = new BroadcastChannel(key);
+          channel.postMessage({ event: "SIGNED_IN", session: JSON.parse(localStorage.getItem(key)!) }); channel.close();
+        });
+        await expect(a.getByRole("heading", { name: "Chargement…" })).toBeVisible();
+        expect(await friendRow.locator(".friend-presence-dot--online").count()).toBe(0);
+      } finally { releaseSnapshot(); }
+      await expect(friendRow.locator(".friend-presence-dot--online")).toHaveCount(1);
+      await expect(friendRow).toContainText("En ligne");
+      await a.unroute("**/api/social", holdSnapshot);
       for (const theme of ["dark", "light"]) {
         await a.evaluate((value) => { document.documentElement.dataset.theme = value; }, theme);
         const dot = friendRow.locator(".friend-presence-dot--online");
@@ -96,6 +116,7 @@ test.describe("@social private friend presence", () => {
         });
         expect(colors.actual).toBe(colors.expected);
       }
+      await a.screenshot({ path: testInfo.outputPath("presence-online.png") });
       await a.getByLabel("Pseudo").fill(usernameB);
       const searchRow = a.locator("li.coinche-social-row").filter({ hasText: usernameB });
       await expect(searchRow).toBeVisible();
@@ -147,6 +168,7 @@ test.describe("@social private friend presence", () => {
       await a.goto("/friends");
       await expect(a.locator(".friend-presence-row").filter({ hasText: usernameB })).toContainText("Hors ligne");
       await expect(a.getByRole("heading", { name: "Hors ligne · 1" })).toBeVisible();
+      await a.screenshot({ path: testInfo.outputPath("presence-offline.png") });
 
       for (const [width, height] of [[390, 844], [667, 375], [844, 390]]) {
         await a.setViewportSize({ width, height });
