@@ -61,7 +61,7 @@ export function TrickCards({ cards, height, animatedKeys = [], preferences, redu
     })}
   </View>;
 }
-export function SoloScene({ session, width, height, preferences, reduced, human, onIntent, layers, cardPresentations, presented, policy, onCollect, onLastTrick, pendingCard, showWaitingBids = true, playerStatus }: {
+export function SoloScene({ session, width, height, preferences, reduced, human, onIntent, layers, cardPresentations, presented, policy, onCollect, onLastTrick, pendingCard, showWaitingBids = false, playerStatus }: {
   session: NativeSoloSession; width: number; height: number; preferences: PlayerPreferences; reduced: boolean; human: boolean; onIntent: (intent: SoloIntent) => void;
   layers: TrickLayer[]; cardPresentations: Map<string, CardPresentation>; presented: PresentedTrick | null; policy: { autoCollect: boolean; delayMs: number }; onCollect: () => void; onLastTrick: () => void;
   pendingCard?: Card | null; showWaitingBids?: boolean; playerStatus?: Partial<Record<PlayerId, "online" | "offline" | "bot">>;

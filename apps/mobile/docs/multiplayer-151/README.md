@@ -36,6 +36,7 @@ Le backend de production existant suffit au code proposé : aucun déploiement b
 ## Preuves et limites
 
 - [Audit d’architecture](AUDIT.md), [matrice de parité et écarts](PARITY.md), [tests et validation](VALIDATION.md).
+- [Harmonisation des enchères Solo / Multijoueur, tests et captures avant/après](BIDDING.md).
 - [Comparaison interactive locale](comparison.html) : vrais composants web et React Native Web sur les mêmes projections publiques vérifiées par SHA-256 ; 69 paires. Les captures **ne sont pas des captures iOS matérielles**.
 - [Planche 568](captures/comparison-568.png), [844](captures/comparison-844.png), [932](captures/comparison-932.png).
 - La QA physique iPhone + PC, la latence réseau et la fluidité matérielle restent à réaliser. Une réussite automatisée ne les remplace pas.

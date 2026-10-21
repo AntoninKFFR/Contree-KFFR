@@ -1,18 +1,18 @@
 import { multiplayerFetch } from "./multiplayer-environment";
 // Network-free UI server fixtures. The app imports its real environment through Metro.
 import { soloStorageKey } from "../../src/solo/controller";
-import { SESSION_ID, START_KEY, soloFixture } from "../solo-fixtures";
+import { SESSION_ID, START_KEY, soloFixture, biddingFixture } from "../solo-fixtures";
 import parity from "../parity/states.json";
-import biddingParity from "../parity/bidding-states.json";
 import illegalState from "../parity/illegal-state.json";
 import { clonePlayerPreferences, PLAYER_PREFERENCES_STORAGE_KEY } from "../../../../lib/preferences/playerPreferences";
 const parityStage = new URLSearchParams(location.search).get("parity") as keyof typeof parity | null;
-const biddingStage = new URLSearchParams(location.search).get("bidding") as keyof typeof biddingParity | null;
+const biddingStage = new URLSearchParams(location.search).get("bidding");
 const scenario = new URLSearchParams(location.search).get("solo") || "empty";
 const phases = ["bidding", "playing", "finished", "game-over"] as const;
 let current = soloFixture(phases.includes(scenario as typeof phases[number]) ? scenario as typeof phases[number] : "playing");
 if (parityStage && parity[parityStage]) current = { ...structuredClone(parity[parityStage]), id: SESSION_ID } as typeof current;
-if (biddingStage && biddingParity[biddingStage]) current = { ...structuredClone(biddingParity[biddingStage]), id: SESSION_ID } as typeof current;
+const biddingState = biddingFixture(biddingStage);
+if (biddingState) current = { ...biddingState, id: SESSION_ID } as unknown as typeof current;
 if (scenario === "illegal") current = { ...structuredClone(illegalState), id: SESSION_ID } as typeof current;
 if (scenario === "trick" || scenario === "last-trick") {
   current.state.currentTrick.cards = [
@@ -33,7 +33,7 @@ if (new URLSearchParams(location.search).get("multi") && !["landing", "live"].in
 if (parityStage || biddingStage || new URLSearchParams(location.search).has("multi")) { const prefs = clonePlayerPreferences(); prefs.visual.reducedMotion = new URLSearchParams(location.search).get("motion") !== "1"; memory.set(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(prefs)); }
 if (scenario !== "empty" || parityStage || biddingStage) memory.set(soloStorageKey("visual-test-only"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
 const requests: { method: string; body: unknown }[] = [];
-Object.assign(globalThis, { __soloFixture: { requests, stored: (key: string) => memory.get(key) ?? null } });
+Object.assign(globalThis, { __soloFixture: { requests, current: () => current, stored: (key: string) => memory.get(key) ?? null } });
 export const soloEnvironment = {
   uuid: () => START_KEY,
   storage: { getItem: async (key: string) => memory.get(key) ?? null, setItem: async (key: string, value: string) => { memory.set(key, value); } },
@@ -48,7 +48,12 @@ export const soloEnvironment = {
       if (postDelay > 0) await new Promise((resolve) => setTimeout(resolve, postDelay));
       // Callback/permission tests stay on the same engine-generated human turn.
       // Full transitions and bots are exercised by the real-engine transport test.
-      if (biddingStage && body.intent) { current.version++; return new Response(JSON.stringify({ data: current })); }
+      if (biddingStage && body.intent) {
+        const version = current.version + 1;
+        if (biddingStage === "bot-turn" && body.intent.type === "advance-bot") current = { ...biddingFixture("coinche")!, id: SESSION_ID } as unknown as typeof current;
+        current.version = version;
+        return new Response(JSON.stringify({ data: current }));
+      }
       if (scenario === "action-error" && body.intent) return new Response("{}", { status: 400 });
       if (body.startKey) current = soloFixture("bidding", 0);
       else {

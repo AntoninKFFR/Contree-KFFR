@@ -1,8 +1,12 @@
 import states from "../multiplayer/states.json";
 import type { MultiplayerRoomView, RoomIntent } from "../../src/multiplayer/contract";
+import { parseSoloResponse } from "../../src/solo/contract";
+import { biddingFixture } from "../solo-fixtures";
 const params = new URLSearchParams(location.search), stage = params.get("multi") ?? "landing", seat = Number(params.get("seat") ?? 0);
 const source = (states as Record<string, MultiplayerRoomView[]>)[stage] ?? states["lobby-free"];
 let current = structuredClone(source[seat]);
+const biddingState = biddingFixture(params.get("bidding"));
+if (biddingState) current.game = parseSoloResponse({ data: biddingState }).state;
 export const multiplayerRequests: { path: string; body: unknown }[] = [];
 Object.assign(globalThis, { __multiplayerFixture: { requests: multiplayerRequests, current: () => current } });
 export async function multiplayerFetch(url: string, init?: RequestInit) {
