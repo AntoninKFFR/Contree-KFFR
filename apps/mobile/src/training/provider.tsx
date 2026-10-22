@@ -29,4 +29,3 @@ export function TrainingProvider({ children, userId }: { children: ReactNode; us
   return <Context.Provider value={{ store, progress, error, records, recordsError, refresh: () => setEpoch((e) => e + 1) }}>{children}</Context.Provider>;
 }
 export function useTraining() { const c = useContext(Context); if (!c) throw Error("TrainingProvider requis"); return c; }
-

@@ -18,3 +18,5 @@ test-results/
 
 # Local validation transcripts (delivery evidence lives in docs).
 training-*.log
+
+/.training-local-config.json

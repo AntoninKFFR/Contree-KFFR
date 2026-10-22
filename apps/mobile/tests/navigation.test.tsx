@@ -662,16 +662,16 @@ describe("native training navigation and persistence", () => {
   test("opens every catalogue mode and completes a ten-question native series once", async () => {
     fixture();
     jest.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, status: 200, text: async () => JSON.stringify({ data: {} }) } as Response);
-    await open(); fireEvent.press(screen.getByRole("button", { name: "Entraînement", exact: true })); await flush();
+    await open(); fireEvent.press(screen.getByRole("button", { name: "Entraînement" })); await flush();
     expect(rendered.getPathname()).toBe("/training");
     expect(screen.getAllByRole("button", { name: /^Commencer / })).toHaveLength(17);
     expect(screen.queryByTestId("game-navigation")).toBeNull();
-    expect(screen.getByRole("button", { name: "Commencer Survie", exact: true })).toBeDisabled();
-    fireEvent.press(screen.getByRole("button", { name: "Commencer Valeur d’un pli", exact: true })); await flush();
+    expect(screen.getByRole("button", { name: "Commencer Survie" })).toBeDisabled();
+    fireEvent.press(screen.getByRole("button", { name: "Commencer Valeur d’un pli" })); await flush();
     for (let i = 0; i < 10; i++) {
-      fireEvent.press(screen.getByRole("button", { name: "0", exact: true }));
-      fireEvent.press(screen.getByRole("button", { name: "Valider", exact: true }));
-      fireEvent.press(screen.getByRole("button", { name: i === 9 ? "Voir le résultat" : "Exercice suivant", exact: true })); await flush();
+      fireEvent.press(screen.getByRole("button", { name: "0" }));
+      fireEvent.press(screen.getByRole("button", { name: "Valider" }));
+      fireEvent.press(screen.getByRole("button", { name: i === 9 ? "Voir le résultat" : "Exercice suivant" })); await flush();
     }
     expect(screen.getByText(/Résultat : .* \/ 10/)).toBeVisible();
     const raw = mockSoloMemory.get("coinche:ios-training-progress:v1:alice");

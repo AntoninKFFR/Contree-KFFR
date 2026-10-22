@@ -42,4 +42,3 @@ export async function readTrainingRecords(client: SupabaseClient, userId: string
     return { axisId: r.axis_id as PersistablePuzzleAxisId, level: r.level, bestScore: r.best_score, bestDurationMs: r.best_duration_ms };
   });
 }
-

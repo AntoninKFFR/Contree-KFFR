@@ -80,4 +80,3 @@ export function PuzzleScreen({ axis, level }: { axis: PuzzleAxis; level: number 
     </> : null}
   </ScrollView></Screen>;
 }
-

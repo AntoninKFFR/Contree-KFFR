@@ -11,6 +11,11 @@ on:
       - "app/api/training/duo/**"
       - "components/training/**"
       - "lib/trainingDuo*"
+      - "lib/training/**"
+      - "apps/mobile/src/training/**"
+      - "scripts/testNativeTrainingLocal.ts"
+      - "scripts/testNativeTrainingUiLocal.ts"
+      - "apps/mobile/tests/visual/**"
       - "lib/server/trainingDuo*"
       - "engine/training/bidReading*"
       - "e2e/trainingDuo*"
@@ -38,6 +43,11 @@ on:
       - "app/api/training/duo/**"
       - "components/training/**"
       - "lib/trainingDuo*"
+      - "lib/training/**"
+      - "apps/mobile/src/training/**"
+      - "scripts/testNativeTrainingLocal.ts"
+      - "scripts/testNativeTrainingUiLocal.ts"
+      - "apps/mobile/tests/visual/**"
       - "lib/server/trainingDuo*"
       - "engine/training/bidReading*"
       - "e2e/trainingDuo*"
@@ -96,6 +106,37 @@ jobs:
         env:
           E2E_PRODUCTION_SERVER: "1"
           E2E_REQUIRE_TRAINING_DUO_AUTH: "1"
+      - name: Install the actual native SDK for cross-platform training controllers
+        run: npm ci --prefix apps/mobile
+      - name: Verify native/web training records and Duo on the disposable local backend
+        shell: bash
+        run: |
+          node -e 'require("node:fs").writeFileSync("/tmp/native-training-local.json", JSON.stringify({API_URL:process.env.NEXT_PUBLIC_SUPABASE_URL,ANON_KEY:process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,SERVICE_ROLE_KEY:process.env.SUPABASE_SERVICE_ROLE_KEY}))'
+          npm run start -- --hostname 127.0.0.1 --port 3007 > /tmp/native-training-next.log 2>&1 &
+          server_pid=$!
+          (cd apps/mobile && node scripts/serve-visual-tests.mjs) > /tmp/native-training-visual.log 2>&1 &
+          visual_pid=$!
+          trap 'kill "$server_pid" "$visual_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3007/training > /dev/null; then break; fi
+            sleep 1
+          done
+          NATIVE_TRAINING_LOCAL_CONFIG=/tmp/native-training-local.json npx vite-node --config vitest.config.ts scripts/testNativeTrainingLocal.ts
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8091 > /dev/null; then break; fi
+            sleep 1
+          done
+          NATIVE_TRAINING_LOCAL_CONFIG=/tmp/native-training-local.json npx vite-node --config vitest.config.ts scripts/testNativeTrainingUiLocal.ts
+      - name: Upload native training integration evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-training-local-integration
+          path: |
+            apps/mobile/docs/training-153/local-integration.json
+            apps/mobile/docs/training-153/ui-local-integration.json
+            apps/mobile/docs/training-153/captures/duo-*.png
+            apps/mobile/docs/training-153/captures/native-game-*-844.png
+          if-no-files-found: error
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

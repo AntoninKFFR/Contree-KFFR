@@ -49,5 +49,3 @@ export function parseInGameConfiguration(raw: string | null, progress: TrainingP
     }) };
   } catch { return defaults; }
 }
-
-

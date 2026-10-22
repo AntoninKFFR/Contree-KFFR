@@ -11,9 +11,9 @@ import { type InGameConfiguration } from "@/lib/training/inGameScheduler";
 import { useTraining } from "./provider";
 import { puzzleTitle } from "./catalogue";
 export function TrainingGameScreen() {
-  const { progress } = useTraining(), { session } = useAccount(), router = useRouter();
+  const { progress } = useTraining(), { navigationIdentity } = useAccount(), router = useRouter();
   const [configuration, configure] = useState(defaultInGameConfiguration), [playing, play] = useState(false), [loaded, load] = useState(false), [error, setError] = useState<string | null>(null);
-  const key = `coinche:ios-training-game-settings:v1:${session?.user.id}`;
+  const key = `coinche:ios-training-game-settings:v1:${navigationIdentity}`;
   const hasProgress = Boolean(progress);
   useEffect(() => {
     if (!progress) return; let live = true;

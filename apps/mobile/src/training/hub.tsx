@@ -34,4 +34,3 @@ export function TrainingCatalogue() {
     <TrainingLeaderboard />
   </ScrollView></Screen>;
 }
-

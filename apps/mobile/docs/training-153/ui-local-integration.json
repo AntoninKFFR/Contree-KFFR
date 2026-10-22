@@ -1,0 +1,49 @@
+{
+  "completedAt": "2026-10-22T12:10:37.191Z",
+  "scenarios": [
+    {
+      "direction": "native-web",
+      "questions": 10,
+      "level": 1,
+      "nativeViewport": {
+        "width": 844,
+        "height": 390
+      },
+      "webViewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "nativeRenderer": "actual React Native Web components; not physical iPhone",
+      "backend": "real local Next.js, Supabase Auth/Postgres/Realtime",
+      "independentControls": true,
+      "privateUntilBothAnswer": true,
+      "reloadResumedCorrection": true
+    },
+    {
+      "direction": "web-native",
+      "questions": 10,
+      "level": 3,
+      "nativeViewport": {
+        "width": 844,
+        "height": 390
+      },
+      "webViewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "nativeRenderer": "actual React Native Web components; not physical iPhone",
+      "backend": "real local Next.js, Supabase Auth/Postgres/Realtime",
+      "independentControls": true,
+      "privateUntilBothAnswer": true,
+      "reloadResumedCorrection": true
+    },
+    {
+      "scenario": "in-game",
+      "backend": "real Solo API and bots",
+      "nativeTable": "SoloRoom",
+      "movesBeforeQuestion": 16,
+      "pausedMutations": 0,
+      "correctionAndResume": true
+    }
+  ]
+}

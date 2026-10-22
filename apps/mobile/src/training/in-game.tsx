@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { DetailDialog, Button, styles } from "@/components/ui";
 import { gradeInGameExercise, type InGameAnswer, type InGameGrade } from "@/engine/training/inGame";
 import type { PlayerGameView } from "@/engine/views";
@@ -7,7 +7,8 @@ import { detectInGameBoundary, emptyInGameSchedulerState, scheduleInGameQuestion
 import { recordInGameAnswer, type InGameSummary } from "@/lib/training/inGameSummary";
 import { puzzleTitle } from "./catalogue";
 import { MemoryQuestion, VoidsQuestion } from "./knowledge";
-import { Cards, NumberPad, PlayedCards, Trump } from "./primitives";
+import { Cards } from "./primitives";
+import { NumberExercise } from "./number-exercise";
 import { PuzzleCorrection } from "./correction";
 type Snapshot = { sessionId: string; game: PlayerGameView | null; scheduler: InGameSchedulerState; question: ScheduledInGameQuestion | null; grade: InGameGrade | null; summary: InGameSummary };
 export function useInGameTraining(game: PlayerGameView | undefined, configuration?: InGameConfiguration, sessionId = "") {
@@ -44,5 +45,5 @@ export function InGameOverlay({ training, ready }: { training: ReturnType<typeof
   }, [question, ready]);
   if (!question || !ready || revealed !== question.eventKey) return null;
   const e = question.exercise;
-  return <DetailDialog visible title={puzzleTitle(question.axisId)} onClose={training.close}><ScrollView><Text style={styles.body}>La partie est en pause pour cette question.</Text>{e.kind === "number" ? <><PlayedCards cards={e.data.cards} names={{ 0: "Toi", 1: "Gauche", 2: "Partenaire", 3: "Droite" }} />{e.data.contractMode.kind === "suit" ? <Trump suit={e.data.contractMode.suit} /> : null}<NumberPad disabled={Boolean(training.grade)} value={answer} onChange={setAnswer} onSubmit={() => training.submit({ kind: "number", value: Number(answer) })} /></> : e.kind === "cards" ? <MemoryQuestion exercise={e.data} disabled={Boolean(training.grade)} onSubmit={(a) => training.submit(a)} /> : e.kind === "voids" ? <VoidsQuestion exercise={e.data} disabled={Boolean(training.grade)} onSubmit={(a) => training.submit(a)} /> : <><Text style={styles.heading}>{e.data.question}</Text><Cards cards={e.data.candidates} /><Button label="Oui" disabled={Boolean(training.grade)} onPress={() => training.submit({ kind: "boolean", value: true })} /><Button label="Non" secondary disabled={Boolean(training.grade)} onPress={() => training.submit({ kind: "boolean", value: false })} /></>}{training.grade ? <View style={{ gap: 12 }}><Text accessibilityLiveRegion="polite" style={styles.heading}>{training.grade.correct ? "Bonne réponse !" : "Réponse à revoir"}</Text><PuzzleCorrection puzzle={e.kind === "boolean" ? { kind: "cards", data: e.data } : e} /><Button label="Reprendre la partie" onPress={training.close} /></View> : null}</ScrollView></DetailDialog>;
+  return <DetailDialog visible title={puzzleTitle(question.axisId)} onClose={training.close}><View style={{ gap: 12 }}><Text style={styles.body}>La partie est en pause pour cette question.</Text>{e.kind === "number" ? <NumberExercise exercise={e.data} disabled={Boolean(training.grade)} value={answer} onChange={setAnswer} onSubmit={() => training.submit({ kind: "number", value: Number(answer) })} /> : e.kind === "cards" ? <MemoryQuestion exercise={e.data} disabled={Boolean(training.grade)} onSubmit={(a) => training.submit(a)} /> : e.kind === "voids" ? <VoidsQuestion exercise={e.data} disabled={Boolean(training.grade)} onSubmit={(a) => training.submit(a)} /> : <><Text style={styles.heading}>{e.data.question}</Text><Cards cards={e.data.candidates} /><Button label="Oui" disabled={Boolean(training.grade)} onPress={() => training.submit({ kind: "boolean", value: true })} /><Button label="Non" secondary disabled={Boolean(training.grade)} onPress={() => training.submit({ kind: "boolean", value: false })} /></>}{training.grade ? <View style={{ gap: 12 }}><Text accessibilityLiveRegion="polite" style={styles.heading}>{training.grade.correct ? "Bonne réponse !" : "Réponse à revoir"}</Text><PuzzleCorrection puzzle={e.kind === "boolean" ? { kind: "cards", data: e.data } : e} /><Button label="Reprendre la partie" onPress={training.close} /></View> : null}</View></DetailDialog>;
 }

@@ -1,3 +1,6 @@
+import { readTrainingRecords } from "../apps/mobile/src/training/api";
+import { parseTrainingLeaderboardRows } from "@/lib/training/leaderboard";
+import { createRequire } from "node:module";
 import { TrainingSeriesDelivery } from "../apps/mobile/src/training/delivery";
 /** Opt-in integration. All credentials and account mutations are loopback only. */
 import assert from "node:assert/strict";
@@ -38,6 +41,7 @@ async function eventually(predicate: () => boolean, message: string) {
   while (!predicate() && Date.now() < end) await new Promise((r) => setTimeout(r, 100));
   assert.ok(predicate(), message);
 }
+const nativeSdk = createRequire(new URL("../apps/mobile/package.json", import.meta.url))("@supabase/supabase-js") as { createClient: typeof createClient };
 const evidence: Record<string, unknown> = { backend, supabase: config.API_URL, renderer: "actual native controllers and web API client; no physical iPhone claim", directions: [] };
 try {
   const a = await account("A"), b = await account("B");
@@ -56,15 +60,19 @@ try {
   const xp = await admin.from("progression_xp_events").select("id").eq("user_id", a.identity.user.id); assert.ifError(xp.error);
   evidence.records = { perfect: verified.series.score, wrong: bad.series.score, nativeRepeatedDeliveryPosts: posts, serverRawPostIdempotency: false, xpEventsAfterDuplicate: xp.data?.length };
   const web = createTrainingDuoClient({ fetcher: redirectLocal, origin: "https://contree-kffr.vercel.app" });
-  const nativeA = new NativeDuoController(a.identity, memory(), () => {}, redirectLocal), nativeB = new NativeDuoController(b.identity, memory(), () => {}, redirectLocal);
+  const aStore = memory(), bStore = memory();
+  let nativeA = new NativeDuoController(a.identity, aStore, () => {}, redirectLocal), nativeB = new NativeDuoController(b.identity, bStore, () => {}, redirectLocal);
   controllers.push(nativeA, nativeB);
   for (const direction of ["native-web", "web-native", "native-native"] as const) {
     let first: TrainingDuoView, second: TrainingDuoView;
     if (direction === "web-native") { first = await web.createTrainingDuoSession(2, a.identity); sessions.push(first.session.id); await nativeB.join(first.session.code!); second = nativeB.state.view!; }
     else { await nativeA.create(direction === "native-native" ? 4 : 1); first = nativeA.state.view!; sessions.push(first.session.id); if (direction === "native-native") { await nativeB.join(first.session.code!); second = nativeB.state.view!; } else second = await web.joinTrainingDuoSession(first.session.code!, b.identity); }
     assert.ok(first && second); const id = first.session.id;
-    const realtimeClient = createClient(config.API_URL, config.ANON_KEY, { accessToken: async () => b.identity.access_token, auth: { persistSession: false } }); clients.push(realtimeClient);
-    let realtime = 0, subscribed = ""; const stop = subscribeToTrainingDuoRealtime(realtimeClient, id, () => { realtime++; }, (status, error) => { subscribed = status; console.log("Local Realtime status", status, error?.message.replace(/eyJ[A-Za-z0-9_.-]+/g, "[redacted]")); });
+    const realtimeClient = nativeSdk.createClient(config.API_URL, config.ANON_KEY, { accessToken: async () => b.identity.access_token, auth: { persistSession: false } });
+    const visible = await realtimeClient.from("training_duo_participants").select("id,session_id,slot,is_ready,ready_for_next,last_seen_at").eq("session_id", id); assert.ifError(visible.error); assert.equal(visible.data?.length, 2, "Native SDK must see the two public participants through RLS");
+    await realtimeClient.realtime.setAuth(b.identity.access_token);
+    let realtime = 0, subscribed = false; const stop = subscribeToTrainingDuoRealtime(realtimeClient, id, () => { realtime++; }, (status, error) => { if (status === "SUBSCRIBED") subscribed = true; console.log("Local Realtime status", status, error?.message.replace(/eyJ[A-Za-z0-9_.-]+/g, "[redacted]")); });
+    realtimeClient.getChannels().forEach((channel) => channel.on("system", {}, (payload) => console.log("Local Realtime system", payload.status, payload.message)));
     const load = async () => {
       if (direction !== "web-native") { await nativeA.load(id); first = nativeA.state.view!; } else first = await web.fetchTrainingDuoView(id, a.identity);
       if (direction !== "native-web") { await nativeB.load(id); second = nativeB.state.view!; } else second = await web.fetchTrainingDuoView(id, b.identity);
@@ -72,14 +80,25 @@ try {
     const intentA = async (intent: Parameters<typeof nativeA.intent>[0]) => { if (direction === "web-native") first = (await web.sendTrainingDuoIntentWithRetry(first, intent, a.identity))!; else { await nativeA.intent(intent); assert.equal(nativeA.state.error, null, `${direction} A ${intent.type}: ${nativeA.state.error}`); } };
     const intentB = async (intent: Parameters<typeof nativeB.intent>[0]) => { if (direction === "native-web") second = (await web.sendTrainingDuoIntentWithRetry(second, intent, b.identity))!; else { await nativeB.intent(intent); assert.equal(nativeB.state.error, null, `${direction} B ${intent.type}: ${nativeB.state.error}`); } };
     try {
-      await eventually(() => subscribed === "SUBSCRIBED", "Realtime channel must subscribe before the actions");
+      await eventually(() => subscribed, "Realtime channel must subscribe before the actions");
       // The local replication worker may start after SUBSCRIBED; prime it with
       // official presence writes before testing delivery, as in the web DB suite.
       for (let probe = 0; probe < 20 && realtime === 0; probe++) { await web.sendTrainingDuoPresence(id, a.identity); await new Promise((resolve) => setTimeout(resolve, 500)); }
       assert.ok(realtime > 0, "Authorized local participant changes must arrive through Realtime");
       await load(); await Promise.all([intentA({ type: "set-ready", ready: true }), intentB({ type: "set-ready", ready: true })]); await load();
       await intentA({ type: "start" }); await load(); assert.equal(first.session.status, "active");
+      let recovered = false;
       for (let i = 0; i < 10; i++) {
+        if (i === 5) {
+          if (direction === "native-web") { nativeA.dispose(); nativeA = new NativeDuoController(a.identity, aStore, () => {}, redirectLocal); controllers.push(nativeA); await nativeA.resume(); }
+          else { nativeB.dispose(); nativeB = new NativeDuoController(b.identity, bStore, () => {}, redirectLocal); controllers.push(nativeB); await nativeB.resume(); }
+          await load(); assert.equal(first.session.currentIndex, 5); assert.equal(second.session.currentIndex, 5);
+          const beforeReconnect = realtime; subscribed = false;
+          await realtimeClient.realtime.disconnect(); await realtimeClient.realtime.setAuth(b.identity.access_token); realtimeClient.realtime.connect();
+          await eventually(() => subscribed, "Realtime must rejoin after a lost connection");
+          await web.sendTrainingDuoPresence(id, a.identity);
+          await eventually(() => realtime > beforeReconnect, "Realtime must invalidate again after reconnecting"); recovered = true;
+        }
         assert.equal(first.session.currentIndex, i); assert.equal(second.exercise?.kind, "public");
         assert.ok(!("promise" in second.exercise!) && !("answers" in second.exercise!));
         await intentA({ type: "submit-answer", answer: { selectedAssertionIds: [] } });
@@ -92,9 +111,22 @@ try {
       }
       assert.equal(first.session.status, "completed"); assert.deepEqual(first.result, second.result);
       await eventually(() => realtime > 0, "real local Realtime must invalidate the session");
-      (evidence.directions as unknown[]).push({ direction, level: first.session.level, questions: 10, independentAnswers: true, result: first.result, realtimeInvalidations: realtime });
+      (evidence.directions as unknown[]).push({ direction, level: first.session.level, questions: 10, bookmarkResumeAndRealtimeReconnect: recovered, realtimeSdk: "native 2.118.0", independentAnswers: true, result: first.result, realtimeInvalidations: realtime });
     } finally { stop(); await realtimeClient.removeAllChannels(); }
+    console.log("Completed local Duo direction", direction);
   }
+  // The two independently locked apps intentionally use different SDK versions.
+  // Construct the real mobile SDK here and bridge its type at the test boundary.
+  const nativeRecordClient = nativeSdk.createClient(config.API_URL, config.ANON_KEY, { accessToken: async () => a.identity.access_token, auth: { persistSession: false } });
+  const records = await readTrainingRecords(nativeRecordClient as unknown as Parameters<typeof readTrainingRecords>[0], a.identity.user.id, signal); assert.equal(records.find((r) => r.axisId === "trick-value")?.bestScore, 10);
+  const friendship = await admin.from("friendships").insert({ user_low: [a.identity.user.id, b.identity.user.id].sort()[0], user_high: [a.identity.user.id, b.identity.user.id].sort()[1] }); assert.ifError(friendship.error);
+  const leaderboard = await b.client.rpc("get_friends_training_leaderboard", { p_axis_id: "trick-value", p_level: 1 }); assert.ifError(leaderboard.error); assert.ok(parseTrainingLeaderboardRows(leaderboard.data).some((r) => r.bestScore === 10));
+  await nativeA.create(1); assert.ok(nativeA.state.view); const invitationSession = nativeA.state.view!.session.id; sessions.push(invitationSession);
+  const sent = await api<{ id: string }>(a.identity, signal, `/api/training/duo/sessions/${invitationSession}/invitations`, { inviteeId: b.identity.user.id });
+  const invitations = await api<{ id: string }[]>(b.identity, signal, "/api/training/duo/invitations"); assert.ok(invitations.some((i) => i.id === sent.id));
+  const joined = await api<{ sessionId: string }>(b.identity, signal, `/api/training/duo/invitations/${sent.id}/join`, {}); assert.equal(joined.sessionId, invitationSession);
+  await nativeB.load(joined.sessionId); assert.equal(nativeB.state.view?.viewerSlot, 1);
+  evidence.invitationAndFriendRecords = { invitationReceived: true, joinedThroughOfficialEndpoint: true, verifiedAccountRecord: 10, friendLeaderboardRecord: 10 };
   evidence.completedAt = new Date().toISOString(); mkdirSync("apps/mobile/docs/training-153", { recursive: true });
   writeFileSync("apps/mobile/docs/training-153/local-integration.json", JSON.stringify(evidence, null, 2));
   console.log("Local integration passed: verified records, duplicate submission, wrong answers, rejected tampering/JWT; 30 Duo questions in native/web, web/native and native/native, real Realtime and private answering projections.");

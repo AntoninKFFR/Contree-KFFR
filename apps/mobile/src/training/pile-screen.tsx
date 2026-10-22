@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, ScrollView, Text, View } from "react-native";
 import { Host, Slider } from "@expo/ui";
@@ -22,6 +23,7 @@ export function PileScreen({ mode }: { mode: PileCountMode }) {
   const [totalTime, setTotalTime] = useState(0);
   useEffect(() => {
     if (!progress) return;
+    if (mode === "free") void AsyncStorage.getItem(store.key + ":pile-speed").then((raw) => { const value = Number(raw); if (raw !== null && Number.isFinite(value)) setDelay(Math.max(300, Math.min(3000, Math.round(value / 100) * 100))); }).catch(() => {});
     const timer = setTimeout(() => { try { if (!isPileCountModeUnlocked(progress, mode)) throw Error("Réussis 8/10 en Débutant pour débloquer Normal."); seed.current = pileCountSeriesSeed(progress, mode); setSeries(generatePileCountSeries({ seed: seed.current, generatorVersion: pileGeneratorVersion })); } catch (e) { setError((e as Error).message); } }, 0);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -64,7 +66,7 @@ export function PileScreen({ mode }: { mode: PileCountMode }) {
   };
   return <Screen title="Compter son tas" bottomInset headerAction={<Button label="‹ Catalogue" secondary onPress={() => router.replace("/training")} />}><ScrollView contentContainerStyle={{ paddingVertical: 12, gap: 16 }}><Text accessibilityRole="header" style={styles.heading}>Compter son tas · {PILE_NAMES[mode]}</Text><Text style={styles.body}>{PILE_DESCRIPTIONS[mode]}</Text>{error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}{!series && !error ? <Text style={styles.body}>Préparation des tas…</Text> : null}{phase === "finished" ? <><Text accessibilityRole="header" style={styles.heading}>Résultat : {score} / 10{manual ? ` · ${(totalTime / 1000).toFixed(1)} s` : ""}</Text><Text style={styles.body}>{saved ? mode === "free" ? "Série locale enregistrée, sans record en Libre." : "Progression et record local enregistrés selon les règles du mode." : "Enregistrement…"}</Text>{error ? <Button label="Réessayer" onPress={() => retry((n) => n + 1)} /> : null}<Button label="Retour aux modes" onPress={() => router.replace("/training")} /></> : exercise ? <>
     <Text style={styles.body}>Tas {index + 1}/10 · Score {score}</Text><Trump suit={exercise.trump} /><Text style={styles.body}>Dix de der : {exercise.hasTenDeDer ? "oui" : "non"} · Belote : {exercise.hasBelote ? "oui" : "non"}</Text>
-    {phase === "briefing" ? <>{mode === "free" ? <><Text style={styles.body}>Vitesse : {(delay / 1000).toFixed(1)} s par carte</Text><Host matchContents><Slider value={delay} min={300} max={3000} step={100} onValueChange={setDelay} /></Host></> : null}<Button label="Voir le tas" onPress={() => { position.current = 0; setShown(0); pause(false); start.current = time.current(); setElapsed(0); phaseTo("scrolling"); }} /></> : null}
+    {phase === "briefing" ? <>{mode === "free" ? <><Text style={styles.body}>Vitesse : {(delay / 1000).toFixed(1)} s par carte</Text><Host matchContents><Slider value={delay} min={300} max={3000} step={100} onValueChange={(value) => { setDelay(value); void AsyncStorage.setItem(store.key + ":pile-speed", String(value)).catch(() => setError("Vitesse non sauvegardée sur cet appareil.")); }} /></Host></> : null}<Button label="Voir le tas" onPress={() => { position.current = 0; setShown(0); pause(false); start.current = time.current(); setElapsed(0); phaseTo("scrolling"); }} /></> : null}
     {manual && phase !== "briefing" ? <Text style={styles.body}>Chronomètre : {(elapsed / 1000).toFixed(1)} s</Text> : null}
     {phase === "scrolling" ? <><Text style={styles.body}>Carte {shown + 1}/{exercise.cards.length}</Text><Cards cards={[exercise.cards[shown]]} />{mode === "beginner" ? <Text style={styles.body}>{exercise.cardValues[shown]} points</Text> : null}{manual ? <View style={{ flexDirection: "row", gap: 12 }}><Button label="Carte précédente" secondary disabled={shown === 0} onPress={() => { position.current = Math.max(0, position.current - 1); setShown(position.current); }} /><Button label={shown === exercise.cards.length - 1 ? "Répondre" : "Carte suivante"} onPress={() => { if (position.current === exercise.cards.length - 1) phaseTo("answer"); else { position.current += 1; setShown(position.current); } }} /></View> : <Button label={paused ? "Reprendre le défilement" : "Pause"} secondary onPress={() => pause(!paused)} />}</> : null}
     {phase === "answer" ? <NumberPad value={answer} onChange={setAnswer} onSubmit={submit} /> : null}
@@ -72,4 +74,3 @@ export function PileScreen({ mode }: { mode: PileCountMode }) {
     {mode === "beginner" ? <><ValueGuide /><Button label={review ? "Masquer le tas" : "Revoir les cartes du tas"} secondary onPress={() => setReview(!review)} />{review ? <Cards cards={exercise.cards} /> : null}</> : null}
   </> : null}</ScrollView></Screen>;
 }
-

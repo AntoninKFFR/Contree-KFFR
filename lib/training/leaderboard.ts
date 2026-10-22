@@ -27,5 +27,3 @@ export function parseTrainingLeaderboardRows(value: unknown): TrainingLeaderboar
     return { username, bestScore: score, bestDurationMs: duration as number | null };
   });
 }
-
-

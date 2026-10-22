@@ -14,7 +14,7 @@ export type DuoState = { view: TrainingDuoView | null; busy: boolean; error: str
 /** A mutation never publishes after dispose; incoming presence cannot roll versions back. */
 export class NativeDuoController {
   state: DuoState = { view: null, busy: false, error: null, terminal: false };
-  private abort = new AbortController(); private live = true; private loading = false;
+  private abort = new AbortController(); private live = true; private loading: string | null = null;
   private generation = 0;
   private client: ReturnType<typeof createTrainingDuoClient>;
   readonly storageKey: string;
@@ -63,10 +63,13 @@ export class NativeDuoController {
   create(level: BidReadingLevel) { return this.mutation(() => this.client.createTrainingDuoSession(level, this.identity)); }
   join(code: string) { return this.mutation(() => this.client.joinTrainingDuoSession(code.trim().toUpperCase(), this.identity)); }
   async load(id = this.state.view?.session.id) {
-    if (!id || !this.live || this.loading) return; this.loading = true;
+    if (!id || !this.live || this.loading === id) return;
+    if (!uuidPattern.test(id)) { this.fail(Error("Identifiant de session Duo invalide.")); return; }
+    if (this.state.view?.session.id !== id) this.generation++;
+    this.loading = id;
     const generation = this.generation;
     try { const next = await this.client.fetchTrainingDuoView(id, this.identity); if (generation === this.generation) { if (next.session.id !== id) throw Error("La réponse ne correspond pas à cette session."); this.accept(next); if (this.live) await this.storage.setItem(this.storageKey, id); } } catch (e) { if (generation === this.generation) this.fail(e); }
-    finally { this.loading = false; }
+    finally { if (this.loading === id) this.loading = null; }
   }
   async presence() {
     const id = this.state.view?.session.id;
@@ -75,6 +78,6 @@ export class NativeDuoController {
     try { const next = await this.client.sendTrainingDuoPresence(id, this.identity); if (generation === this.generation && next.session.id === id) this.accept(next); } catch { if (generation === this.generation) await this.load(id); }
   }
   intent(intent: TrainingDuoIntent) { const view = this.state.view; return view ? this.mutation(() => this.client.sendTrainingDuoIntentWithRetry(view, intent, this.identity)) : Promise.resolve(); }
-  async closeCompleted() { if (this.state.view && ["completed", "cancelled"].includes(this.state.view.session.status)) { this.generation++; await this.storage.setItem(this.storageKey, ""); if (this.live) { this.state = { view: null, busy: false, error: null, terminal: false }; this.publish(); } } }
+  async closeCompleted() { try { if (this.state.view && ["completed", "cancelled"].includes(this.state.view.session.status)) { this.generation++; await this.storage.setItem(this.storageKey, ""); if (this.live) { this.state = { view: null, busy: false, error: null, terminal: false }; this.publish(); } } } catch (e) { this.fail(e); } }
   dispose() { this.live = false; this.abort.abort(); this.state = { view: null, busy: false, error: null, terminal: false }; }
 }

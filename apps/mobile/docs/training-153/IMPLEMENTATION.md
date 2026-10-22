@@ -25,14 +25,20 @@ Le natif écrit un journal durable **avant** le POST. Plusieurs validations, un 
 
 Cela protège les envois de cet appareil. Cela ne fournit pas une déduplication globale entre appareils ni pour les anciens clients web. Une garantie globale nécessiterait une évolution transactionnelle de la RPC avec une clé de soumission durable et une migration revue. **Aucune migration, modification RLS/Auth, écriture XP cliente ou intervention en production n’a été faite.**
 
-## Validations acquises avant le commit du portage
+## Validations reproductibles
 
-- Web : typecheck, lint, build ; 200 fichiers / 1 999 tests réussis, dont parité des questions sur projections publiques pour 200 seeds.
-- Mobile : 73 tests purs réussis (stockage, tous les niveaux/générateurs/corrections, horloges, transport, journal d’envoi et contrôleur Duo) ; 52 tests de navigation/UI réussis.
-- Sept nouveaux parcours RN Web réussis : catalogue et navigation, exercices et corrections, cartes/mémoire/déduction/annonces/conventions/tas/défis/configuration en partie aux trois tailles, série complète et rechargement. Les captures sont des vrais composants React Native Web, **pas des captures matérielles iOS**.
-- Export iOS avec source map réussi ; configuration native, compatibilité des packages et Expo Doctor 21/21 réussis.
-- La suite géométrique complète et le Duo réel local restent en cours. Une suspension Windows a interrompu un scénario long et des sockets ; les résultats interrompus ne sont pas comptés comme réussis. L’idempotence serveur manquante ci-dessus a été découverte par le test local, pas masquée par des mocks.
+- Web : typecheck, lint, build ; 200 fichiers / 1 999 tests réussis (suite finale avec deux workers), dont parité des questions sur projections publiques pour 200 seeds. 92 parcours smoke réussis, incluant les exercices et trois références web aux mêmes seeds/progression que les captures natives.
+- Mobile : typecheck, lint ; 73 tests purs et 52 tests de navigation/UI réussis. Un lancement simultané des suites a dépassé deux délais de 5 s ; les relances isolées ont passé sans modifier les délais des tests.
+- Géométrie complète : 223 réussites et un scénario interrompu pendant une suspension Windows ; le scénario final-trick/Multijoueur/844 a ensuite réussi seul. Sept parcours d’entraînement couvrent 568×320, 844×390 et 932×430, toutes les familles, corrections, série complète et persistance. La CI exécute la suite complète sur Linux.
+- Export iOS avec source map, audit du graphe Metro sans serveur/DOM/fixtures, configuration native, versions Expo et Expo Doctor 21/21. Aucun binaire iOS signé ni test physique prétendu.
+- scripts/testNativeTrainingLocal.ts : backend Next.js/Supabase LOCAL réel, SDK natif 2.118.0 et client web, trois séries complètes natif→web, web→natif, natif→natif, réponses différentes, opérations concurrentes, reconnexion Realtime et reprise au milieu. Invitations réelles et records du compte/amis. Les comptes sont temporaires et supprimés en fin de test ; aucun test authentifié en production.
+- scripts/testNativeTrainingUiLocal.ts : contrôles React Native Web et web réels, deux contextes authentifiés, hôte dans chaque sens, dix questions, réponses privées jusqu’à révélation, correction, rechargement à la question 5, résultats. La table native Solo utilise également ses vrais endpoints/bots pour la pause pédagogique, la correction et la reprise.
+- Le test DB Duo existant a également passé ses contrôles JWT, RLS, concurrence, Realtime, invitations et nettoyage sur le stack local déjà disponible. Aucun reset ou migration de ce stack n’a été exécuté par cette tâche.
 
-## À finaliser avant livraison
+Les preuves structurées sont local-integration.json et ui-local-integration.json. Les captures web/native comparables et leurs paramètres sont dans captures/ ; les captures Duo proviennent des deux interfaces authentifiées du même salon local. Elles restent des rendus navigateur de composants natifs, pas une preuve iPhone.
 
-Validation complète des scénarios locaux Duo et de la table d’entraînement, preuves comparatives web/RN, contrôles au SHA exact, captures finales et lancement Expo Go avec URL fraîchement vérifiée. Maintenir la PR en DRAFT jusqu’à la validation physique du propriétaire.
+## Livraison et validation restante
+
+PARITY.md présente tous les modes/niveaux et la distinction local/compte. IPHONE.md est le protocole physique. EXPO-GO.json et expo-go-qr.png donnent le tunnel de développement réellement vérifié (manifeste SDK 57 et bundle iOS), dont la validité dépend du PC et de Metro.
+
+Le contrôle physique iPhone, VoiceOver, encoche et fluidité tactile, ainsi que le crossplay entre deux iPhone physiques, restent à effectuer par le propriétaire. Le simulateur EAS n’a pas été créé : projet non lié à EAS. La PR reste DRAFT, sans fusion. La limite de déduplication serveur ci-dessus reste explicite et sans migration implicite.

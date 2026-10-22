@@ -25,4 +25,3 @@ export function ReadingQuestion({ exercise, disabled, onSubmit }: { exercise: Pu
 export function ReadingCorrection({ exercise }: { exercise: Pick<BidReadingExercise, "promise" | "illustrationHand"> | RevealedBidReadingExerciseView }) {
   return <View style={{ gap: 8 }}><Text style={styles.heading}>Ce que promet la doctrine</Text>{exercise.promise.guaranteed.map((id) => <Text key={id} style={styles.body}>• {BID_READING_ASSERTION_LABELS[id]}</Text>)}<Text style={styles.body}>Sens possibles : {exercise.promise.possibleMeanings.map((id) => BID_READING_MEANING_LABELS[id]).join(" ; ")}</Text>{exercise.promise.explanation.map((line, i) => <Text key={i} style={styles.body}>{line}</Text>)}<Text style={styles.body}>Une main possible compatible avec cette annonce :</Text><Cards cards={exercise.illustrationHand} /><Text style={styles.hint}>Cette illustration ne révèle pas toutes les mains possibles.</Text></View>;
 }
-
