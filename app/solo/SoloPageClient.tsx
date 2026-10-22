@@ -9,6 +9,7 @@ import { GameTable } from "@/components/GameTable";
 import { useGameChrome } from "@/components/GameChromeProvider";
 import { GameMenuPopover } from "@/components/GameMenuPopover";
 import { HumanHand } from "@/components/HumanHand";
+import { handDisplayMode } from "@/lib/preferences/handSorting";
 import { MobileLandscapeNotice } from "@/components/MobileLandscapeNotice";
 import { RoundCompletionCard } from "@/components/RoundCompletionCard";
 import { RulesetConfigurator } from "@/components/rules/RulesetConfigurator";
@@ -66,6 +67,7 @@ export default function SoloPage() {
   const [rulesDraft, setRulesDraft] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [presentedCompletionScope, setPresentedCompletionScope] = useState<string | null>(null);
   const [isNewGameConfirmationOpen, setIsNewGameConfirmationOpen] = useState(false);
 
   const {
@@ -217,7 +219,8 @@ export default function SoloPage() {
   ];
 
   const synchronizationNotice = connectionError ? <div role="alert" className="p-3 text-sm">{connectionError} <button type="button" disabled={isBusy} onClick={retrySynchronization}>Réessayer</button></div> : null;
-  useGameChrome(Boolean(gameState && gameState.phase !== "game-over"));
+  const completionScope = `${sessionId ?? gameIdRef.current}:${gameState?.roundNumber}`;
+  useGameChrome(Boolean(gameState && (gameState.phase !== "game-over" || presentedCompletionScope !== completionScope)));
 
   if (!gameState) {
     return (
@@ -249,6 +252,10 @@ export default function SoloPage() {
         >
           <div className={`flex min-h-0 flex-col gap-2 ${isMobileLandscape ? "gap-0" : ""}`}>
             <GameTable
+              presentationScope={sessionId ?? gameIdRef.current ?? "solo"}
+              onCompletionVisibilityChange={(visible) => setPresentedCompletionScope(visible ? completionScope : null)}
+              completion={gameState.phase === "finished" ? <RoundCompletionCard actionLabel="Manche suivante" onAction={handleNextRound} state={gameState} />
+                : gameState.phase === "game-over" ? <RoundCompletionCard actionLabel="Nouvelle partie" onAction={handleNewGame} state={gameState} /> : null}
               biddingControls={gameState.phase === "bidding" && humanCanBid ? <BiddingPanel
                 bids={gameState.bids}
                 biddingRules={gameRules?.bidding}
@@ -268,7 +275,7 @@ export default function SoloPage() {
               hand={(gameState.phase === "bidding" || gameState.phase === "playing") ? <HumanHand
                 canPlay={humanCanPlay}
                 cards={soloHumanHand(gameState, localHumanPlayerId)}
-                contractMode={currentMode}
+                contractMode={handDisplayMode(gameState)}
                 illegalCardMessage={illegalCardMessage}
                 inScene
                 legalCards={legalHumanCards}
@@ -330,8 +337,6 @@ export default function SoloPage() {
 
         </div>
       </div>
-      {gameState.phase === "finished" ? <RoundCompletionCard actionLabel="Manche suivante" onAction={handleNextRound} state={gameState} /> : null}
-      {gameState.phase === "game-over" ? <RoundCompletionCard actionLabel="Nouvelle partie" onAction={handleNewGame} state={gameState} /> : null}
       {rulesDialog}
       {isNewGameConfirmationOpen ? <AccessibleDialog description="La donne en cours sera remplacée par une nouvelle partie." footer={<div className="flex justify-end gap-2"><button className={appSecondaryActionClass} onClick={() => setIsNewGameConfirmationOpen(false)} type="button">Continuer la partie</button><button className={appDangerActionClass} onClick={() => { setIsNewGameConfirmationOpen(false); handleNewGame(); }} type="button">Abandonner et redistribuer</button></div>} onClose={() => setIsNewGameConfirmationOpen(false)} title="Abandonner la partie ?"><div /></AccessibleDialog> : null}
       {isSettingsOpen ? <PlayerSettingsDialog onClose={() => setIsSettingsOpen(false)} /> : null}

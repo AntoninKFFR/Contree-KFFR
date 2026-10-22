@@ -6,7 +6,7 @@ import { ratingSummary, waitForNoPending } from "./helpers/rating";
 import { bestEffortFinishRoom, expectRoom, monitorRoomPrivacy, roomView, sendIntent, sendTick, type E2ERoomView } from "./helpers/room";
 
 const auth = fourPlayerCredentials();
-const names = ["E2E_P1", "E2E_P2", "E2E_P3", "E2E_P4"];
+const names = [1, 2, 3, 4].map((player) => process.env[`E2E_USER_${player}_USERNAME`] ?? `E2E_P${player}`);
 
 test.describe("@multiplayer four authenticated browser contexts", () => {
   test.skip(auth.missing.length > 0, `Missing authenticated E2E variables: ${auth.missing.join(", ")}`);
@@ -514,6 +514,7 @@ test.describe("@multiplayer four authenticated browser contexts", () => {
         .map((player) => [player.seat_index, player.display_name, player.kind])
         .sort(([first], [second]) => Number(first) - Number(second))).toEqual(seatsBeforeRematch);
       expect(rematch.players.every((player) => !player.bot_takeover)).toBe(true);
+      expect(rematch.players.filter((player) => player.kind === "bot")).toEqual([]);
       expect(rematch.players.filter((player) => player.kind === "human").every((player) => !player.is_ready)).toBe(true);
       expect(rematch.room.status).toBe("lobby");
       expect(rematch.game).toBeNull();

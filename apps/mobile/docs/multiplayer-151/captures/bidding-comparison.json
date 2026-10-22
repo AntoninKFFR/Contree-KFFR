@@ -1,0 +1,84 @@
+{
+  "baseline": "5b9d4002174add625de25e90c09f020413e16803",
+  "renderer": "Actual native route components rendered by React Native Web, not physical iOS",
+  "comparisons": [
+    {
+      "width": 568,
+      "stage": "bot",
+      "fixtureDigest": "5a5ac968dd79360898df64687ef5d48ca91c3efafda4829d108e28791db165c0",
+      "soloPixelsChanged": true,
+      "multiplayerPixelsChanged": false,
+      "sources": {
+        "before/solo": "8e489c572cfd637650de8e1542af65b5dde44804bc87073821f9132c11dd36c0",
+        "after/solo": "3797191c4e2236c013682e8029f697d7579a59efc02071449acba56d6aabc262",
+        "before/multiplayer": "9fdef317fcd6f15fda8a486e45077f523fd9cf40050af8ea9e78d02762d7bae8",
+        "after/multiplayer": "9fdef317fcd6f15fda8a486e45077f523fd9cf40050af8ea9e78d02762d7bae8"
+      }
+    },
+    {
+      "width": 568,
+      "stage": "human",
+      "fixtureDigest": "19e366120a46e6df470c15bb1e63b4602e87038630c9c48ea7ec3360ce63de18",
+      "soloPixelsChanged": false,
+      "multiplayerPixelsChanged": false,
+      "sources": {
+        "before/solo": "82732c9fc55cb79d92c8e9fd294b473094c9af2521fb2752ebbd4db1a2ba374c",
+        "after/solo": "82732c9fc55cb79d92c8e9fd294b473094c9af2521fb2752ebbd4db1a2ba374c",
+        "before/multiplayer": "52596fe4c5c4ae65a5d3e8ff341991d9930bb67e95d950d106bf07a8fad2e409",
+        "after/multiplayer": "52596fe4c5c4ae65a5d3e8ff341991d9930bb67e95d950d106bf07a8fad2e409"
+      }
+    },
+    {
+      "width": 844,
+      "stage": "bot",
+      "fixtureDigest": "5a5ac968dd79360898df64687ef5d48ca91c3efafda4829d108e28791db165c0",
+      "soloPixelsChanged": true,
+      "multiplayerPixelsChanged": false,
+      "sources": {
+        "before/solo": "fab197d6f58bcd3b82b12f7cbba9c729df69827a70e16b6156c586cfc4b10d72",
+        "after/solo": "aec9ce97c40e9c422b6d797ac3cc75fda7ba736b11c4c178f908bd58044387ca",
+        "before/multiplayer": "583eae77e084fc89d9f3de29330a4231612350bef23e0e0a82d824e4ca9d1ae2",
+        "after/multiplayer": "583eae77e084fc89d9f3de29330a4231612350bef23e0e0a82d824e4ca9d1ae2"
+      }
+    },
+    {
+      "width": 844,
+      "stage": "human",
+      "fixtureDigest": "19e366120a46e6df470c15bb1e63b4602e87038630c9c48ea7ec3360ce63de18",
+      "soloPixelsChanged": false,
+      "multiplayerPixelsChanged": false,
+      "sources": {
+        "before/solo": "5193ce386b26857874977984347a619cb5eaa519b4ac2731dd130f30ea8544ec",
+        "after/solo": "5193ce386b26857874977984347a619cb5eaa519b4ac2731dd130f30ea8544ec",
+        "before/multiplayer": "958adf62042979509c47f8cb3964ea28427448d3cc5b58be91c303bfbbab1655",
+        "after/multiplayer": "958adf62042979509c47f8cb3964ea28427448d3cc5b58be91c303bfbbab1655"
+      }
+    },
+    {
+      "width": 932,
+      "stage": "bot",
+      "fixtureDigest": "5a5ac968dd79360898df64687ef5d48ca91c3efafda4829d108e28791db165c0",
+      "soloPixelsChanged": true,
+      "multiplayerPixelsChanged": false,
+      "sources": {
+        "before/solo": "08827bcd65606978da6635529c5ebfa510a527e4121aa4165584e44e9ff69291",
+        "after/solo": "2c457e0d6243b62b88d5fcbd1608ff2ebd0ea9e092318ad7364ae32228993ab4",
+        "before/multiplayer": "5d59a30a1a6d0e4e63506596912ac4d4845f9dbf4ae0335fcae43f5c3fca4d11",
+        "after/multiplayer": "5d59a30a1a6d0e4e63506596912ac4d4845f9dbf4ae0335fcae43f5c3fca4d11"
+      }
+    },
+    {
+      "width": 932,
+      "stage": "human",
+      "fixtureDigest": "19e366120a46e6df470c15bb1e63b4602e87038630c9c48ea7ec3360ce63de18",
+      "soloPixelsChanged": false,
+      "multiplayerPixelsChanged": false,
+      "sources": {
+        "before/solo": "1698347e74b84d93942b651eed667ea541e006a65e960e8d6015c0c691b8eb70",
+        "after/solo": "1698347e74b84d93942b651eed667ea541e006a65e960e8d6015c0c691b8eb70",
+        "before/multiplayer": "133b6cd4871e21421f7e3fbeae7af0875f28e475635dc25ce2a31f555c857d7b",
+        "after/multiplayer": "133b6cd4871e21421f7e3fbeae7af0875f28e475635dc25ce2a31f555c857d7b"
+      }
+    }
+  ]
+}

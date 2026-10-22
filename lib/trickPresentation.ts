@@ -7,6 +7,40 @@ export type PresentedTrick = {
   trick: CompletedTrick;
 };
 
+type ResultState = Pick<GameState, "phase" | "endReason" | "completedTricks">;
+
+export function isTableResult(state: Pick<GameState, "phase">): boolean {
+  return state.phase === "finished" || state.phase === "game-over";
+}
+
+/** A terminal catch-up presents only the final authoritative trick, not a
+ * backlog of historical tricks. A forfeit never invents a final trick. */
+export function pendingTricksForState(queue: PresentedTrick[], additions: PresentedTrick[], state: ResultState): PresentedTrick[] {
+  if (state.endReason === "forfeit") return [];
+  const pending = [...queue, ...additions];
+  return isTableResult(state)
+    ? pending.filter((trick) => trick.trickIndex === state.completedTricks.length).slice(-1)
+    : pending;
+}
+
+export function isResultPresentationPending(state: ResultState, presented: PresentedTrick | null): boolean {
+  return isTableResult(state) && state.endReason !== "forfeit" && presented !== null;
+}
+
+export type TrickPresentationClock = {
+  wait: (delayMs: number, callback: () => void) => () => void;
+  frame: (callback: () => void) => () => void;
+};
+
+/** Use the existing collection duration. Instant mode still commits one painted
+ * frame of the confirmed cards; it does not add a second reading delay. */
+export function scheduleTrickCollection(delayMs: number, collect: () => void, clock: TrickPresentationClock): () => void {
+  let active = true;
+  const finish = () => { if (!active) return; active = false; collect(); };
+  let cancel = delayMs > 0 ? clock.wait(delayMs, finish) : clock.frame(() => { if (active) cancel = clock.frame(finish); });
+  return () => { active = false; cancel(); };
+}
+
 export type CardPresentation = {
   trickKey: string;
   seenKeys: string[];

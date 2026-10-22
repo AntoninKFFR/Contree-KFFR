@@ -1,0 +1,286 @@
+[
+  {
+    "phase": "mount",
+    "duration": 7.699999999254942
+  },
+  {
+    "phase": "update",
+    "duration": 3.5
+  },
+  {
+    "phase": "update",
+    "duration": 0.30000000074505806
+  },
+  {
+    "phase": "update",
+    "duration": 0
+  },
+  {
+    "phase": "update",
+    "duration": 1.2999999970197678
+  },
+  {
+    "phase": "update",
+    "duration": 1.5
+  },
+  {
+    "phase": "update",
+    "duration": 11.900000002235174
+  },
+  {
+    "phase": "update",
+    "duration": 4.799999997019768
+  },
+  {
+    "phase": "update",
+    "duration": 0.10000000149011612
+  },
+  {
+    "phase": "update",
+    "duration": 0.19999999925494194
+  },
+  {
+    "phase": "update",
+    "duration": 0
+  },
+  {
+    "phase": "update",
+    "duration": 1.8999999985098839
+  },
+  {
+    "phase": "update",
+    "duration": 3.3999999947845936
+  },
+  {
+    "phase": "update",
+    "duration": 0.10000000149011612
+  },
+  {
+    "phase": "update",
+    "duration": 4.699999995529652
+  },
+  {
+    "phase": "update",
+    "duration": 4.200000002980232
+  },
+  {
+    "phase": "update",
+    "duration": 0.10000000149011612
+  },
+  {
+    "phase": "update",
+    "duration": 0.10000000149011612
+  },
+  {
+    "phase": "update",
+    "duration": 1.2999999970197678
+  },
+  {
+    "phase": "update",
+    "duration": 3
+  },
+  {
+    "phase": "update",
+    "duration": 0.19999999925494194
+  },
+  {
+    "phase": "update",
+    "duration": 4.100000001490116
+  },
+  {
+    "phase": "update",
+    "duration": 2.4000000059604645
+  },
+  {
+    "phase": "update",
+    "duration": 0.09999999776482582
+  },
+  {
+    "phase": "update",
+    "duration": 2.699999999254942
+  },
+  {
+    "phase": "update",
+    "duration": 3.199999999254942
+  },
+  {
+    "phase": "update",
+    "duration": 0.19999999925494194
+  },
+  {
+    "phase": "update",
+    "duration": 0
+  },
+  {
+    "phase": "update",
+    "duration": 0.6999999992549419
+  },
+  {
+    "phase": "update",
+    "duration": 3.6999999955296516
+  },
+  {
+    "phase": "update",
+    "duration": 3.600000001490116
+  },
+  {
+    "phase": "update",
+    "duration": 2.599999997764826
+  },
+  {
+    "phase": "update",
+    "duration": 0
+  },
+  {
+    "phase": "update",
+    "duration": 0.09999999776482582
+  },
+  {
+    "phase": "update",
+    "duration": 2.199999999254942
+  },
+  {
+    "phase": "update",
+    "duration": 3.400000002235174
+  },
+  {
+    "phase": "update",
+    "duration": 0
+  },
+  {
+    "phase": "update",
+    "duration": 1
+  },
+  {
+    "phase": "update",
+    "duration": 2.699999999254942
+  },
+  {
+    "phase": "update",
+    "duration": 3
+  },
+  {
+    "phase": "update",
+    "duration": 1.699999999254942
+  },
+  {
+    "phase": "update",
+    "duration": 0.10000000149011612
+  },
+  {
+    "phase": "update",
+    "duration": 0
+  },
+  {
+    "phase": "update",
+    "duration": 0.10000000149011612
+  },
+  {
+    "phase": "update",
+    "duration": 0.6999999992549419
+  },
+  {
+    "phase": "update",
+    "duration": 2.899999998509884
+  },
+  {
+    "phase": "update",
+    "duration": 3.5
+  },
+  {
+    "phase": "update",
+    "duration": 4.200000002980232
+  },
+  {
+    "phase": "update",
+    "duration": 0.10000000149011612
+  },
+  {
+    "phase": "update",
+    "duration": 3.0000000037252903
+  },
+  {
+    "phase": "update",
+    "duration": 2.399999998509884
+  },
+  {
+    "phase": "update",
+    "duration": 0.09999999776482582
+  },
+  {
+    "phase": "update",
+    "duration": 0.10000000149011612
+  },
+  {
+    "phase": "update",
+    "duration": 0
+  },
+  {
+    "phase": "update",
+    "duration": 0.5999999977648258
+  },
+  {
+    "phase": "update",
+    "duration": 2.4999999962747097
+  },
+  {
+    "phase": "update",
+    "duration": 4.099999997764826
+  },
+  {
+    "phase": "update",
+    "duration": 2.400000002235174
+  },
+  {
+    "phase": "update",
+    "duration": 0.10000000149011612
+  },
+  {
+    "phase": "update",
+    "duration": 0.09999999776482582
+  },
+  {
+    "phase": "update",
+    "duration": 2.800000000745058
+  },
+  {
+    "phase": "update",
+    "duration": 2.300000000745058
+  },
+  {
+    "phase": "update",
+    "duration": 0
+  },
+  {
+    "phase": "update",
+    "duration": 0.5
+  },
+  {
+    "phase": "update",
+    "duration": 2.599999997764826
+  },
+  {
+    "phase": "update",
+    "duration": 0
+  },
+  {
+    "phase": "update",
+    "duration": 3.399999998509884
+  },
+  {
+    "phase": "update",
+    "duration": 2.2000000029802322
+  },
+  {
+    "phase": "update",
+    "duration": 0.10000000149011612
+  },
+  {
+    "phase": "update",
+    "duration": 2.800000000745058
+  },
+  {
+    "phase": "update",
+    "duration": 3.0000000037252903
+  }
+]

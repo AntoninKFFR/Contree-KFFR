@@ -1,0 +1,53 @@
+{
+  "base": "6edc683ed3babedc1cc8cfb267819d29ca89c46f",
+  "root": {
+    "install": "npm ci",
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "files": 199,
+      "tests": 1998,
+      "result": "passed"
+    },
+    "build": "passed"
+  },
+  "mobile": {
+    "install": "npm ci",
+    "typecheck": "passed",
+    "lint": "passed",
+    "pureTests": 60,
+    "uiTests": 51,
+    "geometry": 217,
+    "nativeConfiguration": "passed",
+    "expoPackageCompatibility": "passed",
+    "expoDoctor": "21/21 passed",
+    "iosExport": "passed",
+    "metroGraph": {
+      "sources": 1778,
+      "forbiddenModules": "absent"
+    }
+  },
+  "localBackend": {
+    "transport": "Actual Next.js API, Supabase Auth/Postgres/Realtime, native SDK and web browser; loopback only",
+    "newTests": 6,
+    "legacyMultiplayerTests": 2,
+    "result": "passed",
+    "productionMutations": false
+  },
+  "physical": {
+    "device": "Owner iPhone with Expo Go",
+    "finalTrick": "Owner confirmed: Oui, le dernier pli est visible",
+    "remaining": [
+      "Other preferences and lifecycle combinations",
+      "Rematch after deployment to an accessible authorized test backend"
+    ]
+  },
+  "scoring": {
+    "numericDivergenceReproduced": false,
+    "engineChanged": false,
+    "archivePreserved": true
+  },
+  "browserParity": { "webNative": 122, "solo": 12, "result": "passed", "retries": 0 },
+  "ci": "Exact final SHA and completed check results are recorded in the PR after push.",
+  "evidence": "evidence.json contains image hashes, 24 capture timelines, two real-client timelines, fixture and runtime source hashes."
+}

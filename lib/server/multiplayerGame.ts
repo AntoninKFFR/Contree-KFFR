@@ -179,15 +179,14 @@ export function resetRoomPlayers(players: RoomPlayerRow[]): RoomPlayerRow[] {
   } : {
     ...player, kind: "empty" as const, user_id: null, bot_profile_id: null, display_name: null,
     is_ready: false, is_connected: false, bot_takeover: false, last_seen_at: null,
+    joined_at: null, left_at: null,
   });
 }
 
 export function prepareRematchPlayers(players: RoomPlayerRow[]): RoomPlayerRow[] {
-  return players.map((player) => ({
-    ...player,
-    is_ready: player.kind === "bot",
-    bot_takeover: false,
-  }));
+  // Humans retain their seat and membership; official bots are filled only by
+  // start-game. The existing rematch RPC writes this projection atomically.
+  return resetRoomPlayers(players);
 }
 
 export function forfeitRoom(input: {

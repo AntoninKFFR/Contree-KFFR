@@ -80,7 +80,7 @@ function result(value: unknown): RoundResult {
     ...(r.tenDeDerTeam === undefined ? {} : { tenDeDerTeam: team(r.tenDeDerTeam) }), ...(r.tricksWonByPlayer === undefined ? {} : { tricksWonByPlayer: playerNumbers(r.tricksWonByPlayer) }) };
 }
 // Project known schema keys, then use the SAME ruleset validator/migration as web.
-function settings(value: unknown): GameSettings {
+export function parsePublicSettings(value: unknown): GameSettings {
   const r = object(value), scoringMode = oneOf(r.scoringMode, ["ffb", "announced-points", "made-points"] as const), targetScore = integer(r.targetScore, 1, 100000);
   let ruleset: GameRulesetSnapshot | undefined;
   if (r.ruleset !== undefined) {
@@ -112,17 +112,18 @@ function belote(value: unknown): BeloteState {
     ...(r.declarations === undefined ? {} : { declarations: list(r.declarations, 4).map((d) => ({ ...declaration(d), suit: oneOf(object(d).suit, suits) })) }) };
 }
 /** Rich public projection; no opponent hands or unchecked object spreads. */
-export function parseSoloResponse(value: unknown): NativeSoloSession {
-  const r = object(object(value).data), s = object(r.state);
-  const id = text(r.id, 36); if (!uuidPattern.test(id) || s.viewerPlayerId !== 0 || "hands" in s) invalid();
+export function parsePlayerGameView(value: unknown): NativeSoloSession["state"] {
+  const s = object(value);
+  if ("hands" in s) invalid();
+  const viewerPlayerId = player(s.viewerPlayerId);
   const phase = oneOf(s.phase, ["bidding", "playing", "finished", "game-over"] as const);
   const hand = list(s.hand, 8).map(card), handCounts = playerNumbers(s.handCounts);
-  if (new Set(hand.map(cardKey)).size !== hand.length || handCounts[0] !== hand.length) invalid();
+  if (new Set(hand.map(cardKey)).size !== hand.length || handCounts[viewerPlayerId] !== hand.length) invalid();
   const names = s.playerNames === undefined ? null : object(s.playerNames);
   const playerNames = names ? { 0: text(names[0], 200), 1: text(names[1], 200), 2: text(names[2], 200), 3: text(names[3], 200) } : undefined;
-  return { id, version: integer(r.version), state: {
-    phase, viewerPlayerId: 0, currentPlayerId: player(s.currentPlayerId), roundNumber: integer(s.roundNumber, 1), startingPlayerId: player(s.startingPlayerId),
-    hand, handCounts, playerNames, settings: settings(s.settings), totalScore: scores(s.totalScore), roundScore: scores(s.roundScore), trickPoints: scores(s.trickPoints),
+  return {
+    phase, viewerPlayerId, currentPlayerId: player(s.currentPlayerId), roundNumber: integer(s.roundNumber, 1), startingPlayerId: player(s.startingPlayerId),
+    hand, handCounts, playerNames, settings: parsePublicSettings(s.settings), totalScore: scores(s.totalScore), roundScore: scores(s.roundScore), trickPoints: scores(s.trickPoints),
     contract: s.contract === null ? null : contract(s.contract), bids: list(s.bids, 256).map(bid), result: s.result === null ? null : result(s.result), message: text(s.message), winnerTeam: nullableTeam(s.winnerTeam),
     trump: s.trump === null ? null : oneOf(s.trump, suits), ...(s.contractMode === undefined ? {} : { contractMode: s.contractMode === null ? null : mode(s.contractMode) }),
     inactivePlayerId: s.inactivePlayerId === null ? null : player(s.inactivePlayerId), currentTrick: trick(s.currentTrick), completedTricks: list(s.completedTricks, 8).map(completedTrick),
@@ -130,5 +131,11 @@ export function parseSoloResponse(value: unknown): NativeSoloSession {
     ...(s.endReason === undefined ? {} : { endReason: s.endReason === null ? null : oneOf(s.endReason, ["score", "forfeit"] as const) }),
     ...(s.forfeitingTeam === undefined ? {} : { forfeitingTeam: nullableTeam(s.forfeitingTeam) }),
     ...(s.announcements === undefined ? {} : { announcements: announcements(s.announcements) }), ...(s.belote === undefined ? {} : { belote: belote(s.belote) }),
-  } };
+  };
+}
+
+export function parseSoloResponse(value: unknown): NativeSoloSession {
+  const r = object(object(value).data), id = text(r.id, 36), state = parsePlayerGameView(r.state);
+  if (!uuidPattern.test(id) || state.viewerPlayerId !== 0) invalid();
+  return { id, version: integer(r.version), state };
 }

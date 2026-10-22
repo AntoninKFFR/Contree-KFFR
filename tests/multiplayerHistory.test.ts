@@ -215,11 +215,17 @@ describe("multiplayer history and statistics", () => {
 });
 
 describe("multiplayer rematches", () => {
-  it("preserves human seats and bot seats", () => {
-    const before = players([0, 2]);
+  it.each([[0], [0, 2], [0, 1, 2], [0, 1, 2, 3]] as Array<Array<0 | 1 | 2 | 3>>)("keeps humans and frees all former bots for human seats %j", (...humanSeats) => {
+    const before = players(humanSeats);
+    const unchanged = structuredClone(before);
     const after = prepareRematchPlayers(before);
-    expect(after.map(({ seat_index, kind, user_id, bot_profile_id }) => ({ seat_index, kind, user_id, bot_profile_id })))
-      .toEqual(before.map(({ seat_index, kind, user_id, bot_profile_id }) => ({ seat_index, kind, user_id, bot_profile_id })));
+    expect(before).toEqual(unchanged);
+    expect(after).toHaveLength(4);
+    for (const previous of before) {
+      const seat = after.find((p) => p.seat_index === previous.seat_index)!;
+      if (previous.kind === "human") expect(seat).toEqual({ ...previous, is_ready: false, bot_takeover: false });
+      else expect(seat).toEqual({ ...previous, kind: "empty", user_id: null, bot_profile_id: null, display_name: null, is_ready: false, is_connected: false, bot_takeover: false, last_seen_at: null, joined_at: null, left_at: null });
+    }
   });
 
   it("resets human readiness and every bot takeover", () => {
@@ -228,8 +234,10 @@ describe("multiplayer rematches", () => {
     expect(after.every((entry) => !entry.bot_takeover)).toBe(true);
   });
 
-  it("keeps bots ready for the next launch", () => {
-    expect(prepareRematchPlayers(players([0, 2])).filter((entry) => entry.kind === "bot").every((entry) => entry.is_ready)).toBe(true);
+  it("keeps disconnected and temporarily controlled humans as members, without inventing presence", () => {
+    const before = players([0, 2]);
+    Object.assign(before[2], { is_connected: false, bot_takeover: true });
+    expect(prepareRematchPlayers(before)[2]).toEqual({ ...before[2], is_ready: false, bot_takeover: false });
   });
 
   it("requires an archived active game and clears deadline/state in the atomic rematch RPC", () => {

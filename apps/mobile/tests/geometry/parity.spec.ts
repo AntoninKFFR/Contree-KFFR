@@ -2,7 +2,8 @@ import { test, expect } from "@playwright/test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import fixtures from "../parity/states.json";
-const dir = "docs/parity-150/captures";
+const referenceDir = "docs/parity-150/captures";
+const dir = process.env.NATIVE_CAPTURE_DIR ? `${process.env.NATIVE_CAPTURE_DIR}/solo` : referenceDir;
 for (const viewport of [{ width: 844, height: 390 }, { width: 568, height: 320 }, { width: 932, height: 430 }]) {
   for (const stage of ["bidding", "start", "trick", "result"] as const) test(`parity ${viewport.width} ${stage}`, async ({ page }) => {
     const errors: string[] = []; page.on("pageerror", (error) => errors.push(error.message));
@@ -20,7 +21,7 @@ for (const viewport of [{ width: 844, height: 390 }, { width: 568, height: 320 }
     });
     const fixtureDigest = createHash("sha256").update(JSON.stringify(fixtures[stage].state)).digest("hex");
     writeFileSync(`${dir}/native-${viewport.width}-${stage}.json`, JSON.stringify({ ...geometry, fixtureDigest }, null, 2));
-    const reference = JSON.parse(readFileSync(`${dir}/web-${viewport.width}-${stage}.json`, "utf8")) as { table: typeof geometry.table; bidding: typeof geometry.bidding; trick: typeof geometry.trick; players: typeof geometry.players; cards: typeof geometry.cards; fixtureDigest: string };
+    const reference = JSON.parse(readFileSync(`${referenceDir}/web-${viewport.width}-${stage}.json`, "utf8")) as { table: typeof geometry.table; bidding: typeof geometry.bidding; trick: typeof geometry.trick; players: typeof geometry.players; cards: typeof geometry.cards; fixtureDigest: string };
     expect(fixtureDigest).toBe(reference.fixtureDigest);
     const compare = (actual: NonNullable<typeof geometry.table> | null, expected: NonNullable<typeof geometry.table> | null) => {
       expect(Boolean(actual)).toBe(Boolean(expected));

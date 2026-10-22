@@ -1,0 +1,17 @@
+{
+  "fixtureDigest": "6cae5bf7aa06bd57b0b0518b704fffc90d966592431ef8c664ae14c1c9ea6c96",
+  "viewport": {
+    "width": 932,
+    "height": 430
+  },
+  "seat": 3,
+  "stage": "last",
+  "geometry": {
+    "left": 47,
+    "right": 885,
+    "bottom": 409,
+    "overflowX": 0,
+    "overflowY": 0
+  },
+  "renderer": "actual React Native Web components; not physical iOS"
+}

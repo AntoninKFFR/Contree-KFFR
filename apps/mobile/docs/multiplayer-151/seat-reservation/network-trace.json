@@ -1,0 +1,85 @@
+[
+  {
+    "event": "touch",
+    "seat": 2,
+    "active": true,
+    "busy": false,
+    "requiresSync": false,
+    "viewerBefore": null,
+    "expectedVersion": 1
+  },
+  {
+    "event": "post",
+    "seat": 2,
+    "expectedVersion": 1,
+    "viewerBefore": null
+  },
+  {
+    "event": "http-send",
+    "seat": 2,
+    "expectedVersion": 1
+  },
+  {
+    "event": "http-failure",
+    "seat": 2,
+    "expectedVersion": 1,
+    "httpStatus": 0,
+    "code": "network"
+  },
+  {
+    "event": "reconcile",
+    "seat": 2
+  },
+  {
+    "event": "reconciled",
+    "seat": 2,
+    "requiresSync": false,
+    "receivedVersion": 1,
+    "viewerAfter": null
+  },
+  {
+    "event": "failed",
+    "seat": 2,
+    "code": "network",
+    "receivedVersion": 1,
+    "viewerAfter": null
+  },
+  {
+    "event": "touch",
+    "seat": 2,
+    "active": true,
+    "busy": false,
+    "requiresSync": false,
+    "viewerBefore": null,
+    "expectedVersion": 1
+  },
+  {
+    "event": "post",
+    "seat": 2,
+    "expectedVersion": 1,
+    "viewerBefore": null
+  },
+  {
+    "event": "http-send",
+    "seat": 2,
+    "expectedVersion": 1
+  },
+  {
+    "event": "http-response",
+    "seat": 2,
+    "expectedVersion": 1,
+    "httpStatus": 200
+  },
+  {
+    "event": "ack",
+    "seat": 2,
+    "receivedVersion": 2,
+    "viewerAfter": 2
+  },
+  {
+    "event": "confirmed",
+    "seat": 2,
+    "viewerAfter": 2,
+    "receivedVersion": 2
+  }
+]

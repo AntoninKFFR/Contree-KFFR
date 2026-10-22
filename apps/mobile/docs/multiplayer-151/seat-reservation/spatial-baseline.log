@@ -1,0 +1,123 @@
+
+> kffr-contree-mobile@0.1.0 test:geometry
+> playwright test --config playwright.geometry.config.ts ios-fixes.spec.ts --grep selects each free seat 844 left
+
+[WebServer] (node:22344) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] node_modules/react-native-web/dist/exports/createElement/index.js (10:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/createElement/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/render/index.js (10:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/render/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/AccessibilityInfo/index.js (10:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/AccessibilityInfo/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/Animated/index.js (10:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/Animated/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/Appearance/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/Appearance/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/Clipboard/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/Clipboard/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/AppState/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/AppState/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/AssetRegistry/index.js (10:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/AssetRegistry/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/Dimensions/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/Dimensions/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/ActivityIndicator/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/ActivityIndicator/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/CheckBox/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/CheckBox/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/FlatList/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/FlatList/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/KeyboardAvoidingView/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/KeyboardAvoidingView/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/Picker/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/Picker/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/Modal/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/Modal/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/Pressable/index.js (10:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/Pressable/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/ProgressBar/index.js (10:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/ProgressBar/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/SectionList/index.js (10:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/SectionList/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/Switch/index.js (10:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/Switch/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/Text/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/Text/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/TouchableHighlight/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/TouchableHighlight/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/TextInput/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/TextInput/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/TouchableOpacity/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/TouchableOpacity/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/VirtualizedList/index.js (10:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/VirtualizedList/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/TouchableWithoutFeedback/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/TouchableWithoutFeedback/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/useColorScheme/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/useColorScheme/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/useLocaleContext/index.js (10:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/useLocaleContext/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/useWindowDimensions/index.js (11:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/useWindowDimensions/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/AppRegistry/index.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/AppRegistry/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/View/index.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/View/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/Image/index.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/Image/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/ScrollView/index.js (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/ScrollView/index.js" was ignored.
+[WebServer] node_modules/react-native-web/dist/exports/Text/TextAncestorContext.js (10:0): Module level directives cause errors when bundled, "use client" in "node_modules/react-native-web/dist/exports/Text/TextAncestorContext.js" was ignored.
+[WebServer] node_modules/expo-image/src/useImage.ts (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[WebServer] node_modules/expo-image/src/useImage.ts (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/expo-image/src/useImage.ts" was ignored.
+[WebServer] node_modules/expo-image/src/ImageBackground.tsx (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[WebServer] node_modules/expo-image/src/ImageBackground.tsx (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/expo-image/src/ImageBackground.tsx" was ignored.
+[WebServer] node_modules/expo-image/src/observe.ts (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[WebServer] node_modules/expo-image/src/observe.ts (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/expo-image/src/observe.ts" was ignored.
+[WebServer] node_modules/expo-image/src/Image.tsx (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[WebServer] node_modules/expo-image/src/Image.tsx (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/expo-image/src/Image.tsx" was ignored.
+[WebServer] node_modules/expo-blur/build/BlurView.web.js (2:0): Module level directives cause errors when bundled, "use client" in "node_modules/expo-blur/build/BlurView.web.js" was ignored.
+[WebServer] node_modules/vaul/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/vaul/dist/index.mjs" was ignored.
+[WebServer] node_modules/vaul/node_modules/@radix-ui/react-dialog/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/vaul/node_modules/@radix-ui/react-dialog/dist/index.mjs" was ignored.
+[WebServer] node_modules/expo-modules-core/src/PermissionsHook.ts (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[WebServer] node_modules/expo-modules-core/src/PermissionsHook.ts (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/expo-modules-core/src/PermissionsHook.ts" was ignored.
+[WebServer] node_modules/expo-modules-core/src/hooks/useReleasingSharedObject.ts (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[WebServer] node_modules/expo-modules-core/src/hooks/useReleasingSharedObject.ts (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/expo-modules-core/src/hooks/useReleasingSharedObject.ts" was ignored.
+[WebServer] node_modules/expo-modules-core/src/hooks/useReleasingSharedObjectWithLifecycle.ts (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[WebServer] node_modules/expo-modules-core/src/hooks/useReleasingSharedObjectWithLifecycle.ts (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/expo-modules-core/src/hooks/useReleasingSharedObjectWithLifecycle.ts" was ignored.
+[WebServer] node_modules/expo-modules-core/src/SharedRef.ts (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[WebServer] node_modules/expo-modules-core/src/SharedRef.ts (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/expo-modules-core/src/SharedRef.ts" was ignored.
+[WebServer] node_modules/expo-modules-core/src/EventEmitter.ts (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[WebServer] node_modules/expo-modules-core/src/EventEmitter.ts (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/expo-modules-core/src/EventEmitter.ts" was ignored.
+[WebServer] node_modules/expo-modules-core/src/SharedObject.ts (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[WebServer] node_modules/expo-modules-core/src/SharedObject.ts (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/expo-modules-core/src/SharedObject.ts" was ignored.
+[WebServer] node_modules/expo-modules-core/src/NativeModule.ts (1:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+[WebServer] node_modules/expo-modules-core/src/NativeModule.ts (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/expo-modules-core/src/NativeModule.ts" was ignored.
+[WebServer] node_modules/vaul/node_modules/@radix-ui/react-focus-scope/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/vaul/node_modules/@radix-ui/react-focus-scope/dist/index.mjs" was ignored.
+[WebServer] node_modules/@radix-ui/react-focus-guards/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/@radix-ui/react-focus-guards/dist/index.mjs" was ignored.
+[WebServer] node_modules/vaul/node_modules/@radix-ui/react-presence/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/vaul/node_modules/@radix-ui/react-presence/dist/index.mjs" was ignored.
+[WebServer] node_modules/vaul/node_modules/@radix-ui/react-primitive/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/vaul/node_modules/@radix-ui/react-primitive/dist/index.mjs" was ignored.
+[WebServer] node_modules/vaul/node_modules/@radix-ui/react-portal/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/vaul/node_modules/@radix-ui/react-portal/dist/index.mjs" was ignored.
+[WebServer] node_modules/vaul/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs (1:0): Module level directives cause errors when bundled, "use client" in "node_modules/vaul/node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs" was ignored.
+[WebServer] node_modules/expo-modules-core/src/uuid/index.web.ts (13:24): Use of eval in "node_modules/expo-modules-core/src/uuid/index.web.ts" is strongly discouraged as it poses security risks and may cause issues with minification.
+[WebServer]
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[WebServer] (node:10472) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:24940) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  1 tests\geometry\ios-fixes.spec.ts:25:7 › lobby actual touch selects each free seat 844 left (2.6s)
+
+
+  1) tests\geometry\ios-fixes.spec.ts:25:7 › lobby actual touch selects each free seat 844 left ────
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+        "height": 64,
+        "width": 128,
+    -   "x": 701,
+    -   "y": 141.5,
+    +   "x": 387.5,
+    +   "y": 220,
+      }
+
+      45 |       // The lobby has shared, fixed positions like RoomLobby on web. Checking
+      46 |       // only the seat ID misses a successful reservation rotated to the south.
+    > 47 |       expect(await target.boundingBox()).toEqual(box);
+         |                                          ^
+      48 |       expect(await page.evaluate(() => (globalThis as unknown as { __multiplayerFixture: { current: () => { viewerSeatIndex: number | null } } }).__multiplayerFixture.current().viewerSeatIndex)).toBe(seat);
+      49 |       if (!baseline) await expect(target).toHaveAttribute("aria-selected", "true");
+      50 |       const before = await intents(page);
+        at C:\Users\Antonin\.codex\worktrees\ios-multiplayer\Contree-KFFR\apps\mobile\tests\geometry\ios-fixes.spec.ts:47:42
+
+    Error Context: geometry-results\ios-fixes-lobby-actual-touch-selects-each-free-seat-844-left\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    geometry-results\ios-fixes-lobby-actual-touch-selects-each-free-seat-844-left\trace.zip
+    Usage:
+
+        npx playwright show-trace geometry-results\ios-fixes-lobby-actual-touch-selects-each-free-seat-844-left\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\geometry\ios-fixes.spec.ts:25:7 › lobby actual touch selects each free seat 844 left ─────

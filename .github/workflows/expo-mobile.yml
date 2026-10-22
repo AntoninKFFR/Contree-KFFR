@@ -10,6 +10,12 @@ on:
       - "lib/soloBotPacing.ts"
       - "lib/soloLastTrick.ts"
       - "lib/trickPresentation.ts"
+      - "lib/multiplayer*.ts"
+      - "lib/roomTypes.ts"
+      - "lib/socialInvitationContracts.ts"
+      - "e2e/multiplayerNative*.spec.ts"
+      - "playwright.multiplayer-parity.config.ts"
+      - "scripts/generateNativeMultiplayerFixtures.ts"
       - ".github/workflows/expo-mobile.yml"
   push:
     branches: [main]
@@ -21,6 +27,12 @@ on:
       - "lib/soloBotPacing.ts"
       - "lib/soloLastTrick.ts"
       - "lib/trickPresentation.ts"
+      - "lib/multiplayer*.ts"
+      - "lib/roomTypes.ts"
+      - "lib/socialInvitationContracts.ts"
+      - "e2e/multiplayerNative*.spec.ts"
+      - "playwright.multiplayer-parity.config.ts"
+      - "scripts/generateNativeMultiplayerFixtures.ts"
       - ".github/workflows/expo-mobile.yml"
   workflow_dispatch:
 
@@ -155,6 +167,46 @@ jobs:
           name: solo-web-native-parity
           path: |
             apps/mobile/docs/parity-150/captures
+            apps/mobile/geometry-results
+            apps/mobile/geometry-report
+            test-results
+          if-no-files-found: error
+
+  multiplayer-web-native-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "1"
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: fixture-public-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/mobile/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix apps/mobile
+      - run: npx playwright install --with-deps chromium
+      - run: npx vite-node --config vitest.config.ts scripts/generateNativeMultiplayerFixtures.ts
+      - run: npx vitest run tests/mobileMultiplayerIntegration.test.ts
+      - run: npm run build
+      - name: Real web/native controls and Realtime SDK, then public-state web captures
+        run: npx playwright test --config playwright.multiplayer-parity.config.ts
+      - name: Compare the actual native components on the same public projections
+        run: npm run test:geometry -- --grep multiplayer
+        working-directory: apps/mobile
+      - run: node scripts/render-multiplayer-comparison.mjs
+        working-directory: apps/mobile
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: multiplayer-web-native-parity
+          path: |
+            apps/mobile/docs/multiplayer-151/captures
             apps/mobile/geometry-results
             apps/mobile/geometry-report
             test-results

@@ -1,7 +1,7 @@
 "use client";
 import { formatBidLabel, formatFinalContract, dominantBidPlayerId, type AnnouncementBubbleContent } from "@/lib/solo/tableAnnouncements";
 
-import React, { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import React, { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CardView } from "@/components/CardView";
 import { PlayerPanel } from "@/components/PlayerPanel";
 import { usePlayerPreferences } from "@/components/settings/PlayerPreferencesProvider";
@@ -30,6 +30,9 @@ import {
   type CardPresentation,
   type PresentedTrick,
   type TrickObservation,
+  pendingTricksForState,
+  isResultPresentationPending,
+  scheduleTrickCollection,
 } from "@/lib/trickPresentation";
 
 type GameTableState = GameState | PlayerGameView;
@@ -54,6 +57,9 @@ type GameTableProps = {
   trickPresentationPolicy?: { autoCollect: boolean; delayMs: number };
   optimisticCard?: PlayedCard | null;
   onAutoCollectComplete?: (trickKey: string) => void;
+  completion?: ReactNode;
+  replaceWithCompletion?: boolean;
+  onCompletionVisibilityChange?: (visible: boolean) => void;
 };
 
 function latestBidKey(roundNumber: number, bids: Bid[]): string | null {
@@ -253,6 +259,9 @@ export function GameTable({
   trickPresentationPolicy,
   optimisticCard,
   onAutoCollectComplete,
+  completion,
+  replaceWithCompletion = false,
+  onCompletionVisibilityChange,
 }: GameTableProps) {
   const { effectiveReducedMotion, preferences } = usePlayerPreferences();
   const observationRef = useRef<TrickObservation | null>(null);
@@ -266,10 +275,16 @@ export function GameTable({
     null,
   );
   const [showLastTrick, setShowLastTrick] = useState(false);
+  const [presentationActive, setPresentationActive] = useState(() => typeof document === "undefined" || document.visibilityState !== "hidden");
   const seats = tableSeatsFor(state);
   const completionInput = { completedTricks: state.completedTricks, roundNumber: state.roundNumber, scope: presentationScope };
   const completionTransition = observeCompletedTricks(observationRef.current, completionInput);
-  const presentedTrick = completionTransition.reset ? null : animatedCompletedTrick ?? completionTransition.additions[0] ?? null;
+  const presentationQueue = !presentationActive || completionTransition.reset ? [] : pendingTricksForState(
+    [...(animatedCompletedTrick ? [animatedCompletedTrick] : []), ...pendingTricksRef.current], completionTransition.additions, state,
+  );
+  const presentedTrick = presentationQueue[0] ?? null;
+  const resultVisible = Boolean(completion) && !isResultPresentationPending(state, presentedTrick);
+  useLayoutEffect(() => { onCompletionVisibilityChange?.(resultVisible); }, [onCompletionVisibilityChange, resultVisible]);
   useEffect(() => { onAutoCollectCompleteRef.current = onAutoCollectComplete; }, [onAutoCollectComplete]);
   useEffect(() => {
     const collectedKey = autoCollectedKeyRef.current;
@@ -283,7 +298,8 @@ export function GameTable({
     followingCompletedTricks: presentedTrick ? state.completedTricks.slice(presentedTrick.trickIndex) : [],
     optimisticCard,
   });
-  const cardPlayEnabled = isPreferenceAnimationEnabled(preferences, "card-play", effectiveReducedMotion);
+  const effectiveTrickPresentationPolicy = trickPresentationPolicy ?? getTrickPresentationPolicy(preferences);
+  const cardPlayEnabled = effectiveTrickPresentationPolicy.delayMs > 0 && isPreferenceAnimationEnabled(preferences, "card-play", effectiveReducedMotion);
   const cardPresentations = planTrickLayerPresentations(cardPresentationRef.current, trickLayers, cardPlayEnabled);
   const leadPlayerId = currentTrickLeaderId(state);
   useEffect(() => { cardPresentationRef.current = cardPresentations; });
@@ -352,7 +368,6 @@ export function GameTable({
   const leftAnnouncement = announcementFor(seats.left);
   const rightAnnouncement = announcementFor(seats.right);
   const bottomAnnouncement = announcementFor(seats.bottom);
-  const effectiveTrickPresentationPolicy = trickPresentationPolicy ?? getTrickPresentationPolicy(preferences);
   useEffect(() => {
     soundPreferencesRef.current = preferences;
   }, [preferences]);
@@ -378,39 +393,47 @@ export function GameTable({
       scope: presentationScope,
     });
     observationRef.current = transition.observation;
-    if (transition.reset) {
+    if (transition.reset || !presentationActive) {
       pendingTricksRef.current = [];
       autoCollectedKeyRef.current = null;
       setAnimatedCompletedTrick(null);
       setShowLastTrick(false);
       return;
     }
-    if (transition.additions.length === 0) return;
-
     setAnimatedCompletedTrick((current) => {
-      if (current) {
-        pendingTricksRef.current.push(...transition.additions);
-        return current;
-      }
-      const [first, ...remaining] = transition.additions;
-      pendingTricksRef.current.push(...remaining);
-      return first;
+      const queue = pendingTricksForState([...(current ? [current] : []), ...pendingTricksRef.current], transition.additions, { phase: state.phase, endReason: state.endReason, completedTricks: state.completedTricks });
+      pendingTricksRef.current = queue.slice(1);
+      return queue[0] ?? null;
     });
-  }, [presentationScope, state.completedTricks, state.roundNumber]);
+  }, [presentationActive, presentationScope, state.completedTricks, state.roundNumber, state.phase, state.endReason]);
+
+  useLayoutEffect(() => {
+    // A foreground reload must use the latest state, not replay a hidden queue.
+    const reset = () => {
+      observationRef.current = { scope: presentationScope, roundNumber: state.roundNumber, completedCount: state.completedTricks.length };
+      pendingTricksRef.current = []; autoCollectedKeyRef.current = null; setPresentationActive(document.visibilityState !== "hidden");
+      cardPresentationRef.current = new Map(); setAnimatedCompletedTrick(null); setShowLastTrick(false);
+    };
+    document.addEventListener("visibilitychange", reset);
+    return () => document.removeEventListener("visibilitychange", reset);
+  }, [presentationScope, state.roundNumber, state.completedTricks]);
 
   useEffect(() => {
-    if (!animatedCompletedTrick || !effectiveTrickPresentationPolicy.autoCollect) return;
-    const timeoutId = window.setTimeout(() => {
-      playPreferenceSound("trick-collect", preferences);
+    if (!presentationActive || !animatedCompletedTrick || !effectiveTrickPresentationPolicy.autoCollect) return;
+    const scope = presentationScope, round = state.roundNumber;
+    return scheduleTrickCollection(effectiveTrickPresentationPolicy.delayMs, () => {
+      if (observationRef.current?.scope !== scope || observationRef.current.roundNumber !== round) return;
+      playPreferenceSound("trick-collect", soundPreferencesRef.current);
       autoCollectedKeyRef.current = animatedCompletedTrick.key;
       setAnimatedCompletedTrick((current) => {
         if (current?.key !== animatedCompletedTrick.key) return current;
         return pendingTricksRef.current.shift() ?? null;
       });
-    }, effectiveTrickPresentationPolicy.delayMs);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [animatedCompletedTrick, effectiveTrickPresentationPolicy.autoCollect, effectiveTrickPresentationPolicy.delayMs, preferences]);
+    }, {
+      wait: (ms, callback) => { const timer = window.setTimeout(callback, ms); return () => window.clearTimeout(timer); },
+      frame: (callback) => { const frame = window.requestAnimationFrame(callback); return () => window.cancelAnimationFrame(frame); },
+    });
+  }, [presentationActive, presentationScope, state.roundNumber, animatedCompletedTrick, effectiveTrickPresentationPolicy.autoCollect, effectiveTrickPresentationPolicy.delayMs]);
 
   const dismissPresentedTrick = () => {
     playPreferenceSound("trick-collect", preferences);
@@ -420,7 +443,8 @@ export function GameTable({
   const showRoundHelp = !minimalHud && !immersiveMobileLandscape && ((showLiveScore && preferences.assistance.showLivePoints)
     || (preferences.assistance.showContractProgress && state.contract !== null));
 
-  return (
+  if (resultVisible && replaceWithCompletion) return <>{completion}</>;
+  return (<>
     <section
       data-game-phase={state.phase}
       data-game-state-key={`${state.phase}:${state.roundNumber}:${state.currentPlayerId}:${state.bids.length}:${state.completedTricks.length}:${state.currentTrick.cards.length}:${cardsFor(seats.bottom)}:${state.totalScore[0]}:${state.totalScore[1]}`}
@@ -430,7 +454,7 @@ export function GameTable({
       ].join(" ")}
     >
       {trickLayers.map((layer, layerIndex) => {
-        const collecting = layer.kind === "completed" && animatedCompletedTrick && effectiveTrickPresentationPolicy.autoCollect;
+        const collecting = layer.kind === "completed" && animatedCompletedTrick && effectiveTrickPresentationPolicy.autoCollect && effectiveTrickPresentationPolicy.delayMs > 0;
         const offset = collecting ? trickCollectionOffset(animatedCompletedTrick.trick.winnerId, seats) : null;
         return <div className={`pointer-events-none absolute inset-0 ${collecting && isPreferenceAnimationEnabled(preferences, "trick", effectiveReducedMotion) ? "coinche-trick-collect" : ""}`}
           data-trick-key={layer.key} data-trick-layer={layer.kind} key={layer.key}
@@ -557,5 +581,7 @@ export function GameTable({
         />
       </div>
     </section>
+    {resultVisible ? completion : null}
+    </>
   );
 }

@@ -1,0 +1,1473 @@
+{
+  "baseline": "6edc683ed3babedc1cc8cfb267819d29ca89c46f",
+  "renderer": "Actual Next.js and React Native Web components; no physical iPhone captures",
+  "composition": "Original screenshots resized uniformly and assembled; application pixels not redrawn",
+  "frames": {
+    "web-solo-round-568-1-third.png": {
+      "sha256": "5730001bc05a67c95935fb71195cae1c7d46cde746dc93493d813171305020cb",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-solo-round-568-2-fourth.png": {
+      "sha256": "636da15e12e675c50b717a055e81b60e0b96ecb1d8216c5c40d70d023009570f",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-solo-round-568-3-complete.png": {
+      "sha256": "148a245488b02e28bccfb0edebf5ae08e12dc6fa1d19c923211d63c8ee9e352f",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-solo-round-568-4-collection.png": {
+      "sha256": "4de6ced54a56b45f26f897d899d3efcc1e7239dc6e4f97a1c52ac94fc6e06899",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-solo-round-568-5-result.png": {
+      "sha256": "5b55732d78eb37519664def5bc34ef37e3b9345372804586b57447fc2f23fead",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-solo-round-568-1-third.png": {
+      "sha256": "24660735a0c4f324721a70470cc70f875e13c50739f7996cdf072005c5348a20",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-solo-round-568-2-fourth.png": {
+      "sha256": "ba1a63a961077ecf040b3570655b66b71316bc1d24fc1967287fa6cf5466f95a",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-solo-round-568-3-complete.png": {
+      "sha256": "ba1a63a961077ecf040b3570655b66b71316bc1d24fc1967287fa6cf5466f95a",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-solo-round-568-4-collection.png": {
+      "sha256": "a5deedaf2791672f94686ffa2d8252b51ece9e61049f4ef2fe6a7f74f4bb1c6e",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-solo-round-568-5-result.png": {
+      "sha256": "c70b83d3984eb359b55ea6a5f827654a0c5e7b25604a56f2db49883ccafe1bbb",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-solo-game-568-1-third.png": {
+      "sha256": "b968bff69ceeeb1b59d8c3719fdfee65829967bab903081e24a180929ed4f298",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-solo-game-568-2-fourth.png": {
+      "sha256": "00d7c7cfd41ec04c2b0d45c56ae187c2a4be4842ded4e3a58847feceb98835c0",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-solo-game-568-3-complete.png": {
+      "sha256": "148a245488b02e28bccfb0edebf5ae08e12dc6fa1d19c923211d63c8ee9e352f",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-solo-game-568-4-collection.png": {
+      "sha256": "4de6ced54a56b45f26f897d899d3efcc1e7239dc6e4f97a1c52ac94fc6e06899",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-solo-game-568-5-result.png": {
+      "sha256": "c17ed6e0d7f5df157b11e0240b17c9de2fa9555c75b3385d786e4f9467580870",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-solo-game-568-1-third.png": {
+      "sha256": "fffea645110efada218c386948202e67bf2e1c0422f1e399dcda6c0b5dbb5db8",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-solo-game-568-2-fourth.png": {
+      "sha256": "ba1a63a961077ecf040b3570655b66b71316bc1d24fc1967287fa6cf5466f95a",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-solo-game-568-3-complete.png": {
+      "sha256": "ba1a63a961077ecf040b3570655b66b71316bc1d24fc1967287fa6cf5466f95a",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-solo-game-568-4-collection.png": {
+      "sha256": "a5deedaf2791672f94686ffa2d8252b51ece9e61049f4ef2fe6a7f74f4bb1c6e",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-solo-game-568-5-result.png": {
+      "sha256": "1b8e8c68b45ef521b70283a03a26c0bd558adca39a870712618380c47a83ae40",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-solo-round-844-1-third.png": {
+      "sha256": "9a48380102c7a67f696f6ee805e46d1027bed0952c485d6046668bd822f7616c",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-solo-round-844-2-fourth.png": {
+      "sha256": "a282b0532d4b295ed33885c6c19f75b39b84277fbf53b2b94055afc28bd32a1c",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-solo-round-844-3-complete.png": {
+      "sha256": "d4616403b8cef177b701ded175d9ec2de0f12a8a2b8a3d040d85f0db549697b6",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-solo-round-844-4-collection.png": {
+      "sha256": "d937c66d843c71922b4545ae46d427b897cbde95dbe194e5ff3532b36b63c1db",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-solo-round-844-5-result.png": {
+      "sha256": "4717822c611b437f6244c44d710ca45dca97d30a066d40aa14f7e1d57d21c4f6",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-solo-round-844-1-third.png": {
+      "sha256": "1f40caab88b6e07cbd68cd90691631a08f07aeae6c1d7cd39f46ea6e34993154",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-solo-round-844-2-fourth.png": {
+      "sha256": "6e3ac00d270d3f64be9ac1a42ea9f9bc088055c76a50bd1283c60775ab8745dc",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-solo-round-844-3-complete.png": {
+      "sha256": "6e3ac00d270d3f64be9ac1a42ea9f9bc088055c76a50bd1283c60775ab8745dc",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-solo-round-844-4-collection.png": {
+      "sha256": "9b504a182a984074b31d6a071b00d7c86db72bfcb8459db6fffc00b3e59c8ee3",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-solo-round-844-5-result.png": {
+      "sha256": "2a7c90b9748e4b3e43765af61365a56b03071923324e82312e3fd8af156383ac",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-solo-game-844-1-third.png": {
+      "sha256": "9a48380102c7a67f696f6ee805e46d1027bed0952c485d6046668bd822f7616c",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-solo-game-844-2-fourth.png": {
+      "sha256": "2add9d8341b4c51b48cd172b1f6e84bd7bce4d820ffa8ca0b818d7b3c3b97451",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-solo-game-844-3-complete.png": {
+      "sha256": "d4616403b8cef177b701ded175d9ec2de0f12a8a2b8a3d040d85f0db549697b6",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-solo-game-844-4-collection.png": {
+      "sha256": "43ee3f4300c3e0bd584bb5815d67de70f070d72876c42ebef8d2fec39db37af2",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-solo-game-844-5-result.png": {
+      "sha256": "fba03e3eeef10f8d6f3f3e5cb5dc016e1724d3acfea03c83e8ec0084c608c088",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-solo-game-844-1-third.png": {
+      "sha256": "410c1a8771b8aadb3d5bea8fe3147eb8e3eade79d5d2fbe23810285305279d24",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-solo-game-844-2-fourth.png": {
+      "sha256": "6e3ac00d270d3f64be9ac1a42ea9f9bc088055c76a50bd1283c60775ab8745dc",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-solo-game-844-3-complete.png": {
+      "sha256": "6e3ac00d270d3f64be9ac1a42ea9f9bc088055c76a50bd1283c60775ab8745dc",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-solo-game-844-4-collection.png": {
+      "sha256": "9b504a182a984074b31d6a071b00d7c86db72bfcb8459db6fffc00b3e59c8ee3",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-solo-game-844-5-result.png": {
+      "sha256": "19feecab3e12bf7873be6b3fc2a7b84163bb3660104e0b3ef873f275ab72f054",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-solo-round-932-1-third.png": {
+      "sha256": "17b23fe10a50a55be67ef9d5c7aded16a8cbaa90d92a5c7778b2a7f823826731",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-solo-round-932-2-fourth.png": {
+      "sha256": "03d61ffa7ec1c6136a65efb4450a7ab72a6e6c11ed134be42f6f980c505cc8ce",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-solo-round-932-3-complete.png": {
+      "sha256": "09765cdb14c2a220cbbfb649a5dae74cf106b8816d66dda9c0dcb55614457490",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-solo-round-932-4-collection.png": {
+      "sha256": "b6225188219aa160f2b783771fc4c9fcd25e4fe6a23cdf77ade6a15ff95d489f",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-solo-round-932-5-result.png": {
+      "sha256": "7d3ae15a3b694c92bb9593b7804c6794579c5e2ac37ec47b7b10d774adff2537",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-solo-round-932-1-third.png": {
+      "sha256": "61e04f5a96b68f837b9ba616c15d59931b1f061a47fbe57ab1bc3d824366df95",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-solo-round-932-2-fourth.png": {
+      "sha256": "54941540f1ddf53a8273ed55f7b22f76c52fd7400923210a86067947fb432ffe",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-solo-round-932-3-complete.png": {
+      "sha256": "54941540f1ddf53a8273ed55f7b22f76c52fd7400923210a86067947fb432ffe",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-solo-round-932-4-collection.png": {
+      "sha256": "7ab1a569ff7cfead3bd9813059777a530db2c81dd46f14b22a093c01bc8581d6",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-solo-round-932-5-result.png": {
+      "sha256": "fc0d02596ff031edec049b75451ea68f0b35b956be34aed929d2de19b65acf5c",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-solo-game-932-1-third.png": {
+      "sha256": "17b23fe10a50a55be67ef9d5c7aded16a8cbaa90d92a5c7778b2a7f823826731",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-solo-game-932-2-fourth.png": {
+      "sha256": "b9eada31fa2e9f811c0f832d037fc11e5ddbceb53b56db41ad028cea09a940da",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-solo-game-932-3-complete.png": {
+      "sha256": "09765cdb14c2a220cbbfb649a5dae74cf106b8816d66dda9c0dcb55614457490",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-solo-game-932-4-collection.png": {
+      "sha256": "18aeb2a9283793e1107a85b0cd0c558dfc48012c2547be1af04f546b2e4ebfac",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-solo-game-932-5-result.png": {
+      "sha256": "8a543e34b2c460723edbbdd3abcca6b4b822659695decd2901a7dad65d55b985",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-solo-game-932-1-third.png": {
+      "sha256": "25eb3a7e5bb9262f409895dd92f15fdceccae313496127a89dc7e3eccca54c38",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-solo-game-932-2-fourth.png": {
+      "sha256": "54941540f1ddf53a8273ed55f7b22f76c52fd7400923210a86067947fb432ffe",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-solo-game-932-3-complete.png": {
+      "sha256": "54941540f1ddf53a8273ed55f7b22f76c52fd7400923210a86067947fb432ffe",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-solo-game-932-4-collection.png": {
+      "sha256": "7ab1a569ff7cfead3bd9813059777a530db2c81dd46f14b22a093c01bc8581d6",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-solo-game-932-5-result.png": {
+      "sha256": "f4d75c820268476f5bce7c0193b4ae98870e82226278af10182ae5ae126ab434",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-solo-game-844-baseline-premature-result.png": {
+      "sha256": "e3c8ef251bbce8bcdc2a393ee396a32f0b3c63a196bd756873c2d5cf83caa5a6",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-multiplayer-round-568-1-third.png": {
+      "sha256": "489d14725ed74b9119064e46fecff7c52a3ad3946085d896a4edf4f854e22fcd",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-multiplayer-round-568-2-fourth.png": {
+      "sha256": "661dc561dc47769b49d433964b959846be2e9099a1978fd65963708e08954f5a",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-multiplayer-round-568-3-complete.png": {
+      "sha256": "661dc561dc47769b49d433964b959846be2e9099a1978fd65963708e08954f5a",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-multiplayer-round-568-4-collection.png": {
+      "sha256": "b8869a6760361d99524dcfc1bb1b66ebdc9b8233fa16c64b934b525062da8482",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-multiplayer-round-568-5-result.png": {
+      "sha256": "7e6c65e021465b701586e857dab8a20e5efa292bf90dc7ce9a83b5791e5eee89",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-multiplayer-round-568-1-third.png": {
+      "sha256": "677766e9cef9d6d9da86277e0c48069668c296c60eaad08b1904f9097fcb26b8",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-multiplayer-round-568-2-fourth.png": {
+      "sha256": "0517ca5d36c11f3bdd2c45dc481167fb6860599f079f72ad25093e5b0131529c",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-multiplayer-round-568-3-complete.png": {
+      "sha256": "0517ca5d36c11f3bdd2c45dc481167fb6860599f079f72ad25093e5b0131529c",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-multiplayer-round-568-4-collection.png": {
+      "sha256": "63dd458ae8c4aa06486bec3f002b65c6725a397bcc2cba75804b7920ac3c6573",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-multiplayer-round-568-5-result.png": {
+      "sha256": "d909f8e349a7c8df7054eaf18ec3e9e72ef5a26f38d62d52706c8bd96e551275",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-multiplayer-game-568-1-third.png": {
+      "sha256": "2ecbb45595d9301062f4cfe5a6163e03423a56a1645ed23560ef47962cb5133a",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-multiplayer-game-568-2-fourth.png": {
+      "sha256": "661dc561dc47769b49d433964b959846be2e9099a1978fd65963708e08954f5a",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-multiplayer-game-568-3-complete.png": {
+      "sha256": "661dc561dc47769b49d433964b959846be2e9099a1978fd65963708e08954f5a",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-multiplayer-game-568-4-collection.png": {
+      "sha256": "7aea44ca80e09834c8f1a2e8c2c18a0bd46214c57b8ec44c6739ac5bd5c4b8c5",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-multiplayer-game-568-5-result.png": {
+      "sha256": "9c67bd753161953b9e6d2962321f4c9514d70a7c6dcc17d766311c6cbe493704",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-multiplayer-game-568-1-third.png": {
+      "sha256": "96c5bdbc5a2ea72c8bdf3236f7954bfe143d25ca11550c24467d7868e7e0cabf",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-multiplayer-game-568-2-fourth.png": {
+      "sha256": "0517ca5d36c11f3bdd2c45dc481167fb6860599f079f72ad25093e5b0131529c",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-multiplayer-game-568-3-complete.png": {
+      "sha256": "0517ca5d36c11f3bdd2c45dc481167fb6860599f079f72ad25093e5b0131529c",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-multiplayer-game-568-4-collection.png": {
+      "sha256": "63dd458ae8c4aa06486bec3f002b65c6725a397bcc2cba75804b7920ac3c6573",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "native-multiplayer-game-568-5-result.png": {
+      "sha256": "d6b003aa17ced08f24a6793f4012e208bd81e62fb787a71df833ea4edca18f78",
+      "size": [
+        568,
+        320
+      ]
+    },
+    "web-multiplayer-round-844-1-third.png": {
+      "sha256": "eb5823b1dda12dca256c97e42e3fd67b2f37485228f4e1ede06347a3704ed88e",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-multiplayer-round-844-2-fourth.png": {
+      "sha256": "0da2d3445c7b12e5faaddd3c2b00121e12901f2ea3f9ae31446d44726e997e6b",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-multiplayer-round-844-3-complete.png": {
+      "sha256": "0da2d3445c7b12e5faaddd3c2b00121e12901f2ea3f9ae31446d44726e997e6b",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-multiplayer-round-844-4-collection.png": {
+      "sha256": "efbba8c10c3460e7fa769a375864d1380fdb30b2dfe91754d66ba825aab05857",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-multiplayer-round-844-5-result.png": {
+      "sha256": "913f1f741398737b11c13075b581d9b83678025c65f183a687a1c721f1ad4592",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-multiplayer-round-844-1-third.png": {
+      "sha256": "da8f5b0d95345ecc3399eaef396e23c5c6c26b5430b6af0a116be755bdf8fa5f",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-multiplayer-round-844-2-fourth.png": {
+      "sha256": "4b6bdb557974e9c3e448be63666b7683e05afd797429aef810e50d6771fb6117",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-multiplayer-round-844-3-complete.png": {
+      "sha256": "4b6bdb557974e9c3e448be63666b7683e05afd797429aef810e50d6771fb6117",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-multiplayer-round-844-4-collection.png": {
+      "sha256": "bc6e833cf9eee8ebffffd505ce121cb5de32e42b117af3c7f579982fb2f936cf",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-multiplayer-round-844-5-result.png": {
+      "sha256": "57bac98d13ea752ee38af093bdb6808415e4b96689e396a11f979990f4358e1d",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-multiplayer-game-844-1-third.png": {
+      "sha256": "eb5823b1dda12dca256c97e42e3fd67b2f37485228f4e1ede06347a3704ed88e",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-multiplayer-game-844-2-fourth.png": {
+      "sha256": "0da2d3445c7b12e5faaddd3c2b00121e12901f2ea3f9ae31446d44726e997e6b",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-multiplayer-game-844-3-complete.png": {
+      "sha256": "0da2d3445c7b12e5faaddd3c2b00121e12901f2ea3f9ae31446d44726e997e6b",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-multiplayer-game-844-4-collection.png": {
+      "sha256": "195beee54d845f6778cdca22f89e1b0b2d6b0583ce5c38bc7f77641022d1eecf",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-multiplayer-game-844-5-result.png": {
+      "sha256": "74d3a449e2dd803e7ec830519318dd1931e9f84faad7f993623186f13d3eecc5",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-multiplayer-game-844-1-third.png": {
+      "sha256": "8285341975e256a83c38ef3cbe94235ee0fa9c7163df94bbc0ed14208d51a03d",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-multiplayer-game-844-2-fourth.png": {
+      "sha256": "4b6bdb557974e9c3e448be63666b7683e05afd797429aef810e50d6771fb6117",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-multiplayer-game-844-3-complete.png": {
+      "sha256": "4b6bdb557974e9c3e448be63666b7683e05afd797429aef810e50d6771fb6117",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-multiplayer-game-844-4-collection.png": {
+      "sha256": "bc6e833cf9eee8ebffffd505ce121cb5de32e42b117af3c7f579982fb2f936cf",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "native-multiplayer-game-844-5-result.png": {
+      "sha256": "4a0d4da416709575655450767aa019ef3bc57c231488aabc2e1130fde42d5a27",
+      "size": [
+        844,
+        390
+      ]
+    },
+    "web-multiplayer-round-932-1-third.png": {
+      "sha256": "0ce24dd578fb98a18ecb85d95e4e66d3aa05a266f50d7b67586d259d65c0dc42",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-multiplayer-round-932-2-fourth.png": {
+      "sha256": "50d5cd6482960c1c919d272e9130dc0d9da4a610051c06577878c583f976776b",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-multiplayer-round-932-3-complete.png": {
+      "sha256": "50d5cd6482960c1c919d272e9130dc0d9da4a610051c06577878c583f976776b",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-multiplayer-round-932-4-collection.png": {
+      "sha256": "8732a1eebb19e527fc9d4e86340fdeb2cd616123ed6f0240414d5946e89b9a02",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-multiplayer-round-932-5-result.png": {
+      "sha256": "25ece771531fa933d5e885e27187608f8887d9cce0c991a2ec2eecc361147141",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-multiplayer-round-932-1-third.png": {
+      "sha256": "9a997f22060d07435a8fe16222202e265eac2255d02e38a7b17fe99e3689af01",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-multiplayer-round-932-2-fourth.png": {
+      "sha256": "57b9a064ff3e09a4d239d9d639d7eb465e44a34bd140f2360c7c8307173713bc",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-multiplayer-round-932-3-complete.png": {
+      "sha256": "57b9a064ff3e09a4d239d9d639d7eb465e44a34bd140f2360c7c8307173713bc",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-multiplayer-round-932-4-collection.png": {
+      "sha256": "0cb97d7a372ce5f4e9f7f24a7a15f093070d3bae70f4678343c724391b9ac4ce",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-multiplayer-round-932-5-result.png": {
+      "sha256": "1d06fa3bef9cfb6ab273aeccad95f5b6410631635dfbdc0d850fb9b9470bdd89",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-multiplayer-game-932-1-third.png": {
+      "sha256": "486b656037e6f3fef9fb7818677e83e9ef86d26ee2fc03dde5e8b37ed54fc98a",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-multiplayer-game-932-2-fourth.png": {
+      "sha256": "50d5cd6482960c1c919d272e9130dc0d9da4a610051c06577878c583f976776b",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-multiplayer-game-932-3-complete.png": {
+      "sha256": "50d5cd6482960c1c919d272e9130dc0d9da4a610051c06577878c583f976776b",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-multiplayer-game-932-4-collection.png": {
+      "sha256": "8732a1eebb19e527fc9d4e86340fdeb2cd616123ed6f0240414d5946e89b9a02",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "web-multiplayer-game-932-5-result.png": {
+      "sha256": "67c0870cec1bea0b5b8c63f6cdf93a1bf2adf6168a6ddbd5cad1c6d0413a3671",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-multiplayer-game-932-1-third.png": {
+      "sha256": "129213ca2725dbcdf49b28f5aba9498dac398d9b8b66443e4c2c430074784273",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-multiplayer-game-932-2-fourth.png": {
+      "sha256": "57b9a064ff3e09a4d239d9d639d7eb465e44a34bd140f2360c7c8307173713bc",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-multiplayer-game-932-3-complete.png": {
+      "sha256": "57b9a064ff3e09a4d239d9d639d7eb465e44a34bd140f2360c7c8307173713bc",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-multiplayer-game-932-4-collection.png": {
+      "sha256": "244bc76664a9f415f9494e792d94d6f518abfad2c72e1850347240ab46c58417",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-multiplayer-game-932-5-result.png": {
+      "sha256": "f499388cf247924de9f5eb2e65ff2b372951b6c1517bf600c808e91cba353a42",
+      "size": [
+        932,
+        430
+      ]
+    },
+    "native-multiplayer-game-844-baseline-premature-result.png": {
+      "sha256": "7ff9e3a8424d19adbeb5448973ba1dec2ec3db4a1959ae129ec15748e7d07e7e",
+      "size": [
+        844,
+        390
+      ]
+    }
+  },
+  "measurements": {
+    "web-solo-round-568": {
+      "renderer": "actual Next.js components; test HTTP",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "mode": "solo",
+      "kind": "round",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1346,
+        "resultAt": 2861.1999999955297
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "native-solo-round-568": {
+      "renderer": "actual React Native Web components; test HTTP; not physical iPhone",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "mode": "solo",
+      "kind": "round",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1080.8000000044703,
+        "resultAt": 2579.60000000149
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "web-solo-game-568": {
+      "renderer": "actual Next.js components; test HTTP",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "mode": "solo",
+      "kind": "game",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1309.3000000044703,
+        "resultAt": 2809.3000000044703
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "native-solo-game-568": {
+      "renderer": "actual React Native Web components; test HTTP; not physical iPhone",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "mode": "solo",
+      "kind": "game",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1059.5,
+        "resultAt": 2560.60000000149
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "web-solo-round-844": {
+      "renderer": "actual Next.js components; test HTTP",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "mode": "solo",
+      "kind": "round",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1320.2000000029802,
+        "resultAt": 2841.8000000044703
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "native-solo-round-844": {
+      "renderer": "actual React Native Web components; test HTTP; not physical iPhone",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "mode": "solo",
+      "kind": "round",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1119.5999999940395,
+        "resultAt": 2646.89999999851
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "web-solo-game-844": {
+      "renderer": "actual Next.js components; test HTTP",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "mode": "solo",
+      "kind": "game",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1332.0999999940395,
+        "resultAt": 2847.5
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "native-solo-game-844": {
+      "renderer": "actual React Native Web components; test HTTP; not physical iPhone",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "mode": "solo",
+      "kind": "game",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1113,
+        "resultAt": 2617.39999999851
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "web-solo-round-932": {
+      "renderer": "actual Next.js components; test HTTP",
+      "viewport": {
+        "width": 932,
+        "height": 430
+      },
+      "mode": "solo",
+      "kind": "round",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1197.7999999970198,
+        "resultAt": 2714
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "native-solo-round-932": {
+      "renderer": "actual React Native Web components; test HTTP; not physical iPhone",
+      "viewport": {
+        "width": 932,
+        "height": 430
+      },
+      "mode": "solo",
+      "kind": "round",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1139.6000000014901,
+        "resultAt": 2638.3000000044703
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "web-solo-game-932": {
+      "renderer": "actual Next.js components; test HTTP",
+      "viewport": {
+        "width": 932,
+        "height": 430
+      },
+      "mode": "solo",
+      "kind": "game",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1194.2999999970198,
+        "resultAt": 2695.10000000149
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "native-solo-game-932": {
+      "renderer": "actual React Native Web components; test HTTP; not physical iPhone",
+      "viewport": {
+        "width": 932,
+        "height": 430
+      },
+      "mode": "solo",
+      "kind": "game",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1137.5,
+        "resultAt": 2637.8000000044703
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "web-multiplayer-round-568": {
+      "renderer": "actual Next.js components; test HTTP",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "mode": "multiplayer",
+      "kind": "round",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1333.6000000014901,
+        "resultAt": 2832.2999999970198
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "native-multiplayer-round-568": {
+      "renderer": "actual React Native Web components; test HTTP; not physical iPhone",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "mode": "multiplayer",
+      "kind": "round",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1161.0999999940395,
+        "resultAt": 2677
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "web-multiplayer-game-568": {
+      "renderer": "actual Next.js components; test HTTP",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "mode": "multiplayer",
+      "kind": "game",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1178.7000000029802,
+        "resultAt": 2678.39999999851
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "native-multiplayer-game-568": {
+      "renderer": "actual React Native Web components; test HTTP; not physical iPhone",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "mode": "multiplayer",
+      "kind": "game",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1137.8999999985099,
+        "resultAt": 2649
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "web-multiplayer-round-844": {
+      "renderer": "actual Next.js components; test HTTP",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "mode": "multiplayer",
+      "kind": "round",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1292.1000000014901,
+        "resultAt": 2791.5
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "native-multiplayer-round-844": {
+      "renderer": "actual React Native Web components; test HTTP; not physical iPhone",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "mode": "multiplayer",
+      "kind": "round",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1233.9000000059605,
+        "resultAt": 2738.9000000059605
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "web-multiplayer-game-844": {
+      "renderer": "actual Next.js components; test HTTP",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "mode": "multiplayer",
+      "kind": "game",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1274.2000000029802,
+        "resultAt": 2791.5
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "native-multiplayer-game-844": {
+      "renderer": "actual React Native Web components; test HTTP; not physical iPhone",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "mode": "multiplayer",
+      "kind": "game",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1236.0999999940395,
+        "resultAt": 2748.39999999851
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "web-multiplayer-round-932": {
+      "renderer": "actual Next.js components; test HTTP",
+      "viewport": {
+        "width": 932,
+        "height": 430
+      },
+      "mode": "multiplayer",
+      "kind": "round",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1188.1999999955297,
+        "resultAt": 2704.1999999955297
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "native-multiplayer-round-932": {
+      "renderer": "actual React Native Web components; test HTTP; not physical iPhone",
+      "viewport": {
+        "width": 932,
+        "height": 430
+      },
+      "mode": "multiplayer",
+      "kind": "round",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1215.8000000044703,
+        "resultAt": 2732.5
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "web-multiplayer-game-932": {
+      "renderer": "actual Next.js components; test HTTP",
+      "viewport": {
+        "width": 932,
+        "height": 430
+      },
+      "mode": "multiplayer",
+      "kind": "game",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1175.6000000014901,
+        "resultAt": 2681.7000000029802
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "native-multiplayer-game-932": {
+      "renderer": "actual React Native Web components; test HTTP; not physical iPhone",
+      "viewport": {
+        "width": 932,
+        "height": 430
+      },
+      "mode": "multiplayer",
+      "kind": "game",
+      "delayMs": 1500,
+      "timeline": {
+        "confirmedAt": 1243.3000000044703,
+        "resultAt": 2756.60000000149
+      },
+      "mutations": 1,
+      "winner": 0,
+      "totalScore": {
+        "0": 0,
+        "1": 240
+      },
+      "roundHistoryTotal": {
+        "0": 0,
+        "1": 240
+      }
+    },
+    "real-local-native": [
+      {
+        "fourAt": 4537.89999999851,
+        "resultAt": 6054.20000000298
+      },
+      {
+        "fourAt": 1185.1000000014901,
+        "resultAt": 2700.3000000044703
+      }
+    ],
+    "real-local-web": [
+      {
+        "fourAt": 642.1000000014901,
+        "resultAt": 2230
+      },
+      {
+        "fourAt": 764.2999999970198,
+        "resultAt": 2281.39999999851
+      }
+    ]
+  },
+  "runtimeSourceHashes": {
+    "lib/server/multiplayerGame.ts": "d3d5967adf51c353fcc59dbd5cb8d7a962ace196e3e2e48f0043b0d87253c96b",
+    "lib/trickPresentation.ts": "b19886e1d55c1550effd162d84f8ea24e548de32892473a98b31a81da3d13c1b",
+    "components/GameTable.tsx": "755d2cffb065a840306ec5ec26d72708e88126feff779141f9055f6179fcc24c",
+    "app/solo/SoloPageClient.tsx": "9a4bb3048831fc22ed31519389dbb56fa99fe3c6ed285940a6656a6fe7e38eb9",
+    "app/multiplayer/[roomId]/RoomPageClient.tsx": "b43fc64940716aaface443d8edb4ca36fd20e853a23e1cdcb41da262a642ea6e",
+    "apps/mobile/src/solo/presentation.ts": "20050d670fdb37f9f1ee27a2bc4e9e048c4e6ac26a1840c14a0e8ab67b2e5fb6",
+    "apps/mobile/src/solo/presentation-store.ts": "ecc8c0bb9c9cdde8a351b7ab584534bfeca890ff8864ed85084723b36de987b6",
+    "apps/mobile/src/solo/scene.tsx": "22a7d31395463d7bac3870d7459c8267bafff3d9242b1730e4defa7659619b39",
+    "apps/mobile/src/multiplayer/table.tsx": "cfc19934181b4f591c461724767134b0f4c66335d2ce945f2b5637d800b40b0b",
+    "apps/mobile/src/app/(connected)/solo.tsx": "cdfe4ba33ccecc583605dc2fb8721f1ff7bcb9a6fd2afcec625936635f722bfc",
+    "apps/mobile/src/app/(connected)/multiplayer.tsx": "4c147d75080b7afb53980c921808611089664ca35dea0f0dc8c8c538ecd973f6"
+  },
+  "fixtureSha256": "c704cbfaa0162923d170ecfcc5361b6630be0178fa6ceef255e4741aa41e004e"
+}

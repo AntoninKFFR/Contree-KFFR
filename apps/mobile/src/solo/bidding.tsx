@@ -16,7 +16,7 @@ export function NativeBidding({ game, canBid, width, height, handHeight, top, pr
   const rules = resolveGameRules(game.settings), contract = getCurrentContractFromBids(game.bids);
   const values = getAvailableBidValues(contract, rules.bidding);
   const [selected, setValue] = useState<BidValue | undefined>(values[0]), [mode, setMode] = useState<ContractMode>(() => {
-    const preferred = preferredBidMode(game.bids, 0);
+    const preferred = preferredBidMode(game.bids, game.viewerPlayerId);
     return preferred.kind === "no-trump" && !rules.bidding.allowNoTrump || preferred.kind === "all-trump" && !rules.bidding.allowAllTrump ? { kind: "suit", suit: "hearts" } : preferred;
   });
   const value = selected !== undefined && values.includes(selected) ? selected : values[0];
@@ -25,7 +25,7 @@ export function NativeBidding({ game, canBid, width, height, handHeight, top, pr
   const capot = canBidCapot(contract, rules.bidding), generale = canBidGenerale(contract, rules.bidding) && canBidGeneraleMode(mode, rules.bidding);
   const chooseMode = values.length > 0 || capot || generale, actionOnly = canBid && !chooseMode;
   function special(action: ConfirmableBidAction) {
-    const intent: SoloIntent = action === "capot" || action === "generale" ? { type: action, playerId: 0, contractMode: mode } : { type: action, playerId: 0 };
+    const intent: SoloIntent = action === "capot" || action === "generale" ? { type: action, playerId: game.viewerPlayerId, contractMode: mode } : { type: action, playerId: game.viewerPlayerId };
     if (shouldConfirmBidAction(action, preferences)) setPending({ action, intent }); else onIntent(intent);
   }
   const panelWidth = Math.min(actionOnly ? 360 : 560, width - 128);
@@ -52,11 +52,11 @@ export function NativeBidding({ game, canBid, width, height, handHeight, top, pr
       <View style={{ flexDirection: "row", gap: 4 }}>
         {specialBelow && !actionOnly && rules.bidding.allowNoTrump ? <TableButton label="SA" accessibilityLabel="Atout Sans Atout" selected={mode.kind === "no-trump"} disabled={!canBid || !chooseMode} onPress={() => setMode({ kind: "no-trump" })} /> : null}
         {specialBelow && !actionOnly && rules.bidding.allowAllTrump ? <TableButton label="TA" accessibilityLabel="Atout Tout Atout" selected={mode.kind === "all-trump"} disabled={!canBid || !chooseMode} onPress={() => setMode({ kind: "all-trump" })} /> : null}
-        {!actionOnly ? <TableButton label="Annoncer" primary disabled={!canBid || value === undefined} onPress={() => { if (value) onIntent({ type: "bid", playerId: 0, value, contractMode: mode }); }} style={{ flex: 1 }} reduced={reduced} /> : null}
-        {choice("Passer", () => onIntent({ type: "pass", playerId: 0 }))}
+        {!actionOnly ? <TableButton label="Annoncer" primary disabled={!canBid || value === undefined} onPress={() => { if (value) onIntent({ type: "bid", playerId: game.viewerPlayerId, value, contractMode: mode }); }} style={{ flex: 1 }} reduced={reduced} /> : null}
+        {choice("Passer", () => onIntent({ type: "pass", playerId: game.viewerPlayerId }))}
         {rules.bidding.allowGenerale && (!actionOnly || generale) ? choice("Générale", () => special("generale"), false, !canBid || !generale) : null}
-        {canBid && canCoinche(0, contract, rules.bidding) ? choice("Contrer", () => special("coinche")) : null}
-        {canBid && canSurcoinche(0, contract, rules.bidding) ? choice("Surcontrer", () => special("surcoinche")) : null}
+        {canBid && canCoinche(game.viewerPlayerId, contract, rules.bidding) ? choice("Contrer", () => special("coinche")) : null}
+        {canBid && canSurcoinche(game.viewerPlayerId, contract, rules.bidding) ? choice("Surcontrer", () => special("surcoinche")) : null}
       </View>
     </View>
     <DetailDialog reduceMotion={reduced} visible={Boolean(pending)} title="Confirmation d’enchère" onClose={() => setPending(null)}><Text style={{ color: "#f5f1e7", fontSize: 16 }}>{pending ? bidConfirmationMessage(pending.action, contract, mode) : ""}</Text><TableButton label="Confirmer" primary onPress={() => { if (pending) onIntent(pending.intent); setPending(null); }} /><TableButton label="Annuler" onPress={() => setPending(null)} /></DetailDialog>
