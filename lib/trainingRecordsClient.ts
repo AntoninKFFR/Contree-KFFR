@@ -1,12 +1,8 @@
 import { PERSISTABLE_PUZZLE_AXES, type PersistablePuzzleAxisId } from "@/engine/training/seriesContract";
+import type { AccountTrainingRecord } from "@/lib/training/records";
+export type { AccountTrainingRecord } from "@/lib/training/records";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
-export type AccountTrainingRecord = {
-  axisId: PersistablePuzzleAxisId;
-  level: number;
-  bestScore: number;
-  bestDurationMs: number | null;
-};
 
 export async function readAccountTrainingRecords(): Promise<{ signedIn: boolean; records: AccountTrainingRecord[]; failed: boolean }> {
   const client = getSupabaseClient();

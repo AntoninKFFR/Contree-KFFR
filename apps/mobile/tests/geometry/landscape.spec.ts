@@ -65,7 +65,7 @@ for (const size of sizes) {
         await expect(page.getByTestId("home-brand").getByLabel("KFFR Contrée")).toBeVisible();
         expect(await page.getByTestId("game-screen").innerText()).toMatch(/^Profil ›\s+Solo\s+Multijoueur\s+Entraînement$/);
         await expect(page.getByRole("button", { name: "Solo", exact: true })).toBeEnabled();
-        await expect(page.getByRole("button", { name: /Bientôt disponible sur iPhone/ })).toHaveCount(1);
+        await expect(page.getByRole("button", { name: "Entraînement", exact: true })).toBeEnabled();
         for (const button of await page.getByRole("button", { name: /Bientôt disponible sur iPhone/ }).all()) await expect(button).toBeDisabled();
         await page.getByRole("link", { name: "Voir mon profil" }).click();
         await expect(page.getByTestId("game-navigation")).toHaveCount(0);
@@ -167,7 +167,7 @@ for (const size of [sizes[0], sizes[2]]) {
       await page.goto("/?proposal=" + proposal);
       await geometry(page, proposal === "club" ? "home" : true);
       const modes = page.getByRole("button", { name: /Bientôt disponible sur iPhone/ });
-      await expect(modes).toHaveCount(proposal === "club" ? 1 : 3);
+      await expect(modes).toHaveCount(proposal === "club" ? 0 : 3);
       for (const mode of await modes.all()) await expect(mode).toBeDisabled();
       await page.screenshot({ path: info.outputPath("proposal-" + proposal + ".png"), animations: "disabled" });
     }

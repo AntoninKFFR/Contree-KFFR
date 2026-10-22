@@ -11,6 +11,7 @@ it("invalidates from only public duo tables, debounces GET signals and cleans up
   const client = { channel: vi.fn(() => channel), removeChannel: vi.fn() } as unknown as SupabaseClient;
   const refresh = vi.fn();
   const cleanup = subscribeToTrainingDuoRealtime(client, "duo-id", refresh);
+  expect(client.channel).toHaveBeenCalledTimes(2);
   expect(filters).toEqual([
     { event: "*", schema: "public", table: "training_duo_sessions", filter: "id=eq.duo-id" },
     { event: "*", schema: "public", table: "training_duo_participants", filter: "session_id=eq.duo-id" },
@@ -21,4 +22,5 @@ it("invalidates from only public duo tables, debounces GET signals and cleans up
   handlers[0](); cleanup(); vi.runAllTimers();
   expect(refresh).toHaveBeenCalledTimes(1);
   expect(client.removeChannel).toHaveBeenCalledWith(channel);
+  expect(client.removeChannel).toHaveBeenCalledTimes(2);
 });

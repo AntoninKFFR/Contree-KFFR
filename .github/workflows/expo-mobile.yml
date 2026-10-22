@@ -121,6 +121,7 @@ jobs:
             apps/mobile/geometry-results
             apps/mobile/geometry-report
             apps/mobile/docs/parity-150/captures
+            apps/mobile/docs/training-153/captures
           if-no-files-found: warn
       - name: Check Expo Go SDK 57 package compatibility
         run: npx expo install --check

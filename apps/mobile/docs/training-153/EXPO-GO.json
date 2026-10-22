@@ -1,0 +1,16 @@
+{
+  "verifiedAt": "2026-10-22T12:08:34.713Z",
+  "expoUrl": "exp://xrz6pnq-antoninkffr-8081.exp.direct",
+  "manifestHttps": "https://xrz6pnq-antoninkffr-8081.exp.direct",
+  "manifestStatus": 200,
+  "sdkVersion": "57.0.0",
+  "name": "KFFR Contrée",
+  "launchAsset": "https://xrz6pnq-antoninkffr-8081.exp.direct/node_modules/expo-router/entry.bundle?platform=ios&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=src%2Fapp&unstable_transformProfile=hermes-stable",
+  "bundleStatus": 200,
+  "bundleBytes": 10792795,
+  "bundleSha256": "f0deb69a0cf1c61ece41d33f6c173718fb51cd3d131fda9e85d7b57e2a8add7d",
+  "worktree": "C:\\Users\\Antonin\\.codex\\worktrees\\ios-training\\Contree-KFFR",
+  "branch": "feat/153-ios-training",
+  "runtime": "Expo Go; physical iPhone validation pending",
+  "qrEncoder": "Expo CLI toqr, identical Expo URL, four-module quiet zone"
+}

@@ -23,6 +23,7 @@ export default function ConnectedLayout() {
       <Tabs.Screen name="profile" options={{ title: "Profil" }} />
       <Tabs.Screen name="solo" options={{ title: "Solo" }} />
       <Tabs.Screen name="multiplayer" options={{ title: "Multijoueur" }} />
+      <Tabs.Screen name="training" options={{ title: "Entraînement" }} />
     </Tabs>
   );
 }

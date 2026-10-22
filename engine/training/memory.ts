@@ -1,7 +1,8 @@
+import { knowledgeHand, type KnowledgeState } from "@/engine/knowledge/publicState";
 import { cardId, createDeck, RANKS, SUITS, SUIT_LABELS } from "@/engine/cards";
 import { getMasterCardsStillOutBySuit, getPlayedCards, getRemainingCardsBySuit } from "@/engine/knowledge/tableKnowledge";
 import { generateTrainingPosition, generatorVersion } from "@/engine/training/generator";
-import type { Card, GameState, PlayedCard, PlayerId, Suit } from "@/engine/types";
+import type { Card, PlayedCard, PlayerId, Suit } from "@/engine/types";
 
 export const MEMORY_AXIS_IDS = ["master-cards", "master-in-hand", "played-cards", "trick-recall"] as const;
 export type MemoryAxisId = typeof MEMORY_AXIS_IDS[number];
@@ -67,7 +68,7 @@ function expectedFrom(candidates: Card[], correctCards: Card[]): string[] {
   return candidates.map(cardId).filter((id) => ids.has(id));
 }
 
-export function createMemoryExercise(axisId: MemoryAxisId, level: number, state: GameState, seed: number,
+export function createMemoryExercise(axisId: MemoryAxisId, level: number, state: KnowledgeState, seed: number,
   options: { trickIndex?: number } = {}): MemoryExercise {
   if (!Number.isInteger(level) || level < 1 || level > MEMORY_LEVELS[axisId]) throw new Error("Invalid memory level.");
   if (!state.trump || state.completedTricks.length < (axisId === "trick-recall" && level === 3 ? 2 : 1)) {
@@ -91,7 +92,7 @@ export function createMemoryExercise(axisId: MemoryAxisId, level: number, state:
         : `Quelle est la carte maîtresse encore en jeu à ${SUIT_LABELS[suit].toLowerCase()} ?`;
   } else if (axisId === "master-in-hand") {
     const remaining = getRemainingCardsBySuit(state, 0);
-    const hand = state.hands[0];
+    const hand = knowledgeHand(state, 0);
     const handIds = new Set(hand.map(cardId));
     const suitsInHand = SUITS.filter((suit) => hand.some((card) => card.suit === suit));
     const suit = pickSuit(seed, suitsInHand);
@@ -136,7 +137,7 @@ export function createMemoryExercise(axisId: MemoryAxisId, level: number, state:
     observation: {
       completedTricks: state.completedTricks.map((trick) => trick.cards.map((played) => ({ ...played }))),
       currentCards: state.currentTrick.cards.map((played) => ({ ...played })),
-      ...(axisId === "master-in-hand" ? { ownHand: [...state.hands[0]] } : {}),
+      ...(axisId === "master-in-hand" ? { ownHand: [...knowledgeHand(state, 0)] } : {}),
     },
     playerNames: state.playerNames ?? { 0: "Joueur 1", 1: "Joueur 2", 2: "Joueur 3", 3: "Joueur 4" },
   };
@@ -172,7 +173,7 @@ export function generateMemorySeries(options: { axisId: MemoryAxisId; level: num
       const playedCount = getPlayedCards(state, 0).length;
       if (state.completedTricks.length < (axisId === "trick-recall" && level === 4 ? 3 : axisId === "trick-recall" && level === 3 ? 2 : 1)) continue;
       if (axisId !== "trick-recall" && playedCount < 8) continue;
-      if (axisId === "master-in-hand" && state.hands[0].length === 0) continue;
+      if (axisId === "master-in-hand" && knowledgeHand(state, 0).length === 0) continue;
       const exercise = createMemoryExercise(axisId, level, state, candidateSeed);
       if (axisId === "master-cards" && exercise.expectedIds.length === 0) continue;
       found = exercise;

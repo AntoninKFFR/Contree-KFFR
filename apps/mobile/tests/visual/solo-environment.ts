@@ -1,4 +1,5 @@
 import { multiplayerFetch } from "./multiplayer-environment";
+import { localBackend } from "./local-backend";
 // Network-free UI server fixtures. The app imports its real environment through Metro.
 import { soloStorageKey } from "../../src/solo/controller";
 import { SESSION_ID, START_KEY, soloFixture, biddingFixture } from "../solo-fixtures";
@@ -32,8 +33,15 @@ if (scenario === "trick" || scenario === "last-trick") {
   }
 }
 const memory = new Map<string, string>();
+if (localBackend) {
+  const prefs = clonePlayerPreferences();
+  prefs.gameplay.gameSpeed = "instant";
+  prefs.gameplay.botDelayMs = prefs.gameplay.biddingDelayMs = prefs.gameplay.trickDisplayMs = 0;
+  prefs.visual.reducedMotion = true;
+  memory.set(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(prefs));
+}
 if (new URLSearchParams(location.search).get("multi") && !["landing", "live"].includes(new URLSearchParams(location.search).get("multi")!)) memory.set("kffr.native.multiplayer.room.v1:visual-test-only", "15100000-0000-4000-8000-000000000001");
-if (parityStage || biddingStage || new URLSearchParams(location.search).has("multi")) { const prefs = clonePlayerPreferences(); prefs.visual.reducedMotion = new URLSearchParams(location.search).get("motion") !== "1"; if (new URLSearchParams(location.search).get("animations") === "0") prefs.visual.animations = false; if (new URLSearchParams(location.search).has("trickMs")) { prefs.gameplay.trickDisplayMs = Number(new URLSearchParams(location.search).get("trickMs")); prefs.gameplay.botDelayMs = 2000; } memory.set(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(prefs)); }
+if (!localBackend && (parityStage || biddingStage || new URLSearchParams(location.search).has("multi"))) { const prefs = clonePlayerPreferences(); prefs.visual.reducedMotion = new URLSearchParams(location.search).get("motion") !== "1"; if (new URLSearchParams(location.search).get("animations") === "0") prefs.visual.animations = false; if (new URLSearchParams(location.search).has("trickMs")) { prefs.gameplay.trickDisplayMs = Number(new URLSearchParams(location.search).get("trickMs")); prefs.gameplay.botDelayMs = 2000; } memory.set(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(prefs)); }
 if (scenario !== "empty" || parityStage || biddingStage) memory.set(soloStorageKey("visual-test-only"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
 const requests: { method: string; body: unknown }[] = [];
 Object.assign(globalThis, { __soloFixture: { requests, current: () => current, stored: (key: string) => memory.get(key) ?? null } });
@@ -41,6 +49,7 @@ export const soloEnvironment = {
   uuid: () => START_KEY,
   storage: { getItem: async (key: string) => memory.get(key) ?? null, setItem: async (key: string, value: string) => { memory.set(key, value); } },
   fetcher: (async (_url, init) => {
+    if (localBackend) return fetch(_url, init);
     if (String(_url).includes("/api/multiplayer/") || String(_url).includes("/api/social/")) return multiplayerFetch(String(_url), init);
     requests.push({ method: init?.method ?? "GET", body: init?.body ? JSON.parse(String(init.body)) : null });
     if (scenario === "offline") throw new Error("fixture offline");

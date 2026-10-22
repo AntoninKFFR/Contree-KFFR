@@ -15,3 +15,8 @@ supabase/.temp/
 playwright-report/
 test-results/
 .playwright/
+
+# Local validation transcripts (delivery evidence lives in docs).
+training-*.log
+
+/.training-local-config.json

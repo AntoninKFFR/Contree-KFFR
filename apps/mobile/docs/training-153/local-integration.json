@@ -1,0 +1,66 @@
+{
+  "backend": "http://127.0.0.1:3007",
+  "supabase": "http://127.0.0.1:55421",
+  "renderer": "actual native controllers and web API client; no physical iPhone claim",
+  "directions": [
+    {
+      "direction": "native-web",
+      "level": 1,
+      "questions": 10,
+      "bookmarkResumeAndRealtimeReconnect": true,
+      "realtimeSdk": "native 2.118.0",
+      "independentAnswers": true,
+      "result": {
+        "scoreA": 0,
+        "scoreB": 2,
+        "commonSuccesses": 0,
+        "outOf": 10
+      },
+      "realtimeInvalidations": 17
+    },
+    {
+      "direction": "web-native",
+      "level": 2,
+      "questions": 10,
+      "bookmarkResumeAndRealtimeReconnect": true,
+      "realtimeSdk": "native 2.118.0",
+      "independentAnswers": true,
+      "result": {
+        "scoreA": 3,
+        "scoreB": 0,
+        "commonSuccesses": 0,
+        "outOf": 10
+      },
+      "realtimeInvalidations": 16
+    },
+    {
+      "direction": "native-native",
+      "level": 4,
+      "questions": 10,
+      "bookmarkResumeAndRealtimeReconnect": true,
+      "realtimeSdk": "native 2.118.0",
+      "independentAnswers": true,
+      "result": {
+        "scoreA": 3,
+        "scoreB": 0,
+        "commonSuccesses": 0,
+        "outOf": 10
+      },
+      "realtimeInvalidations": 14
+    }
+  ],
+  "records": {
+    "perfect": 10,
+    "wrong": 0,
+    "nativeRepeatedDeliveryPosts": 1,
+    "serverRawPostIdempotency": false,
+    "xpEventsAfterDuplicate": 1
+  },
+  "invitationAndFriendRecords": {
+    "invitationReceived": true,
+    "joinedThroughOfficialEndpoint": true,
+    "verifiedAccountRecord": 10,
+    "friendLeaderboardRecord": 10
+  },
+  "completedAt": "2026-10-22T11:43:50.336Z"
+}

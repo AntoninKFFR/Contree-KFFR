@@ -1,3 +1,6 @@
+import TrainingLayout from "../src/app/(connected)/training/_layout";
+import TrainingHub from "../src/app/(connected)/training/index";
+import TrainingExercise from "../src/app/(connected)/training/[axis]";
 import { Children } from "react";
 import type { AuthChangeEvent, Session, SupabaseClient } from "@supabase/supabase-js";
 import { AppState, Dimensions, ScrollView, View, type AppStateStatus } from "react-native";
@@ -19,6 +22,7 @@ import multiplayerStates from "./multiplayer/states.json";
 import parityStates from "./parity/states.json";
 import { SoloSettingsPanel } from "../src/solo/settings-panel";
 import { clonePlayerPreferences, withGameSpeed, PLAYER_PREFERENCES_STORAGE_KEY } from "@/lib/preferences/playerPreferences";
+jest.mock("@react-native-async-storage/async-storage", () => ({ __esModule: true, default: { getItem: async (key: string) => mockSoloMemory.get(key) ?? null, setItem: async (key: string, value: string) => { mockSoloMemory.set(key, value); } } }));
 let mockSoloMemory = new Map<string, string>();
 let mockSoloWire = soloFixture();
 let mockSoloRequests = jest.fn();
@@ -111,7 +115,7 @@ beforeEach(() => {
   });
 });
 afterEach(() => { rendered?.unmount(); cleanup(); jest.restoreAllMocks(); jest.useRealTimers(); });
-const routes = { _layout: RootLayout, login: Login, "(connected)/_layout": ConnectedLayout, "(connected)/index": Home, "(connected)/profile": Profile, "(connected)/solo": Solo, "(connected)/multiplayer": Multiplayer };
+const routes = { _layout: RootLayout, login: Login, "(connected)/_layout": ConnectedLayout, "(connected)/index": Home, "(connected)/profile": Profile, "(connected)/solo": Solo, "(connected)/multiplayer": Multiplayer, "(connected)/training/_layout": TrainingLayout, "(connected)/training/index": TrainingHub, "(connected)/training/[axis]": TrainingExercise };
 async function flush() { await act(async () => { await jest.advanceTimersByTimeAsync(50); }); }
 let rendered: ReturnType<typeof renderRouter>;
 async function open(url = "/") { rendered = renderRouter(routes, { initialUrl: url }); await flush(); return rendered; }
@@ -322,7 +326,7 @@ describe("native navigation with the shared account controller", () => {
     expect(screen.getByLabelText("Pseudo KFFR : Alice KFFR")).toBeVisible();
   });
 
-  test("restores the account, disables future modes, navigates back without new auth listeners", async () => {
+  test("restores the account, enables training, navigates back without new auth listeners", async () => {
     const f = fixture();
     const app = await open();
     expect(screen.queryByLabelText("Onglet Accueil")).toBeNull();
@@ -332,12 +336,7 @@ describe("native navigation with the shared account controller", () => {
     expect(screen.queryByText("La contrée")).toBeNull();
     expect(screen.getByRole("button", { name: "Solo" })).toBeEnabled();
     expect(mockSoloRequests).not.toHaveBeenCalled();
-    for (const title of ["Entraînement"]) {
-      const mode = screen.getByRole("button", { name: title + ". Bientôt disponible sur iPhone." });
-      expect(mode).toBeDisabled();
-      fireEvent.press(mode);
-      expect(rendered.getPathname()).toBe("/");
-    }
+    expect(screen.getByRole("button", { name: "Entraînement" })).toBeEnabled();
     fireEvent.press(screen.getByRole("link", { name: "Voir mon profil" }));
     await flush();
     expect(rendered.getPathname()).toBe("/profile");
@@ -655,5 +654,30 @@ describe("native navigation with the shared account controller", () => {
     expect(mockSoloRequests.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(mockSoloRequests.mock.calls.every((call) => call[1].method === "GET")).toBe(true);
     expect(screen.getAllByRole("button", { name: /^Jouer / })).toHaveLength(8);
+  });
+});
+
+
+describe("native training navigation and persistence", () => {
+  test("opens every catalogue mode and completes a ten-question native series once", async () => {
+    fixture();
+    jest.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, status: 200, text: async () => JSON.stringify({ data: {} }) } as Response);
+    await open(); fireEvent.press(screen.getByRole("button", { name: "Entraînement" })); await flush();
+    expect(rendered.getPathname()).toBe("/training");
+    expect(screen.getAllByRole("button", { name: /^Commencer / })).toHaveLength(17);
+    expect(screen.queryByTestId("game-navigation")).toBeNull();
+    expect(screen.getByRole("button", { name: "Commencer Survie" })).toBeDisabled();
+    fireEvent.press(screen.getByRole("button", { name: "Commencer Valeur d’un pli" })); await flush();
+    for (let i = 0; i < 10; i++) {
+      fireEvent.press(screen.getByRole("button", { name: "0" }));
+      fireEvent.press(screen.getByRole("button", { name: "Valider" }));
+      fireEvent.press(screen.getByRole("button", { name: i === 9 ? "Voir le résultat" : "Exercice suivant" })); await flush();
+    }
+    expect(screen.getByText(/Résultat : .* \/ 10/)).toBeVisible();
+    const raw = mockSoloMemory.get("coinche:ios-training-progress:v1:alice");
+    expect(JSON.parse(raw!).progress.axes["trick-value"].levels[1].completedSeries).toBe(1);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    await act(async () => { router.replace("/training"); }); await flush();
+    expect(screen.getByTestId("training-catalogue")).toBeVisible();
   });
 });

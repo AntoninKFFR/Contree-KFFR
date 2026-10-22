@@ -1,6 +1,7 @@
-import type { GameState, PlayerId } from "@/engine/types";
+import { knowledgeHand, type KnowledgeState } from "@/engine/knowledge/publicState";
+import type { PlayerId } from "@/engine/types";
 import { generatorVersion } from "@/engine/training/generator";
-import { createTrickValueExercise, type TrickValueExercise } from "@/engine/training/trickValue";
+import { createCompletedTrickValueExercise, type TrickValueExercise } from "@/engine/training/trickValue";
 import { createMemoryExercise, gradeMemoryExercise, MEMORY_LEVELS, type MemoryAxisId, type MemoryExercise, type MemoryGrade } from "@/engine/training/memory";
 import { createOpponentVoidsExercise, gradeOpponentVoidsExercise, OPPONENT_VOIDS_LEVELS, type OpponentVoidsExercise, type OpponentVoidsGrade } from "@/engine/training/opponentVoids";
 import { getRemainingCardsBySuit, inferVoidSuitsByPlayer } from "@/engine/knowledge/tableKnowledge";
@@ -28,8 +29,8 @@ export type InGameCapability = {
   moments: readonly TriggerMoment[];
   answerKind: InGameExercise["kind"];
   levelCount: number;
-  isApplicable: (state: GameState, context: InGameContext) => boolean;
-  buildExercise: (state: GameState, context: InGameContext) => InGameExercise;
+  isApplicable: (state: KnowledgeState, context: InGameContext) => boolean;
+  buildExercise: (state: KnowledgeState, context: InGameContext) => InGameExercise;
   grade: (exercise: InGameExercise, answer: InGameAnswer) => InGameGrade;
 };
 
@@ -60,14 +61,14 @@ export const trickValueInGame: InGameCapability = {
     && (context.level !== 1 || state.completedTricks.length < 8)
     && (state.phase === "playing" || state.phase === "finished" || state.phase === "game-over"),
   buildExercise: (state, context) => {
-    const exercise = createTrickValueExercise({ state, seed: context.seed, generatorVersion });
+    const exercise = createCompletedTrickValueExercise(state, context.seed, generatorVersion);
     // The real engine result is the authority for this in-game question.
     return { kind: "number", axisId: "trick-value", data: { ...exercise, answer: state.completedTricks.at(-1)!.points } };
   },
   grade: gradeInGameExercise,
 };
 
-function inGameMemoryExercise(axisId: MemoryAxisId, level: number, state: GameState, seed: number): MemoryExercise {
+function inGameMemoryExercise(axisId: MemoryAxisId, level: number, state: KnowledgeState, seed: number): MemoryExercise {
   const trickIndex = axisId === "trick-recall" ? (seed >>> 0) % (state.completedTricks.length - 1) : undefined;
   const exercise = createMemoryExercise(axisId, level, state, seed, { trickIndex });
   if (axisId === "master-in-hand" && level === 1) {
@@ -89,7 +90,7 @@ export function memoryInGame(axisId: MemoryAxisId): InGameCapability {
         || context.level < 1 || context.level > MEMORY_LEVELS[axisId] || !Number.isInteger(context.level)) return false;
       const needed = isRecall ? 3 : 1;
       if (state.completedTricks.length < needed) return false;
-      if (axisId === "master-in-hand" && state.hands[0].length === 0) return false;
+      if (axisId === "master-in-hand" && knowledgeHand(state, 0).length === 0) return false;
       const exercise = inGameMemoryExercise(axisId, context.level, state, context.seed);
       if (axisId === "master-cards") return exercise.expectedIds.length > 0;
       if (axisId === "master-in-hand") {
@@ -114,7 +115,7 @@ export function memoryInGame(axisId: MemoryAxisId): InGameCapability {
   };
 }
 
-function inGameLevelOneVoid(state: GameState, seed: number): OpponentVoidsExercise | null {
+function inGameLevelOneVoid(state: KnowledgeState, seed: number): OpponentVoidsExercise | null {
   const inferred = inferVoidSuitsByPlayer(state, 0);
   if (![1, 2, 3].some((id) => inferred[id as 1 | 2 | 3].length > 0)) return null;
   const targetProven = (seed & 1) === 0;

@@ -39,6 +39,24 @@
       ],
       "@supabase/supabase-js": [
         "./node_modules/@supabase/supabase-js"
+      ],
+      "@/lib/training/*": [
+        "../../lib/training/*"
+      ],
+      "@/bots/*": [
+        "../../bots/*"
+      ],
+      "@/lib/trainingDuoApi": [
+        "../../lib/trainingDuoApi.ts"
+      ],
+      "@/lib/trainingDuoTypes": [
+        "../../lib/trainingDuoTypes.ts"
+      ],
+      "@/lib/trainingDuoRealtime": [
+        "../../lib/trainingDuoRealtime.ts"
+      ],
+      "@/lib/trainingDuoInvitationsApi": [
+        "../../lib/trainingDuoInvitationsApi.ts"
       ]
     },
     "types": [
