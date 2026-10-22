@@ -17,7 +17,7 @@ export const TEST_ROOM_ID = "15100000-0000-4000-8000-000000000001";
 export const TEST_GAME_ID = "15100000-0000-4000-8000-000000000002";
 export function memoryMultiplayerServer(seed = 71, initialNow = Date.parse("2026-10-21T12:00:00Z")) {
   const random = createSeededRandom(seed);
-  let now = initialNow;
+  let now = initialNow, gamesStarted = 0;
   let room: RoomRow, players: RoomPlayerRow[], game: GameState | null = null;
   const calls: { user: string; path: string; body: unknown }[] = [];
   const date = () => new Date(now).toISOString();
@@ -55,7 +55,7 @@ export function memoryMultiplayerServer(seed = 71, initialNow = Date.parse("2026
         players = players.map((p) => p.kind !== "empty" ? p : { ...p, kind: "bot", display_name: `Bot ${p.seat_index}`, bot_profile_id: "simple", is_ready: true, is_connected: true });
         game = createInitialGame(random, { ruleset: room.ruleset_snapshot! });
         game.playerNames = Object.fromEntries(players.map((p) => [p.seat_index, p.display_name!])) as GameState["playerNames"];
-        room.status = "playing"; room.started_at = date(); room.active_game_id = TEST_GAME_ID; break;
+        room.status = "playing"; room.started_at = date(); room.active_game_id = gamesStarted++ === 0 ? TEST_GAME_ID : crypto.randomUUID(); break;
       }
       case "game-action": game = applyAuthorizedAction({ room, players, state: game!, userId: user, expectedVersion: version, action: intent.action }); break;
       case "next-round": if (!players.some((p) => p.user_id === user) || game?.phase !== "finished") throw new MultiplayerError("Manche non terminée."); game = startNextRound(game, random); break;

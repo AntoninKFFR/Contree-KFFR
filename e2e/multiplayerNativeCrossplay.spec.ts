@@ -74,7 +74,21 @@ test("actual web and native controls share one authoritative fixture through HTT
   await expect(ios.getByTestId("solo-round-result")).toContainText("FORFAIT");
   await expect(pc.getByRole("heading", { name: /Victoire par abandon/ })).toBeVisible();
   expect(server.view("ios").game!.winnerTeam).toBe(server.view("web").game!.winnerTeam);
+  const previousGameId = server.view("web").gameId;
   await pc.getByRole("button", { name: "Retour au lobby" }).click(); await expect(ios.getByTestId("multiplayer-lobby")).toBeVisible();
+  expect(server.view("web").players.filter((p) => p.kind === "bot")).toEqual([]);
+  expect(server.view("web").players.filter((p) => p.kind === "empty").map((p) => p.seat_index)).toEqual([2, 3]);
+  expect(server.view("web").players.filter((p) => p.kind === "human").every((p) => !p.is_ready)).toBe(true);
+  const target = ios.getByTestId("lobby-seat-2"), position = await target.boundingBox();
+  await target.click(); await expect(target).toContainText("Moi"); expect(await target.boundingBox()).toEqual(position);
+  await expect(pc.getByRole("button", { name: /Inviter/ }).first()).toBeVisible();
+  await expect(ios.getByRole("button", { name: "Inviter", exact: true })).toBeVisible();
+  await ios.getByRole("button", { name: "Prêt", exact: true }).click();
+  await pc.getByRole("button", { name: /^Je suis prêt|^Prêt$/ }).click();
+  await pc.getByRole("button", { name: /Lancer la partie|Démarrer/ }).click();
+  await expect(ios.getByTestId("multiplayer-game")).toBeVisible();
+  expect(server.view("web").gameId).not.toBe(previousGameId);
+  expect(server.view("web").players.filter((p) => p.kind === "bot").map((p) => p.seat_index)).toEqual([1, 3]);
   expect(sockets.length).toBeGreaterThanOrEqual(3); // web + native, then native resume
   await pc.close(); await ios.close();
 });

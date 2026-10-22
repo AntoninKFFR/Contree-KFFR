@@ -12,6 +12,11 @@ export default defineConfig({
     const path = id.replaceAll("\\", "/");
     const source = ["apps/mobile/src/solo/hand.tsx", "apps/mobile/src/multiplayer/lobby.tsx", "apps/mobile/src/app/(connected)/multiplayer.tsx"].find((name) => path.endsWith("/" + name));
     if (source) return execFileSync("git", ["show", `8d1ac9d98c81840401a36b3a401bd06a76b8d60a:${source}`], { encoding: "utf8" });
+  } }, { name: "final-trick-baseline", enforce: "pre", transform(_code, id) {
+    if (process.env.FINAL_TRICK_BASELINE !== "1") return;
+    const path = id.replaceAll("\\", "/");
+    const source = ["apps/mobile/src/solo/presentation.ts", "apps/mobile/src/solo/presentation-store.ts", "apps/mobile/src/solo/scene.tsx", "apps/mobile/src/multiplayer/table.tsx", "apps/mobile/src/app/(connected)/solo.tsx", "apps/mobile/src/app/(connected)/multiplayer.tsx"].find((name) => path.endsWith("/" + name));
+    if (source) return execFileSync("git", ["show", `6edc683ed3babedc1cc8cfb267819d29ca89c46f:${source}`], { encoding: "utf8" });
   } }, { name: "reanimated-real-web-compiler", enforce: "pre", transform(_code, id) {
     if (!/react-native-reanimated\/src\/ReanimatedModule\/js-reanimated\/webUtils(\.web)?\.ts$/.test(id.replaceAll("\\", "/"))) return;
     return `export { default as createReactDOMStyle } from "react-native-web/dist/exports/StyleSheet/compiler/createReactDOMStyle"; export { createTransformValue, createTextShadowValue } from "react-native-web/dist/exports/StyleSheet/preprocess";`;

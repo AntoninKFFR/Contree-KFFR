@@ -2,7 +2,9 @@
 
 [Issue](https://github.com/AntoninKFFR/Contree-KFFR/issues/151) · [PR DRAFT](https://github.com/AntoninKFFR/Contree-KFFR/pull/152) · branche `feat/151-ios-multiplayer`, issue de `main` `0314cfb`.
 
-**Dernier correctif : [réservation et positions fixes du lobby](SEAT-RESERVATION.md)** — retour au sud reproduit, transport sécurisé, coordonnées et état serveur vérifiés. Le propriétaire a validé le scénario haut → quitter → droite dans Expo Go ; un petit délai de confirmation reste signalé.
+**Derniers correctifs : [Rejouer sans anciens bots et dernier pli visible avant le résultat](FINALIZATION.md)** — logique serveur testée localement, présentation partagée Solo/Multi web et native, preuves avant/après. Le changement de revanche attend un futur déploiement backend ; aucun déploiement de production n'est effectué.
+
+[Réservation et positions fixes du lobby](SEAT-RESERVATION.md) — retour au sud reproduit et corrigé. Le propriétaire a validé le scénario haut → quitter → droite dans Expo Go ; un petit délai de confirmation reste signalé.
 
 [Correctifs précédents : places tactiles, présence CI, regroupement des cartes et tri aux enchères](IOS-FIXES.md). Les planches initiales ci-dessous restent des références historiques.
 

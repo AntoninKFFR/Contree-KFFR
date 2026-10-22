@@ -61,21 +61,22 @@ export function TrickCards({ cards, height, animatedKeys = [], preferences, redu
     })}
   </View>;
 }
-export function SoloScene({ session, width, height, preferences, reduced, human, onIntent, layers, cardPresentations, presented, policy, onCollect, onLastTrick, pendingCard, showWaitingBids = false, playerStatus }: {
+export function SoloScene({ session, width, height, preferences, reduced, human, onIntent, layers, cardPresentations, presented, policy, onCollect, onLastTrick, pendingCard, showWaitingBids = false, playerStatus, resultVisible }: {
   session: NativeSoloSession; width: number; height: number; preferences: PlayerPreferences; reduced: boolean; human: boolean; onIntent: (intent: SoloIntent) => void;
   layers: TrickLayer[]; cardPresentations: Map<string, CardPresentation>; presented: PresentedTrick | null; policy: { autoCollect: boolean; delayMs: number }; onCollect: () => void; onLastTrick: () => void;
   pendingCard?: Card | null; showWaitingBids?: boolean; playerStatus?: Partial<Record<PlayerId, "online" | "offline" | "bot">>;
+  resultVisible?: boolean;
 }) {
   const game = session.state, geometry = soloSceneGeometry(width, height, game.phase === "bidding"), seats = tableSeatsFor(game), us = game.viewerPlayerId % 2 as 0 | 1, them = (1 - us) as 0 | 1, live = getPublicRoundPoints(game);
   const contractText = game.contract ? `${formatContractLabel(game.contract)}${game.contract.status === "coinched" ? " · Coinché" : game.contract.status === "surcoinched" ? " · Surcoinché" : ""}` : "Annonces";
   const colors = { "classic-green": "#0d5b3c", "midnight-blue": "#17345a", burgundy: "#742f3b", "dark-neutral": "#343a3a" };
   const playDelay = isPreferenceAnimationEnabled(preferences, "card-play", reduced) ? Math.min(240, policy.delayMs) : 0;
-  const obscured = game.phase === "finished" || game.phase === "game-over";
+  const obscured = resultVisible ?? (game.phase === "finished" || game.phase === "game-over");
   return <View testID="solo-card-table" aria-hidden={obscured} accessibilityElementsHidden={obscured} importantForAccessibility={obscured ? "no-hide-descendants" : "auto"} pointerEvents={obscured ? "none" : "auto"} style={{ flex: 1, overflow: "hidden", backgroundColor: colors[preferences.visual.tableTheme] }}>
     {preferences.visual.tableTheme === "classic-green" ? <Image source={felt} contentFit="cover" cachePolicy="memory-disk" transition={0} style={StyleSheet.absoluteFill} accessible={false} /> : null}
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: preferences.visual.tableTheme === "classic-green" ? "#04301f5e" : "#00000020", boxShadow: "inset 0 0 90px #00000061" }]} />
     {layers.map((layer, i) => {
-      const collecting = layer.kind === "completed" && presented && policy.autoCollect && isPreferenceAnimationEnabled(preferences, "trick", reduced);
+      const collecting = layer.kind === "completed" && presented && policy.autoCollect && policy.delayMs > 0 && isPreferenceAnimationEnabled(preferences, "trick", reduced);
       const winner = presented ? (presented.trick.winnerId - game.viewerPlayerId + 4) % 4 : undefined;
       const x = winner === 3 ? -width / 2 + 80 : winner === 1 ? width / 2 - 80 : 0, y = winner === 2 ? -height * .4 + 32 : winner === 0 ? height * .32 : 0;
       return <Animated.View key={layer.key} pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 25 + i }, collecting ? {

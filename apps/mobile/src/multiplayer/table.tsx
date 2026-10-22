@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { View } from "react-native";
 import type { PlayerPreferences } from "../../../../lib/preferences/playerPreferences";
+import { isPreferenceAnimationEnabled } from "../../../../lib/preferences/presentation";
 import { normalizeMultiplayerTablePreferences } from "../../../../lib/multiplayerTablePreferences";
 import { cardKey, type NativeSoloSession, type SoloIntent } from "../solo/contract";
 import { SoloScene, RoundCompletion, TrickCards } from "../solo/scene";
@@ -11,7 +12,7 @@ import { playerName } from "../../../../engine/players";
 import type { RoomState } from "./controller";
 import type { RoomIntent, RoomPlayerAction } from "./contract";
 
-export function NativeMultiplayerTable({ state, preferences, reduced, width, height, send, onCollected }: { onCollected: (key: string | null) => void; state: RoomState; preferences: PlayerPreferences; reduced: boolean; width: number; height: number; send: (i: RoomIntent) => void }) {
+export function NativeMultiplayerTable({ state, preferences, reduced, width, height, send, onCollected, resultDetails }: { resultDetails?: ReactNode; onCollected: (key: string | null) => void; state: RoomState; preferences: PlayerPreferences; reduced: boolean; width: number; height: number; send: (i: RoomIntent) => void }) {
   const room = state.room!, game = room.game!;
   const session = useMemo<NativeSoloSession>(() => ({ id: room.gameId ?? room.room.id, version: room.room.state_version, state: game }), [room.gameId, room.room.id, room.room.state_version, game]);
   const table = normalizeMultiplayerTablePreferences(room.room.presentation_settings);
@@ -35,11 +36,12 @@ export function NativeMultiplayerTable({ state, preferences, reduced, width, hei
   }
   const last = game.completedTricks.at(-1);
   return <View testID="multiplayer-game" style={{ flex: 1 }}>
-    <SoloScene playerStatus={playerStatus} showWaitingBids={false} session={session} width={width} height={height} preferences={effective} reduced={reduced} human={human} onIntent={action} pendingCard={pending}
+    <SoloScene resultVisible={presentation.resultReady} playerStatus={playerStatus} showWaitingBids={false} session={session} width={width} height={height} preferences={effective} reduced={reduced} human={human} onIntent={action} pendingCard={pending}
       layers={presentation.layers} cardPresentations={presentation.cardPresentations} presented={presentation.presented} policy={presentation.policy} onCollect={presentation.collect} onLastTrick={() => setDialog("last")} />
-    {game.phase === "finished" || game.phase === "game-over" ? <RoundCompletion finalResult={game.phase === "game-over"} game={game} disabled={!ready || game.phase === "game-over" && !room.isHost}
+    {presentation.resultReady ? <RoundCompletion finalResult={game.phase === "game-over"} game={game} disabled={!ready || game.phase === "game-over" && !room.isHost}
       actionLabel={game.phase === "game-over" ? room.isHost ? "Rejouer" : "En attente de l’hôte" : "Manche suivante"}
-      onAction={() => send({ type: game.phase === "game-over" ? "rematch" : "next-round" })} onDetails={() => setDialog("details")} reduced={reduced} /> : null}
+      onAction={() => send({ type: game.phase === "game-over" ? "rematch" : "next-round" })} onDetails={() => setDialog("details")} reduced={!isPreferenceAnimationEnabled(effective, "trick", reduced)} /> : null}
+    {presentation.resultReady ? resultDetails : null}
     <DetailDialog visible={dialog !== null} title={dialog === "last" ? "Dernier pli" : "Détails et historique"} onClose={() => setDialog(null)} reduceMotion={reduced}>
       {dialog === "last" && last ? <><Text style={styles.body}>{playerName(last.winnerId, game.playerNames)} · {last.points} points</Text><View style={{ alignSelf: "center" }}><TrickCards cards={last.cards} viewer={game.viewerPlayerId} height={72} preferences={effective} reduced details /></View></> : null}
       {dialog === "details" ? <>

@@ -21,6 +21,7 @@ import type { SoloIntent } from "@/solo/contract";
 import { SoloSettingsPanel } from "@/solo/settings-panel";
 import { useSoloRules, SoloRulesPanel } from "@/solo/rules-panel";
 import { useSoloAudio } from "@/solo/audio";
+import { isPreferenceAnimationEnabled } from "@/lib/preferences/presentation";
 export { cardLabel } from "@/solo/card-face";
 
 export default function SoloScreen() { return <AccountGate bottomInset><SoloRoom /></AccountGate>; }
@@ -71,9 +72,9 @@ function SoloRoom() {
   return <SoloAppearance value={{ textSize: settings.preferences.visual.textSize, contrast: settings.preferences.visual.highContrast, reduced: settings.reduced, sound: () => audio.sound("ui") }}><SafeAreaView testID="solo-screen" edges={["top", "bottom", "left", "right"]} style={{ flex: 1, backgroundColor: "#06120d" }}>
     <View style={{ flex: 1, overflow: "hidden" }} aria-hidden={dialog !== null} accessibilityElementsHidden={dialog !== null} importantForAccessibility={dialog !== null ? "no-hide-descendants" : "auto"}>
       {game && state.active && settings.loaded ? <>
-        <SoloScene session={session!} width={width} height={height} preferences={settings.preferences} reduced={settings.reduced} human={human} onIntent={send} pendingCard={state.pendingCard}
+        <SoloScene resultVisible={presentation.resultReady} session={session!} width={width} height={height} preferences={settings.preferences} reduced={settings.reduced} human={human} onIntent={send} pendingCard={state.pendingCard}
           layers={presentation.layers} cardPresentations={presentation.cardPresentations} presented={presentation.presented} policy={presentation.policy} onCollect={presentation.collect} onLastTrick={() => setDialog("last")} />
-        {game.phase === "finished" || game.phase === "game-over" ? <RoundCompletion game={game} disabled={!ready} onAction={() => game.phase === "game-over" ? setDialog("new") : send({ type: "start-next-round" })} onDetails={() => setDialog("details")} reduced={settings.reduced} /> : null}
+        {presentation.resultReady ? <RoundCompletion game={game} disabled={!ready} onAction={() => game.phase === "game-over" ? setDialog("new") : send({ type: "start-next-round" })} onDetails={() => setDialog("details")} reduced={!isPreferenceAnimationEnabled(settings.preferences, "trick", settings.reduced)} /> : null}
       </> : <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 68, gap: 12 }}>
         {!state.hydrated || state.busy || !settings.loaded ? <><ActivityIndicator color="#ead8a6" accessibilityLabel="Chargement Solo" /><Text style={styles.body}>Recherche de ta partie…</Text></> : <>
           <Text accessibilityRole="header" style={styles.heading}>{session ? "Partie sauvegardée" : "Solo · Contrée KFFR"}</Text>

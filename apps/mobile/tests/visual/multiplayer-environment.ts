@@ -4,7 +4,9 @@ import { parseSoloResponse } from "../../src/solo/contract";
 import { biddingFixture } from "../solo-fixtures";
 const params = new URLSearchParams(location.search), stage = params.get("multi") ?? "landing", seat = Number(params.get("seat") ?? 0);
 const source = (states as Record<string, MultiplayerRoomView[]>)[stage] ?? states["lobby-free"];
-let current = structuredClone(source[seat]);
+const finalSteps = (globalThis as unknown as { __nativeFinalRoomSequence?: MultiplayerRoomView[] }).__nativeFinalRoomSequence;
+let finalStep = 0;
+let current = structuredClone(finalSteps?.[0] ?? source[seat]);
 let seatConflict = params.has("seatConflict");
 let seatFailure = params.get("seatFailure");
 const biddingState = biddingFixture(params.get("bidding"));
@@ -63,7 +65,8 @@ export async function multiplayerFetch(url: string, init?: RequestInit) {
       current.viewerSeatIndex = null;
     }
     if (intent.type === "game-action" && intent.action.type === "play-card") {
-      if (handSteps) current.game = structuredClone(handSteps[++handStep]);
+      if (finalSteps) current = structuredClone(finalSteps[++finalStep]);
+      else if (handSteps) current.game = structuredClone(handSteps[++handStep]);
       else { const card = intent.action.card;
       current.game!.hand = current.game!.hand.filter((c) => c.rank !== card.rank || c.suit !== card.suit);
       current.game!.handCounts[current.game!.viewerPlayerId]--;
@@ -71,7 +74,7 @@ export async function multiplayerFetch(url: string, init?: RequestInit) {
       }
     }
     if (intent.type === "set-ready") current.players.find((p) => p.seat_index === current.viewerSeatIndex)!.is_ready = intent.ready;
-    current.room.state_version++;
+    if (!finalSteps || intent.type !== "game-action" || intent.action.type !== "play-card") current.room.state_version++;
   }
   return new Response(JSON.stringify({ data: current }));
 }

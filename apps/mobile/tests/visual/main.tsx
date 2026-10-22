@@ -12,6 +12,7 @@ import { VisualAccountContext } from "./account";
 import { RouteContext } from "./router";
 import { initialAccountState } from "../../src/lib/account";
 import SalonProposal from "./proposals/salon";
+import { localBackend } from "./local-backend";
 const params = new URLSearchParams(location.search);
 const renders: { phase: string; duration: number }[] = [];
 Object.assign(globalThis, { __nativeRenderMetrics: renders });
@@ -19,7 +20,7 @@ function Harness() {
   const [route, setRoute] = useState(params.get("screen") || "home");
   const [status, setStatus] = useState(params.get("state") || "ready");
   const connected = route !== "login";
-  const session = connected && status === "ready" ? { user: { id: "visual-test-only" }, access_token: "visual-test-only-token" } as Session : null;
+  const session = connected && status === "ready" ? localBackend?.session ?? { user: { id: "visual-test-only" }, access_token: "visual-test-only-token" } as Session : null;
   return <VisualAccountContext.Provider value={{
     ...initialAccountState, session, username: session ? params.get("username") || "Antonin KFFR" : null,
     configured: status !== "configuration", loading: status === "loading", signOutRequired: ["offline", "logout"].includes(status),

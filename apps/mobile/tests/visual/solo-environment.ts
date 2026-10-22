@@ -33,7 +33,7 @@ if (scenario === "trick" || scenario === "last-trick") {
 }
 const memory = new Map<string, string>();
 if (new URLSearchParams(location.search).get("multi") && !["landing", "live"].includes(new URLSearchParams(location.search).get("multi")!)) memory.set("kffr.native.multiplayer.room.v1:visual-test-only", "15100000-0000-4000-8000-000000000001");
-if (parityStage || biddingStage || new URLSearchParams(location.search).has("multi")) { const prefs = clonePlayerPreferences(); prefs.visual.reducedMotion = new URLSearchParams(location.search).get("motion") !== "1"; if (new URLSearchParams(location.search).get("animations") === "0") prefs.visual.animations = false; memory.set(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(prefs)); }
+if (parityStage || biddingStage || new URLSearchParams(location.search).has("multi")) { const prefs = clonePlayerPreferences(); prefs.visual.reducedMotion = new URLSearchParams(location.search).get("motion") !== "1"; if (new URLSearchParams(location.search).get("animations") === "0") prefs.visual.animations = false; if (new URLSearchParams(location.search).has("trickMs")) { prefs.gameplay.trickDisplayMs = Number(new URLSearchParams(location.search).get("trickMs")); prefs.gameplay.botDelayMs = 2000; } memory.set(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(prefs)); }
 if (scenario !== "empty" || parityStage || biddingStage) memory.set(soloStorageKey("visual-test-only"), JSON.stringify({ sessionId: SESSION_ID, startKey: null }));
 const requests: { method: string; body: unknown }[] = [];
 Object.assign(globalThis, { __soloFixture: { requests, current: () => current, stored: (key: string) => memory.get(key) ?? null } });

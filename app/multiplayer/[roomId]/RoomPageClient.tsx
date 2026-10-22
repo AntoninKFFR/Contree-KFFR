@@ -79,6 +79,7 @@ export default function MultiplayerRoomPage() {
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [presentedCompletionScope, setPresentedCompletionScope] = useState<string | null>(null);
   const [rulesDraft, setRulesDraft] = useState<CustomRulesetInput>({ presetId: "contree-kffr" });
   const [rulesChangedNotice, setRulesChangedNotice] = useState(false);
   const previousRulesKeyRef = useRef<string | null>(null);
@@ -139,6 +140,7 @@ export default function MultiplayerRoomPage() {
   const canInviteFriends = canInviteFriendsFromRoom(roomWithPlayers);
   const playerView = roomWithPlayers?.game ?? null;
   const gameState = playerView;
+  const completionScope = `${roomId}:${roomWithPlayers?.gameId}:${gameState?.roundNumber}:${session?.user.id}`;
   const displayedRoomStatus =
     roomWithPlayers?.room.status === "finished" && gameState?.phase !== "game-over"
       ? "playing"
@@ -300,10 +302,10 @@ export default function MultiplayerRoomPage() {
     return explainIllegalCard({ hand: playerView.hand, trick: playerView.currentTrick, card, playerId: playerView.viewerPlayerId, mode: currentMode, rules: gameRules.cardPlay }) ?? "Cette carte n'est pas jouable.";
   }
 
-  const isPlayingLayout = displayedRoomStatus === "playing";
+  const isPlayingLayout = displayedRoomStatus === "playing" || displayedRoomStatus === "finished" && presentedCompletionScope !== completionScope;
   const isLobbyLayout = displayedRoomStatus === "lobby" && pageState === "ready";
-  const isFinishedLayout = displayedRoomStatus === "finished" && pageState === "ready";
-  const shouldLockPortrait = isMobilePortrait && displayedRoomStatus === "playing";
+  const isFinishedLayout = displayedRoomStatus === "finished" && pageState === "ready" && !isPlayingLayout;
+  const shouldLockPortrait = isMobilePortrait && isPlayingLayout;
   useGameChrome(Boolean(isPlayingLayout && playerView));
   const gameMenuActions: GameMenuAction[] = [
     ...(isHost && hostTransferCandidates.length > 0 ? [{ label: "Transférer l’hôte", onSelect: () => { setHostTransferSeat(null); setIsHostTransferOpen(true); } }] : []),
@@ -368,16 +370,6 @@ export default function MultiplayerRoomPage() {
 
         {pageState === "ready" && roomWithPlayers ? (
           <>
-            {displayedRoomStatus === "finished" && finishedPresentation ? (
-              <FinishedRoomCard
-                isHost={roomWithPlayers.isHost}
-                isResettingRoom={isResettingRoom}
-                onRematch={handleRematch}
-                presentation={finishedPresentation}
-                rating={finishedRating}
-              />
-            ) : null}
-
             {displayedRoomStatus === "lobby" ? (
               <>
                 <LobbyHeader
@@ -442,7 +434,7 @@ export default function MultiplayerRoomPage() {
             /> : null}
             {isHostTransferOpen && isHost ? <AccessibleDialog backdropClassName={displayedRoomStatus === "lobby" ? "coinche-lobby-transfer-backdrop" : undefined} description="Choisis un joueur connecté. Le transfert est immédiat." footer={<button className={`${appPrimaryActionClass} w-full sm:w-auto`} disabled={!selectedHostTransferPlayer || isTransferringHost} type="button" onClick={() => void handleTransferHost()}>{isTransferringHost ? "Transfert…" : selectedHostTransferPlayer ? `Confirmer pour ${selectedHostTransferPlayer.display_name}` : "Choisir un joueur"}</button>} onClose={() => { if (!isTransferringHost) setIsHostTransferOpen(false); }} title="Transférer l'hôte" width="medium"><div className="grid gap-2 overflow-y-auto p-4 sm:p-6">{hostTransferCandidates.map((player) => <button aria-pressed={hostTransferSeat === player.seat_index} className={`rounded-xl border px-4 py-3 text-left font-semibold transition ${hostTransferSeat === player.seat_index ? "border-amber-300/50 bg-amber-200/15 text-amber-950" : "border-stone-300 bg-white/70 text-stone-800 hover:bg-white"}`} key={player.seat_index} onClick={() => setHostTransferSeat(player.seat_index)} type="button">{player.display_name}</button>)}</div></AccessibleDialog> : null}
 
-            {displayedRoomStatus === "playing" && playerView ? (
+            {(displayedRoomStatus === "playing" || displayedRoomStatus === "finished") && playerView ? (
               <div
                 className={[
                   "relative grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] gap-2",
@@ -467,6 +459,13 @@ export default function MultiplayerRoomPage() {
                   ) : null}
 
                   <GameTable
+                    key={session?.user.id}
+                    onCompletionVisibilityChange={(visible) => setPresentedCompletionScope(visible ? completionScope : null)}
+                    completion={displayedRoomStatus === "finished" && finishedPresentation ? <FinishedRoomCard
+                      isHost={roomWithPlayers.isHost} isResettingRoom={isResettingRoom} onRematch={handleRematch}
+                      presentation={finishedPresentation} rating={finishedRating} />
+                      : playerView.phase === "finished" && canShowNextRoundButton ? <RoundCompletionCard actionLabel="Manche suivante" disabled={isStartingNextRound} onAction={handleStartNextRound} state={playerView} /> : null}
+                    replaceWithCompletion={displayedRoomStatus === "finished"}
                     optimisticCard={visiblePendingCardValue ? { playerId: playerView.viewerPlayerId, card: visiblePendingCardValue } : null}
                     biddingControls={playerView.phase === "bidding" && canBid && !isPlayingCard ? <BiddingPanel
                       bids={playerView.bids}
@@ -496,7 +495,7 @@ export default function MultiplayerRoomPage() {
                     immersiveMobileLandscape={isMobileLandscape}
                     minimalHud={isFocusMode}
                     players={roomWithPlayers.players}
-                    presentationScope={roomId ?? "multiplayer"}
+                    presentationScope={`${roomId ?? "multiplayer"}:${roomWithPlayers.gameId ?? "waiting"}`}
                     state={playerView}
                     showLiveScore={preferences.assistance.showLivePoints}
                     trickPresentationPolicy={{ autoCollect: tablePreferences.autoCollectTricks, delayMs: tablePreferences.trickDisplayMs }}
@@ -510,10 +509,6 @@ export default function MultiplayerRoomPage() {
           </>
         ) : null}
       </div>
-
-      {displayedRoomStatus === "playing" && playerView?.phase === "finished" && canShowNextRoundButton ? (
-        <RoundCompletionCard actionLabel="Manche suivante" disabled={isStartingNextRound} onAction={handleStartNextRound} state={playerView} />
-      ) : null}
 
       {isForfeitConfirmationOpen ? <AccessibleDialog description="Ton équipe perdra immédiatement la partie." footer={<div className="flex justify-end gap-2"><button className={appSecondaryActionClass} disabled={isForfeiting} onClick={() => setIsForfeitConfirmationOpen(false)} type="button">Continuer la partie</button><button className={appDangerActionClass} disabled={isForfeiting} onClick={() => void handleForfeitGame()} type="button">{isForfeiting ? "Abandon…" : "Abandonner"}</button></div>} onClose={() => { if (!isForfeiting) setIsForfeitConfirmationOpen(false); }} title="Abandonner la partie ?"><div /></AccessibleDialog> : null}
       {isSettingsOpen ? <PlayerSettingsDialog context={{ mode: "multiplayer", isHost, tablePreferences, isSavingTablePreferences: isUpdatingTablePreferences, onTablePreferencesChange: handleUpdateTablePreferences }} onClose={() => setIsSettingsOpen(false)} /> : null}
