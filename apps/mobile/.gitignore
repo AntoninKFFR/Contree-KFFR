@@ -11,3 +11,5 @@ android/
 geometry-results/
 geometry-report/
 .visual-build/
+
+training-*.log

@@ -66,6 +66,13 @@ export function createTrickValueExercise(position: TrainingPosition): TrickValue
     }
   }
 
+  return createCompletedTrickValueExercise(state, position.seed, position.generatorVersion);
+}
+
+/** Build only from an already completed, public trick. No simulation or hidden hand is needed. */
+export function createCompletedTrickValueExercise(state: Pick<GameState, "completedTricks" | "contract" | "contractMode" | "trump" | "settings">, seed: number, version: typeof generatorVersion): TrickValueExercise {
+  const mode = resolveContractMode(state);
+  if (!mode || state.completedTricks.length === 0) throw new Error("A completed public trick is required.");
   const trick = state.completedTricks.at(-1)!;
   const trickNumber = state.completedTricks.length;
   const isLastTrick = trickNumber === 8;
@@ -74,8 +81,8 @@ export function createTrickValueExercise(position: TrainingPosition): TrickValue
     && rules.trickScoring.capotLastTrickBonus !== rules.trickScoring.lastTrickBonus
     && state.completedTricks.slice(0, -1).every((played) => playerTeam(played.winnerId) === playerTeam(trick.winnerId));
   return {
-    seed: position.seed,
-    generatorVersion: position.generatorVersion,
+    seed,
+    generatorVersion: version,
     cards: trick.cards,
     contractMode: mode,
     trickNumber,

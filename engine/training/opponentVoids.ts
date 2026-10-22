@@ -1,7 +1,8 @@
+import { knowledgeHand, type KnowledgeState } from "@/engine/knowledge/publicState";
 import { cardId, SUITS } from "@/engine/cards";
 import { getRemainingTrumps, inferVoidSuitsByPlayer } from "@/engine/knowledge/tableKnowledge";
 import { generateTrainingPosition, generatorVersion, type TrainingPosition } from "@/engine/training/generator";
-import type { Card, GameState, PlayedCard, PlayerId, Suit } from "@/engine/types";
+import type { Card, PlayedCard, PlayerId, Suit } from "@/engine/types";
 
 export const OPPONENT_VOIDS_LEVELS = 3;
 export const OPPONENT_VOIDS_SERIES_LENGTH = 10;
@@ -42,7 +43,7 @@ export function parseOpponentVoidsLevel(value: unknown): number | null {
   return Number(value);
 }
 
-function publicProofs(state: GameState): Record<string, VoidProof> {
+function publicProofs(state: KnowledgeState): Record<string, VoidProof> {
   const proofs: Record<string, VoidProof> = {};
   state.completedTricks.forEach((trick, trickIndex) => {
     const leadSuit = trick.cards[0]?.card.suit;
@@ -57,7 +58,7 @@ function publicProofs(state: GameState): Record<string, VoidProof> {
   return proofs;
 }
 
-export function createOpponentVoidsExercise(level: number, state: GameState, seed: number, targetProven?: boolean): OpponentVoidsExercise {
+export function createOpponentVoidsExercise(level: number, state: KnowledgeState, seed: number, targetProven?: boolean): OpponentVoidsExercise {
   if (!Number.isInteger(level) || level < 1 || level > OPPONENT_VOIDS_LEVELS) throw new Error("Invalid opponent-voids level.");
   if (!state.trump || state.completedTricks.length < 1 || state.currentTrick.cards.length !== 0) {
     throw new Error("Opponent-voids exercise requires a completed trick and a trick-start position.");
@@ -71,7 +72,7 @@ export function createOpponentVoidsExercise(level: number, state: GameState, see
   const players = level === 1 ? [Number(chosen.split(":")[0]) as PlayerId] : [...OPPONENT_PLAYERS];
   const suits = level === 1 ? [chosen.split(":")[1] as Suit] : [...SUITS];
   const expectedCells = allCells.filter((key) => proven.has(key) && (level !== 1 || key === chosen));
-  const ownTrumpIds = new Set(state.hands[0].filter((card) => card.suit === state.trump).map(cardId));
+  const ownTrumpIds = new Set(knowledgeHand(state, 0).filter((card) => card.suit === state.trump).map(cardId));
   const expectedTrumpCount = level === 3 ? getRemainingTrumps(state, 0).filter((card) => !ownTrumpIds.has(cardId(card))).length : null;
   const evidence = publicProofs(state);
   const proofs = Object.fromEntries(expectedCells.filter((key) => evidence[key]).map((key) => [key, evidence[key]]));
@@ -81,7 +82,7 @@ export function createOpponentVoidsExercise(level: number, state: GameState, see
     observation: {
       completedTricks: state.completedTricks.map((trick) => trick.cards.map((played) => ({ ...played }))),
       currentCards: [],
-      ...(level === 3 ? { ownHand: [...state.hands[0]] } : {}),
+      ...(level === 3 ? { ownHand: [...knowledgeHand(state, 0)] } : {}),
     },
     playerNames: state.playerNames ?? { 0: "Joueur 1", 1: "Joueur 2", 2: "Joueur 3", 3: "Joueur 4" },
   };

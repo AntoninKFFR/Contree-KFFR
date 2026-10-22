@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export function subscribeToTrainingDuoRealtime(supabase: SupabaseClient, sessionId: string, refresh: () => void | Promise<void>) {
+export function subscribeToTrainingDuoRealtime(supabase: SupabaseClient, sessionId: string, refresh: () => void | Promise<void>, onStatus?: (status: string, error?: Error) => void) {
   let timer: ReturnType<typeof setTimeout> | null = null;
   const invalidate = () => {
     if (timer !== null) return;
@@ -9,7 +9,7 @@ export function subscribeToTrainingDuoRealtime(supabase: SupabaseClient, session
   const channel = supabase.channel(`training-duo:${sessionId}`)
     .on("postgres_changes", { event: "*", schema: "public", table: "training_duo_sessions", filter: `id=eq.${sessionId}` }, invalidate)
     .on("postgres_changes", { event: "*", schema: "public", table: "training_duo_participants", filter: `session_id=eq.${sessionId}` }, invalidate)
-    .subscribe();
+    .subscribe((status, error) => onStatus?.(status, error));
   return () => {
     if (timer !== null) clearTimeout(timer);
     void supabase.removeChannel(channel);

@@ -1,7 +1,7 @@
 import { trainingAxes } from "@/engine/training/axes";
 import type { InGameAxisId, InGameExercise, TriggerMoment } from "@/engine/training/inGame";
 import type { createTrainingAxisRegistry } from "@/engine/training/registry";
-import type { GameState } from "@/engine/types";
+import type { KnowledgeState } from "@/engine/knowledge/publicState";
 
 export type InGameAxisChoice = { id: InGameAxisId; enabled: boolean; level: number };
 export type InGameConfiguration = { budgetPerRound: 1 | 2 | 3; axes: InGameAxisChoice[] };
@@ -10,7 +10,7 @@ export type InGameBoundary = {
   roundNumber: number;
   trickIndex: number;
   moments: readonly TriggerMoment[];
-  state: GameState;
+  state: KnowledgeState;
 };
 export type InGameSchedulerState = {
   roundNumber: number;
@@ -45,7 +45,7 @@ export function plannedQuestionTricks(sessionSeed: number, roundNumber: number, 
 }
 
 /** A completed trick is one boundary, even though it is also the next trick's start. */
-export function detectInGameBoundary(previous: GameState | null, current: GameState): InGameBoundary | null {
+export function detectInGameBoundary(previous: KnowledgeState | null, current: KnowledgeState): InGameBoundary | null {
   if (!previous || current.roundNumber !== previous.roundNumber && current.phase !== "playing") return null;
   const completed = current.completedTricks.length;
   const ended = current.roundNumber === previous.roundNumber && completed > previous.completedTricks.length;

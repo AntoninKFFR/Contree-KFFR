@@ -1,3 +1,5 @@
+import { useInGameTraining, InGameOverlay, TrainingSummary } from "@/training/in-game";
+import type { InGameConfiguration } from "@/lib/training/inGameScheduler";
 import { soloWait } from "@/solo/performance";
 import { formatBidLabel } from "@/lib/solo/tableAnnouncements";
 import { SoloAppearance, SoloText as Text } from "@/solo/appearance";
@@ -25,23 +27,28 @@ import { isPreferenceAnimationEnabled } from "@/lib/preferences/presentation";
 export { cardLabel } from "@/solo/card-face";
 
 export default function SoloScreen() { return <AccountGate bottomInset><SoloRoom /></AccountGate>; }
-function SoloRoom() {
+export function SoloRoom({ training }: { training?: InGameConfiguration } = {}) {
   const router = useRouter();
-  const { state, controller } = useSolo(), settings = useSoloPreferences(), rules = useSoloRules();
+  const { state, controller } = useSolo(training ? "training" : undefined), settings = useSoloPreferences(), rules = useSoloRules();
   const insets = useSafeAreaInsets(), window = useWindowDimensions();
   const width = window.width - insets.left - insets.right, height = window.height - insets.top - insets.bottom;
   const [dialog, setDialog] = useState<"menu" | "exit" | "new" | "last" | "details" | "table" | "settings" | "rules" | null>(null);
   const session = state.session, game = session?.state;
   const ready = Boolean(controller && !state.busy && !state.requiresSync && !state.error && settings.loaded && rules.loaded);
-  const enabled = ready && state.active && window.width > window.height;
+  const pedagogy = useInGameTraining(game, training, session?.id);
+  const enabled = ready && !pedagogy.paused && state.active && window.width > window.height;
   const human = enabled && game?.currentPlayerId === 0;
   const presentation = useTablePresentation(session, settings.preferences, settings.reduced, Boolean(state.active && settings.loaded && window.width > window.height));
+  useEffect(() => {
+    if (!training || game?.phase !== "game-over" || !presentation.resultReady || pedagogy.paused) return;
+    const timer = setTimeout(() => setDialog("details"), 0); return () => clearTimeout(timer);
+  }, [training, game?.phase, presentation.resultReady, pedagogy.paused]);
   const audio = useSoloAudio(settings.preferences, session, presentation.lastCollected);
   const pacer = useRef<SoloBotTurnPacer | null>(null);
   const botDelay = game?.phase === "bidding" ? settings.preferences.gameplay.biddingDelayMs : settings.preferences.gameplay.botDelayMs;
   const collectionKey = game ? soloBotCollectionKey(game, settings.preferences, settings.reduced) : null;
   const collectionDone = collectionKey !== null && presentation.isCollected(collectionKey);
-  const botEnabled = Boolean(controller && !state.requiresSync && !state.error && settings.loaded && rules.loaded && state.active && window.width > window.height);
+  const botEnabled = Boolean(!pedagogy.paused && controller && !state.requiresSync && !state.error && settings.loaded && rules.loaded && state.active && window.width > window.height);
   useEffect(() => {
     if (!botEnabled || !game || !["bidding", "playing"].includes(game.phase) || game.currentPlayerId === 0) return;
     const started = performance.now();
@@ -74,7 +81,7 @@ function SoloRoom() {
       {game && state.active && settings.loaded ? <>
         <SoloScene resultVisible={presentation.resultReady} session={session!} width={width} height={height} preferences={settings.preferences} reduced={settings.reduced} human={human} onIntent={send} pendingCard={state.pendingCard}
           layers={presentation.layers} cardPresentations={presentation.cardPresentations} presented={presentation.presented} policy={presentation.policy} onCollect={presentation.collect} onLastTrick={() => setDialog("last")} />
-        {presentation.resultReady ? <RoundCompletion game={game} disabled={!ready} onAction={() => game.phase === "game-over" ? setDialog("new") : send({ type: "start-next-round" })} onDetails={() => setDialog("details")} reduced={!isPreferenceAnimationEnabled(settings.preferences, "trick", settings.reduced)} /> : null}
+        {presentation.resultReady && !pedagogy.paused ? <RoundCompletion game={game} disabled={!ready} onAction={() => game.phase === "game-over" ? setDialog("new") : send({ type: "start-next-round" })} onDetails={() => setDialog("details")} reduced={!isPreferenceAnimationEnabled(settings.preferences, "trick", settings.reduced)} /> : null}
       </> : <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 68, gap: 12 }}>
         {!state.hydrated || state.busy || !settings.loaded ? <><ActivityIndicator color="#ead8a6" accessibilityLabel="Chargement Solo" /><Text style={styles.body}>Recherche de ta partie…</Text></> : <>
           <Text accessibilityRole="header" style={styles.heading}>{session ? "Partie sauvegardée" : "Solo · Contrée KFFR"}</Text>
@@ -88,6 +95,7 @@ function SoloRoom() {
       <View style={{ position: "absolute", right: 4, top: 4, zIndex: 50, width: 44 }}><TableButton label="☰" accessibilityLabel="Menu Partie" onPress={() => setDialog("menu")} symbol chrome /></View>
       <View style={{ position: "absolute", right: 4, bottom: 12, zIndex: 50, width: 44 }}><TableButton label="‹" accessibilityLabel="Menu KFFR" onPress={() => setDialog("menu")} symbol chrome /></View>
     </View>
+    {training ? <InGameOverlay training={pedagogy} ready={Boolean(game && state.active && (!collectionKey || collectionDone) && !presentation.presented)} /> : null}
     <DetailDialog reduceMotion={settings.reduced} visible={dialog !== null} title={{ menu: "Menu Partie", exit: "Revenir à l’accueil ?", new: "Nouvelle partie", settings: "Paramètres", rules: "Règles de la prochaine partie", table: "La table", last: "Dernier pli", details: "Détails de la manche" }[dialog ?? "menu"]} onClose={() => setDialog(null)}>
     {dialog === "menu" ? <>
       <TableButton label="Table, enchères et scores" onPress={() => setDialog("table")} />
@@ -96,7 +104,7 @@ function SoloRoom() {
       <TableButton label="Nouvelle partie" onPress={() => setDialog("new")} />
       <TableButton label="Revenir à l’accueil" onPress={() => setDialog("exit")} />
     </> : null}
-    {dialog === "exit" ? <><Text style={styles.body}>Ta partie reste sauvegardée sur le serveur.</Text><TableButton label="Revenir à l’accueil" primary onPress={() => { setDialog(null); router.replace("/"); }} /><TableButton label="Rester à la table" onPress={() => setDialog(null)} /></> : null}
+    {dialog === "exit" ? <><Text style={styles.body}>Ta partie reste sauvegardée sur le serveur.</Text><TableButton label="Revenir à l’accueil" primary onPress={() => { setDialog(null); router.replace(training ? "/training" : "/"); }} /><TableButton label="Rester à la table" onPress={() => setDialog(null)} /></> : null}
     {dialog === "new" ? <><Text style={styles.body}>La reprise sur cet appareil pointera vers la nouvelle partie. La partie actuelle reste sauvegardée sur le serveur.</Text><TableButton label="Commencer" primary disabled={state.busy || !rules.loaded} onPress={() => { setDialog(null); void controller?.start(rules.rules); }} /><TableButton label="Annuler" onPress={() => setDialog(null)} /></> : null}
     {dialog === "settings" ? <>{settings.error ? <Text accessibilityRole="alert" style={styles.body}>{settings.error}</Text> : null}<SoloSettingsPanel preferences={settings.preferences} onChange={settings.update} onTestSound={() => audio.sound("ui")} music={audio.music} /></> : null}
     {dialog === "rules" ? <>{rules.error ? <Text accessibilityRole="alert" style={styles.body}>{rules.error}</Text> : null}<SoloRulesPanel initial={rules.rules} replacesGame={Boolean(game)} saveDisabled={state.busy || !rules.loaded} onCancel={() => setDialog(null)} onSave={async (draft) => { const saved = await rules.save(draft); if (saved) { setDialog(null); if (game) void controller?.start(draft); } return saved; }} /></> : null}
@@ -108,7 +116,7 @@ function SoloRoom() {
       {game.bids.map((bid, i) => <Text key={i} style={styles.body}>{playerName(bid.playerId, game.playerNames)} : {formatBidLabel(bid).label}</Text>)}
     </> : null}</> : null}
     {dialog === "last" ? <>{last ? <><Text style={styles.body}>{playerName(last.winnerId, game?.playerNames)} gagne · {last.points} points</Text><View style={{ alignSelf: "center" }}><TrickCards cards={last.cards} height={72} preferences={settings.preferences} reduced details /></View></> : null}</> : null}
-    {dialog === "details" ? <>{game?.result?.kind === "played" ? <>
+    {dialog === "details" ? <>{training ? <TrainingSummary summary={pedagogy.summary} /> : null}{game?.result?.kind === "played" ? <>
       <Text style={styles.body}>Points de plis : {game.result.trickPointsByTeam[0]} — {game.result.trickPointsByTeam[1]}</Text><Text style={styles.body}>Points détaillés : {game.result.totalPointsByTeam[0]} — {game.result.totalPointsByTeam[1]}</Text><Text style={styles.body}>Belote : {game.result.belotePointsByTeam[0]} — {game.result.belotePointsByTeam[1]}</Text><Text style={styles.body}>Annonces : {game.result.announcementPointsByTeam[0]} — {game.result.announcementPointsByTeam[1]}</Text><Text style={styles.body}>Multiplicateur : ×{game.result.multiplier}</Text>{last ? <Text style={styles.body}>Dernier pli : {playerName(last.winnerId, game.playerNames)} · {last.points} points</Text> : null}
     </> : <Text style={styles.body}>Tous ont passé. Nouvelle donne.</Text>}</> : null}
     </DetailDialog>

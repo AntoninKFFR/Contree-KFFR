@@ -10,8 +10,10 @@ export class TrainingDuoApiError extends Error {
   }
 }
 
+export function createTrainingDuoClient(options: { origin?: string; fetcher?: typeof fetch; signal?: AbortSignal } = {}) {
 async function request(url: string, token: DuoToken, init?: RequestInit): Promise<TrainingDuoView | null> {
-  const response = await fetch(url, {
+  const response = await (options.fetcher ?? fetch)((options.origin ?? "") + url, {
+    signal: options.signal,
     ...init,
     cache: "no-store",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token.access_token}`, ...init?.headers },
@@ -28,19 +30,19 @@ async function request(url: string, token: DuoToken, init?: RequestInit): Promis
 const base = "/api/training/duo/sessions";
 function sessionUrl(sessionId: string) { return `${base}/${encodeURIComponent(sessionId)}`; }
 
-export async function createTrainingDuoSession(level: BidReadingLevel, token: DuoToken) {
+async function createTrainingDuoSession(level: BidReadingLevel, token: DuoToken) {
   return (await request(base, token, { method: "POST", body: JSON.stringify({ level }) }))!;
 }
-export async function joinTrainingDuoSession(code: string, token: DuoToken) {
+async function joinTrainingDuoSession(code: string, token: DuoToken) {
   return (await request(`${base}/join`, token, { method: "POST", body: JSON.stringify({ code }) }))!;
 }
-export async function fetchTrainingDuoView(sessionId: string, token: DuoToken) {
+async function fetchTrainingDuoView(sessionId: string, token: DuoToken) {
   return (await request(sessionUrl(sessionId), token))!;
 }
-export function sendTrainingDuoIntent(sessionId: string, expectedVersion: number, intent: TrainingDuoIntent, token: DuoToken) {
+function sendTrainingDuoIntent(sessionId: string, expectedVersion: number, intent: TrainingDuoIntent, token: DuoToken) {
   return request(sessionUrl(sessionId), token, { method: "POST", body: JSON.stringify({ expectedVersion, intent }) });
 }
-export async function sendTrainingDuoPresence(sessionId: string, token: DuoToken) {
+async function sendTrainingDuoPresence(sessionId: string, token: DuoToken) {
   return (await request(`${sessionUrl(sessionId)}/presence`, token, { method: "POST" }))!;
 }
 
@@ -56,7 +58,7 @@ function satisfied(intent: TrainingDuoIntent, previous: TrainingDuoView, current
   return false;
 }
 
-export async function sendTrainingDuoIntentWithRetry(
+async function sendTrainingDuoIntentWithRetry(
   view: TrainingDuoView, intent: TrainingDuoIntent, token: DuoToken,
 ): Promise<TrainingDuoView | null> {
   const sessionId = view.session.id;
@@ -80,3 +82,8 @@ export async function sendTrainingDuoIntentWithRetry(
     }
   }
 }
+
+return { createTrainingDuoSession, joinTrainingDuoSession, fetchTrainingDuoView, sendTrainingDuoIntent, sendTrainingDuoPresence, sendTrainingDuoIntentWithRetry };
+}
+const defaultClient = createTrainingDuoClient();
+export const { createTrainingDuoSession, joinTrainingDuoSession, fetchTrainingDuoView, sendTrainingDuoIntent, sendTrainingDuoPresence, sendTrainingDuoIntentWithRetry } = defaultClient;

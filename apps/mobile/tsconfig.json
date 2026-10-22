@@ -45,6 +45,18 @@
       ],
       "@/bots/*": [
         "../../bots/*"
+      ],
+      "@/lib/trainingDuoApi": [
+        "../../lib/trainingDuoApi.ts"
+      ],
+      "@/lib/trainingDuoTypes": [
+        "../../lib/trainingDuoTypes.ts"
+      ],
+      "@/lib/trainingDuoRealtime": [
+        "../../lib/trainingDuoRealtime.ts"
+      ],
+      "@/lib/trainingDuoInvitationsApi": [
+        "../../lib/trainingDuoInvitationsApi.ts"
       ]
     },
     "types": [

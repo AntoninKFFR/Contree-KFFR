@@ -7,7 +7,7 @@ import { createSoloApi } from "./api";
 import { createSoloController, initialSoloState, type SoloState } from "./controller";
 import { soloEnvironment } from "@/solo/environment";
 
-export function useSolo() {
+export function useSolo(scope?: "training") {
   const account = useAccount(), accountRef = useRef(account);
   useEffect(() => { accountRef.current = account; }, [account]);
   const [binding, setBinding] = useState<{ owner: string; token: string; snapshot: SoloState; controller: ReturnType<typeof createSoloController> } | null>(null);
@@ -16,13 +16,13 @@ export function useSolo() {
     if (!owner || !token) return;
     let live = true;
     const next = createSoloController({ owner, identity: () => accountRef.current.session,
-      api: createSoloApi(soloEnvironment.fetcher), storage: soloEnvironment.storage, uuid: soloEnvironment.uuid,
+      api: createSoloApi(soloEnvironment.fetcher), storage: scope ? { getItem: (key) => soloEnvironment.storage.getItem(scope + ":" + key), setItem: (key, value) => soloEnvironment.storage.setItem(scope + ":" + key, value) } : soloEnvironment.storage, uuid: soloEnvironment.uuid,
       onChange: (value) => { if (live) setBinding({ owner, token, snapshot: value, controller: next }); }, unauthorized: () => accountRef.current.reload(),
     });
     const listener = AppState.addEventListener("change", (status) => { if (status !== "active") next.suspend(); else void next.load(); });
     void next.load(); // GET saved ID only. Creating a game always needs a user press.
     return () => { live = false; listener.remove(); next.dispose(); setBinding(null); };
-  }, [owner, token]));
+  }, [owner, token, scope]));
   useEffect(soloDisplayCommitted, [binding?.snapshot.session]);
   const live = binding && binding.owner === owner && binding.token === token;
   return { state: live ? binding.snapshot : initialSoloState, controller: live ? binding.controller : null };

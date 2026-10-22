@@ -1,3 +1,4 @@
+import { knowledgeHand, type KnowledgeState } from "@/engine/knowledge/publicState";
 import { createDeck, SUITS } from "@/engine/cards";
 import { playerTeam } from "@/engine/rules";
 import { resolveContractMode, usesTrumpRanking } from "@/engine/contractMode";
@@ -34,21 +35,21 @@ function cardKey(card: Card): string {
   return `${card.rank}-${card.suit}`;
 }
 
-function sortCardsByMasterOrder(cards: Card[], suit: Suit, state: GameState): Card[] {
+function sortCardsByMasterOrder(cards: Card[], suit: Suit, state: KnowledgeState): Card[] {
   const mode = resolveContractMode(state);
   const order = mode && usesTrumpRanking(suit, mode) ? TRUMP_MASTER_ORDER : NORMAL_MASTER_ORDER;
   return [...cards].sort((first, second) => order.indexOf(first.rank) - order.indexOf(second.rank));
 }
 
-export function getVisibleCards(state: GameState, viewerId: PlayerId): Card[] {
+export function getVisibleCards(state: KnowledgeState, viewerId: PlayerId): Card[] {
   return [
-    ...state.hands[viewerId],
+    ...knowledgeHand(state, viewerId),
     ...state.currentTrick.cards.map((played) => played.card),
     ...state.completedTricks.flatMap((trick) => trick.cards.map((played) => played.card)),
   ];
 }
 
-export function getPlayedCards(state: GameState, viewerId: PlayerId): Card[] {
+export function getPlayedCards(state: KnowledgeState, viewerId: PlayerId): Card[] {
   void viewerId;
   return [
     ...state.currentTrick.cards.map((played) => played.card),
@@ -56,7 +57,7 @@ export function getPlayedCards(state: GameState, viewerId: PlayerId): Card[] {
   ];
 }
 
-export function inferVoidSuitsByPlayer(state: GameState, viewerId: PlayerId): Record<PlayerId, Suit[]> {
+export function inferVoidSuitsByPlayer(state: KnowledgeState, viewerId: PlayerId): Record<PlayerId, Suit[]> {
   void viewerId;
   const voidSuits: Record<PlayerId, Set<Suit>> = {
     0: new Set<Suit>(),
@@ -95,13 +96,13 @@ export function inferVoidSuitsByPlayer(state: GameState, viewerId: PlayerId): Re
   };
 }
 
-export function getPlayedTrumps(state: GameState, viewerId: PlayerId): Card[] {
+export function getPlayedTrumps(state: KnowledgeState, viewerId: PlayerId): Card[] {
   if (!state.trump) return [];
 
   return getPlayedCards(state, viewerId).filter((card) => card.suit === state.trump);
 }
 
-export function getRemainingTrumps(state: GameState, viewerId: PlayerId): Card[] {
+export function getRemainingTrumps(state: KnowledgeState, viewerId: PlayerId): Card[] {
   if (!state.trump) return [];
 
   const playedTrumpKeys = new Set(getPlayedTrumps(state, viewerId).map(cardKey));
@@ -112,7 +113,7 @@ export function getRemainingTrumps(state: GameState, viewerId: PlayerId): Card[]
   );
 }
 
-export function getMasterCardsStillOutBySuit(state: GameState, viewerId: PlayerId): Record<Suit, Card | null> {
+export function getMasterCardsStillOutBySuit(state: KnowledgeState, viewerId: PlayerId): Record<Suit, Card | null> {
   const playedCardKeys = new Set(getPlayedCards(state, viewerId).map(cardKey));
 
   return {
@@ -143,7 +144,7 @@ export function getMasterCardsStillOutBySuit(state: GameState, viewerId: PlayerI
   };
 }
 
-export function getRemainingCardsBySuit(state: GameState, viewerId: PlayerId): Record<Suit, Card[]> {
+export function getRemainingCardsBySuit(state: KnowledgeState, viewerId: PlayerId): Record<Suit, Card[]> {
   const playedCardKeys = new Set(getPlayedCards(state, viewerId).map(cardKey));
 
   return {
@@ -170,7 +171,7 @@ export function getRemainingCardsBySuit(state: GameState, viewerId: PlayerId): R
   };
 }
 
-export function getCutRiskBySuit(state: GameState, viewerId: PlayerId): Record<Suit, CutRiskInfo> {
+export function getCutRiskBySuit(state: KnowledgeState, viewerId: PlayerId): Record<Suit, CutRiskInfo> {
   const voidSuitsByPlayer = inferVoidSuitsByPlayer(state, viewerId);
   const remainingTrumps = getRemainingTrumps(state, viewerId);
   const remainingCardsBySuit = getRemainingCardsBySuit(state, viewerId);
@@ -227,17 +228,17 @@ export function getCutRiskBySuit(state: GameState, viewerId: PlayerId): Record<S
   };
 }
 
-export function getDeadSuits(state: GameState, viewerId: PlayerId): Suit[] {
+export function getDeadSuits(state: KnowledgeState, viewerId: PlayerId): Suit[] {
   const remainingCardsBySuit = getRemainingCardsBySuit(state, viewerId);
   return SUITS.filter((suit) => remainingCardsBySuit[suit].length === 0);
 }
 
-export function getWeakenedSuits(state: GameState, viewerId: PlayerId): Suit[] {
+export function getWeakenedSuits(state: KnowledgeState, viewerId: PlayerId): Suit[] {
   const remainingCardsBySuit = getRemainingCardsBySuit(state, viewerId);
   return SUITS.filter((suit) => remainingCardsBySuit[suit].length <= 2);
 }
 
-export function buildTableKnowledge(state: GameState, viewerId: PlayerId): TrickKnowledge {
+export function buildTableKnowledge(state: KnowledgeState, viewerId: PlayerId): TrickKnowledge {
   return {
     inactivePlayerId: inactivePlayerId(state),
     voidSuitsByPlayer: inferVoidSuitsByPlayer(state, viewerId),
