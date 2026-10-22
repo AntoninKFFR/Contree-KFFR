@@ -39,6 +39,12 @@
       ],
       "@supabase/supabase-js": [
         "./node_modules/@supabase/supabase-js"
+      ],
+      "@/lib/training/*": [
+        "../../lib/training/*"
+      ],
+      "@/bots/*": [
+        "../../bots/*"
       ]
     },
     "types": [
